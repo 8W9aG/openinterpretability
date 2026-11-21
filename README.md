@@ -5,104 +5,34 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24150022.svg)](https://doi.org/10.5281/zenodo.24150022)
 [![PyPI](https://img.shields.io/pypi/v/open-interpretability.svg)](https://pypi.org/project/open-interpretability/)
 
-`openinterpretability` is an open mechanistic interpretability lab, run with agents. It publishes an agent-audited registry of native neurons and the testing protocol behind it, for open-weight foundation models (Llama, Qwen, Mistral, …).
+An open lab, run with agents, that explains the native neurons and attention heads of open-weight language models and publishes each result at **[open-interpretability.com](https://open-interpretability.com/)**.
 
-The registry is published at **[open-interpretability.com](https://open-interpretability.com/)**: every experiment, unit, model and paper, with search and the Parquet export.
+## Before you start
 
-Rather than cataloging the latents of learned SAE dictionaries, this project audits **native model weights directly**. Each entry in the registry is one *pole* (positive or negative half) of one MLP neuron. It starts from a working hypothesis, not an established finding. Goodfire's essay [*Neural Networks Are Already Clean*](https://already-clean.goodfire.com/) (Cammarata, 2026) argues that most apparent polysemanticity in native neurons comes from solvable tooling problems rather than superposition. Its technical companion paper has not been published, so the registry tests that claim one pole at a time rather than assuming it. A pole that resists a clean explanation is a result too.
+You need [Git](https://git-scm.com/), [Python](https://www.python.org/) 3.11+, [uv](https://docs.astral.sh/uv/) and [Claude Code](https://claude.com/claude-code). A laptop CPU is enough.
 
-## Quickstart
-
-An experiment takes one neuron, proposes what it does, has a *different* model try to break that claim, and posts the result, whatever it is. A hypothesis that fails is a result too. The shortest path is to let Claude Code drive the whole loop. It needs no API keys: Claude Code's own subagents write the proposal and the review.
-
-### What you need
-
-| Tool | What it is for | Needed |
-| --- | --- | --- |
-| [Git](https://git-scm.com/) and a GitHub account | Fork the repo, and push your experiment as a pull request | Always |
-| [Python](https://www.python.org/) 3.11+ | Runs `open-interpretability` and the model | Always |
-| [uv](https://docs.astral.sh/uv/) | Installs the dependencies into `.venv` and runs the commands (`uv run …`) | Always |
-| [GitHub CLI](https://cli.github.com/) (`gh`) | Opens the draft PR that claims a neuron. The planner also reads open PRs with it, to skip neurons that others have claimed | To contribute. Without it, the planner can't see claims, and you open the PR on github.com |
-| [Claude Code](https://claude.com/claude-code) | Drives the experiment, and its subagents answer as proposer, reviewer and judge | To run the loop. Also to run it yourself with no API keys |
-| An LLM API key (any [LiteLLM](https://docs.litellm.ai/) provider) | Proposer and reviewer through an API instead of Claude Code | Only to run it yourself through an API |
-
-Node.js is not needed: no step of the build uses it, and Claude Code's native installer doesn't need it either (only its npm install does). [Vale](https://vale.sh) is needed only for `make lint` and `make vale` when you change code.
-
-A laptop CPU is enough. The default models are small (Qwen2.5-0.5B is about 1 GB, downloaded on first use). An 8 GB machine runs GPT-2 and Qwen2.5-0.5B, and Qwen2.5-1.5B needs 16 GB ([Memory](docs/experiments.md#memory)). The first scan also downloads about 1.5 GB of labelling models.
-
-### Run it
+## Run an experiment
 
 ```bash
-gh repo fork 8W9aG/openinterpretability --clone   # or fork on GitHub and git clone your fork
+gh repo fork 8W9aG/openinterpretability --clone
 cd openinterpretability
 claude "/loop /land-experiment"
 ```
 
-That is all. The loop runs one experiment after another until you stop it. Each one draws a neuron with `open-interpretability next` and claims it with a draft PR. It then scans the neuron, has one subagent propose a hypothesis and another review it, and posts the result. `uv run` installs the dependencies on first use. Each scan builds its own corpus. A scan takes about 10–15 minutes on CPU.
+Each experiment draws a neuron and proposes what it does. A different model then tries to break that claim, and the result goes in a pull request. The loop runs one experiment after another until you stop it.
 
-`land-experiment` merges a green PR only when it changes `wiki/` alone and you have write access. From a fork, it leaves each PR for a maintainer and goes on to the next experiment. To be credited, set `export OPENINTERPRETABILITY_CONTRIBUTOR=<your GitHub username>` (never an email) before you start Claude Code. For one experiment and no merge, start `claude` and ask: "Run the next experiment and open a PR with the result."
-
-### Or run it yourself
-
-With API keys set for the proposer and the reviewer (e.g. `export ANTHROPIC_API_KEY=...` for the default proposer, `anthropic/claude-opus-5-5`, and `OPENAI_API_KEY` for the `openai/gpt-5` reviewer below):
+## Explain an answer
 
 ```bash
-make install                              # creates .venv with everything
-uv run open-interpretability next --steps            # draws an experiment and prints every step as exact commands
-uv run open-interpretability audit --model Qwen/Qwen2.5-0.5B --random --corpus corpus.jsonl
-uv run open-interpretability verify --audit-file submissions/<…>.json --agent-model openai/gpt-5
+uv run open-interpretability explain "The sun rises in the"
 ```
 
-`audit` scans the neuron and asks the proposer for a hypothesis. `verify` has the reviewer write probes, measures them on the model, and writes the experiment under `wiki/experiments/`. Build `corpus.jsonl` first with the command in [The scan corpus](docs/experiments.md#the-scan-corpus).
+It lists the units that carry the model's answer, says which of them the registry explains, and lists the experiments that would explain the rest. It reads `corpus.jsonl`, which [The scan corpus](docs/experiments.md#the-scan-corpus) says how to build.
 
-Claim the neuron with a draft PR before the scan, so others don't draw it too (`next --steps` prints the commands). When it finishes, run `make check`, commit `wiki/` and mark the PR ready. A PR that changes only `wiki/` merges automatically when CI passes.
+## More
 
-### More detail
-
-- [docs/experiments.md](docs/experiments.md): other LLMs, answer files without API keys, the scan corpus and caches, and loops and parallel sessions. Also attention heads and dictionary latents, contributing and credit, the skills, definitions and the models.
-- [docs/benchmark.md](docs/benchmark.md): the public benchmark for explanation tools, and how to score an explainer on it.
-- [docs/development.md](docs/development.md): make targets, what CI checks on a pull request, record signing, the code layout, and the static site and deploy.
-- [docs/research-questions.md](docs/research-questions.md): the questions the project exists to answer, and how close the registry is to each.
-- [docs/PROTOCOL.md](docs/PROTOCOL.md): how verdicts are decided.
-- [docs/moe.md](docs/moe.md): how neurons in mixture-of-experts models will be audited. It is a decision, not built yet.
-- [CONTRIBUTING.md](CONTRIBUTING.md): the ways to contribute, and the rules for pull requests and style.
-- [SECURITY.md](SECURITY.md): how to report a leaked signing key, a way to get a false VERIFIED past CI, or another security problem. Report it privately, not in an issue.
-
-### Install the package
-
-To run the pipeline without a clone, install it from PyPI. The command is `open-interpretability`. Some commands need a clone of the registry: [docs/development.md](docs/development.md#running-outside-a-clone) lists which.
-
-```bash
-pip install open-interpretability          # add [site] to build the site's search index
-uvx open-interpretability --help
-```
-
-torch is installed from PyPI by default. For a CUDA build, add PyTorch's index, for example `--extra-index-url https://download.pytorch.org/whl/cu128`. For a smaller CPU-only build, use `--extra-index-url https://download.pytorch.org/whl/cpu`.
-
-## Protocol
-
-Every claim is empirical and falsifiable:
-
-1. **Propose.** A submitting agent scans a corpus for the neuron pole's top-activating snippets. It then writes a hypothesis, says whether the pole is *retrospective* (reacts to tokens it has already read) or *lookahead* (prepares an upcoming token). It also supplies minimal-pair counterfactuals with predicted activation deltas.
-2. **Review.** A reviewer agent (ideally, but not necessarily, a different model from the proposer) writes 10–30 adversarial probes (30 by default). Two thirds are hard negatives (near-misses the hypothesis says should *not* fire), plus some positive holdouts. Every probe and counterfactual is then run through the real model. The verdict comes from those measurements and not from the reviewer's opinion, so anyone with the weights can reproduce it:
-   - balanced accuracy on hard negatives vs. positive holdouts, each gated separately, with near-duplicate probes counted once
-   - confound control: the hypothesis must match or beat token-identity, position and never-active baselines
-   - counterfactual Δ reproduction within a tolerance relative to the prediction
-   - lookahead consistency (the claimed mechanism compared with KL(clean ‖ pole-ablated) on next-token distributions)
-   - covariance: the most correlated same-layer neurons, and joint ablation with them to expose redundancy (recorded, not gated)
-   - causal sufficiency (clean → corrupted patching) and necessity (corrupted → clean resample ablation), recorded but not yet gated. Downstream MLP outputs are frozen to mitigate self-repair (the hydra effect). Each score is ranked against same-layer neurons that change as much between the pair
-3. **Publish.** Every experiment is compiled into a fully static site plus a Parquet registry, whatever its verdict. Null results are data too. Within each neuron, experiments are ordered by how *conclusive* their evidence is, in either direction (see `openinterpretability/builder/significance.py`). The output is hosted on Cloudflare R2 (zero egress) at [open-interpretability.com](https://open-interpretability.com/) and searched client-side with Pagefind and DuckDB-Wasm.
-
-The full experimental protocol (roles, lifecycle, decision rule and reproducibility requirements) is in [docs/PROTOCOL.md](docs/PROTOCOL.md).
-
-## Licence
-
-The code is under the MIT licence (`LICENSE`). The data (the records and pages under `wiki/` and the site built from them) is under CC-BY-4.0 (`wiki/LICENSE.md`). Corpus excerpts inside records keep their corpus's own terms, and model outputs are also subject to the model's terms.
-
-## Citing
-
-To cite the registry or the package, use [CITATION.cff](CITATION.cff). GitHub shows it as "Cite this repository". The concept DOI, [10.5281/zenodo.24150022](https://doi.org/10.5281/zenodo.24150022), names every version and resolves to the latest. Each release is archived on Zenodo with its own DOI, so a citation can name an exact version.
-
-## Status
-
-Early scaffold. `make sample-run` builds the site from six real experiments in `wiki/experiments/` (listed in the `Makefile`), imported with `open-interpretability wiki --import-dir`.
+- [docs/experiments.md](docs/experiments.md): what you need, other ways to run, API keys, and every option.
+- [docs/PROTOCOL.md](docs/PROTOCOL.md): how a verdict is decided.
+- [docs/development.md](docs/development.md): installing the package, the code, CI and the site.
+- [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md): how to contribute, and how to report a security problem.
+- [CITATION.cff](CITATION.cff): how to cite. The code is under [MIT](LICENSE), and the records under [CC-BY-4.0](wiki/LICENSE.md).

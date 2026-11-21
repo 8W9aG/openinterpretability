@@ -1,6 +1,21 @@
 # Running experiments
 
-The README's [Quickstart](../README.md#quickstart) is the shortest path to a first experiment. This page has the details. It covers which LLMs can propose and review, the scan corpus and caches, and running many experiments at once. It also covers the other unit types and how to contribute a result. How verdicts are decided is in [PROTOCOL.md](PROTOCOL.md).
+The README's [Run an experiment](../README.md#run-an-experiment) is the shortest path to a first experiment. This page has the details. It covers which LLMs can propose and review, the scan corpus and caches, and running many experiments at once. It also covers the other unit types and how to contribute a result. How verdicts are decided is in [PROTOCOL.md](PROTOCOL.md).
+
+## What you need
+
+| Tool | What it is for | Needed |
+| --- | --- | --- |
+| [Git](https://git-scm.com/) and a GitHub account | Fork the repo, and push your experiment as a pull request | Always |
+| [Python](https://www.python.org/) 3.11+ | Runs `open-interpretability` and the model | Always |
+| [uv](https://docs.astral.sh/uv/) | Installs the dependencies into `.venv` and runs the commands (`uv run …`) | Always |
+| [GitHub CLI](https://cli.github.com/) (`gh`) | Opens the draft PR that claims a neuron. The planner also reads open PRs with it, to skip neurons that others have claimed | To contribute. Without it, the planner can't see claims, and you open the PR on github.com |
+| [Claude Code](https://claude.com/claude-code) | Drives the experiment, and its subagents answer as proposer, reviewer and judge | To run the loop, or to run the steps yourself with no API keys |
+| An LLM API key (any [LiteLLM](https://docs.litellm.ai/) provider) | Proposer and reviewer through an API instead of Claude Code | Only to run it through an API |
+
+No step needs Node.js. Claude Code's native installer doesn't need it either, only its npm install does. [Vale](https://vale.sh) is needed only for `make lint` and `make vale` when you change code.
+
+A laptop CPU is enough. The default models are small: Qwen2.5-0.5B is about 1 GB, downloaded on first use. An 8 GB machine runs GPT-2 and Qwen2.5-0.5B, and Qwen2.5-1.5B needs 16 GB ([Memory](#memory)). The first scan also downloads about 1.5 GB of labelling models. A scan takes about 10–15 minutes on CPU.
 
 ## Choosing the LLMs
 
@@ -188,7 +203,9 @@ Besides neuron poles and heads, the planner draws superpositions. A `superpositi
 
 The planner also draws explanations (`openinterpretability/planner_explanations.py`). An `explanation` draw explains a model's answer to a prompt from `data/explanation-prompts.jsonl`, narrates it and records it (`explain --level long --record`). It also re-explains an answer whose explanation is stale. Each unstudied pole or head that a recorded explanation cites gets an `explore` draw, audited with `--selection attribution`. So the loop drives an explained answer's units toward VERIFIED, one normal experiment at a time.
 
-The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology. Review the PR before marking it ready. To use API-key models instead of the subagents, name them in the request, e.g. "Use openai/gpt-5 as the reviewer model", with that provider's key set in the same shell.
+The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology.
+
+`land-experiment` merges a green PR only when it changes `wiki/` alone and you have write access. From a fork, it leaves each PR for a maintainer and goes on to the next experiment. For one experiment and no merge, start `claude` and ask: "Run the next experiment and open a PR with the result." Review the PR before marking it ready. To use API-key models instead of the subagents, name them in the request, e.g. "Use openai/gpt-5 as the reviewer model", with that provider's key set in the same shell.
 
 **In a loop.** `scripts/experiment-loop.sh` runs experiments back to back, each in a fresh headless Claude Code session (`claude -p`). It stops when it reaches `--max` or `claude` exits with an error (for example at the usage limit). Claude drives the workflow, and you choose the LLMs that propose and review:
 

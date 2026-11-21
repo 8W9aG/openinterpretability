@@ -100,7 +100,7 @@ def _probe_bounds() -> tuple[int, int]:
 
 
 def _quotes() -> list[tuple[str, str]]:
-    """(file, text) pairs: numbers the README, docs, skills and agents quote from code."""
+    """(file, text) pairs: numbers the docs, skills and agents quote from code."""
     lo, hi = _probe_bounds()
     gpt2 = configured_windows(ROOT / "pyproject.toml")["openai-community/gpt2"]
     skills = ".claude/skills"
@@ -109,7 +109,6 @@ def _quotes() -> list[tuple[str, str]]:
         ("docs/experiments.md", f"up to {DEFAULT_SAMPLE_TOKENS:,} tokens"),
         ("docs/development.md", f"the {check_line_limit.MAX_LINES}-line limit"),
         ("docs/development.md", f"a {check_line_limit.MAX_LINES}-line limit"),
-        ("README.md", f"writes {lo}–{hi} adversarial probes"),
         ("docs/experiments.md", f"fit only the first {gpt2} positions"),
         (
             "docs/experiments.md",
