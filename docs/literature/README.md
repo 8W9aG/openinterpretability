@@ -81,6 +81,7 @@ Status marks how the work relates to this repo:
 | [The Hydra Effect](hydra-effect.md) (McGrath, Rahtz, Kramár et al., 2023) | used | When one attention layer is ablated, a later attention layer takes over, and late MLPs push the top token down less. The harness freezes later MLPs, which stops their response but not the attention layers'. Our citations check out. |
 | [The Local Learning Coefficient: A Singularity-Aware Complexity Measure](local-learning-coefficient.md) (Lau, Furman, Wang et al., 2023) | planned | A complexity measure that counts degeneracy, estimated with SGLD and checked on deep linear networks. #4156 would use it on pythia-70m's checkpoints. Our citation checks out. |
 | [Toy Models of Superposition](toy-models-of-superposition.md) (Elhage, Hume, Olsson et al., 2022) | used | Its toy ReLU networks store more sparse features than they have dimensions, which explains polysemantic neurons. The privileged-basis argument behind our rotated-basis null and the superposition entity comes from it. `papers/why-neurons-rest` tests its negative-bias prediction. |
+| [Who Cares About Brackets?](who-cares-about-brackets.md) (Clark, Roman and Thurnherr, 2023) | not applicable | A hackathon report that found no attention-head circuit for being inside brackets in GPT-2 small. It never tested neurons. `papers/syntax-positive-controls` cites it correctly |
 
 ## Fixing models: editing and where it fails
 
