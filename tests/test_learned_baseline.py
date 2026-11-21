@@ -163,3 +163,16 @@ def test_unauditable_draws_are_counted_with_their_arm(tmp_path, baseline_records
     rows = pq.read_table(tmp_path / "data" / "draws.parquet").to_pylist()
     assert [r["outcome"] for r in rows] == ["dead", "dead", "default_on", "dead", "dead"]
     assert rows[2]["pole"] == "negative" and rows[0]["dictionary"] == "tiny-tc"
+
+
+def test_no_p_value_when_an_arm_has_no_units():
+    from openinterpretability.builder.learned_baseline import Arm, Comparison
+
+    some, none = Arm(units=4, verified=2, mean_balanced_accuracy=0.8), Arm(0, 0, None)
+    comparison = Comparison(
+        model_name="m/a", dictionary="d", layers=(0,), corpus_sha256=None, window_tokens=None,
+        features=some, neurons=none, positive_poles=some, negative_poles=none,
+        explained_variance=None, mean_l0=None, dead_share=None,
+    )  # fmt: skip
+    assert comparison.p_value is None
+    assert comparison.p_positive == fisher_exact(2, 4, 2, 4)

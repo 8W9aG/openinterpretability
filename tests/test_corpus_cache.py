@@ -131,3 +131,13 @@ def test_cli_reports_and_clears_the_cache(pinned, cache_dir):
 def test_cli_says_when_the_cache_is_off(monkeypatch):
     monkeypatch.setenv(ENV, "off")
     assert "is off" in CliRunner().invoke(cli, ["corpus-cache"]).output
+
+
+def test_eviction_never_deletes_the_kept_entry_even_over_the_cap(tmp_path):
+    cache = ParquetCache(tmp_path, max_bytes=5)
+    keep, other = tmp_path / "keep", tmp_path / "other"
+    for age, path in enumerate((other, keep)):  # the kept entry is the oldest
+        path.write_bytes(b"x" * 10)
+        os.utime(path, (1000 - age, 1000 - age))
+    cache.evict(keep=keep)
+    assert [p.name for p in cache.entries()] == ["keep"] and cache.size() == 10

@@ -2,6 +2,9 @@
 
 import xml.etree.ElementTree as ET
 
+import pytest
+
+from openinterpretability.builder import feeds
 from openinterpretability.builder.compiler import compile_site
 from openinterpretability.builder.feeds import NOINDEX
 from openinterpretability.core.project import site_url
@@ -53,3 +56,12 @@ def test_an_unchanged_registry_rebuilds_the_same_files(tmp_path, record):
 def test_every_page_links_the_feed(tmp_path, record):
     compile_site(_records(record), tmp_path)
     assert 'type="application/atom+xml"' in (tmp_path / "index.html").read_text()
+
+
+def test_a_sitemap_with_more_pages_than_it_holds_is_an_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(feeds, "SITEMAP_LIMIT", 1)
+    pages = [tmp_path / "index.html", tmp_path / "about.html"]
+    for page in pages:
+        page.write_text("<html></html>", encoding="utf-8")
+    with pytest.raises(ValueError, match="2 pages: split the sitemap, which holds 1"):
+        feeds.sitemap(pages, tmp_path, "https://example.org/")

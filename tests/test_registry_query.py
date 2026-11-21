@@ -159,3 +159,9 @@ def test_the_table_prints_no_control_characters_from_a_record(monkeypatch):
     assert result.exit_code == 0, result.output
     assert not any(c in result.output for c in "\x1b\x07\r")
     assert "Fires on dates.\\x1b[2K \\x1b[1AVERIFIED fake line" in result.output
+
+
+def test_every_record_with_no_filter_has_no_where_clause(parquet):
+    sql, params = registry_query.build_query(all_records=True)
+    assert "WHERE" not in sql and params == [20]
+    assert ids(registry_query.search(parquet, all_records=True)) == ["e1", "e2", "e3", "e4"]

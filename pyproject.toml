@@ -201,11 +201,18 @@ source = ["openinterpretability"]
 branch = true
 
 [tool.coverage.report]
-# Just below the measured total (91% on 2026-11-21). Raise it as coverage rises, never lower
-# it. CI also requires 90% of the lines that a pull request changes (diff-cover).
-fail_under = 90
+# Just below the measured total (91.17% on 2026-11-21). Raise it as coverage rises, never
+# lower it, up to 100 (#5855). The lines that a pull request changes are held to
+# [tool.diff_cover] fail_under.
+fail_under = 91
 skip_covered = true
 show_missing = true
+
+[tool.diff_cover]
+# The lines that a pull request changes must all be covered, or marked `# pragma: no cover`
+# with a reason (#5855). `make coverage` and CI's diff-cover step read this with
+# `-c pyproject.toml`, so the number is set only here.
+fail_under = 100
 
 [tool.mypy]
 # Type checks, ratcheted in package by package (#3162). Only the paths in `files` are

@@ -122,3 +122,26 @@ def test_probe_compare_writes_a_report(tmp_path, monkeypatch, toy_model, submiss
     assert report.neuron.line == pytest.approx(0.25 * sub.max_activation)
     # "a" is one token id, so the hidden layer separates it perfectly
     assert report.sites[0].logistic.balanced_accuracy == pytest.approx(1.0)
+
+
+def test_a_concept_source_names_its_dataset_commit_label_and_counts():
+    from openinterpretability.core.probing import ConceptSource
+
+    source = ConceptSource(
+        preset="conll2003-ner",
+        dataset="eriktks/conll2003",
+        revision="0123456789abcdef",
+        files="test/*.parquet",
+        column="ner_tags",
+        label="PER",
+        level="token",
+        documents=10,
+        positive_documents=4,
+        spans=7,
+        seed=0,
+        max_chars=500,
+        sha256="0" * 64,
+    )
+    assert str(source) == (
+        "eriktks/conll2003@01234567 (test/*.parquet, ner_tags = PER: 7 spans in 4 of 10 docs)"
+    )
