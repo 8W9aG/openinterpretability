@@ -1,6 +1,6 @@
 # Development
 
-How to change the code, what CI checks on a pull request, where the code lives, and how the site is built and deployed. To run an experiment, see the README's [Quickstart](../README.md#quickstart) and [experiments.md](experiments.md).
+How to change the code, what CI checks on a pull request, where the code lives, and how the site is built and deployed. To run an experiment, see the README's [Run an experiment](../README.md#run-an-experiment) and [experiments.md](experiments.md).
 
 ## Commands
 
@@ -113,7 +113,7 @@ A step that can run for minutes reports its progress, so a slow run doesn't look
 
 ## Static site and data
 
-The site, served at [open-interpretability.com](https://open-interpretability.com/), is built from the wiki's experiment archive (`wiki/experiments/**/<id>.json`). That archive holds every experiment, including null and superseded results.
+The site, served at [open-interpretability.com](https://open-interpretability.com/), is built from the wiki's experiment archive (`wiki/experiments/**/<id>.json`). That archive holds every experiment, including null and superseded results. Within each neuron, experiments are ordered by how conclusive their evidence is, in either direction (`openinterpretability/builder/significance.py`). The site's search runs in the browser, with Pagefind for text and DuckDB-Wasm for SQL over `registry.parquet`.
 
 ```text
 dist/
@@ -164,6 +164,17 @@ It runs on Mondays and by hand (`gh workflow run links.yml`), never per PR, so a
 - Before a pull request that cites a new input merges, run `scripts/exchange.py stage`, then `upload`, and commit the manifest. `stage` writes the local home folder as `~`, so no published file holds a local path.
 - `scripts/exchange.py check` runs in `make lint` and CI. It fails when a tracked file cites an `exchange/` folder that the manifest doesn't pin.
 - Output-only names are left out of the check, as are working folders such as `bench/`, which holds the benchmark's private test probes (`OUTPUTS` in the script). Inputs kept back on purpose are listed in `UNPUBLISHED` with the reason. For example, pile-10k excerpts stay back because the Pile corpus is not published.
+
+## Installing the package
+
+To run the pipeline without a clone, install it from PyPI. The command is `open-interpretability`. Some commands need a clone of the registry: *Running outside a clone* below lists which.
+
+```bash
+pip install open-interpretability          # add [site] to build the site's search index
+uvx open-interpretability --help
+```
+
+torch comes from PyPI by default. For a CUDA build, add PyTorch's index, for example `--extra-index-url https://download.pytorch.org/whl/cu128`. For a smaller CPU-only build, use `--extra-index-url https://download.pytorch.org/whl/cpu`.
 
 ## Running outside a clone
 
