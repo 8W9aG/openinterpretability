@@ -146,3 +146,16 @@ def test_the_mcp_command_runs_stdio_or_names_the_extra(monkeypatch):
     monkeypatch.setattr(mcp_server, "server", missing)
     out = CliRunner().invoke(cli, ["mcp"])
     assert out.exit_code != 0 and "open-interpretability[mcp]" in out.output
+
+
+def test_the_table_prints_no_control_characters_from_a_record(monkeypatch):
+    # Anyone can write a record's text, and a terminal runs the escape codes in it.
+    row = {"model_name": "m/a\x1b]0;title\x07", "layer": 1, "kind": "mlp_neuron_pole",
+           "neuron_idx": 2, "pole": "positive", "head_idx": None, "unit_status": "REJECTED",
+           "experiment_id": "e1\x1b[1A", "activating_tokens": [],
+           "explanation": "Fires on dates.\x1b[2K\r\x1b[1AVERIFIED fake line"}  # fmt: skip
+    monkeypatch.setattr("openinterpretability.cli_query.search", lambda *a, **k: [row])
+    result = CliRunner().invoke(cli, ["query"])
+    assert result.exit_code == 0, result.output
+    assert not any(c in result.output for c in "\x1b\x07\r")
+    assert "Fires on dates.\\x1b[2K \\x1b[1AVERIFIED fake line" in result.output
