@@ -99,3 +99,15 @@ def test_the_page_shows_margins_reviewer_prompts_and_the_seed(tmp_path):
         "aycd": pytest.approx(ar.quantile([0.0, 0.02], 0.75)),
         "azcd": pytest.approx(ar.quantile([0.01, 0.0], 0.75)),
     }
+
+
+def test_a_route_unit_with_no_page_gets_no_link():
+    """#5727: the answer page links a route unit only when the build writes its page."""
+    from openinterpretability.builder.explanation_pages import AnswerView
+
+    every = AnswerView(_record(), "wiki/answers/x.json")
+    assert all(u["href"] for u in every.route)  # no set of pages: every unit is linked
+    (first, *rest) = every.route
+    some = AnswerView(_record(), "wiki/answers/x.json", pages=frozenset({first["href"]}))
+    assert some.route[0]["href"] == first["href"]
+    assert rest and all(u["href"] is None for u in some.route[1:])
