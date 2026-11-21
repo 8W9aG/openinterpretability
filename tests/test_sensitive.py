@@ -254,3 +254,52 @@ def test_look_alikes_are_not_addresses(text):
 def test_the_site_never_removes_an_address():
     text = "She lives at 42 Elm Street, Springfield, IL 62704, or PO Box 12."
     assert address_matches(text) and redact_text(text) == text
+
+
+@pytest.mark.parametrize(
+    "address, public",
+    [
+        ("8.8.8.8", True),
+        ("2001:4860:4860::8888", True),
+        ("10.0.0.1", False),  # private
+        ("::a", False),  # too few groups: C++ or CSS, not an address
+        ("999.1.1.1", False),  # the pattern matches it, but it is not an address
+    ],
+)
+def test_only_public_ip_addresses_count(address, public):
+    from openinterpretability.sensitive import _is_public_ip
+
+    assert _is_public_ip(address) is public
+
+
+def test_a_public_ip_is_found_and_a_private_one_is_left():
+    text = "Server at 8.8.8.8 and 10.0.0.1"
+    assert pii_matches(text) == ((10, 17, "ip_address"),)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Call 1999-2000 for the archive",  # a date range
+        "Call 1 2 3 4567 later",  # a list of single digits
+        "Number 555 0101 234 here",  # no phone word before it
+    ],
+)
+def test_short_numbers_need_a_phone_word_and_a_phone_shape(text):
+    from openinterpretability.sensitive import _context_phones
+
+    assert list(_context_phones(text)) == []
+
+
+def test_a_short_number_after_a_phone_word_is_a_phone():
+    from openinterpretability.sensitive import _context_phones
+
+    assert list(_context_phones("Tel: 555 0101 234")) == [(5, 17, "phone")]
+
+
+def test_an_email_cut_by_the_end_of_the_text_is_found_unless_reserved():
+    from openinterpretability.sensitive import _cut_email
+
+    assert list(_cut_email("mail bob@exa")) == [(5, 12, "email")]
+    assert pii_matches("mail bob@exa") == ((5, 12, "email"),)
+    assert list(_cut_email("mail bob@example.com.")) == []

@@ -459,3 +459,75 @@ def test_changed_records_include_type_changes(repo):
     _swap_for_link(record, repo)
     _commit_all("swap")
     assert changed_records(Path("wiki"), "main~1") == [record.relative_to(repo)]
+
+
+def test_a_wiki_without_a_folder_has_no_links_to_check(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    report = check_registry(tmp_path / "no-wiki")
+    assert report.ok and report.records == 0
+
+
+def _draw(selection="random", **kw):
+    from datetime import UTC, datetime
+
+    from openinterpretability.core.draws import ChosenStop, UnauditableDraw
+    from openinterpretability.core.schemas import ExperimentProvenance, NeuronIdentifier
+
+    provenance = ExperimentProvenance(dtype="float32", corpus="c", n_snippets=1,
+                                      tokens_scanned=1, selection=selection,
+                                      harness_version="test")  # fmt: skip
+    kind = ChosenStop if kw.pop("stop", False) else UnauditableDraw
+    return kind(identifier=NeuronIdentifier(model_name="m/a", layer=0, neuron_idx=1,
+                                            pole="positive"),
+                outcome="dead", provenance=provenance,
+                timestamp=datetime(2026, 11, 2, 12, tzinfo=UTC), **kw)  # fmt: skip
+
+
+def test_a_chosen_draw_and_a_misplaced_draw_are_reported(repo):
+    path = repo / "wiki" / "draws" / "m" / "x.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(_draw(selection="manual").model_dump_json())
+    text = messages(check_registry())
+    assert "only random draws are recorded" in text
+    assert "draw record belongs at wiki/draws/m--a/L0/N1-positive/20261102T120000Z.json" in text
+
+
+def test_a_random_stop_and_a_misplaced_stop_are_reported(repo):
+    path = repo / "wiki" / "stops" / "m" / "x.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(_draw(stop=True).model_dump_json())
+    path.with_suffix(".md").write_text("page\n")
+    text = messages(check_registry())
+    assert "a random draw belongs in wiki/draws/" in text
+    assert "stop record belongs at wiki/stops/" in text
+    assert "stop record has no page" not in text
+
+
+def test_an_invalid_ledger_entry_is_reported(repo):
+    path = repo / "wiki" / "ledger" / "20261102" / "x.json"
+    path.parent.mkdir(parents=True)
+    path.write_text("{}")
+    report = check_registry()
+    assert report.ledger == 1 and "invalid ledger entry" in messages(report)
+
+
+def test_a_page_whose_front_matter_does_not_parse_has_none(repo):
+    page = page_of(repo).with_name("20200101T000000Z.md")
+    page.write_text("---\nslug: {not json\n---\n")
+    text = messages(check_registry())
+    assert "experiment page has no valid front matter" in text
+
+
+def test_a_new_signature_by_a_key_outside_its_window_is_left_to_reproduce(repo):
+    from openinterpretability.signing import sign_record
+    from tests.test_signing import keypair, signer_line
+
+    key = keypair(repo.parent, "expired")
+    Path(".github").mkdir()
+    Path(".github/allowed_signers").write_text(signer_line("will", key, 'valid-before="20200101Z"'))
+    _commit("signers")
+    subprocess.run(["git", "checkout", "-qb", "signed"], check=True)
+    sign_record(page_of(repo).with_suffix(".json"), key)
+    _commit("sign")
+    report = check_registry(base_ref="main")
+    assert report.ok, messages(report)
