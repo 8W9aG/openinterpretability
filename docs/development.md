@@ -133,6 +133,20 @@ dist/
 
 Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) are served with `max-age=31536000, immutable`. Everything else, including HTML and `registry.parquet`, gets `max-age=3600`. Deploys upload assets before HTML, so a page never references an object that has not arrived yet.
 
+**Querying the registry.** `open-interpretability query` searches `registry.parquet` without a clone (`openinterpretability/registry_query.py`, #3242). It filters by `--model`, `--layer`, `--kind`, `--status` (the unit's standing), `--text` (in the explanation, any case) and `--token` (an activating token). By default it returns each unit's newest experiment, and `--all` returns every one. It reads `dist/data/registry.parquet` after a local build, and otherwise the published file, by HTTP range requests:
+
+```bash
+open-interpretability query --model EleutherAI/pythia-70m --status VERIFIED --text colour
+open-interpretability query --token " sky" --json
+```
+
+`open-interpretability mcp` serves the same search as a read-only MCP tool, `query_registry`, over stdio. It needs the `mcp` extra. To add it to Claude Code:
+
+```bash
+pip install 'open-interpretability[mcp]'
+claude mcp add open-interpretability -- open-interpretability mcp
+```
+
 R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
 
 **Links.** `make lint` checks the relative links and anchors in hand-written Markdown on each PR. A weekly workflow, *Check links* (`.github/workflows/links.yml`), checks the rest (#3170):
