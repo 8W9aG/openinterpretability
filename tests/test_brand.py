@@ -77,3 +77,10 @@ def test_the_header_has_no_tagline(tmp_path):
     header = page[page.index("<header") : page.index("</header>")]
     assert "interpretability lab" not in header  # removed from the header (#5535)
     assert '<meta name="description" content="An agent-run mechanistic interpretability lab' in page
+
+
+def test_write_svgs_writes_the_mark_and_the_logo_from_the_palette(tmp_path):
+    brand.write_svgs(tmp_path)
+    assert (tmp_path / "mark.svg").read_text(encoding="utf-8") == brand.mark_svg()
+    assert (tmp_path / "logo.svg").read_text(encoding="utf-8") == brand.logo_svg()
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["logo.svg", "mark.svg"]

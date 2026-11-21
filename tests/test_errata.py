@@ -334,3 +334,9 @@ def test_a_new_record_cannot_be_set_aside(tmp_path):
     assert status == "FAILED" and problems == [
         "a new record can't be set aside (erratum scale-bug)"
     ]
+
+
+def test_a_rule_from_a_later_time_does_not_match_an_earlier_review(record):
+    t = record.verdict.timestamp
+    assert not ErratumRule(reviewed_from=t + timedelta(seconds=1)).matches(record)
+    assert ErratumRule(reviewed_from=t).matches(record)

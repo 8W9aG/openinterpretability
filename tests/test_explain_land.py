@@ -28,6 +28,14 @@ def test_the_pr_body_gives_the_shares_and_the_landed_experiments():
     assert name.endswith("20261117T000000Z")
 
 
+def test_the_pr_body_leaves_out_the_coverage_and_the_run_when_the_record_has_neither():
+    record = _record(WHEN).model_copy(update={"prompt_coverage": None, "run": None})
+    body = pr_body(record)
+    assert "**Explained share:** 0.3%" in body
+    assert "Prompt coverage" not in body and "The run" not in body
+    assert body.endswith("Written by `open-interpretability explain --record` (#4475).")
+
+
 def test_the_record_lands_on_its_own_branch_and_merges(repo, monkeypatch):  # noqa: F811
     checked = []
     monkeypatch.setattr(el, "openinterpretability", lambda args: checked.append(args))

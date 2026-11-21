@@ -146,3 +146,28 @@ def test_a_pole_with_no_scale_is_zero():
 def test_a_line_has_no_roundness():
     values = torch.arange(12, dtype=torch.float32)[:, None]
     assert manifold.family_manifold("numbers", values, 0.5).roundness is None
+
+
+def test_a_tokenizer_whose_offsets_do_not_match_the_tokens_gives_no_family(toy_model):
+    from openinterpretability.harness.hooks import NeuronHookRunner
+    from tests.conftest import FakeTokenizer
+
+    class ExtraOffset(FakeTokenizer):
+        """Gives one more offset than the model sees tokens, as a BOS-only offset would."""
+
+        def __call__(self, texts, **kwargs):
+            out = super().__call__(texts, **kwargs)
+            if isinstance(texts, str):
+                out["offset_mapping"] = [(0, 0), *out["offset_mapping"]]
+            return out
+
+    runner = NeuronHookRunner(toy_model, ExtraOffset())
+    poles = [ManifoldPole(neuron_idx=0, pole="positive")]
+    assert manifold.word_vector(runner, 0, poles, "Monday") is None
+    text = "the cat sat"
+    ex = ActivatingExample(
+        text=text, tokens=list(text), activations=[0.1] * len(text), max_activation=1.0,
+        max_token_index=3,
+    )  # fmt: skip
+    found = manifold.manifold_check(runner, 0, poles, [ex])
+    assert found.families == [] and found.activating_examples == 1
