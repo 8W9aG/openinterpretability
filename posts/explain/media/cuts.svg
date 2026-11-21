@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 394" width="760" height="394" role="img">
+<title>Switching off every unit lowers “sky” by 7.44. Switching off the 13-unit route lowers it by 5.46, 73% of that. Eight random sets of the same shape lower it by 0.75 on average, so the route&#x27;s cut is 7.3 times theirs. With only the route kept, 54% of the answer comes back.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+.hatchline{stroke:var(--ink2);stroke-width:1.4}.fhatch{fill:url(#hatch)}.dashed{stroke-dasharray:4 3}.outline{fill:var(--surface);stroke:var(--ink2);stroke-width:1.4}.edge{fill:none;stroke:var(--ink2);stroke-opacity:.55}.cell{stroke:var(--surface)}.oncell{fill:#ffffff;font-size:11px}.mark{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.thin{fill:none;stroke:var(--ink2);stroke-width:1.2}.rule{stroke:var(--ink);stroke-width:1.4;stroke-dasharray:5 3}.arrow{fill:none;stroke:var(--ink2);stroke-width:1.6;marker-end:url(#tip)}.tipfill{fill:var(--ink2)}.box{fill:var(--surface);stroke:var(--ink2);stroke-width:1.3}.bigtext{fill:var(--ink);font-size:15px;font-weight:600}</style>
+<rect class="bg" width="760" height="394" rx="10"/>
+<text x="20.0" y="30.0" class="title">Take the route away, or keep only the route</text>
+<text x="20.0" y="50.0" class="sub">How far “sky” falls (log-probability) when units are set to their baseline.</text>
+<defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="5" height="5" patternTransform="rotate(45)"><path d="M0 0V5" class="hatchline"/></pattern></defs>
+<defs><marker id="tip" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="tipfill" d="M0 0L8 4L0 8Z"/></marker></defs>
+<path class="grid" d="M250.0 90.0L250.0 236.0"/>
+<text x="250.0" y="251.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M365.2 90.0L365.2 236.0"/>
+<text x="365.2" y="251.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M480.3 90.0L480.3 236.0"/>
+<text x="480.3" y="251.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M595.5 90.0L595.5 236.0"/>
+<text x="595.5" y="251.0" class="small" text-anchor="middle">6</text>
+<text x="475.0" y="267.0" class="small" text-anchor="middle">how far “sky” falls</text>
+<g class="c0">
+<rect class="fc1" x="250.0" y="94.0" width="428.6" height="18.0" rx="1.5"/>
+<text x="240.0" y="107.0" class="small" text-anchor="end">every unit off</text>
+<text x="684.6" y="107.0" class="small">7.44</text>
+</g>
+<g class="c1">
+<rect class="fhatch" x="250.0" y="124.0" width="314.4" height="18.0" rx="1.5"/>
+<rect class="thin" x="250.0" y="124.0" width="314.4" height="18.0" rx="1.5"/>
+<text x="240.0" y="137.0" class="small" text-anchor="end">only the route off</text>
+<text x="570.4" y="137.0" class="small">5.46</text>
+</g>
+<g class="nulls">
+<text x="240.0" y="162.0" class="small" text-anchor="end">8 random sets off</text>
+<rect class="fneutral" x="250.0" y="152.0" width="16.7" height="6.0" rx="1.5"/>
+<rect class="fneutral" x="250.0" y="161.0" width="12.9" height="6.0" rx="1.5"/>
+<rect class="fneutral" x="250.0" y="170.0" width="94.0" height="6.0" rx="1.5"/>
+<rect class="fneutral" x="250.0" y="179.0" width="42.0" height="6.0" rx="1.5"/>
+<rect class="fneutral" x="250.0" y="188.0" width="20.4" height="6.0" rx="1.5"/>
+<rect class="fneutral" x="250.0" y="197.0" width="19.7" height="6.0" rx="1.5"/>
+<rect class="fneutral" x="250.0" y="206.0" width="111.0" height="6.0" rx="1.5"/>
+<rect class="fneutral" x="250.0" y="215.0" width="30.2" height="6.0" rx="1.5"/>
+</g>
+<g class="l0">
+<path class="mark" d="M25.0 292.0l3.5 4 7-9"/>
+<text x="44.0" y="296.0" class="head">The route&#x27;s cut is 73% of the whole cut</text>
+<text x="736.0" y="296.0" class="small" text-anchor="end">rule ≥ 50%</text>
+</g>
+<g class="l1">
+<path class="mark" d="M25.0 314.0l3.5 4 7-9"/>
+<text x="44.0" y="318.0" class="head">and 7.3× the random sets&#x27; mean cut (0.75)</text>
+<text x="736.0" y="318.0" class="small" text-anchor="end">rule ≥ 3×</text>
+</g>
+<g class="l2">
+<path class="mark" d="M25.0 336.0l3.5 4 7-9"/>
+<text x="44.0" y="340.0" class="head">With only the route on, 54% of “sky” comes back</text>
+<text x="736.0" y="340.0" class="small" text-anchor="end">rule ≥ 50%</text>
+</g>
+</svg>
