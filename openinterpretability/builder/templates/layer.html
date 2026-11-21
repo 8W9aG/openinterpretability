@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import chart %}
-{% from "_macros.html" import breadcrumb, map_fill, status_badge, broad_badge, evidence_badge, self_review_badge, pole_mark %}
+{% from "_macros.html" import breadcrumb, map_fill, status_grid, status_badge, broad_badge, evidence_badge, self_review_badge, pole_mark %}
 
 {% block title %}{{ model.name }} layer {{ layer.layer }} · {{ site_title }}{% endblock %}
 
@@ -11,29 +11,10 @@
   {{ layer.neurons_studied }} neurons studied{% if layer.member_only %}, {{ layer.member_only }} of them only as part of a superposition{% endif %}{% if layer.stopped %} ({{ layer.stopped | length }} with only stopped scans){% endif %} · {% if layer.heads %}{{ layer.heads | length }} heads studied · {% endif %}{{ layer.experiments }} experiments · {{ layer.verified }} with a verified pole{% if layer.heads %} · {{ layer.verified_heads }} verified heads{% endif %}{% if layer.features %} · {{ layer.features | length }} dictionary features studied as a baseline ({{ layer.verified_features }} verified){% endif %}{% if layer.superpositions %} · {{ layer.superpositions | length }} superpositions studied ({{ layer.verified_superpositions }} verified){% endif %}
 </p>
 
-{% set lp = pieces.layer_pieces(model, layer) %}
+{% set lp = pieces.status_grid(model, layer) %}
 {% if lp %}
-<figure class="mt-6" data-pagefind-ignore>
-  <div class="overflow-x-auto">
-  {% set _label %}Pieces map of layer {{ layer.layer }}: one cell per neuron, {{ lp.rows[0].width // lp.pitch + 1 }} to a row, {{ layer.studied }} of {{ model.mlp_width | thousands }} studied ({% for s, n in lp.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). A cell filled to half height has one of its two poles studied. Each studied neuron is in the table below.{% endset %}{% call chart(lp.width, lp.height, "Pieces map", _label | trim, role="group") %}
-    <defs><pattern id="pieces" width="{{ lp.pitch }}" height="{{ lp.pitch }}" patternUnits="userSpaceOnUse"><rect width="{{ lp.pitch - 1 }}" height="{{ lp.pitch - 1 }}" class="fill-slate-100 dark:fill-slate-800/60"/></pattern></defs>
-    {% for r in lp.rows %}
-    <rect x="{{ lp.left }}" y="{{ r.y }}" width="{{ r.width + 1 }}" height="{{ lp.pitch }}" fill="url(#pieces)"/>
-    {% if loop.index0 % lp.label_every == 0 %}<text x="{{ lp.left - 4 }}" y="{{ r.y + 7 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="8">N{{ r.start | thousands }}</text>{% endif %}
-    {% endfor %}
-    {% for c in lp.cells %}
-    {% if c.href %}<a href="{{ root }}{{ c.href }}">{% endif %}<title>{{ c.label }}</title><rect x="{{ c.x }}" y="{{ c.y }}" width="{{ lp.pitch - 1 }}" height="{{ c.height }}" class="{{ map_fill[c.status] }}"/>{% if c.href %}</a>{% endif %}
-    {% endfor %}
-  {% endcall %}
-  </div>
-  <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-    {% for s, n in lp.counts.items() %}
-    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }} {{ n }}</span>
-    {% endfor %}
-    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="fill-slate-100 dark:fill-slate-800/60"/></svg> unexplored {{ lp.unexplored | thousands }}</span>
-    <span>Each cell is one neuron, in index order left to right; a studied one is coloured by its best pole's status and links to its page. A cell filled to half height has one of its two poles studied, and a full cell both. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment. Its page lists the scans that stopped.</span>
-  </figcaption>
-</figure>
+<div class="mt-6">{{ status_grid(lp, root, "layer", model.name ~ " layer " ~ layer.layer) }}</div>
+<p class="mt-1 text-xs text-slate-500">Neurons run in index order, left to right, and a studied one links to its page. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment. Its page lists the scans that stopped.</p>
 {% endif %}
 
 <div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">

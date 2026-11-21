@@ -118,7 +118,6 @@ openinterpretability/builder/charts.py::causal_chart
 openinterpretability/builder/charts.py::best_status
 openinterpretability/builder/charts.py::stopped_label
 openinterpretability/builder/charts.py::pole_text
-openinterpretability/builder/charts.py::layer_map
 openinterpretability/builder/circuit_pages.py::render_circuits
 openinterpretability/builder/circuit_units.py::load_circuit_data
 openinterpretability/builder/circuit_units.py::task_standing
@@ -251,10 +250,8 @@ openinterpretability/builder/parquet_export.py::export_registry
 openinterpretability/builder/pending.py::parse
 openinterpretability/builder/pending.py::open_experiments
 openinterpretability/builder/pieces.py::studied_poles
-openinterpretability/builder/pieces.py::fill
 openinterpretability/builder/pieces.py::cell_status
 openinterpretability/builder/pieces.py::cell_label
-openinterpretability/builder/pieces.py::layer_pieces
 openinterpretability/builder/pii.py::find_spans
 openinterpretability/builder/pii.py::redact_text
 openinterpretability/builder/pii.py::redact_tokens
