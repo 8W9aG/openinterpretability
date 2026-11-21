@@ -61,3 +61,24 @@ def test_a_layer_without_verified_poles_has_no_share(toy_runner):
     clean = mean_loss(toy_runner, test, batch=2)
     row = layer_row(toy_runner, fit, test, 0, set(), clean, batch=2, seed=0)
     assert "recovered" not in row and row["verified_poles"] == 0
+
+
+def test_verified_poles_are_the_standing_verified_ones_of_the_model(tmp_path, record):
+    from openinterpretability.coverage import verified_poles
+    from tests.test_compiler import experiment
+
+    other = record.submission.identifier.model_copy(update={"model_name": "other/model"})
+    elsewhere = record.model_copy(
+        update={"submission": record.submission.model_copy(update={"identifier": other})}
+    )
+    rows = [
+        experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0)),
+        experiment(record, idx=9, status="REJECTED", counts=(3, 3, 1, 3)),
+        elsewhere,
+    ]
+    folder = tmp_path / "experiments"
+    folder.mkdir()
+    for i, row in enumerate(rows):
+        (folder / f"{i}.json").write_text(row.model_dump_json())
+    assert verified_poles("Qwen/Qwen2.5-0.5B", tmp_path) == {3: {(117, "positive")}}
+    assert verified_poles("no/such-model", tmp_path) == {}

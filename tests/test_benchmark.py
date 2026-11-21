@@ -316,3 +316,58 @@ def test_a_partial_run_says_whether_it_is_a_random_sample(tmp_path, record, monk
         summary = json.loads((tmp_path / f"{order}.summary.json").read_text())
         assert (summary["order"], summary["random_sample"]) == (order, sample)
         assert (summary["units"], summary["split_units"]) == (2, 4)
+
+
+def _sealable(tmp_path, record):
+    """Two frozen test units, and labels with three probes of each label per unit."""
+    records = [make_record(record, idx=i, results=balanced(str(i))) for i in (1, 2)]
+    bench.write(bench.freeze(records, "v1", test_fraction=1.0), tmp_path)
+    slugs = sorted(bench.read_units(tmp_path))
+    rows = [{"unit": s, "text": f"{s} {w} {i}", "active": w == "fire", "kind": "hard_negative"}
+            for s in slugs for w in ("fire", "calm") for i in range(3)]  # fmt: skip
+    return slugs, rows
+
+
+def test_seal_refuses_labels_outside_the_test_split_and_thin_units(tmp_path, record):
+    slugs, rows = _sealable(tmp_path, record)
+    labels = tmp_path / "test.private.jsonl"
+    stranger = {"unit": "m/L9/N9-positive", "text": "x", "active": True, "kind": "hard_negative"}
+    bench.write_jsonl(labels, [*rows, stranger])
+    with pytest.raises(ValueError, match="m/L9/N9-positive: not a test unit of this version"):
+        bench.seal(tmp_path, labels)
+    minimum = bench.read_manifest(tmp_path)["selection"]["min_probes_per_label"]
+    thin = [r for r in rows if not (r["unit"] == slugs[0] and r["active"])]
+    thin += [{**r, "active": True} for r in rows if r["unit"] == slugs[0]][: minimum - 1]
+    bench.write_jsonl(labels, thin)
+    with pytest.raises(ValueError, match=f"1 test units have under {minimum} probes"):
+        bench.seal(tmp_path, labels)
+
+
+def test_the_test_split_needs_sealed_labels_and_a_labels_file(tmp_path, record):
+    _, rows = _sealable(tmp_path, record)
+    labels = tmp_path / "test.private.jsonl"
+    with pytest.raises(ValueError, match="no sealed test labels yet"):
+        bench.load_labels(tmp_path, "test", labels)
+    bench.write_jsonl(labels, rows)
+    bench.seal(tmp_path, labels)
+    with pytest.raises(ValueError, match="needs --labels"):
+        bench.load_labels(tmp_path, "test", None)
+
+
+def test_a_summary_of_no_units_has_no_mean_or_interval():
+    summary = bench.summarize([], [])
+    assert summary["mean_balanced_accuracy"] is None and summary["ci95"] is None
+    assert summary["units"] == 0 and summary["per_model"] == {}
+
+
+def test_units_without_an_explanation_are_not_judged():
+    pair = [{"text": "fire", "active": True}, {"text": "calm", "active": False}]
+    probes = {"u1": pair, "u2": pair}
+    judged = []
+
+    def judge(unit, explanation, texts):
+        judged.append(unit)
+        return ["fire" in t for t in texts]
+
+    rows = bench.score(probes, {"u2": "Fires on fire."}, judge)
+    assert judged == ["u2"] and [r["unit"] for r in rows] == ["u2"]

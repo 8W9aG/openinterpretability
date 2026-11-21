@@ -1,6 +1,7 @@
 """Evidence blobs ride on their own branch to the dataset (evidence_branch.py, #3254)."""
 
 import json
+import os
 import subprocess
 
 import pytest
@@ -188,3 +189,88 @@ def test_only_experiment_records_are_checked_for_blobs(monkeypatch):
              Path("wiki/explanations/m/abc123/20261119T013311Z.json")]  # fmt: skip
     monkeypatch.setattr("openinterpretability.checks.changed_records", lambda *a: added)
     assert cli_evidence_store._added(Path("wiki"), "main") == added[:1]
+
+
+def test_push_sends_the_blobs_to_their_branch_and_fetch_brings_them_back(
+    record, repo, tmp_path, monkeypatch
+):
+    path, _ = _slim_record(record, tmp_path, monkeypatch)
+    shas = eb.record_refs([path])
+    remote = tmp_path / "remote.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+    subprocess.run(["git", "remote", "add", "origin", str(remote)], check=True)
+    assert eb.push("experiment/x", shas) == "evidence/experiment/x"
+    listing = ["git", "ls-tree", "-r", "--name-only", "evidence/experiment/x"]
+    names = subprocess.run(listing, cwd=remote, capture_output=True, text=True, check=True).stdout
+    assert sorted(names.split()) == sorted(evidence.blob_name(s) for s in shas)
+    eb.fetch_branches()
+    refs = subprocess.run(["git", "for-each-ref", "--format=%(refname)", eb.LOCAL_REFS],
+                          capture_output=True, text=True, check=True).stdout.split()  # fmt: skip
+    assert refs == [f"{eb.LOCAL_REFS}experiment/x"]
+
+
+def test_load_branch_with_only_copies_just_those_blobs(record, repo, tmp_path, monkeypatch):
+    path, _ = _slim_record(record, tmp_path, monkeypatch)
+    (sha,) = eb.record_refs([path])
+    stray = evidence.put(b'{"not": "referenced"}')
+    fresh = tmp_path / "fresh-store"
+    assert eb.load_branch(eb.blob_commit([sha, stray]), fresh, only={sha}) == [sha]
+    assert [p.stem for p in fresh.rglob("*.json")] == [sha]
+
+
+def test_a_branch_blob_with_the_wrong_hash_is_refused(repo, tmp_path):
+    def git(*args, env=None, data=None):
+        done = subprocess.run(["git", *args], input=data, capture_output=True, check=True,
+                              env={**os.environ, **(env or {})})  # fmt: skip
+        return done.stdout.decode().strip()
+
+    name = evidence.blob_name("0" * 64)
+    oid = git("hash-object", "-w", "--stdin", data=b'{"tampered": true}')
+    env = {"GIT_INDEX_FILE": str(tmp_path / "index")}
+    git("update-index", "--add", "--cacheinfo", f"100644,{oid},{name}", env=env)
+    commit = git("commit-tree", git("write-tree", env=env), "-m", "bad")
+    with pytest.raises(evidence.EvidenceMissing, match=f"{commit}:{name} has the wrong hash"):
+        eb.load_branch(commit, tmp_path / "store")
+    assert not (tmp_path / "store").exists()
+
+
+class _HubApi:
+    """The Hub's client, without the network: no dataset yet, and it records uploads."""
+
+    uploads = []
+
+    def repo_exists(self, repo_id, repo_type):
+        return False
+
+    def create_repo(self, repo_id, **kwargs):
+        pass
+
+    def upload_folder(self, repo_id, folder_path, **kwargs):
+        from pathlib import Path
+
+        self.uploads.append(sorted(Path(p).stem for p in Path(folder_path).rglob("*.json")))
+
+
+def test_upload_uses_the_hub_client_when_none_is_given(record, repo, tmp_path, monkeypatch):
+    path, store = _slim_record(record, tmp_path, monkeypatch)
+    shas = sorted(eb.record_refs([path]))
+    monkeypatch.setattr("huggingface_hub.HfApi", _HubApi)
+    monkeypatch.setattr(_HubApi, "uploads", [])
+    assert eb.upload(shas, store) == len(shas)
+    assert _HubApi.uploads == [shas]
+
+
+def test_publish_with_no_dataset_reads_every_blob_from_the_first_branch_that_has_it(
+    record, repo, tmp_path, monkeypatch
+):
+    path, _ = _slim_record(record, tmp_path, monkeypatch)
+    shas = sorted(eb.record_refs([path]))
+    monkeypatch.setattr("huggingface_hub.HfApi", _HubApi)
+    monkeypatch.setattr(_HubApi, "uploads", [])
+    fresh = tmp_path / "fresh-store"
+    assert eb.publish_missing([path], fresh) == (0, shas)  # no branch holds them yet
+    commit = eb.blob_commit(shas)
+    for branch in ("a", "b"):  # the second branch is not read: nothing is left to find
+        subprocess.run(["git", "update-ref", f"{eb.LOCAL_REFS}{branch}", commit], check=True)
+    assert eb.publish_missing([path], fresh) == (len(shas), [])
+    assert _HubApi.uploads == [shas]

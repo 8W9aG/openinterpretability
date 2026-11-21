@@ -80,3 +80,83 @@ def test_the_planner_skips_a_record_whose_evidence_is_missing(record, store, tmp
         load_archive_paths(wiki)
     assert load_archive_paths(wiki, skip_missing=True) == []
     assert load_states(wiki) == {} and "skipping" in capsys.readouterr().err
+
+
+# The scan's evidence for one unit (openinterpretability/evidence.py).
+
+
+def _gpt2_runner(tiny_gpt2):
+    from openinterpretability.harness.hooks import NeuronHookRunner
+    from tests.conftest import FakeTokenizer
+
+    return NeuronHookRunner(tiny_gpt2, FakeTokenizer())
+
+
+def test_a_dead_neuron_stops_the_scan(tiny_gpt2, tmp_path):
+    import torch
+
+    from openinterpretability.evidence import ScanRequest, Unauditable, scan_evidence
+
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text('{"text": "abcabc"}\n{"text": "hello there"}\n')
+    with torch.no_grad():
+        tiny_gpt2.transformer.h[1].mlp.c_fc.bias[5] = -1000.0
+    request = ScanRequest(model_name="openai-community/gpt2", layer=1, neuron=5,
+                          pole="positive", corpus=corpus, dtype="float32")  # fmt: skip
+    with pytest.raises(Unauditable, match="is dead: no input can make it fire") as stop:
+        scan_evidence(_gpt2_runner(tiny_gpt2), request)
+    assert stop.value.draw.outcome == "dead" and stop.value.draw.proven_dead
+
+
+def test_a_chosen_unit_needs_its_layer_and_index(tiny_gpt2):
+    import click
+
+    from openinterpretability.evidence import ScanRequest, pick_unit
+
+    request = ScanRequest(model_name="m", unit="head", layer=1)
+    with pytest.raises(click.UsageError, match="--layer and --head are required"):
+        pick_unit(_gpt2_runner(tiny_gpt2), request, None)
+
+
+def test_a_silent_feature_gets_no_weight_check(tiny_gpt2):
+    from openinterpretability.core.schemas import FeatureIdentifier
+    from openinterpretability.evidence import dead_unit
+    from tests.test_dead import PROVENANCE
+
+    ident = FeatureIdentifier(model_name="m", layer=1, dictionary="d", feature_idx=3)
+    stop = dead_unit(_gpt2_runner(tiny_gpt2), ident, PROVENANCE)
+    assert stop.message == f"{ident} never activates on this corpus; try a larger --corpus."
+    assert (
+        stop.draw.outcome == "dead" and not stop.draw.proven_dead and stop.draw.dead_bound is None
+    )
+
+
+def test_a_document_longer_than_the_context_is_refused(tiny_gpt2):
+    import click
+
+    from openinterpretability.evidence import check_context
+
+    runner = _gpt2_runner(tiny_gpt2)
+    check_context(runner, ["a" * 64])  # tiny-gpt2 reads 64 positions
+    with pytest.raises(click.UsageError, match="has 65 tokens but the model reads at most 64"):
+        check_context(runner, ["a" * 65])
+
+
+def test_a_streamed_model_scans_in_larger_batches(tiny_gpt2, capsys):
+    import torch
+
+    from openinterpretability.evidence import _scan_batch_tokens
+    from openinterpretability.harness import memory
+    from openinterpretability.harness.scan import BATCH_TOKENS
+
+    runner = _gpt2_runner(tiny_gpt2)
+    assert _scan_batch_tokens(runner) == BATCH_TOKENS
+    assert capsys.readouterr().err == ""
+    # One weight left on the meta device stands for a layer that stays on disk.
+    tiny_gpt2.register_parameter("on_disk", torch.nn.Parameter(torch.empty(1, device="meta")))
+    tokens = _scan_batch_tokens(runner)
+    have = memory.available_bytes()
+    assert tokens == memory.stream_batch_tokens(tiny_gpt2.config, torch.float32, have,
+                                                BATCH_TOKENS)  # fmt: skip
+    assert tokens > BATCH_TOKENS
+    assert f"Streaming: scanning {tokens:,} tokens per batch." in capsys.readouterr().err

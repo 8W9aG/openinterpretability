@@ -9,8 +9,12 @@ from click.testing import CliRunner
 
 from openinterpretability.cli import cli
 from openinterpretability.concepts import (
+    CONCEPT_PRESETS,
     Sentence,
+    _documents,
+    _tag,
     build_concept,
+    class_names,
     group_sentences,
     join_words,
     locate_words,
@@ -159,3 +163,45 @@ def test_cli_lists_labels_without_one(hub):
     result = CliRunner().invoke(cli, ["concepts", "--dataset", "ag_news"])
     assert result.exit_code == 0, result.output
     assert "2  Sports" in result.output and "2  Business" in result.output
+
+
+def test_no_sentences_make_no_documents():
+    assert group_sentences([], max_chars=100) == []
+
+
+def test_a_missing_tag_is_no_label():
+    assert _tag(None, ["O", "PER"], bio=False) is None
+    assert _tag(1, ["O", "B-PER"], bio=True) == "PER"
+
+
+def test_a_file_without_hugging_face_metadata_has_no_class_names():
+    assert class_names(pa.schema([("label", pa.int64())]), "label") is None
+
+
+def test_empty_documents_are_left_out():
+    rows = [{"text": "  ", "label": 1}, {"text": None, "label": 1}, {"text": "Win.", "label": 1}]
+    docs, skipped = _documents(CONCEPT_PRESETS["ag_news"], "label", rows, ["W", "Sports"], 100)
+    assert docs == [("Win.", [Span(0, 4, "Sports")])] and skipped == 0
+
+
+def test_sentences_without_words_or_whose_words_are_not_found_are_skipped():
+    rows = [
+        {"text": "Hi.", "tokens": [], "upos": []},
+        {"text": "Hi.", "tokens": ["Bye", "."], "upos": ["INTJ", "PUNCT"]},
+        {"text": "Hi.", "tokens": ["Hi", "."], "upos": ["INTJ", "PUNCT"]},
+    ]
+    docs, skipped = _documents(CONCEPT_PRESETS["ud-upos"], "upos", rows, None, 100)
+    assert skipped == 2
+    assert docs == [("Hi.", [Span(0, 2, "INTJ"), Span(2, 3, "PUNCT")])]
+
+
+def test_a_split_with_no_files_names_its_glob(tmp_path, hub, monkeypatch):
+    import huggingface_hub
+
+    class EmptyFS(huggingface_hub.HfFileSystem):
+        def glob(self, pattern):
+            return []
+
+    monkeypatch.setattr("huggingface_hub.HfFileSystem", EmptyFS)
+    with pytest.raises(FileNotFoundError, match="no files match 'data/train-"):
+        build_concept("ag_news", "Sports", tmp_path / "x.jsonl", split="train")
