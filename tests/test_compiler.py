@@ -39,6 +39,11 @@ MODEL = "Qwen--Qwen2.5-0.5B"
 PAGE = f"models/{MODEL}/L3/N117-positive/20261001T"  # an experiment page, but its time
 
 
+def card_stat(name: str, value: str) -> str:
+    """One statistic of a model card, as the page writes it (#5724)."""
+    return f'{name}</dt><dd class="tabular-nums">{value}'
+
+
 def probes(neg_pass, neg_fail, pos_pass, pos_fail):
     serial = iter(range(10_000))
 
@@ -159,8 +164,9 @@ def test_coverage_uses_recorded_mlp_width(tmp_path, records):
     ]
     compile_site(narrow, tmp_path)
     index = (tmp_path / "index.html").read_text()
-    assert "2/96 neurons studied (2.1%)" in index
-    assert "1/96 verified (1.0%; target 80%)" in index
+    assert card_stat("Neurons studied", "2 of 96 (2.1%)") in index
+    assert card_stat("Verified", "1 of 96 (1.0%)") in index
+    assert card_stat("Target", "80% verified") in index
 
 
 def test_old_records_get_a_width_in_the_build_only(tmp_path, records):
@@ -224,19 +230,22 @@ def test_pieces_bars(tmp_path, record, records):
     from openinterpretability.builder.pieces import layer_pieces, model_pieces
     from openinterpretability.builder.tree import ModelNode, build_tree
 
-    # N120 shares N117's 38-neuron block (114–151); the block shows the better status.
+    # N120 shares N117's 76-neuron block (76–151); the block shows the better status.
     records = [*records, experiment(record, idx=120, status="REJECTED", counts=(3, 3, 1, 3))]
     (model,) = build_tree(records, [])
     bars = model_pieces(model)
-    assert bars["block"] == 38 and bars["cells"] == 24 * 128 and bars["lit"] == 2
+    # Every model card has 64 cells per layer and 6 px per layer (#5724).
+    assert bars["block"] == 76 and bars["cells"] == 24 * 64 and bars["lit"] == 2
+    assert bars["row"] == 6 and bars["height"] == 24 * 6 - 1 and bars["verified"] == 1
     assert len(bars["rows"]) == 24 and not bars["rows"][0]["cells"]
     n9, n117 = bars["rows"][3]["cells"]
     assert (n9["x"], n9["status"]) == (0, "REJECTED")
-    assert (n117["x"], n117["status"]) == (3 * 5, "VERIFIED")
-    assert n117["label"].startswith("L3 N114–151, 3 of 76 poles studied: N117 positive VERIFIED")
+    assert (n117["x"], n117["status"]) == (8, "VERIFIED")
+    assert n117["label"].startswith("L3 N76–151, 3 of 152 poles studied: N117 positive VERIFIED")
     assert "N120 positive REJECTED" in n117["label"]
-    # Three of 76 poles fill 1 px of 3, from the bottom: a thin line, but visible (#3288).
-    assert (n117["height"], n117["y"]) == (1, 2) and bars["bar"] == 3
+    # Height says VERIFIED without colour: the full 5 px, or 2 px at the bottom of the row.
+    assert (n117["height"], n117["y"]) == (5, 3 * 6)
+    assert (n9["height"], n9["y"]) == (2, 3 * 6 + 3)
 
     grid = layer_pieces(model, model.layers[0])
     assert len(grid["rows"]) == 38 and grid["unexplored"] == 4864 - 3
@@ -255,7 +264,8 @@ def test_pieces_bars(tmp_path, record, records):
     compile_site(records, tmp_path)
     index = (tmp_path / "index.html").read_text()
     assert "Studied neurons per layer" not in index  # the pieces bars replace the histogram
-    assert "2 of 3,072 cells hold a studied neuron" in index
+    assert "2 of 1,536 cells hold a studied neuron, and 1 of them a VERIFIED pole" in index
+    assert "Neurons studied</dt>" in index and "Target</dt>" in index  # one layout per card
     layer = (tmp_path / "models" / MODEL / "L3" / "index.html").read_text()
     assert "Pieces map of layer 3: one cell per neuron, 128 to a row, 3 of 4,864 studied" in layer
     assert '<a href="../../../models/Qwen--Qwen2.5-0.5B/L3/N120.html"><title>' in layer
@@ -1552,7 +1562,7 @@ def test_home_page_counts_a_proven_dead_stop_as_verified(tmp_path, record, prove
     dead = dead.model_copy(update={"identifier": ident, "proven_dead": proven})
     compile_site([studied], tmp_path, stops=[dead])
     home = " ".join((tmp_path / "index.html").read_text().split())
-    assert f"{verified}/116,736 verified" in home
+    assert card_stat("Verified", f"{verified} of 116,736") in home
     assert ("1 of them proven dead" in home) is proven
 
 
@@ -1571,7 +1581,8 @@ def test_a_neuron_with_only_stopped_scans_counts_as_studied(tmp_path, record):
     compile_site([studied], tmp_path, stops=[dead, default_on])
     home = " ".join((tmp_path / "index.html").read_text().split())
     assert 'Neurons studied</dt> <dd class="mt-1 font-mono text-2xl tabular-nums">2</dd>' in home
-    assert "2/116,736 neurons studied" in home and "1/116,736 verified" in home
+    assert card_stat("Neurons studied", "2 of 116,736") in home
+    assert card_stat("Verified", "1 of 116,736") in home
     model_page = " ".join((tmp_path / "models" / MODEL / "index.html").read_text().split())
     assert "2/116,736 neurons studied" in model_page and "STOPPED 1" in model_page
     layer = " ".join((tmp_path / "models" / MODEL / "L3" / "index.html").read_text().split())
@@ -1584,7 +1595,7 @@ def test_a_stop_on_a_neuron_with_an_experiment_is_not_counted_twice(tmp_path, re
     studied = experiment(record, idx=117, status="VERIFIED", counts=(10, 0, 5, 0))
     compile_site([studied], tmp_path, stops=[_stop_on_model(studied, idx=117)])
     home = " ".join((tmp_path / "index.html").read_text().split())
-    assert "1/116,736 neurons studied" in home
+    assert card_stat("Neurons studied", "1 of 116,736") in home
     layer = " ".join((tmp_path / "models" / MODEL / "L3" / "index.html").read_text().split())
     assert "1 neurons studied ·" in layer and "only stopped scans" not in layer
 
@@ -1597,7 +1608,7 @@ def test_a_random_draw_on_a_dead_neuron_counts_as_studied(tmp_path, record):
     draw = UnauditableDraw(**stop.model_dump(exclude={"protocol_version", "latest_record"}))
     compile_site([studied], tmp_path, draws=[draw])
     home = " ".join((tmp_path / "index.html").read_text().split())
-    assert "2/116,736 neurons studied" in home
+    assert card_stat("Neurons studied", "2 of 116,736") in home
     assert (tmp_path / "models" / MODEL / "L5" / "index.html").exists()
 
 

@@ -1,5 +1,6 @@
 """Answer experiments: the claim, its measures, its verdict and its page (#4778)."""
 
+import re
 from datetime import UTC, datetime
 
 import pytest
@@ -240,7 +241,9 @@ def test_the_page_leads_with_the_answer_verdict(tmp_path, record):
         assert "The review drew their seed, 7" in page
         assert page.count("passed") + page.count("failed") >= 7  # every gate, in words
         slug = answer.record.claim.model_name.replace("/", "--")
-        assert "L0/H1" in page and f"models/{slug}/L0/H1.html" in page
+        # No experiment in this site studies L0/H1, so it has no page and no link (#5727).
+        assert "L0/H1" in page and f"models/{slug}/L0/H1.html" not in page
+        assert "(not yet studied)" in page
     verified = (tmp_path / "site" / prompt.answers[-1].href).read_text()
     assert "VERIFIED</strong>: every gate passed" in verified
     rejected = (tmp_path / "site" / prompt.answers[0].href).read_text()
@@ -304,9 +307,14 @@ def test_the_page_draws_the_route_on_every_prompt(gpt2, means, tmp_path, record)
     moving = (folder / "fig-route-0.svg").read_text()
     assert "@keyframes" in moving and "<rect" in moving  # it moves, and the head is a square
     assert "animation:none" in (folder / "fig-route-0-static.svg").read_text()
+    # Every unit link on the page leads to a page that the build wrote (#5727). A route
+    # unit with no page shows as plain text.
+    here = (tmp_path / "site" / prompt.answers[0].href).parent
+    units = set(re.findall(r'href="([^"]*/L\d+/[NH]\d+\.html)"', page))
+    assert not [h for h in units if not (here / h).resolve().exists()]
+    assert "(not yet studied)" in page  # no experiment in this site studies L0/H1
     # The 3D explorer: its data is on the page, and it starts by itself with no button.
     import json
-    import re
 
     data = json.loads(re.search(r'id="route3d-data">(.*?)</script>', page, re.S)[1])
     assert len(data["prompts"]) == len(readings) and data["prompts"][0]["by"] == "original"

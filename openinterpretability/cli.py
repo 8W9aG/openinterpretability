@@ -456,6 +456,7 @@ from openinterpretability import (  # noqa: E402, F401
     cli_pole_effects,
     cli_probing,
     cli_provider,
+    cli_query,
     cli_registry,
     cli_reproduce,
     cli_review,
@@ -465,6 +466,7 @@ from openinterpretability import (  # noqa: E402, F401
     cli_social,
     cli_superpositions,
     cli_wiring,
+    mcp_server,
 )
 
 

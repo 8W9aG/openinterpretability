@@ -1,5 +1,6 @@
 """Explanation records and their pages (core/explanation_records.py, #3744 part B)."""
 
+import re
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
@@ -73,7 +74,12 @@ def test_the_site_has_a_page_for_each_explanation(tmp_path, record):
     assert "John gave a drink to" in index and "current" in index
     page = (tmp_path / "site" / views[0].newest.href).read_text()
     assert "Mostly not known yet." in page and "L10/N2931-" in page and "C4" in page
-    assert 'href="../../../../models/openai-community--gpt2/L10/N2931.html"' in page
+    # No experiment in this site studies L10/N2931, so the unit has no page and no link
+    # (#5727). The record fixture's own unit has a page.
+    assert "models/openai-community--gpt2/L10/N2931.html" not in page
+    linked = re.findall(r'href="([^"]*/L\d+/[NH]\d+\.html)"', page)
+    here = (tmp_path / "site" / views[0].newest.href).parent
+    assert not [h for h in linked if not (here / h).resolve().exists()]
     research = (tmp_path / "site" / "research" / "index.html").read_text()
     assert "explanations/index.html" in research
     compile_site([record], tmp_path / "bare")

@@ -307,7 +307,6 @@ openinterpretability/builder/explanation_pages.py::load_views
 openinterpretability/builder/explanation_pages.py::_view
 openinterpretability/builder/explanation_pages.py::_source
 openinterpretability/builder/explanation_pages.py::by_model
-openinterpretability/builder/explanation_pages.py::render_explanations
 openinterpretability/builder/explanation_pages.py::write_space
 openinterpretability/builder/explanation_pages.py::write_routes
 openinterpretability/builder/explanation_pages.py::write_figures
@@ -417,7 +416,6 @@ openinterpretability/builder/parquet_export.py::export_registry
 openinterpretability/builder/pending.py::parse
 openinterpretability/builder/pieces.py::studied_poles
 openinterpretability/builder/pieces.py::fill
-openinterpretability/builder/pieces.py::model_pieces
 openinterpretability/builder/pieces.py::cell_status
 openinterpretability/builder/pieces.py::cell_label
 openinterpretability/builder/pieces.py::_layer_cells

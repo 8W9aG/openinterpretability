@@ -350,7 +350,7 @@ def compile_site(
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
     _render_index(render, models, agents, stats, (*draws, *stops))
     report.parquet = parquet()
-    render_reference_pages(render, papers_dir, report, paper_pdfs, explanations, posts_dir)
+    render_reference_pages(render, papers_dir, report, paper_pdfs, explanations, posts_dir, studied)
     write_feeds(report, experiments, common)  # sitemap.xml, feed.xml and robots.txt
     save_spans()  # keep the matches of new text for the next build
     P_USEFUL.save()  # and the significance of new records
