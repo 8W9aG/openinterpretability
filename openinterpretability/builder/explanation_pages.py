@@ -20,7 +20,9 @@ before #4503 redirect to the prompt's page.
 from __future__ import annotations
 
 import re
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 
 from openinterpretability.core.explanation_records import EXPLANATIONS_WIKI
@@ -77,6 +79,7 @@ class AnswerView:
 
     record: object  # AnswerRecord
     source: str  # its path in the repository, for the source link
+    pages: AbstractSet[str] | None = None  # the unit pages the build writes; None links all
 
     @property
     def href(self) -> str:
@@ -111,7 +114,11 @@ class AnswerView:
 
     @property
     def route(self) -> list[dict]:
-        """The route in order: each unit's label, role and unit page."""
+        """The route in order: each unit's label, role and unit page.
+
+        A unit's ``href`` is None when the build writes no page for it, such as a neuron
+        with no experiment (#5727). The page then shows the unit as plain text.
+        """
         from openinterpretability.core.answer_records import parse_unit
         from openinterpretability.core.identifiers import model_slug
 
@@ -120,6 +127,8 @@ class AnswerView:
             layer, index, pole = parse_unit(label)
             unit = f"H{index}" if pole == "head" else f"N{index}"
             href = f"models/{model_slug(c.model_name)}/L{layer}/{unit}.html"
+            if self.pages is not None and href not in self.pages:
+                href = None
             out.append({"unit": label, "role": c.roles.get(label, ""), "href": href})
         return out
 
@@ -207,6 +216,20 @@ def unit_href(slug: str | None) -> str | None:
     return f"models/{found['model']}/L{found['layer']}/{found['unit']}.html" if found else None
 
 
+def built_unit_href(slug: str | None, pages: AbstractSet[str] | None) -> str | None:
+    """The unit page of ``slug``, or None when the build writes no such page (#5727).
+
+    Args:
+        slug: A pole's or a head's slug.
+        pages: The unit pages that the build writes, or None to trust the slug.
+
+    Returns:
+        The page's path from the site root, or None.
+    """
+    href = unit_href(slug)
+    return href if pages is None or href in pages else None
+
+
 def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
     """Each prompt with all its explanations, by its newest explanation, newest first.
 
@@ -268,10 +291,18 @@ def by_model(views) -> dict[str, list]:
     return out
 
 
-def render_explanations(render, prompts: list[PromptView]) -> None:
+def render_explanations(
+    render, prompts: list[PromptView], pages: AbstractSet[str] | None = None
+) -> None:
     """Write the index, each prompt's page, each explanation's page and the old pages' redirects.
 
     A record with figure data (#4479) gets its figures as SVG files in a folder beside its page.
+
+    Args:
+        render: The site's renderer.
+        prompts: Each prompt, with its explanations and answers.
+        pages: The unit pages that the build writes. A unit with no page gets no link
+            (#5727). None links every unit, as a test with no unit pages needs.
     """
     from openinterpretability.builder.compiler import _write_redirect
 
@@ -283,6 +314,7 @@ def render_explanations(render, prompts: list[PromptView]) -> None:
         old = render.output_dir / prompt.legacy_href
         _write_redirect(old, f"../../{prompt.href}", render.report)
         for answer in prompt.answers:  # one page per answer experiment (#4909)
+            answer.pages = pages
             from openinterpretability.builder.route_figures import route3d
 
             routes = write_routes(render, answer)  # the route on each prompt (#4905, #4917)
@@ -293,8 +325,8 @@ def render_explanations(render, prompts: list[PromptView]) -> None:
                    route3d=explorer)  # fmt: skip
         for view in prompt.explanations:
             drawn = write_figures(render, view)
-            render(view.href, "explanation.html", view=view, prompt=prompt, unit_href=unit_href,
-                   figures=drawn)  # fmt: skip
+            render(view.href, "explanation.html", view=view, prompt=prompt,
+                   unit_href=partial(built_unit_href, pages=pages), figures=drawn)  # fmt: skip
 
 
 def write_space(render, model: str) -> str | None:

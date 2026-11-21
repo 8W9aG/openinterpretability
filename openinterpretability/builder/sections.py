@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Set as AbstractSet
 from importlib.metadata import metadata
 from pathlib import Path
 
@@ -35,6 +36,7 @@ def render_reference_pages(
     pdfs: bool = False,
     explanations=(),
     posts_dir: Path | None = None,
+    unit_pages: AbstractSet[str] | None = None,
 ) -> None:
     """Write About, Changelog, Research, its literature review, the explanations and Posts.
 
@@ -46,6 +48,8 @@ def render_reference_pages(
         explanations: The :class:`~openinterpretability.builder.explanation_pages.ExplanationView`
             of each prompt.
         posts_dir: The folder of the posts, or None for an empty Posts section (#4650).
+        unit_pages: The unit pages that the build writes, so that an explanation or an
+            answer links only those (#5727). None links every unit.
     """
     license = metadata(DISTRIBUTION)["License-Expression"]
     taxonomy = taxonomy_rows(render.common["repo_url"])
@@ -59,7 +63,7 @@ def render_reference_pages(
     render_reviews(render, reviews)
     papers = _render_research(render, papers_dir, report, pdfs, bool(explanations), bool(reviews))
     write_research_feeds(render.output_dir, papers, reviews, LITERATURE, render.common)
-    render_explanations(render, list(explanations))
+    render_explanations(render, list(explanations), unit_pages)
     _render_posts(render, posts_dir, report)
 
 
