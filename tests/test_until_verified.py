@@ -139,3 +139,17 @@ def test_the_next_turn_revises_the_last_record(record, tmp_path):
         cli, ["next", "--wiki-dir", str(tmp_path), "--continue", "x/L0/N1"]
     )
     assert missing.exit_code != 0 and "no superseding follow-up" in missing.output
+
+
+def test_a_verified_unit_has_no_next_turn(record, tmp_path):
+    from openinterpretability.builder.wiki import experiment_id
+
+    assert record.verdict.status == "VERIFIED"
+    slug = record.submission.identifier.slug
+    folder = experiments_dir(tmp_path) / slug
+    folder.mkdir(parents=True)
+    (folder / f"{experiment_id(record)}.json").write_text(
+        record.model_dump_json(), encoding="utf-8"
+    )
+    assert uv.next_turn(slug, tmp_path) is None
+    assert uv.next_turn("x/L0/N1", tmp_path) is None  # no such unit

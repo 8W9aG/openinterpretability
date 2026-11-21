@@ -27,3 +27,24 @@ def test_ci_refuses_a_record_that_names_another_revision(monkeypatch, record):
     ci = _Reproducer(signers="", landed={}, tolerance=None, scan_corpora={},
                      allowed_models=(model,), device="cpu")  # fmt: skip
     assert "not a full commit SHA" in ci.refusal(rec)
+
+
+def test_main_commits_lists_the_main_branch_history_from_the_hub(monkeypatch):
+    from types import SimpleNamespace
+
+    import huggingface_hub
+
+    asked = []
+
+    class FakeApi:  # the Hub is the network boundary
+        def list_repo_commits(self, model, revision):
+            asked.append((model, revision))
+            return [SimpleNamespace(commit_id=MAIN), SimpleNamespace(commit_id="b" * 40)]
+
+    monkeypatch.setattr(huggingface_hub, "HfApi", FakeApi)
+    model_revisions.main_commits.cache_clear()
+    try:
+        assert model_revisions.main_commits("org/m") == frozenset({MAIN, "b" * 40})
+        assert asked == [("org/m", "main")]
+    finally:
+        model_revisions.main_commits.cache_clear()

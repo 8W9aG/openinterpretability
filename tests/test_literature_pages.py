@@ -161,3 +161,13 @@ def test_index_rows_credits_and_queued_titles_are_redacted(tmp_path):
     assert mail not in credits(folder)["a-paper"]
     title = map_view(folder, [])["queued"][0].title
     assert mail not in title and REMOVED_TEXT in title
+
+
+def test_a_review_without_a_level_1_title_takes_its_file_name(tmp_path):
+    folder = tmp_path / "literature"
+    folder.mkdir()
+    (folder / "README.md").write_text("# Literature review\n")
+    (folder / "untitled.md").write_text("## Notes\n\nNo top heading.\n")
+    _, review = load_reviews(REPO, folder)
+    assert review.title == "untitled"
+    assert "<h2>Notes</h2>" in review.body
