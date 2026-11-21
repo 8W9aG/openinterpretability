@@ -54,3 +54,41 @@ def test_the_file_round_trips(tmp_path):
     result = ci.update({}, [frozenset("abc"), frozenset("def")], DAY)
     ci.append(path, result.events)
     assert ci.load(path) == (result.circuits, set(result.circuits))
+
+
+def test_clusters_are_communities_of_three_or_more_wired_units(record):
+    from openinterpretability.builder.tree import build_tree
+    from tests.test_circuits import at, wiring
+
+    strong = [("mlp_neuron", 3, 117, 2.0), ("mlp_neuron", 6, 2, 2.0)]
+    records = [
+        # A strong triangle L1/N5, L3/N117, L6/N2, then a zero-weight edge to L9/N9
+        at(record, 1, 5, activations=wiring("activations", down=strong)),
+        at(record, 3, 117, weights=wiring("weights", down=[("mlp_neuron", 6, 2, 2.0)])),
+        at(record, 6, 2, weights=wiring("weights", down=[("mlp_neuron", 9, 9, 0.0)])),
+        at(record, 9, 9),
+        at(record, 12, 1),  # wired to nothing
+    ]
+    (model,) = build_tree(records, [])
+    page = "models/Qwen--Qwen2.5-0.5B/{}.html"
+    assert ci.clusters(model, {}) == [
+        frozenset(page.format(u) for u in ("L1/N5", "L3/N117", "L6/N2"))
+    ]
+    pair = build_tree(records[:2], [])[0]  # two units are too few for a circuit
+    assert ci.clusters(pair, {}) == []
+
+
+def test_edges_that_touch_a_hub_make_no_cluster(record):
+    from openinterpretability.builder.tree import build_tree
+    from tests.test_circuits import at, wiring
+
+    spoke = wiring("activations", down=[("mlp_neuron", 12, 1, 0.1)])
+    records = [*(at(record, 2, i, activations=spoke) for i in range(10)), at(record, 12, 1)]
+    (model,) = build_tree(records, [])
+    assert ci.clusters(model, {}) == []  # every edge touches the hub L12/N1
+
+
+def test_appending_no_events_writes_no_file(tmp_path):
+    path = ci.path_for("m", tmp_path / "circuits")
+    ci.append(path, [])
+    assert not path.parent.exists()

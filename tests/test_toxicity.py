@@ -1,11 +1,14 @@
 """How the toxicity labels read a document, with the models replaced (offline)."""
 
 import json
+from types import SimpleNamespace
 
 import pytest
 
 from openinterpretability import toxicity
 from openinterpretability.toxicity import _HATE, _TOXICITY, _label, _matches, sentences
+from openinterpretability.toxicity import hate_matches as real_hate_matches
+from openinterpretability.toxicity import toxicity_matches as real_toxicity_matches
 
 
 def _scores(**found):
@@ -77,3 +80,92 @@ def test_a_document_with_no_sentences_needs_no_model(scored):
 def test_the_detector_pins_both_models():
     assert _TOXICITY.revision[:12] in toxicity.DETECTOR
     assert _HATE.revision[:12] in toxicity.DETECTOR
+
+
+def test_each_label_set_reads_with_its_own_model(monkeypatch, tmp_path):
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    read = []
+
+    def score(classifier, texts):
+        read.append(classifier.name)
+        return [{label: 0.0 for label in (*classifier.labels, "toxicity")} | {"insult": 0.9,
+                 "racism": 0.8} for _ in texts]  # fmt: skip
+
+    monkeypatch.setattr(toxicity, "_score", score)
+    assert real_toxicity_matches("You are bad.") == ((0, 12, "insult"),)
+    assert real_hate_matches("You are bad.") == ((0, 12, "racism"),)
+    assert read == ["toxicity", "hate"]
+
+
+class _Tokenizer:
+    """Turns each text into one token per word, padded, as a real tokenizer's batch."""
+
+    def __init__(self):
+        self.batches = []
+
+    def __call__(self, texts, truncation, max_length, padding, return_tensors):
+        import torch
+
+        self.batches.append((list(texts), truncation, max_length))
+        width = max(len(t.split()) for t in texts)
+        ids = [[1] * len(t.split()) + [0] * (width - len(t.split())) for t in texts]
+        return {"input_ids": torch.tensor(ids), "attention_mask": torch.tensor(ids)}
+
+
+class _Model:
+    """Two outputs: the first scores the text's length in words, the second is always 0."""
+
+    config = SimpleNamespace(id2label={0: "insult", 1: "threat"}, num_labels=2)
+
+    def __call__(self, input_ids, attention_mask):
+        import torch
+
+        words = attention_mask.sum(-1).float()
+        return SimpleNamespace(logits=torch.stack([words, torch.zeros_like(words)], -1))
+
+
+def test_scores_come_from_the_model_in_batches(monkeypatch):
+    tokenizer = _Tokenizer()
+    monkeypatch.setattr(toxicity, "_model", lambda classifier: (tokenizer, _Model()))
+    monkeypatch.setattr(toxicity, "_BATCH", 2)
+    found = toxicity._score(_TOXICITY, ["a b", "a", "a b c"])
+    assert [round(s["insult"], 4) for s in found] == [0.8808, 0.7311, 0.9526]  # sigmoid
+    assert [s["threat"] for s in found] == [0.5, 0.5, 0.5]
+    assert [b[0] for b in tokenizer.batches] == [["a b", "a"], ["a b c"]]
+    assert tokenizer.batches[0][1:] == (True, toxicity._MAX_TOKENS)
+    softmax = toxicity._score(_HATE, ["a"])
+    assert softmax[0]["insult"] + softmax[0]["threat"] == pytest.approx(1.0)
+
+
+def test_the_models_load_at_their_pinned_commits(monkeypatch):
+    import transformers
+
+    loads = []
+
+    class Loaded:
+        def eval(self):
+            loads.append("eval")
+            return self
+
+    def tokenizer(repo, revision):
+        loads.append(("tokenizer", repo, revision))
+        return "tokenizer"
+
+    def model(repo, revision):
+        loads.append(("model", repo, revision))
+        return Loaded()
+
+    monkeypatch.setattr(transformers.AutoTokenizer, "from_pretrained", tokenizer)
+    monkeypatch.setattr(transformers.AutoModelForSequenceClassification, "from_pretrained", model)
+    toxicity._model.cache_clear()
+    try:
+        tok, loaded = toxicity._model(_HATE)
+        assert toxicity._model(_HATE) == (tok, loaded)  # loaded once
+    finally:
+        toxicity._model.cache_clear()
+    assert tok == "tokenizer" and isinstance(loaded, Loaded)
+    assert loads == [
+        ("tokenizer", _HATE.repo, _HATE.revision),
+        ("model", _HATE.repo, _HATE.revision),
+        "eval",
+    ]
