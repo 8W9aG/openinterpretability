@@ -194,3 +194,87 @@ def test_the_map_draws_outlines_and_a_card_line(tmp_path, record):
     compile_site([record], tmp_path / "site", concept_map=found)
     page = (tmp_path / "site" / "models" / model.slug / "index.html").read_text()
     assert 'class="region f0"' in page and 'data-cluster="0"' in page
+
+
+def _studied(record, when, explanation, text, model=None):
+    """``record`` at time ``when``, with one top example of ``text``."""
+    from datetime import UTC, datetime
+
+    from tests.test_dead import PROVENANCE
+
+    example = record.submission.top_examples[0]
+    tokens = list(text)
+    ident = record.submission.identifier.model_copy(
+        update={"model_name": model or record.submission.identifier.model_name}
+    )
+    sub = record.submission.model_copy(update={
+        "identifier": ident, "provenance": PROVENANCE, "natural_language_explanation": explanation,
+        "top_examples": [example.model_copy(update={
+            "text": text, "tokens": tokens, "activations": [1.0] * len(tokens),
+            "max_token_index": 0})]})  # fmt: skip
+    verdict = record.verdict.model_copy(update={"timestamp": datetime(*when, tzinfo=UTC)})
+    return record.model_copy(update={"submission": sub, "verdict": verdict})
+
+
+def test_studied_poles_take_the_newest_record_with_texts_and_the_first_date(
+    tmp_path, record, monkeypatch
+):
+    from openinterpretability.builder.wiki import archive_record
+    from openinterpretability.data import sample_corpus
+
+    monkeypatch.setenv("OPENINTERPRETABILITY_OFFLOAD_EVIDENCE", "0")
+    wiki, model = tmp_path / "wiki", record.submission.identifier.model_name
+    sample = sample_corpus()[0]  # a sample-corpus line says nothing, so it is left out
+    for r in [
+        _studied(record, (2026, 9, 30), "oldest, no texts", sample),
+        _studied(record, (2026, 10, 1), "has texts", "quote"),
+        _studied(record, (2026, 10, 2), "newest, no texts", sample),
+        _studied(record, (2026, 10, 3), "another model", "quote", model="org/other"),
+    ]:
+        archive_record(r, wiki)
+    (pole,) = cm.studied_poles({model}, wiki)
+    assert (pole.model, pole.explanation, pole.texts) == (model, "has texts", ("«q»uote",))
+    assert pole.first == "2026-09-30" and pole.corpus == "corpus.jsonl"
+
+
+def test_clusters_split_two_far_groups_at_the_target_count():
+    rng = np.random.default_rng(0)
+    near = [np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0])]
+    rows = [c + 0.01 * rng.normal(size=3) for c in near for _ in range(6)]
+    vectors = np.array([r / np.linalg.norm(r) for r in rows])
+    member = cm.clusters(vectors, k=3, target=2)
+    assert len(set(member)) == 2
+    assert len(set(member[:6])) == 1 and len(set(member[6:])) == 1
+
+
+def test_layout_scales_each_axis_to_the_unit_square(monkeypatch):
+    import sys
+    import types
+
+    made = []
+
+    class UMAP:  # UMAP itself takes seconds to compile, so a fixed layout stands in
+        def __init__(self, **kw):
+            made.append(kw)
+
+        def fit_transform(self, vectors):
+            return np.array([[2.0, 5.0], [4.0, 5.0], [3.0, 5.0]])
+
+    module = types.ModuleType("umap")
+    module.UMAP = UMAP
+    monkeypatch.setitem(sys.modules, "umap", module)
+    vectors = np.eye(3)
+    assert cm.layout(vectors) == [(0.0, 0.0), (1.0, 0.0), (0.5, 0.0)]  # a flat axis stays 0
+    assert made[0] == {"n_components": 2, "metric": "cosine", "random_state": 0,
+                       "init": "spectral", "n_neighbors": 2}  # fmt: skip
+    cm.layout(vectors, init=[[0, 1], [1, 0], [0.5, 0.5]])
+    assert made[1]["init"].tolist() == [[0.0, 1.0], [1.0, 0.0], [0.5, 0.5]]
+
+
+def test_a_refit_with_no_old_pole_starts_from_scratch():
+    old = cm.build([_pole(1), _pole(2), _pole(3)], _encode, place=_fit, group=_group)
+    _fit.init = "not called"
+    found = cm.build([_pole(4), _pole(5), _pole(6)], _encode, old, refit=True,
+                     place=_fit, group=_group)  # fmt: skip
+    assert _fit.init is None and found["version"] == 2
+    assert [p["slug"] for p in found["points"]] == [_pole(i).slug for i in (4, 5, 6)]

@@ -115,11 +115,11 @@ def studied_poles(models, wiki_dir: Path) -> list[Pole]:
     out = []
     for slug, (record, texts) in sorted(newest.items()):
         sub, ident = record.submission, record.submission.identifier
-        if texts:
-            out.append(Pole(ident.model_name, slug, ident.layer, ident.neuron_idx, ident.pole,
-                            texts, sub.natural_language_explanation, record.verdict.status,
-                            first[slug].strftime("%Y-%m-%d"),
-                            corpus_family(sub.provenance)))  # fmt: skip
+        # newest holds only poles with texts (above), so each one goes on the map.
+        out.append(Pole(ident.model_name, slug, ident.layer, ident.neuron_idx, ident.pole,
+                        texts, sub.natural_language_explanation, record.verdict.status,
+                        first[slug].strftime("%Y-%m-%d"),
+                        corpus_family(sub.provenance)))  # fmt: skip
     return out
 
 
