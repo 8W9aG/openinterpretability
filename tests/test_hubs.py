@@ -62,3 +62,29 @@ def test_norm_rows_come_from_the_weights_and_the_newest_wins(tiny_gpt2, tmp_path
     path.write_text(old.model_dump_json() + "\n" + row.model_dump_json() + "\n")
     assert hubs.load_norms(path) == {neuron.slug: row}
     assert hubs.load_norms(tmp_path / "missing.jsonl") == {}
+
+
+def test_record_facts_take_the_reviewed_active_share_first(record):
+    from openinterpretability.core.schemas import ReviewMetrics
+
+    metrics = ReviewMetrics(specificity=1.0, sensitivity=1.0, balanced_accuracy=1.0,
+                            counterfactual_reproduction=1.0, lookahead_consistent=True,
+                            independent_review=True, gates={"not_default_on": False},
+                            active_share=0.75)  # fmt: skip
+    verdict = record.verdict.model_copy(update={"metrics": metrics})
+    share, default_on = hubs.record_facts(record.model_copy(update={"verdict": verdict}))
+    assert share == 0.75 and default_on is True
+
+
+def test_load_norms_skips_blank_lines_and_keeps_the_newest_in_any_order(tmp_path):
+    new = hubs.NormRow(hub="h", date="2026-11-17", norm=2.0, layer_median=1.0, percentile=0.5)
+    old = new.model_copy(update={"date": "2026-11-01", "norm": 9.0})
+    path = tmp_path / "hubs.jsonl"
+    path.write_text(new.model_dump_json() + "\n\n" + old.model_dump_json() + "\n")
+    assert hubs.load_norms(path) == {"h": new}
+
+
+def test_a_hub_line_without_facts_says_none_were_recorded():
+    line = hubs.hub_line({"hub": "m/L1/H2/HUB", "href": "hubs/m/L1-H2.html"})
+    assert "no facts recorded. A hub can be an artefact." in line
+    assert line.startswith("hub m/L1/H2/HUB (") and "hubs/m/L1-H2.html" in line
