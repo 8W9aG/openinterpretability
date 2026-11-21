@@ -33,6 +33,10 @@ from openinterpretability.core.legacy_names import cache_base as _cache_base
 
 VERSION = "3.4.16"
 STYLESHEET = "assets/site.css"
+COLUMN_REM = 60
+"""The width of the site's one content column, in rem (#5726). Prose, captions, figures,
+tables and maps all fit in it, so a section has one right edge. Tailwind's ``max-w-column``
+is this width, and ``max-w-page`` adds the page's 1rem gutter on each side (``px-4``)."""
 """The stylesheet's path under the site, which ``base.html`` links."""
 
 # From the release's sha256sums.txt.
@@ -82,7 +86,9 @@ def candidates(site: Path) -> set[str]:
 
 def config(content: list[str]) -> str:
     """The Tailwind config: the site's colours and fonts, and the files to scan."""
-    theme = {"extend": {"colors": palette.tailwind_colors(), "fontFamily": FONTS}}
+    widths = {"column": f"{COLUMN_REM}rem", "page": f"{COLUMN_REM + 2}rem"}
+    extend = {"colors": palette.tailwind_colors(), "fontFamily": FONTS, "maxWidth": widths}
+    theme = {"extend": extend}
     return "module.exports = " + json.dumps({"content": content, "theme": theme}, indent=1) + ";\n"
 
 

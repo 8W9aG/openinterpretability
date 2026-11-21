@@ -14,7 +14,7 @@
 {% block content %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Research</nav>
 <h1 class="text-2xl font-semibold">Research</h1>
-<p class="mt-2 max-w-3xl text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+<p class="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
   Papers from this project. Each one has its method, its results, and the commands that reproduce them.
   {% if reviewed %}The <a class="{{ link }}" href="literature/index.html">literature review</a> has a page for each paper or post that bears on this work.{% endif %}
   {% if explained %}The <a class="{{ link }}" href="{{ root }}explanations/index.html">explanations</a> say why a model gives one answer to one prompt, as far as the registry explains it.{% endif %}

@@ -15,10 +15,10 @@
 {% set r = answer.record %}{% set c = r.claim %}{% set v = r.verdict %}{% set m = v.measures %}{% set p = v.policy %}
 <article data-pagefind-body>
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}{{ prompt.model_href }}">{{ c.model_name }}</a> / <a class="underline" href="{{ root }}explanations/index.html">Explanations</a> / <a class="underline" href="{{ root }}{{ prompt.href }}">This prompt</a></nav>
-<h1 class="max-w-3xl text-2xl font-semibold" data-pagefind-meta="title">How <span class="font-mono">{{ c.model_name }}</span> answers <span class="font-mono">{{ c.answer }}</span>: answer experiment {{ c.attempt }}</h1>
-<p class="mt-2 max-w-3xl font-mono text-sm text-slate-700 dark:text-slate-300">{{ c.prompt }}</p>
+<h1 class="text-2xl font-semibold" data-pagefind-meta="title">How <span class="font-mono">{{ c.model_name }}</span> answers <span class="font-mono">{{ c.answer }}</span>: answer experiment {{ c.attempt }}</h1>
+<p class="mt-2 font-mono text-sm text-slate-700 dark:text-slate-300">{{ c.prompt }}</p>
 <p class="mt-3 text-lg"><strong>{{ v.status }}</strong>{% if v.failed %}: failed {{ v.failed | join(", ") }}{% else %}: every gate passed{% endif %}.</p>
-<p class="mt-2 max-w-3xl text-xs text-slate-500">
+<p class="mt-2 text-xs text-slate-500">
   Attempt {{ c.attempt }} of {{ prompt.answers | length }} on <a class="underline" href="{{ root }}{{ prompt.href }}">this prompt</a>{% if c.supersedes %}, after attempt {{ c.attempt - 1 }} ({{ c.supersedes }}){% endif %} ·
   proposed by <span class="font-mono">{{ c.submitting_agent_model }}</span>, reviewed by <span class="font-mono">{{ v.reviewer_agent_model }}</span> ·
   <time datetime="{{ v.timestamp.isoformat() }}">{{ v.timestamp.strftime("%Y-%m-%d %H:%M") }}</time> UTC · answer protocol {{ p.protocol_version }} ·
@@ -30,7 +30,7 @@
   <p>{{ c.explanation }}</p>
   <p>Sources: {{ c.sources | join(", ") }}. The route, in order:</p>
 </div>
-<div class="mt-2 max-w-3xl overflow-x-auto">
+<div class="mt-2 overflow-x-auto">
   <table class="w-full text-left text-sm">
     <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">Step</th><th class="py-1 pr-3">Unit</th><th class="py-1 pr-3">Its role here</th></tr></thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -45,7 +45,7 @@
 {% if routes %}
 <section class="mt-8" aria-labelledby="route" data-pagefind-ignore>
   <h2 id="route" class="mb-1 text-lg font-semibold">The route at work</h2>
-  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">The signal from the prompt's tokens to the answer, layer by layer.</p>
+  <p class="text-sm text-slate-600 dark:text-slate-400">The signal from the prompt's tokens to the answer, layer by layer.</p>
   {% call read_more() %}<p>Drawn from this experiment's measures. Each counterfactual prompt has its own figure on the same layout, so the units keep their places and the changes show.</p>{% endcall %}
   {% set f = routes[c.prompt] %}{% include "_figure.html" %}
 </section>
@@ -57,7 +57,7 @@
 <div class="mb-2"></div>
 {% set mg = answer.margins %}
 {% set null_cut = (m.null_cuts | sum / m.null_cuts | length) if m.null_cuts else 0 %}
-<div class="max-w-3xl overflow-x-auto">
+<div class="overflow-x-auto">
   <table class="w-full text-left text-sm">
     <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">Gate</th><th class="py-1 pr-3">Measured</th><th class="py-1 pr-3">Needed</th><th class="py-1 pr-3">Margin</th><th class="py-1 pr-3">Result</th></tr></thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -72,23 +72,23 @@
   </table>
 </div>
 
-<div class="mt-8 max-w-4xl">
+<div class="mt-8">
 {% call fold("Ablation: is the route necessary?", level=2) %}
-<p class="max-w-3xl text-sm">The route cuts the answer's log-probability by {{ "%.3f" | format(m.route_cut) }}, {{ m.necessity | pct_fine }} of the {{ "%.3f" | format(m.all_cut) }} that every unit cuts. Random sets cut it by {{ "%.3f" | format(null_cut) }} on the mean.</p>
+<p class="text-sm">The route cuts the answer's log-probability by {{ "%.3f" | format(m.route_cut) }}, {{ m.necessity | pct_fine }} of the {{ "%.3f" | format(m.all_cut) }} that every unit cuts. Random sets cut it by {{ "%.3f" | format(null_cut) }} on the mean.</p>
 {% call read_more() %}<p>An ablated unit is set to its mean over the corpus. The clean log-probability is {{ "%.3f" | format(m.clean) }}. Each of the {{ m.null_cuts | length }} random sets has the route's heads and poles in each layer. Their cuts: <span class="font-mono text-xs tabular-nums">{% for n in m.null_cuts %}{{ "%.3f" | format(n) }}{{ ", " if not loop.last }}{% endfor %}</span>.</p>{% endcall %}
 {% endcall %}
 
 {% call fold("Sufficiency: does the route alone bring the answer back?", level=2) %}
-<p class="max-w-3xl text-sm">The route alone brings back {{ m.sufficiency | pct_fine if m.sufficiency is not none else "an unmeasured share" }} of the answer.</p>
+<p class="text-sm">The route alone brings back {{ m.sufficiency | pct_fine if m.sufficiency is not none else "an unmeasured share" }} of the answer.</p>
 {% call read_more() %}<p>Every unit but the route is set to its mean. The share is (kept − all ablated) / (clean − all ablated), at most 100%.</p>{% endcall %}
 {% endcall %}
 
 {% call fold("Path patching: does the route carry the change?", level=2) %}
-<p class="max-w-3xl font-mono text-sm">{{ c.corrupted }}</p>
-<p class="mt-1 max-w-3xl text-sm">Patched from this corrupted prompt, the route alone moves the answer by {{ m.patching | pct_fine if m.patching is not none else "—" }} of the gap.</p>
+<p class="font-mono text-sm">{{ c.corrupted }}</p>
+<p class="mt-1 text-sm">Patched from this corrupted prompt, the route alone moves the answer by {{ m.patching | pct_fine if m.patching is not none else "—" }} of the gap.</p>
 {% call read_more() %}<p>The corrupted prompt changes the sources, and the answer's log-probability falls by {{ "%.3f" | format(m.corrupted_gap) }}. Only the route's corrupted activations go into the clean run. The random sets move it by <span class="font-mono text-xs tabular-nums">{% for n in m.null_patching %}{{ n | pct_fine if n is not none else "—" }}{{ ", " if not loop.last }}{% endfor %}</span>.{% if m.null_seed is not none %} The review drew their seed, {{ m.null_seed }}, after the claim was written, so the proposer couldn't tune the claim against them.{% endif %}</p>{% if m.reviewer_patching %}<p>The reviewer wrote {{ m.reviewer_patching | length }} more corrupted prompts without seeing any result. The route must carry the answer from each of them.</p>{% endif %}{% endcall %}
 {% if m.reviewer_patching %}
-<div class="max-w-4xl overflow-x-auto">
+<div class="overflow-x-auto">
   <table class="mt-1 w-full text-left text-sm">
     <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">The reviewer's corrupted prompt</th><th class="py-1 pr-3">The route moves the answer</th><th class="py-1 pr-3">Random sets ({{ (p.null_quantile * 100) | round | int }}th percentile of |share|)</th></tr></thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
@@ -103,11 +103,11 @@
 {% endcall %}
 
 {% call fold("Counterfactual prompts", level=2) %}
-<p class="max-w-3xl text-sm">{{ m.controls.values() | select | list | length }} of {{ m.controls | length }} of the proposer's prompts and {{ m.probes.values() | select | list | length }} of {{ m.probes | length }} of the reviewer's came out as the claim predicts.</p>
+<p class="text-sm">{{ m.controls.values() | select | list | length }} of {{ m.controls | length }} of the proposer's prompts and {{ m.probes.values() | select | list | length }} of {{ m.probes | length }} of the reviewer's came out as the claim predicts.</p>
 {% call read_more() %}<p>Each prompt predicts whether {{ c.answer }} stays the model's top token (kept) or not (changed), and why. The reviewer wrote the second set to break the claim, without seeing any result.</p>{% endcall %}
 {% for title, prompts, results in [("The proposer's prompts", c.counterfactuals, m.controls), ("The reviewer's prompts", r.probes.prompts, m.probes)] %}
 <h3 class="mb-1 mt-4 text-sm font-semibold">{{ title }}</h3>
-<div class="max-w-4xl overflow-x-auto">
+<div class="overflow-x-auto">
   <table class="w-full text-left text-sm">
     <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">Prompt</th><th class="py-1 pr-3">Predicted</th><th class="py-1 pr-3">Model's answer</th><th class="py-1 pr-3">Result</th><th class="py-1 pr-3">The route here</th><th class="py-1 pr-3">Why</th></tr></thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">

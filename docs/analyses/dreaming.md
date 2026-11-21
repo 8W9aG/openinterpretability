@@ -54,6 +54,31 @@ So a misprediction here is not evidence that the explanation is wrong on real te
 - **Only one direction.** This finds inputs the explanation misses: false negatives. The opposite arm finds false positives: inputs the explanation predicts active that stay silent. It needs an objective that holds a hypothesis's trigger fixed while driving the pole down. #3779 holds it, with the "exactly hit" arm of the issue.
 - **Positive poles of GPT-2 small only.**
 
+## Three arms and two models (#3779)
+
+Run on 2026-11-21 with `scripts/dream_arms.py`. The rows are in `dreaming-arms.jsonl`. It takes 20 VERIFIED positive poles each of GPT-2 small and pythia-70m (seed 0). EPO runs at the paper's k = 512 and 300 steps, from seeds 0 and 1. `dream()` gained a goal and frozen positions for the new arms (`openinterpretability/harness/dreaming.py`).
+
+- **max**: as above. A miss is a firing dream that the judge calls inactive.
+- **min**: a window of 24 tokens around the peak of each of up to two of the record's positive holdouts that fired. The peak token is frozen, and EPO drives the pole down. A false positive is a silenced prompt that the judge calls active.
+- **hit**: dreams aimed at the record's active line, kept within 10% of it. The share that the judge calls active shows how sharp the explanation's boundary is.
+- **review**: each GPT-2 pole's firing max-dreams are added to its record's own probes. Each one expects what the judge said the explanation predicts. The verdict is then measured again. Reported, not gated.
+
+One `explanation-judge` (Claude Haiku 5.5) prompt per pole holds every arm's texts and the silent controls, shuffled.
+
+| Arm (95% Wilson interval) | GPT-2 small | pythia-70m |
+| --- | --- | --- |
+| max: firing dreams missed | 87 of 148, 59% (51–66%) | 85 of 156, 54% (47–62%) |
+| min: silenced prompts called active | 48 of 75, 64% (53–74%) | 46 of 73, 63% (52–73%) |
+| hit: dreams at the line called active | 12 of 56, 21% (13–34%) | 9 of 60, 15% (8–26%) |
+| control: silent windows called active | 21 of 148, 14% (9–21%) | 10 of 156, 6% (4–11%) |
+
+- **Misses hold at the paper's settings, on both models.** Over half of the firing dreams fall outside the explanation, against 73% in the smaller run above.
+- **False positives are as common.** With the trigger token kept, the context can silence the pole, and the explanation still predicts it active about two times in three. So the explanations name the trigger but not what turns it off.
+- **The boundary is soft.** At the active line, the judge calls only 15–21% active. An explanation states when a pole fires strongly, not where it starts to fire.
+- **Verdicts would move.** On GPT-2, 18 of the 20 poles re-measure VERIFIED on their own probes. With their dreams added, 9 do. Two NEEDS_REVISION poles go to REJECTED.
+
+The same limits apply as above: one judge model, one corpus, and dreams that may be more unusual than any probe a reviewer writes. The review arm is a counterfactual, and no record changes.
+
 ## References
 
 - Thompson, T. B., Straznickas, Z. & Sklar, M. (2024). *Fluent dreaming for language models*. [arXiv:2402.01702](https://arxiv.org/abs/2402.01702).

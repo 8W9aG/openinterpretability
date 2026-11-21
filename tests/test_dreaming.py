@@ -32,3 +32,30 @@ def test_a_larger_lambda_gives_text_no_less_fluent(qwen_runner):  # noqa: F811
                       top_k=8, steps=15, seed=1)  # fmt: skip
     assert high.cross_entropy <= low.cross_entropy + 1e-5
     assert low.strength >= high.strength - 1e-5
+
+
+def test_min_lowers_the_pole_and_keeps_frozen_tokens(qwen_runner):  # noqa: F811
+    # From a high dream, `min` silences the pole while the frozen tokens stay put (#3779).
+    (high,) = dream(qwen_runner, 1, 5, "positive", length=6, lambdas=(0.0,), children=8,
+                    top_k=8, steps=10, seed=2)  # fmt: skip
+    (low,) = dream(qwen_runner, 1, 5, "positive", lambdas=(0.0,), children=8, top_k=8,
+                   steps=10, seed=2, goal="min", start=high.tokens, frozen=(0, 1))  # fmt: skip
+    assert low.tokens[:2] == high.tokens[:2] and len(low.tokens) == 6
+    assert low.strength <= high.strength + 1e-5
+
+
+def test_hit_moves_toward_the_target(qwen_runner):  # noqa: F811
+    (start,) = dream(qwen_runner, 1, 5, "positive", length=6, lambdas=(0.0,), steps=0, seed=4)
+    target = start.strength + 1.0
+    (end,) = dream(qwen_runner, 1, 5, "positive", lambdas=(0.0,), children=8, top_k=8,
+                   steps=10, seed=4, goal="hit", target=target, start=start.tokens)  # fmt: skip
+    assert abs(end.strength - target) <= abs(start.strength - target) + 1e-5
+
+
+def test_bad_goals_are_refused(qwen_runner):  # noqa: F811
+    import pytest
+
+    for kwargs in ({"goal": "up"}, {"goal": "hit"}, {"goal": "max", "target": 1.0},
+                   {"start": [1, 2], "frozen": (0, 1)}):  # fmt: skip
+        with pytest.raises(ValueError):
+            dream(qwen_runner, 1, 5, "positive", lambdas=(0.0,), steps=1, **kwargs)

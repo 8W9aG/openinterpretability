@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros.html" import chart %}
-{% from "_macros.html" import breadcrumb, map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, explanation_rows, fold, read_more %}
+{% from "_macros.html" import breadcrumb, map_fill, status_grid, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, explanation_rows, fold, read_more %}
 
 {% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
 
@@ -33,33 +33,11 @@
 <p class="mt-2 text-sm"><a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}{% if hubs %}, {{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}{% endif %}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
 {% endif %}
 
-{% set lm = charts.layer_map(model) %}
+{% set lm = pieces.status_grid(model) %}
 {% if lm %}
-<figure class="mt-6" data-pagefind-ignore>
-  <div class="overflow-x-auto">
-  {% set _label %}Layer map: {{ model.neurons }} studied neurons of {{ model.total_neurons | thousands }}, placed by layer and neuron index and coloured by status ({% for s, n in lm.counts.items() %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). Counts per layer are in the table below.{% endset %}{% call chart(lm.width, lm.height, "Layer map", _label | trim, role="group") %}
-    {% for i, y in lm.rows %}
-    <rect x="{{ lm.left }}" y="{{ y }}" width="{{ lm.right - lm.left }}" height="{{ lm.row }}" class="fill-slate-100 dark:fill-slate-800/60"/>
-    {% if i % lm.label_every == 0 %}<text x="{{ lm.left - 6 }}" y="{{ y + lm.row - 1 }}" text-anchor="end" class="fill-slate-500 font-mono" font-size="10">L{{ i }}</text>{% endif %}
-    {% endfor %}
-    {% for m in lm.marks %}
-    {% if m.href %}<a href="{{ root }}{{ m.href }}">{% endif %}<title>{{ m.label }}</title><rect x="{{ m.x }}" y="{{ m.y }}" width="{{ lm.mark_w }}" height="{{ lm.row }}" class="{{ map_fill[m.status] }}"/>{% if m.href %}</a>{% endif %}
-    {% endfor %}
-    {% for tx, label in lm.ticks %}
-    <line x1="{{ tx }}" y1="{{ lm.axis_y - 2 }}" x2="{{ tx }}" y2="{{ lm.axis_y + 2 }}" class="stroke-slate-400" stroke-width="1"/>
-    <text x="{{ tx }}" y="{{ lm.axis_y + 13 }}" text-anchor="{{ 'start' if loop.first else 'middle' }}" class="fill-slate-500 font-mono" font-size="10">N{{ label }}</text>
-    {% endfor %}
-  {% endcall %}
-  </div>
-  <figcaption class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-    {% for s, n in lm.counts.items() %}
-    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="{{ map_fill[s] }}"/></svg> {{ s | replace('_', ' ') }} {{ n }}</span>
-    {% endfor %}
-    <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="2" class="fill-slate-100 dark:fill-slate-800/60"/></svg> unexplored {{ lm.unexplored | thousands }}</span>
-    <span>Each mark is one studied neuron. Select it for its page.</span>
-  </figcaption>
-  {% call read_more() %}<p class="text-xs">A mark's colour is its best pole's status. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment. Its page lists the scans that stopped. Such a neuron counts as studied. The home page also counts it as verified when the weights prove it dead.</p>{% endcall %}
-</figure>
+<div class="mt-6">{{ status_grid(lm, root, "model", model.name) }}</div>
+{% call read_more() %}<p class="text-xs">Each cell is a block of neurons, and links to its layer's page, where each neuron has a cell. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment. Its page lists the scans that stopped. Such a neuron counts as studied. The home page also counts it as verified when the weights prove it dead.</p>{% endcall %}
+
 {% else %}
 {% set counts = model.layer_counts() %}
 {% set peak = (counts | max) or 1 %}
@@ -107,7 +85,7 @@
 {% if cov %}
 <section class="mt-10" id="coverage">
   <h2 class="mb-1 text-lg font-semibold">How much of this model is explained</h2>
-  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  <p class="text-sm text-slate-600 dark:text-slate-400">
     The {{ cov.summary.verified_poles | thousands }} VERIFIED poles of {{ cov.summary.poles | thousands }} keep <strong>{{ "—" if cov.summary.recovered is none else "{:.2%}".format(cov.summary.recovered) }}</strong>
     of the MLP layers' loss effect{% if cov.summary.recovered_random is not none %}. The same number of random poles keep {{ "{:.2%}".format(cov.summary.recovered_random) }}{% endif %}.
   </p>
@@ -139,7 +117,7 @@
 {% if own_explanations %}
 <section class="mt-10" id="explanations">
   <h2 class="mb-1 text-lg font-semibold">Explanations</h2>
-  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Why this model gives one answer to one prompt. <a class="underline" href="{{ root }}explanations/index.html">Every model's explanations</a>.</p>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Why this model gives one answer to one prompt. <a class="underline" href="{{ root }}explanations/index.html">Every model's explanations</a>.</p>
   {{ explanation_rows(own_explanations, root, show_model=false) }}
 </section>
 {% endif %}
@@ -182,7 +160,7 @@
 {% if sister_graphs %}
 <div class="mt-10" data-pagefind-ignore>
 {% call fold("Sister neurons", level=2) %}
-  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Each VERIFIED pole joined to its best-correlated pole in another model.</p>
+  <p class="text-sm text-slate-600 dark:text-slate-400">Each VERIFIED pole joined to its best-correlated pole in another model.</p>
   {% call read_more() %}<p>From either model's sister search (<code>open-interpretability sisters</code>). Poles sit at their relative depth, so the same depth is level in both columns. A <em>sister</em> is a mutual best match above the rotated basis: a candidate for the same concept, which a sister study tests. Lines are darker the higher the correlation. Dark poles have a page here.</p>{% endcall %}
   {% for g in sister_graphs %}
   <figure class="mt-6">

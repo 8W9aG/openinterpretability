@@ -189,9 +189,6 @@ openinterpretability/builder/charts.py::_pair_values
 openinterpretability/builder/charts.py::best_status
 openinterpretability/builder/charts.py::stopped_label
 openinterpretability/builder/charts.py::pole_text
-openinterpretability/builder/charts.py::layer_map
-openinterpretability/builder/charts.py::layer_map.x
-openinterpretability/builder/charts.py::_layer_marks
 openinterpretability/builder/circuit_pages.py::render_circuits
 openinterpretability/builder/circuit_pages.py::_render_hubs
 openinterpretability/builder/circuit_units.py::load_circuit_data
@@ -415,12 +412,8 @@ openinterpretability/builder/parquet_export.py::_with_width
 openinterpretability/builder/parquet_export.py::export_registry
 openinterpretability/builder/pending.py::parse
 openinterpretability/builder/pieces.py::studied_poles
-openinterpretability/builder/pieces.py::fill
 openinterpretability/builder/pieces.py::cell_status
 openinterpretability/builder/pieces.py::cell_label
-openinterpretability/builder/pieces.py::_layer_cells
-openinterpretability/builder/pieces.py::_layer_cells.place
-openinterpretability/builder/pieces.py::layer_pieces
 openinterpretability/builder/pii.py::find_spans
 openinterpretability/builder/pii.py::_personal_spans
 openinterpretability/builder/pii.py::_merge
@@ -1534,7 +1527,6 @@ openinterpretability/harness/dictionaries.py::_load
 openinterpretability/harness/dictionaries.py::spec_profile
 openinterpretability/harness/dreaming.py::_score
 openinterpretability/harness/dreaming.py::_score.grab
-openinterpretability/harness/dreaming.py::dream
 openinterpretability/harness/environment.py::run_environment
 openinterpretability/harness/environment.py::device_name
 openinterpretability/harness/explanation_scores.py::Window.hot

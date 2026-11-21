@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 from functools import partial
 
-from openinterpretability.builder.statuses import MAP_STATUSES, STOPPED
+from openinterpretability.builder.statuses import MAP_STATUSES
 from openinterpretability.core.schemas import Histogram
 
 # The size of every chart's text, in CSS pixels (#5660). A chart draws at its natural size:
@@ -16,8 +16,9 @@ from openinterpretability.core.schemas import Histogram
 # It matches the page's small text (Tailwind's text-xs).
 CHART_TEXT_PX = 12
 # A hand-drawn diagram (the About page's taxonomy) keeps the text sizes it was drawn with,
-# 9 to 14. It draws at this multiple of its viewBox, so its 9 px labels read at about 12 px.
-DIAGRAM_SCALE = 1.3
+# 9 to 14. It draws at this multiple of its viewBox, so its 9 px labels read at about 11 px.
+# Its widest part, 760 wide, then fits the 960 px content column (css.COLUMN_REM, #5726).
+DIAGRAM_SCALE = 1.26
 
 
 def histogram_bars(hist: Histogram | None, width: int = 600, height: int = 140) -> list[dict]:
@@ -352,68 +353,3 @@ def pole_text(neuron) -> str:
     return ", ".join(f"{side} {st.status}" for side, st in neuron.standings.items()).replace(
         "_", " "
     )
-
-
-def layer_map(model, width: int = 640) -> dict | None:
-    """Layer × neuron-index geometry: one row per layer, one mark per studied neuron.
-
-    Each mark sits at the neuron's index, and takes its best pole's status (in
-    ``MAP_STATUSES`` order). So the map shows coverage, and where the verified neurons are.
-    Marks are drawn worst status first, so a verified neuron is never hidden under a
-    neighbour. Models whose MLP
-    width no record gives get no map: the index axis would have no end.
-    """
-    if not model.mlp_width or not model.neurons:
-        return None
-    left, right = 36, width - 8
-    row, pitch, top = 10, 13, 4
-    mark_w = max(3.0, (right - left) / model.mlp_width)
-
-    def x(idx: int) -> float:
-        return round(left + (right - left - mark_w) * idx / max(model.mlp_width - 1, 1), 2)
-
-    marks, counts = _layer_marks(model, x, top, pitch)
-    axis_y = top + model.n_layers * pitch + 2
-    step = _nice_step(model.mlp_width)
-    ticks = [(x(i), f"{i:,}") for i in range(0, model.mlp_width, int(step))]
-    return {
-        "width": width,
-        "height": axis_y + 18,
-        "left": left,
-        "right": right,
-        "row": row,
-        "mark_w": round(mark_w, 2),
-        "axis_y": axis_y,
-        "rows": [(i, top + i * pitch) for i in range(model.n_layers)],
-        "label_every": 1 if model.n_layers <= 16 else 2,
-        "marks": marks,
-        "ticks": ticks,
-        "counts": counts,
-        "unexplored": model.total_neurons - model.neurons,
-    }
-
-
-def _layer_marks(model, x, top: float, pitch: float) -> tuple[list[dict], dict[str, int]]:
-    """The map's marks, worst status first so the best draw on top, and a count per status."""
-    counts = dict.fromkeys(MAP_STATUSES, 0)
-    marks = []
-    for layer in model.layers:
-        y = top + layer.layer * pitch
-        for n in layer.neurons:
-            status = best_status(n)
-            counts[status] += 1
-            marks.append(
-                {
-                    "x": x(n.idx),
-                    "y": y,
-                    "status": status,
-                    "href": n.href,
-                    "label": f"L{layer.layer} {n.label} · {pole_text(n)}",
-                }
-            )
-        for n in layer.stopped:
-            counts[STOPPED] += 1
-            label = f"L{layer.layer} {stopped_label(n)}"
-            marks.append({"x": x(n.idx), "y": y, "status": STOPPED, "href": n.href, "label": label})
-    marks.sort(key=lambda m: -MAP_STATUSES.index(m["status"]))
-    return marks, counts

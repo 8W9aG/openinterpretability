@@ -58,3 +58,21 @@ def test_search_loads_only_when_used():
     assert '<script src="{{ root }}pagefind/pagefind-ui.js"' not in base  # not with every page
     assert 'id="search-stub"' in base and 'js.src = "{{ root }}pagefind/pagefind-ui.js"' in base
     assert "content-visibility: auto" in base  # long tables and maps are laid out near the screen
+
+
+def test_the_site_has_one_content_column():
+    # #5726: one width, set in css.py. No template caps a part of the page at its own width,
+    # and the widest fixed figures fit the column at their natural size.
+    import re
+    from pathlib import Path
+
+    from openinterpretability.builder import charts, dashboard
+
+    text = css.config([]).removeprefix("module.exports = ").removesuffix(";\n")
+    assert json.loads(text)["theme"]["extend"]["maxWidth"] == {"column": "60rem", "page": "62rem"}
+    templates = Path(css.__file__).parent / "templates"
+    caps = re.compile(r"max-w-([3-7]xl|prose)\b")  # a tooltip may keep max-w-xs
+    assert not [f.name for f in templates.glob("*.html") if caps.search(f.read_text())]
+    column = css.COLUMN_REM * 16
+    assert column >= 760 * charts.DIAGRAM_SCALE  # the About page's taxonomy
+    assert column >= dashboard.CHART_WIDTH
