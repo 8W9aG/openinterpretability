@@ -40,6 +40,7 @@ Status marks how the work relates to this repo:
 | [PolyPythias: Stability and Outliers across Fifty Language Model Pre-Training Runs](polypythias.md) (van der Wal, Lesci, Müller-Eberstein et al., 2025) | planned | Nine more runs, with other seeds, at five Pythia sizes, pythia-70m among them. #5713 would repeat the neuron-development measures on them |
 | [Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling](pythia.md) (Biderman, Schoelkopf, Anthony et al., 2023) | used | Sixteen models trained on the Pile in one data order, with 154 checkpoints each. pythia-70m is a registry model, and two papers read its checkpoints. One seed per size. |
 | [Qwen2.5 Technical Report](qwen2-5.md) (Yang, Yang, Zhang et al., 2024) | used | The report on two configured registry models: 24 and 28 layers, SwiGLU, and one 151,643-token vocabulary across the family. All three papers that cite it match the source. |
+| [Sigmoid-Weighted Linear Units for Neural Network Function Approximation in Reinforcement Learning](silu.md) (Elfwing, Uchibe and Doya, 2017) | used | Defines and names the SiLU, zσ(z), with a minimum of about −0.28, for reinforcement learning. `papers/why-neurons-rest` trains a SiLU condition |
 
 ## Forecasting and evaluation
 
