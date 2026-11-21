@@ -8,7 +8,7 @@
 {% block content %}
 {{ nav(root, model, "Circuit " ~ rc.id) }}
 <h1 class="font-mono text-2xl font-semibold" data-pagefind-meta="title">{{ model.name }} · circuit {{ rc.id }}</h1>
-<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
   {{ rc.members | length }} units of {{ model.name }}{% if rc.layers %}, layers {{ rc.layers[0] }}–{{ rc.layers[1] }}{% endif %}, joined by their wiring. <a class="underline" href="{{ repo_url }}/blob/main/docs/circuits-and-hubs.md">How circuits work</a>.
 </p>
 {% call read_more("Shape and history") %}<p class="text-xs">

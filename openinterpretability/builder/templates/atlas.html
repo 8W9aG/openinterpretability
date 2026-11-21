@@ -17,7 +17,7 @@
 {% set at = atlas %}{% set w, h = at.size %}{% set n = at.points | length %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}models/index.html">Models</a> / Concept atlas</nav>
 <h1 class="text-2xl font-semibold">Concept atlas</h1>
-<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
   Every studied pole of {{ at.rows | length }} models in one shared map, placed by the meaning of the text it fires on.
   The map is fitted once over all models, and a pole keeps its place when new poles arrive, so each new model fills in the space that the others made.
   A pole's colour is its region and its shape is its model. The points appear in the order they were first studied.
@@ -59,7 +59,7 @@
 </figure>
 
 <h2 class="mt-10 text-lg font-semibold">Which regions each model reaches</h2>
-<p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
   A model's coverage is the share of regions that hold at least one of its studied poles.
   The registry studies some neurons and not others, so this measures what has been studied, not what each model holds.
 </p>
@@ -81,7 +81,7 @@
 </div>
 
 <h2 class="mt-8 text-lg font-semibold">How alike two models spread</h2>
-<p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
   The overlap of two models is the share of their poles that match region for region, after each model's counts are made shares: 100% when both spread alike.
   The null shuffles the model labels across all poles {{ at.found.coverage.shuffles }} times. It is the overlap that two models of those sizes would show if they drew from one spread.
 </p>

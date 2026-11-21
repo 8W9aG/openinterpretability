@@ -6,7 +6,7 @@
 {% block content %}
 {{ nav(root, model, "Wiring group from " ~ unit_name(c.root)) }}
 <h1 class="font-mono text-2xl font-semibold">Wiring group from {{ unit_name(c.root) }}</h1>
-<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
   {{ c.units | length }} units of {{ model.name }}, layers {{ c.layers[0] }}–{{ c.layers[1] }}, {{ c.verified }} VERIFIED, joined edge to edge by their wiring. A wiring group is all the units that edges join; the registry's circuits are clusters within the groups. The group is named after its lowest-layer unit; when groups merge or split as the registry grows, the old names redirect here. See <a class="underline" href="{{ root }}models/{{ model.slug }}/circuits.html">all circuits</a> for how edges are found. Reported, not gated.
 </p>
 <p class="mt-2 text-xs text-slate-500">

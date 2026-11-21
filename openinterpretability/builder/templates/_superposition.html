@@ -3,7 +3,7 @@
 {% if neuron.part_of %}
 <section class="mt-6" aria-labelledby="superpositions">
   <h2 id="superpositions" class="text-base font-semibold">Superpositions</h2>
-  <p class="mt-1 max-w-3xl text-xs text-slate-500">
+  <p class="mt-1 text-xs text-slate-500">
     {% if not neuron.experiments %}This neuron has no experiment of its own. It is studied only as a member of the superpositions below.{% else %}The studied superpositions that this neuron is a member of.{% endif %}
     The weight is this neuron's weight, relative to the largest weight magnitude in the superposition.
   </p>

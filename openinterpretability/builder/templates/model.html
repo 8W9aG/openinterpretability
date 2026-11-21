@@ -107,7 +107,7 @@
 {% if cov %}
 <section class="mt-10" id="coverage">
   <h2 class="mb-1 text-lg font-semibold">How much of this model is explained</h2>
-  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+  <p class="text-sm text-slate-600 dark:text-slate-400">
     The {{ cov.summary.verified_poles | thousands }} VERIFIED poles of {{ cov.summary.poles | thousands }} keep <strong>{{ "—" if cov.summary.recovered is none else "{:.2%}".format(cov.summary.recovered) }}</strong>
     of the MLP layers' loss effect{% if cov.summary.recovered_random is not none %}. The same number of random poles keep {{ "{:.2%}".format(cov.summary.recovered_random) }}{% endif %}.
   </p>
@@ -139,7 +139,7 @@
 {% if own_explanations %}
 <section class="mt-10" id="explanations">
   <h2 class="mb-1 text-lg font-semibold">Explanations</h2>
-  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Why this model gives one answer to one prompt. <a class="underline" href="{{ root }}explanations/index.html">Every model's explanations</a>.</p>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Why this model gives one answer to one prompt. <a class="underline" href="{{ root }}explanations/index.html">Every model's explanations</a>.</p>
   {{ explanation_rows(own_explanations, root, show_model=false) }}
 </section>
 {% endif %}
@@ -182,7 +182,7 @@
 {% if sister_graphs %}
 <div class="mt-10" data-pagefind-ignore>
 {% call fold("Sister neurons", level=2) %}
-  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Each VERIFIED pole joined to its best-correlated pole in another model.</p>
+  <p class="text-sm text-slate-600 dark:text-slate-400">Each VERIFIED pole joined to its best-correlated pole in another model.</p>
   {% call read_more() %}<p>From either model's sister search (<code>open-interpretability sisters</code>). Poles sit at their relative depth, so the same depth is level in both columns. A <em>sister</em> is a mutual best match above the rotated basis: a candidate for the same concept, which a sister study tests. Lines are darker the higher the correlation. Dark poles have a page here.</p>{% endcall %}
   {% for g in sister_graphs %}
   <figure class="mt-6">

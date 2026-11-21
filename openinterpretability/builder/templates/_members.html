@@ -2,7 +2,7 @@
 {% if neuron.is_superposition and neuron.members %}
 <section class="mt-6" aria-labelledby="members">
   <h2 id="members" class="text-base font-semibold">Members</h2>
-  <p class="mt-1 max-w-3xl text-xs text-slate-500">
+  <p class="mt-1 text-xs text-slate-500">
     This superposition is a sparse direction over the neurons of layer {{ neuron.layer }}. Its strength at a token is the positive part of the projection on that direction.
     Each weight is relative to the largest weight magnitude, and the list is sorted by magnitude.
     {% if neuron.profile %}Method: <code>{{ neuron.profile.method }}</code>. Source: <code>{{ neuron.profile.source }}</code>.{% endif %}

@@ -6,14 +6,14 @@
 {% block content %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Models</nav>
 <h1 class="text-2xl font-semibold">Models</h1>
-<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
   The models that <code class="font-mono">open-interpretability next</code> draws experiments from.
   Size, layers, MLP width and activation come from each model's <code class="font-mono">config.json</code>.
   Size counts parameters, with tied embeddings counted once.
   Verified counts the neurons with a VERIFIED pole and the VERIFIED attention heads. It leaves out dictionary features, which are a baseline. It also leaves out superpositions.
   Loss effect kept is the registry's coverage: the share of the loss rise from mean-ablating every MLP neuron that comes back when only the VERIFIED poles keep their activations. Random poles of the same count give the baseline beside it (<a class="underline" href="{{ repo_url }}/blob/main/docs/analyses/registry-coverage.md">method</a>).
 </p>
-{% if atlas %}<p class="mt-2 max-w-3xl text-sm"><a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}models/atlas.html">The concept atlas</a>: every model's studied poles in one shared map, filling in as they were studied.</p>{% endif %}
+{% if atlas %}<p class="mt-2 text-sm"><a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}models/atlas.html">The concept atlas</a>: every model's studied poles in one shared map, filling in as they were studied.</p>{% endif %}
 
 <div class="mt-6 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
   <table class="w-full text-left text-sm">
@@ -54,7 +54,7 @@
 {% if models %}
 <section class="mt-10">
   <h2 class="mb-1 text-lg font-semibold">Pieces</h2>
-  <p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">How much of each model is studied, layer by layer. New neurons are drawn mostly from the smallest model with less than {{ '{:g}%'.format(100 * explore.target) }} of its neurons verified.</p>
+  <p class="mb-3 text-sm text-slate-600 dark:text-slate-400">How much of each model is studied, layer by layer. New neurons are drawn mostly from the smallest model with less than {{ '{:g}%'.format(100 * explore.target) }} of its neurons verified.</p>
   <div class="space-y-4">
     {% for m in models %}
     {{ model_card(m, explore, root, loop.index) }}

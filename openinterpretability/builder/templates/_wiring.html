@@ -2,7 +2,7 @@
 {% from "_macros.html" import fold, read_more %}
   {% if v.wiring %}
   {% call fold("Wiring", "Elhage et al., 2021; Syed et al., 2023") %}<div data-pagefind-ignore>
-    <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">The units that write most directly into this {{ what }} (upstream) and read most directly from it (downstream).{% if v.circuit %} <a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ v.circuit }}">See its circuit</a>.{% endif %}</p>
+    <p class="text-sm text-slate-600 dark:text-slate-400">The units that write most directly into this {{ what }} (upstream) and read most directly from it (downstream).{% if v.circuit %} <a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ v.circuit }}">See its circuit</a>.{% endif %}</p>
     {% call read_more() %}<p>"Directly" means along the residual stream, through no other unit. Linked units have pages in the registry. Reported, not gated.{% if v.wiring_backfilled %} Backfilled after the review by <code>open-interpretability wiring-backfill</code>, from the record's model revision and the review's prompts. It is not part of the record.{% endif %}</p>
     {% for view in v.wiring %}{% set w = view.w %}<p><strong>{{ "From the weights" if w.method == "weights" else "From activations" }}.</strong>
       {% if w.method == "weights" %}
