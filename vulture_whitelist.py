@@ -59,6 +59,7 @@ from_circuit_command  # unused function (openinterpretability/cli_superpositions
 grammatical_number_command  # unused function (openinterpretability/cli_superpositions.py:60)
 show_command  # unused function (openinterpretability/cli_superpositions.py:85)
 wiring_backfill  # unused function (openinterpretability/cli_wiring.py:16)
+extract  # unused function (scripts/ab_variance.py:208)
 select  # unused function (scripts/corpus_stability.py:70)
 rescan  # unused function (scripts/corpus_stability.py:95)
 bands  # unused function (scripts/default_on_poles.py:445)
