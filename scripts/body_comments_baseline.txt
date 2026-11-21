@@ -11,8 +11,6 @@ openinterpretability/builder/aligned.py::aligned_latents
 openinterpretability/builder/charts.py::probe_chart
 openinterpretability/builder/charts.py::vocab_chart
 openinterpretability/builder/charts.py::causal_chart
-openinterpretability/builder/charts.py::layer_map
-openinterpretability/builder/charts.py::_layer_marks
 openinterpretability/builder/circuit_pages.py::render_circuits
 openinterpretability/builder/compiler.py::explanation_view
 openinterpretability/builder/compiler.py::explanation_view.window
@@ -26,7 +24,6 @@ openinterpretability/builder/explanation_figures.py::reading
 openinterpretability/builder/explanation_figures.py::ablation
 openinterpretability/builder/feeds.py::feed
 openinterpretability/builder/learned_baseline.py::_comparison
-openinterpretability/builder/pieces.py::_layer_cells
 openinterpretability/builder/pii.py::_scrub_attribution
 openinterpretability/builder/sister_graph.py::_panel
 openinterpretability/builder/stopped.py::add_stopped

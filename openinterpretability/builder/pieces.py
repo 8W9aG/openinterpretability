@@ -1,13 +1,15 @@
-"""Pieces bars: which neurons of each layer are studied, and their status.
+"""Status grids: which neurons of a model or a layer are studied, and their best status.
 
-The home and Models pages draw one bar per layer of a model (:func:`model_pieces`). A
-layer page draws one cell per neuron (:func:`layer_pieces`). A neuron whose scans all
-stopped is studied too (:class:`openinterpretability.builder.stopped.StoppedNeuron`).
+One function, :func:`status_grid`, gives the geometry of all three charts (#5797). The
+``status_grid`` macro in ``_macros.html`` draws each one, with its legend.
 
-On a layer map, a cell's colour is the best status in it. How far it fills, from the
-bottom, is the share of its poles that are studied, two per neuron (#3288). Length carries
-the amount, not opacity, because faded status colours can't be told apart by colour-blind
-readers. On a model card, a cell's height says whether its best status is VERIFIED (#5724).
+- **A model card** (home and Models pages) and **a model page** show one row per layer. Each
+  cell is a block of neurons, so that a layer has at most :data:`GRID_ROW` cells.
+- **A layer page** shows one cell per neuron, :data:`GRID_ROW` to a row.
+
+A cell's colour and its height both give the best status in it (``STATUS_HEIGHT``), so a
+colour-blind reader can read it. No two cells overlap. A neuron whose scans all stopped is
+studied too (:class:`openinterpretability.builder.stopped.StoppedNeuron`).
 """
 
 from __future__ import annotations
@@ -15,21 +17,19 @@ from __future__ import annotations
 import math
 
 from openinterpretability.builder.charts import best_status, pole_text, stopped_label
-from openinterpretability.builder.statuses import MAP_STATUSES, STOPPED
+from openinterpretability.builder.statuses import (
+    CELL_HEIGHT,
+    MAP_STATUSES,
+    STATUS_HEIGHT,
+    STOPPED,
+)
 from openinterpretability.builder.stopped import StoppedNeuron
 
-# Pieces bars: BitTorrent-style coverage, one cell per neuron or block of neurons. Cells sit
-# on an integer pitch so the empty-cell grid can be one SVG pattern rather than a rect each.
-PIECE_ROW = 128  # cells per row of a layer map
-PIECE_PITCH = 5  # px per cell, 1px gap included; a layer map's cell is PIECE_PITCH - 1
-# A model card's bars (#5724). Every model has the same cells per row and the same row
-# height, so one cell is one 64th of a layer on every card. The bars stretch to the card's
-# width, and each row stays CARD_ROW_PX high on every screen.
-CARD_ROW = 64  # cells per layer
-CARD_PITCH = 8  # viewBox units per cell, 1 unit gap included: a thin gap once stretched
-CARD_ROW_PX = 6  # px per layer, 1px gap included
-CARD_CELL = 5  # px of a cell with a VERIFIED pole
-CARD_SHORT = 2  # px of a studied cell with no VERIFIED pole
+GRID_ROW = 128  # cells per row
+GRID_PITCH = 7  # px per cell across, 1 px gap included
+ROW_PITCH = CELL_HEIGHT + 2  # px per row, 2 px gap included
+LABEL_WIDTH = 56  # px for the row labels, "L23" or "N8,832", left of the cells
+LAYER_LABEL_EVERY = 4  # a layer page labels every fourth row of neurons
 
 
 def studied_poles(neuron) -> int:
@@ -39,149 +39,126 @@ def studied_poles(neuron) -> int:
     return len(neuron.standings) or 1
 
 
-def fill(share: float, height: int) -> int:
-    """The filled height of a cell: its share of ``height``, at least 1 px when any is studied."""
-    return max(1, min(height, round(share * height))) if share > 0 else 0
-
-
-def model_pieces(model) -> dict | None:
-    """One row of ``CARD_ROW`` cells per layer, each cell a block of neurons (#5724).
-
-    A cell is lit when any neuron in its block is studied, and takes the best status among
-    them (``MAP_STATUSES`` order). Its height says, without colour, whether that status is
-    VERIFIED: a VERIFIED cell is ``CARD_CELL`` px high, and any other is ``CARD_SHORT``.
-    The hover text gives the exact counts.
-
-    Args:
-        model: The model's node in the site tree.
-
-    Returns:
-        The geometry and cells of the bars, or None for a model with no MLP width or no
-        studied neuron.
-    """
-    if not model.mlp_width or not model.neurons:
-        return None
-    # The block size differs by model, so that every model has CARD_ROW cells per layer.
-    block = math.ceil(model.mlp_width / CARD_ROW)
-    n_cells = math.ceil(model.mlp_width / block)
-    by_layer = {layer.layer: layer for layer in model.layers}
-    rows = []
-    for i in range(model.n_layers):  # every layer has a row, studied or not
-        cells: dict[int, list] = {}
-        layer = by_layer.get(i)
-        for n in [*layer.neurons, *layer.stopped] if layer else ():
-            cells.setdefault(n.idx // block, []).append(n)
-        lit = [_card_cell(i, c, cells[c], block, model.mlp_width) for c in sorted(cells)]
-        rows.append({"layer": i, "cells": lit})
-    return {
-        "block": block,
-        "pitch": CARD_PITCH,
-        "row": CARD_ROW_PX,
-        "cell": CARD_CELL,
-        "short": CARD_SHORT,
-        "width": n_cells * CARD_PITCH - 1,
-        "height": model.n_layers * CARD_ROW_PX - 1,
-        "rows": rows,
-        "lit": sum(len(r["cells"]) for r in rows),
-        "verified": sum(c["status"] == "VERIFIED" for r in rows for c in r["cells"]),
-        "cells": n_cells * model.n_layers,
-    }
-
-
-def _card_cell(layer: int, c: int, neurons: list, block: int, width: int) -> dict:
-    """Return one lit cell of a model card's bars (#5724).
-
-    Args:
-        layer: The cell's layer, which is its row.
-        c: The cell's place in the row.
-        neurons: The studied neurons in the cell's block.
-        block: The neurons per cell.
-        width: The layer's MLP width.
-
-    Returns:
-        The cell's place, height, best status and hover text.
-    """
-    status = min((cell_status(n) for n in neurons), key=MAP_STATUSES.index)
-    lo, hi = c * block, min((c + 1) * block, width) - 1
-    poles, of = sum(map(studied_poles, neurons)), 2 * (hi - lo + 1)
-    height = CARD_CELL if status == "VERIFIED" else CARD_SHORT
-    return {
-        "x": c * CARD_PITCH,
-        "y": layer * CARD_ROW_PX + CARD_CELL - height,  # from the bottom of the row
-        "height": height,
-        "status": status,
-        "label": f"L{layer} N{lo:,}–{hi:,}, {poles} of {of} poles studied: "
-        + "; ".join(map(cell_label, neurons)),
-    }
-
-
 def cell_status(neuron) -> str:
     """A studied neuron's map status: its best pole's, or STOPPED."""
     return STOPPED if isinstance(neuron, StoppedNeuron) else best_status(neuron)
 
 
 def cell_label(neuron) -> str:
-    """A studied neuron's text in a pieces cell."""
+    """A studied neuron's text in a grid cell."""
     if isinstance(neuron, StoppedNeuron):
         return stopped_label(neuron)
     return f"{neuron.label} {pole_text(neuron)}"
 
 
-def _layer_cells(layer, left: int, top: int) -> list[dict]:
-    """Return one cell per studied neuron of ``layer``, at its place in the grid."""
-    side = PIECE_PITCH - 1
+def status_grid(model, layer=None) -> dict | None:
+    """Return the cells, rows and legend of a model's or a layer's status grid (#5797).
 
-    def place(neuron) -> dict:
-        """The cell's box: filled from the bottom by the share of its two poles studied."""
-        height = fill(studied_poles(neuron) / 2, side)
-        return {
-            "x": left + (neuron.idx % PIECE_ROW) * PIECE_PITCH,
-            "y": top + (neuron.idx // PIECE_ROW) * PIECE_PITCH + side - height,
-            "height": height,
-        }
+    Args:
+        model: The model's node in the site tree.
+        layer: A layer's node, for a layer page's grid of one cell per neuron. None for a
+            model's grid of one row per layer.
 
-    studied = [
-        place(n)
-        | {"status": best_status(n), "href": n.href, "label": f"{n.label} · {pole_text(n)}"}
-        for n in layer.neurons
-    ]
-    stopped = [
-        place(n) | {"status": STOPPED, "href": n.href, "label": stopped_label(n)}
-        for n in layer.stopped
-    ]
-    return studied + stopped
+    Returns:
+        The geometry, or None for a model with no MLP width, or with no studied neuron.
 
-
-def layer_pieces(model, layer) -> dict | None:
-    """Return the layer's neurons as a grid of ``PIECE_ROW``-wide rows, one cell per neuron.
-
-    Each studied neuron is a lit cell, coloured by its best pole's status, linked to its page.
+    >>> from openinterpretability.builder.tree import ModelNode
+    >>> status_grid(ModelNode("m", "m", 2, "m/index.html")) is None  # no MLP width
+    True
     """
-    if not model.mlp_width:
+    if not model.mlp_width or (layer is None and not model.neurons):
         return None
-    left, top = 8 * PIECE_PITCH, 0  # room for row labels; multiples of the pitch keep
-    # the empty-cell pattern aligned with the lit cells
-    n_rows = math.ceil(model.mlp_width / PIECE_ROW)
-    cells = _layer_cells(layer, left, top)
-    rows = [
-        {
-            "y": top + r * PIECE_PITCH,
-            "start": r * PIECE_ROW,
-            "width": min(PIECE_ROW, model.mlp_width - r * PIECE_ROW) * PIECE_PITCH - 1,
-        }
-        for r in range(n_rows)
-    ]
-    counts = dict.fromkeys(MAP_STATUSES, 0)
-    for c in cells:
-        counts[c["status"]] += 1
+    # On a model's grid, a cell is a block of neurons. So a layer fits one row, and no two
+    # cells overlap. A layer's grid has one cell per neuron, and its rows wrap.
+    block = 1 if layer else math.ceil(model.mlp_width / GRID_ROW)
+    per_layer = math.ceil(model.mlp_width / block)
+    by_layer = {node.layer: node for node in model.layers}
+    layers = [layer] if layer else [by_layer.get(i) for i in range(model.n_layers)]
+    rows, cells, counts = [], [], dict.fromkeys(MAP_STATUSES, 0)
+    for i, node in enumerate(layers):
+        first = len(rows)
+        for r in range(math.ceil(per_layer / GRID_ROW)):
+            start = r * GRID_ROW
+            rows.append(_row(len(rows), start, block, per_layer, layer, i))
+        # The legend counts neurons, not cells: a cell can hold neurons of several statuses.
+        for neuron in [*node.neurons, *node.stopped] if node else ():
+            counts[cell_status(neuron)] += 1
+        cells += _cells(node, block, first, model.mlp_width) if node else []
+    studied = sum(counts.values())
     return {
-        "left": left,
-        "pitch": PIECE_PITCH,
-        "width": left + PIECE_ROW * PIECE_PITCH,
-        "height": top + n_rows * PIECE_PITCH,
+        "block": block,
+        "per_row": min(GRID_ROW, per_layer),
+        "left": LABEL_WIDTH,
+        "pitch": GRID_PITCH,
+        "cell": CELL_HEIGHT,
+        "width": LABEL_WIDTH + GRID_ROW * GRID_PITCH - 1,
+        "height": len(rows) * ROW_PITCH - 2,
         "rows": rows,
-        "label_every": 8,
         "cells": cells,
-        "counts": counts,
-        "unexplored": model.mlp_width - len(cells),
+        "legend": [(s, STATUS_HEIGHT[s], counts[s]) for s in MAP_STATUSES],
+        "studied": studied,
+        "unexplored": model.mlp_width * len(layers) - studied,
     }
+
+
+def _row(r: int, start: int, block: int, per_layer: int, layer, i: int) -> dict:
+    """Return one row of the grid: its place, the width of its cells and its label.
+
+    Args:
+        r: The row's place in the grid, from the top.
+        start: The row's first cell, in its layer.
+        block: The neurons per cell.
+        per_layer: The cells per layer.
+        layer: The layer's node on a layer page, else None.
+        i: The row's layer, on a model's grid.
+
+    Returns:
+        The row's ``y``, ``width``, ``label`` and whether to show the label.
+    """
+    shown = (r % LAYER_LABEL_EVERY == 0) if layer else True
+    return {
+        "y": r * ROW_PITCH,
+        "width": min(GRID_ROW, per_layer - start) * GRID_PITCH - 1,
+        "label": f"N{start * block:,}" if layer else f"L{i}",
+        "shown": shown,
+    }
+
+
+def _cells(node, block: int, first: int, width: int) -> list[dict]:
+    """Return one cell per block of ``node``'s neurons that holds a studied neuron.
+
+    Args:
+        node: The layer's node.
+        block: The neurons per cell.
+        first: The grid row of the layer's first cell.
+        width: The layer's MLP width.
+
+    Returns:
+        Each cell's place, height, best status, hover text and link.
+    """
+    blocks: dict[int, list] = {}
+    for n in [*node.neurons, *node.stopped]:
+        blocks.setdefault(n.idx // block, []).append(n)
+    cells = []
+    for c, neurons in sorted(blocks.items()):
+        status = min(map(cell_status, neurons), key=MAP_STATUSES.index)
+        height = STATUS_HEIGHT[status]
+        row, col = first + c // GRID_ROW, c % GRID_ROW
+        lo, hi = c * block, min((c + 1) * block, width) - 1
+        poles = sum(map(studied_poles, neurons))
+        if block == 1:
+            (neuron,) = neurons
+            label, href = f"{cell_label(neuron)}, {poles} of 2 poles studied", neuron.href
+        else:
+            label = f"L{node.layer} N{lo:,}–{hi:,}, {poles} of {2 * (hi - lo + 1)} poles "
+            label += "studied: " + "; ".join(map(cell_label, neurons))
+            href = node.href
+        cells.append({
+            "x": LABEL_WIDTH + col * GRID_PITCH,
+            "y": row * ROW_PITCH + CELL_HEIGHT - height,  # from the bottom of the row
+            "height": height,
+            "status": status,
+            "label": label,
+            "href": href,
+        })  # fmt: skip
+    return cells
