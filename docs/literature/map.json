@@ -6,90 +6,82 @@
    "number": 1,
    "name": "Fixing models: activation steering",
    "named": true,
-   "x": 0.6794,
-   "y": 0.5299,
-   "size": 57
+   "x": 0.6285,
+   "y": 0.2223,
+   "size": 54
   },
   {
    "number": 2,
-   "name": "Catastrophic interference and forgetting",
+   "name": "Fixing models: why models give wrong answers",
    "named": true,
-   "x": 0.3022,
-   "y": 0.1162,
-   "size": 39
+   "x": 0.32,
+   "y": 0.6498,
+   "size": 49
   },
   {
    "number": 3,
-   "name": "Model architecture",
+   "name": "Catastrophic interference and forgetting",
    "named": true,
-   "x": 0.2825,
-   "y": 0.6117,
-   "size": 33
+   "x": 0.1018,
+   "y": 0.314,
+   "size": 40
   },
   {
    "number": 4,
    "name": "Queued, not reviewed yet",
    "named": false,
-   "x": 0.9258,
-   "y": 0.6822,
-   "size": 32
+   "x": 0.8801,
+   "y": 0.4421,
+   "size": 34
   },
   {
    "number": 5,
-   "name": "Neurons, circuits and dictionaries",
+   "name": "Weight-space programming and fast weights",
    "named": true,
-   "x": 0.5477,
-   "y": 0.4699,
+   "x": 0.3179,
+   "y": 0.3909,
    "size": 29
   },
   {
    "number": 6,
-   "name": "Weight-space programming and fast weights",
+   "name": "Probing",
    "named": true,
-   "x": 0.3552,
-   "y": 0.38,
-   "size": 25
+   "x": 0.6578,
+   "y": 0.4225,
+   "size": 29
   },
   {
    "number": 7,
-   "name": "Fixing models: fixes guided by an explanation",
+   "name": "Neurons, circuits and dictionaries",
    "named": true,
-   "x": 0.2676,
-   "y": 0.4413,
-   "size": 25
+   "x": 0.4023,
+   "y": 0.1621,
+   "size": 27
   },
   {
    "number": 8,
    "name": "LoRA and low-rank fine-tuning",
    "named": true,
-   "x": 0.3906,
-   "y": 0.8007,
-   "size": 23
+   "x": 0.4737,
+   "y": 0.8228,
+   "size": 21
   },
   {
    "number": 9,
    "name": "Fixing models: editing and where it fails",
    "named": true,
-   "x": 0.0543,
-   "y": 0.5383,
-   "size": 21
-  },
-  {
-   "number": 10,
-   "name": "Queued, not reviewed yet",
-   "named": false,
-   "x": 0.587,
-   "y": 0.7126,
-   "size": 19
+   "x": 0.1541,
+   "y": 0.8396,
+   "size": 20
   }
  ],
  "reviews": [
   {
    "name": "abstention-direction",
-   "x": 0.3202,
-   "y": 0.7222,
+   "x": 0.4213,
+   "y": 0.7223,
    "sha256": "b753dfc7e7d5270ec1661eb91386694ce38b1692b1046b93677350fc17547480",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "refusal-single-direction",
     "non-factual-hallucination-mechanisms",
@@ -98,10 +90,10 @@
   },
   {
    "name": "activation-addition",
-   "x": 0.2746,
-   "y": 0.5431,
+   "x": 0.3293,
+   "y": 0.582,
    "sha256": "099937804f0e0d4f9961000fd4be978c2209ab781d2400472218e95982d73da4",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "attention-sinks",
     "activation-inversion",
@@ -110,10 +102,10 @@
   },
   {
    "name": "activation-inversion",
-   "x": 0.2957,
-   "y": 0.4723,
+   "x": 0.3298,
+   "y": 0.5215,
    "sha256": "037f1032248f34102b7ef5b92c66401761e82008aa2c6fb393891fd925dd8290",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "attention-sinks",
     "latent-steering-vectors",
@@ -122,10 +114,10 @@
   },
   {
    "name": "activation-probes-few-positives",
-   "x": 0.5227,
-   "y": 0.615,
+   "x": 0.5456,
+   "y": 0.4204,
    "sha256": "dfcfa7e01bc82dcabd87f0763226287001ef3d815bca49b29e9b07197efe0cc6",
-   "region": 5,
+   "region": 6,
    "neighbours": [
     "beyond-top-activations",
     "evaluating-neuron-explanations",
@@ -134,8 +126,8 @@
   },
   {
    "name": "adalora",
-   "x": 0.3573,
-   "y": 0.9796,
+   "x": 0.4516,
+   "y": 0.9749,
    "sha256": "cf862895ddc8508c1afda069b9eeddaca58a773b837bbc77620127856dd4b57f",
    "region": 8,
    "neighbours": [
@@ -146,8 +138,8 @@
   },
   {
    "name": "affine-steering",
-   "x": 0.4424,
-   "y": 0.7409,
+   "x": 0.4694,
+   "y": 0.4476,
    "sha256": "c22e3aa098d933da655d9dca98949d88b75c2fd26f21cd60e83873fbcf9c1324",
    "region": 1,
    "neighbours": [
@@ -158,8 +150,8 @@
   },
   {
    "name": "agent-web-element-hallucination",
-   "x": 0.7339,
-   "y": 0.7264,
+   "x": 0.7436,
+   "y": 0.3765,
    "sha256": "9a0e5899d9af5668b1fdfeb699b284e99c984a53f8391cde1be4f4846c1acbdd",
    "region": 1,
    "neighbours": [
@@ -170,8 +162,8 @@
   },
   {
    "name": "aging-with-grace",
-   "x": 0.0186,
-   "y": 0.529,
+   "x": 0.15,
+   "y": 0.8711,
    "sha256": "8891a0cab5890ef41ba906ef78508ee7517cd5d1ea666c439131910d69fa5e01",
    "region": 9,
    "neighbours": [
@@ -182,8 +174,8 @@
   },
   {
    "name": "alphaedit",
-   "x": 0.0196,
-   "y": 0.5623,
+   "x": 0.1579,
+   "y": 0.8735,
    "sha256": "1a3ba8dbbdad55064428353d699a5ef2c79e3cb9e35021878be4441ee90f874d",
    "region": 9,
    "neighbours": [
@@ -194,10 +186,10 @@
   },
   {
    "name": "alta",
-   "x": 0.4031,
-   "y": 0.4038,
+   "x": 0.359,
+   "y": 0.3284,
    "sha256": "9b8976b158c1442fd45fc6800d3a27f8777fe6f64488ab971f7db8d89f5cd07f",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "learning-transformer-programs",
     "tracr",
@@ -206,10 +198,10 @@
   },
   {
    "name": "anatomy-of-catastrophic-forgetting",
-   "x": 0.2291,
-   "y": 0.0951,
+   "x": 0.0367,
+   "y": 0.4034,
    "sha256": "1cc024c212c2cf8883280d08c914d65792bee5fecd1c89988766e286bd4087ac",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "hard-attention-to-the-task",
     "loss-of-plasticity",
@@ -218,10 +210,10 @@
   },
   {
    "name": "arithmetic-bag-of-heuristics",
-   "x": 0.4242,
-   "y": 0.4827,
+   "x": 0.4444,
+   "y": 0.1595,
    "sha256": "62bcf607b9a515b4ce352459b1239674cb45ece2dde89258860916d84137883a",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "neuron-basis-circuits",
     "trigonometry-addition",
@@ -230,10 +222,10 @@
   },
   {
    "name": "attention-sinks",
-   "x": 0.2898,
-   "y": 0.4961,
+   "x": 0.3138,
+   "y": 0.5816,
    "sha256": "61fdd6c1e0f8c7a17619d1fd1772334d2c054b22bd658809b9629057b33c4b35",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "knn-lm",
     "ffn-key-value-memories",
@@ -242,10 +234,10 @@
   },
   {
    "name": "attribution-parameter-decomposition",
-   "x": 0.4591,
-   "y": 0.2983,
+   "x": 0.2543,
+   "y": 0.2106,
    "sha256": "bca2e940dd1d7a798d417fe0ff20bac94775d1568d4535262ddbc255242f5418",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "stochastic-parameter-decomposition",
     "neuron-basis-circuits",
@@ -254,10 +246,10 @@
   },
   {
    "name": "attribution-patching",
-   "x": 0.3072,
-   "y": 0.4338,
+   "x": 0.1643,
+   "y": 0.6331,
    "sha256": "76653690cab6be923232a0cdb77298d819c087b15704a6307b792f9e47c410b9",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "causally-grounded-explanations",
     "sparse-feature-circuits",
@@ -266,10 +258,10 @@
   },
   {
    "name": "axbench",
-   "x": 0.574,
-   "y": 0.6648,
+   "x": 0.571,
+   "y": 0.3769,
    "sha256": "32eb43daa2270f2e63f306cfe95e65b789e1a7bd45c874cb17da9474ecf20701",
-   "region": 10,
+   "region": 6,
    "neighbours": [
     "sparse-feature-circuits",
     "evaluating-neuron-explanations",
@@ -278,10 +270,10 @@
   },
   {
    "name": "beyond-top-activations",
-   "x": 0.5894,
-   "y": 0.5404,
+   "x": 0.561,
+   "y": 0.2086,
    "sha256": "e74f4f0caeda073dafe42fb5ba55c7a1a0a19e74b22f600bdcb783a9c4264b74",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "evaluating-neuron-explanations",
     "neurons-speak-in-ranges",
@@ -290,10 +282,10 @@
   },
   {
    "name": "biology-of-a-large-language-model",
-   "x": 0.283,
-   "y": 0.7036,
+   "x": 0.3988,
+   "y": 0.7206,
    "sha256": "24ec59b42dfd149f4c0385ab9f00c544433061a3db82441c93626bed119758d8",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "non-factual-hallucination-mechanisms",
     "neuron-basis-circuits",
@@ -302,10 +294,10 @@
   },
   {
    "name": "calibrated-concept-profiles",
-   "x": 0.5585,
-   "y": 0.4929,
+   "x": 0.482,
+   "y": 0.1411,
    "sha256": "9bbb476a34f8af158497542c05d9397931585bd3485ef98282544e2fffd78d0e",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "neurons-in-a-haystack",
     "neurons-as-an-interpretable-basis",
@@ -314,10 +306,10 @@
   },
   {
    "name": "catastrophic-forgetting-connectionist",
-   "x": 0.3169,
-   "y": 0.0477,
+   "x": 0.0379,
+   "y": 0.2916,
    "sha256": "73ad8d64834b8a30f0e1f25813acc89666bb669e4d130e63d3904367aa7a3288",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "fast-weights-deblur",
     "hard-attention-to-the-task",
@@ -326,10 +318,10 @@
   },
   {
    "name": "catastrophic-forgetting-empirical",
-   "x": 0.2278,
-   "y": 0.0723,
+   "x": 0.0266,
+   "y": 0.3936,
    "sha256": "c10f0c2f395247d6b92cf66cce0e04ba33df231293f83387e1bdb0907bdf8fda",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "hard-attention-to-the-task",
     "anatomy-of-catastrophic-forgetting",
@@ -338,10 +330,10 @@
   },
   {
    "name": "causally-grounded-explanations",
-   "x": 0.2725,
-   "y": 0.4357,
+   "x": 0.1345,
+   "y": 0.6211,
    "sha256": "16b67268840dcdaad5ed219641ed8f29fd0176ef5ef8cfd7c08d22764c394d61",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "locating-editing-factual-associations",
     "neuron-basis-circuits",
@@ -350,10 +342,10 @@
   },
   {
    "name": "char-cnn",
-   "x": 0.2953,
-   "y": 0.595,
+   "x": 0.3429,
+   "y": 0.689,
    "sha256": "7e9057b519cdfb7eff8b662744d8b0dd739518bbd983da84d36b522542064aae",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "gpt-2",
     "the-pile",
@@ -362,8 +354,8 @@
   },
   {
    "name": "circuit-breakers",
-   "x": 0.3695,
-   "y": 0.9272,
+   "x": 0.4795,
+   "y": 0.9335,
    "sha256": "7697f1377ceb15faebcbaedac7a72e4d7dc675294802e754d408475486b1ff29",
    "region": 8,
    "neighbours": [
@@ -374,10 +366,10 @@
   },
   {
    "name": "classical-energies-reasoning",
-   "x": 0.3067,
-   "y": 0.1119,
+   "x": 0.0955,
+   "y": 0.3241,
    "sha256": "673fbce1daa907e577a9ddb37e67d5ba22315afe0ebe282327991abbf975722d",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "fast-weight-memories",
     "test-time-training-layers",
@@ -386,10 +378,10 @@
   },
   {
    "name": "complementary-learning-systems",
-   "x": 0.3653,
-   "y": 0.0457,
+   "x": 0.0398,
+   "y": 0.2436,
    "sha256": "96b68779ea632bac18f781dec4df341fd140900fa62973ea334f368c526f7517",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "catastrophic-forgetting-connectionist",
     "convergent-learning",
@@ -398,10 +390,10 @@
   },
   {
    "name": "comprehensive-continual-learning-survey",
-   "x": 0.2194,
-   "y": 0.0865,
+   "x": 0.0203,
+   "y": 0.3645,
    "sha256": "df9e54c8c4af2cb170b2ced28e9f93360bf5fbd450feba81c41082a35a783b61",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "continual-learning-survey",
     "gradient-episodic-memory",
@@ -410,10 +402,10 @@
   },
   {
    "name": "concept-ablation-fine-tuning",
-   "x": 0.4248,
-   "y": 0.6004,
+   "x": 0.4362,
+   "y": 0.4303,
    "sha256": "d6ac53ba41b14f6acae9479f9b665388ef94438245a3155ae50e264e62fac86d",
-   "region": 7,
+   "region": 1,
    "neighbours": [
     "sparse-feature-circuits",
     "hydra-effect",
@@ -422,10 +414,10 @@
   },
   {
    "name": "conditional-memory-via-scalable-lookup",
-   "x": 0.2815,
-   "y": 0.4724,
+   "x": 0.2882,
+   "y": 0.5296,
    "sha256": "3de6f45a403aaa950a57dfb37c4618908804856b6bfb8af91a5d5cfd0063c9b8",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "ffn-key-value-memories",
     "knn-lm",
@@ -434,10 +426,10 @@
   },
   {
    "name": "conll-2003",
-   "x": 0.2965,
-   "y": 0.6269,
+   "x": 0.3713,
+   "y": 0.6805,
    "sha256": "63c6d980a47c0ea37a50fe342e77549dc45297bd916cb3d412b5bbb9f6117234",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "gpt-2",
     "universal-dependencies-v2",
@@ -446,8 +438,8 @@
   },
   {
    "name": "context-language-models",
-   "x": 0.1554,
-   "y": 0.6096,
+   "x": 0.2425,
+   "y": 0.7921,
    "sha256": "91ea400b6e7171e8084b412ed921b5b23ee05789c4d80b3254c6daa3c093c17b",
    "region": 9,
    "neighbours": [
@@ -458,10 +450,10 @@
   },
   {
    "name": "continual-learning-hypernetworks",
-   "x": 0.2503,
-   "y": 0.0464,
+   "x": 0.0276,
+   "y": 0.3094,
    "sha256": "f9f902abdc5214f13333feb72219fe429fe660aa5dd7c9fc34acdfa42fd27356",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "loss-of-plasticity",
     "elastic-weight-consolidation",
@@ -470,10 +462,10 @@
   },
   {
    "name": "continual-learning-survey",
-   "x": 0.2087,
-   "y": 0.0865,
+   "x": 0.0172,
+   "y": 0.3778,
    "sha256": "9665c5509dd8343a5e448f1e804df159128fea3b3eb422ce57b5791b8703abbc",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "comprehensive-continual-learning-survey",
     "loss-of-plasticity",
@@ -482,10 +474,10 @@
   },
   {
    "name": "contrastive-activation-addition",
-   "x": 0.3869,
-   "y": 0.7518,
+   "x": 0.4739,
+   "y": 0.662,
    "sha256": "1ee52c344aaf7728231db124b10598095f664d16f9a07da58fd8f69d95cf4692",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "steering-vector-reliability",
     "persona-vectors",
@@ -494,10 +486,10 @@
   },
   {
    "name": "control-tasks",
-   "x": 0.4343,
-   "y": 0.5991,
+   "x": 0.4316,
+   "y": 0.5454,
    "sha256": "a07213bdfab23ca2f24e858e4c99f285d22729cbfa285bec8ac8505a193aec6d",
-   "region": 5,
+   "region": 2,
    "neighbours": [
     "probing-classifiers",
     "universal-dependencies-v2",
@@ -506,10 +498,10 @@
   },
   {
    "name": "convergent-learning",
-   "x": 0.3546,
-   "y": 0.0245,
+   "x": 0.038,
+   "y": 0.2096,
    "sha256": "1061c9b492f1082dbaa6a502ee2a94beb9b0d434ec2121b268c617f37e5f862c",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "net2net",
     "catastrophic-forgetting-connectionist",
@@ -518,10 +510,10 @@
   },
   {
    "name": "copy-suppression-head",
-   "x": 0.2365,
-   "y": 0.4241,
+   "x": 0.1655,
+   "y": 0.6069,
    "sha256": "f2fdfa8388d3c22be85a8fd498f1bd7bc2ce106cf0577bd5ee4f7a05565c7c1b",
-   "region": 7,
+   "region": 5,
    "neighbours": [
     "what-survives-distillation",
     "hydra-effect",
@@ -530,10 +522,10 @@
   },
   {
    "name": "crosscoder-chat-tuning",
-   "x": 0.3425,
-   "y": 0.7797,
+   "x": 0.4793,
+   "y": 0.7261,
    "sha256": "a776d3a0079d01420871ddfa98a2247a0e8bf31f8de329f0cbf076398ffbe971",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "knowledge-awareness-entities",
     "non-factual-hallucination-mechanisms",
@@ -542,10 +534,10 @@
   },
   {
    "name": "dissecting-factual-recall",
-   "x": 0.172,
-   "y": 0.4877,
+   "x": 0.1823,
+   "y": 0.6822,
    "sha256": "e0405a36bf22062c43de62ade879b8e2914407a45c95d24ff04ba96efcef815f",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "locating-editing-factual-associations",
     "non-factual-hallucination-mechanisms",
@@ -554,10 +546,10 @@
   },
   {
    "name": "distillation-robustifies-unlearning",
-   "x": 0.2033,
-   "y": 0.3555,
+   "x": 0.1786,
+   "y": 0.5606,
    "sha256": "52a0671d769754d9bad774f634780271db3b6c43b69004c0d46fdcba78ac5ee1",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "wmdp-rmu-unlearning",
     "neuron-basis-circuits",
@@ -566,8 +558,8 @@
   },
   {
    "name": "does-localization-inform-editing",
-   "x": 0.1186,
-   "y": 0.4973,
+   "x": 0.1409,
+   "y": 0.7408,
    "sha256": "23ea4422d96b99355c7a29416e2047cc30c24c9c4f7038a3c83881896a2bd807",
    "region": 9,
    "neighbours": [
@@ -578,8 +570,8 @@
   },
   {
    "name": "does-steering-break-your-model",
-   "x": 0.4674,
-   "y": 0.694,
+   "x": 0.5047,
+   "y": 0.3846,
    "sha256": "34d72234143496ee0109dc8b085c11f8fee0522d6f6ecbb3325fc1635ff61e30",
    "region": 1,
    "neighbours": [
@@ -590,8 +582,8 @@
   },
   {
    "name": "dora-weight-decomposed-lora",
-   "x": 0.3558,
-   "y": 0.9737,
+   "x": 0.452,
+   "y": 0.9541,
    "sha256": "556d084be876393f9c52f2d2b365b2ebbbdc9dbfc9780d18e639171181c8adfc",
    "region": 8,
    "neighbours": [
@@ -602,8 +594,8 @@
   },
   {
    "name": "editing-at-scale-forgetting",
-   "x": 0.035,
-   "y": 0.5029,
+   "x": 0.1578,
+   "y": 0.8692,
    "sha256": "24dd1ea47ac2375b9c748c68d46457640cd27da86d42aef386ba9cd36d776624",
    "region": 9,
    "neighbours": [
@@ -614,8 +606,8 @@
   },
   {
    "name": "editing-factual-knowledge",
-   "x": 0.0,
-   "y": 0.5524,
+   "x": 0.1543,
+   "y": 0.8548,
    "sha256": "94edcbd6b03381adf3a33cabc4a6f45d1bd4234e2666fa34f5d9c3f6f6e151c4",
    "region": 9,
    "neighbours": [
@@ -626,8 +618,8 @@
   },
   {
    "name": "editing-llms-survey",
-   "x": 0.0302,
-   "y": 0.5546,
+   "x": 0.156,
+   "y": 0.8489,
    "sha256": "4e1c1a35342026f2bdc5d931b1a798b636fdbd836e8f85232406a90a53480c04",
    "region": 9,
    "neighbours": [
@@ -638,10 +630,10 @@
   },
   {
    "name": "elastic-weight-consolidation",
-   "x": 0.2394,
-   "y": 0.0626,
+   "x": 0.0454,
+   "y": 0.3634,
    "sha256": "41bed7b0e7b8d86d260dc2b0ab4be516f5315cb79f629db3433c08a1ce433360",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "synaptic-intelligence",
     "hard-attention-to-the-task",
@@ -650,10 +642,10 @@
   },
   {
    "name": "end-to-end-test-time-training",
-   "x": 0.2754,
-   "y": 0.3124,
+   "x": 0.209,
+   "y": 0.4303,
    "sha256": "d2dd55a80c6be4c0de7da123256d778d065e1e9f69929e5f48099ae149da8b3b",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "test-time-training-layers",
     "in-context-learning-by-gradient-descent",
@@ -662,10 +654,10 @@
   },
   {
    "name": "evaluating-neuron-explanations",
-   "x": 0.6166,
-   "y": 0.582,
+   "x": 0.5835,
+   "y": 0.2499,
    "sha256": "eef9707c7e61d267a3cd4198360298742497528955c4ea7f9180e4c479d3745f",
-   "region": 5,
+   "region": 1,
    "neighbours": [
     "beyond-top-activations",
     "scoring-explanations-without-reading-them",
@@ -674,10 +666,10 @@
   },
   {
    "name": "factual-recall-mechanisms",
-   "x": 0.1357,
-   "y": 0.5068,
+   "x": 0.1881,
+   "y": 0.725,
    "sha256": "90067d0e85e515656fe9da26d076034ca2c474d8c270c09da0c427d4eb595edf",
-   "region": 9,
+   "region": 2,
    "neighbours": [
     "dissecting-factual-recall",
     "locating-editing-factual-associations",
@@ -686,10 +678,10 @@
   },
   {
    "name": "faithful-stable-explanations",
-   "x": 0.5888,
-   "y": 0.5003,
+   "x": 0.5262,
+   "y": 0.1712,
    "sha256": "6a5d2e2ef703fec08bc92eafabd1b23164dcb1ecf2c7937874c04aa6710b332f",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "evaluating-neuron-explanations",
     "convergent-learning",
@@ -698,8 +690,8 @@
   },
   {
    "name": "fast-model-editing",
-   "x": 0.0421,
-   "y": 0.5145,
+   "x": 0.1703,
+   "y": 0.8509,
    "sha256": "fb3080725243bd2873889fb2563b41131f35ce876c04a8d338594ee6505e5807",
    "region": 9,
    "neighbours": [
@@ -710,10 +702,10 @@
   },
   {
    "name": "fast-weight-memories",
-   "x": 0.3224,
-   "y": 0.0883,
+   "x": 0.0994,
+   "y": 0.3208,
    "sha256": "ae82388addae3d83b9d92e1bc26323b261528d9b424a9408f0c07129d87799b7",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "fast-weights-deblur",
     "self-referential-weight-matrix",
@@ -722,10 +714,10 @@
   },
   {
    "name": "fast-weights-deblur",
-   "x": 0.3178,
-   "y": 0.0838,
+   "x": 0.0747,
+   "y": 0.2908,
    "sha256": "f54fde0992aa797a997daf24739242976fcc52607ab2ccf0dff5bd63b37de907",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "fast-weight-memories",
     "catastrophic-forgetting-connectionist",
@@ -734,10 +726,10 @@
   },
   {
    "name": "fast-weights-recent-past",
-   "x": 0.3127,
-   "y": 0.1099,
+   "x": 0.0843,
+   "y": 0.3269,
    "sha256": "4407bc4e02e934171ca20c70e355b793dd914ed96296d506cc61485f98c547ca",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "fast-weights-deblur",
     "fast-weight-memories",
@@ -746,10 +738,10 @@
   },
   {
    "name": "ffn-key-value-memories",
-   "x": 0.3181,
-   "y": 0.4153,
+   "x": 0.2773,
+   "y": 0.4594,
    "sha256": "1fdb4d9f70b31e0a7844de3f5bf75ca1713d323a8e6e9aa4a9001ce782bb2db4",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "parameter-efficient-transfer-learning",
     "knn-lm",
@@ -758,10 +750,10 @@
   },
   {
    "name": "fine-tuning-distorts-features",
-   "x": 0.376,
-   "y": 0.6098,
+   "x": 0.4266,
+   "y": 0.4971,
    "sha256": "719ec7b9aa18a13a400644a791598c634cc78f58aa0304f8f0c27798471a7c00",
-   "region": 7,
+   "region": 8,
    "neighbours": [
     "fine-tuning-new-knowledge",
     "fine-tuning-wrappers",
@@ -770,8 +762,8 @@
   },
   {
    "name": "fine-tuning-enhances-entity-tracking",
-   "x": 0.3883,
-   "y": 0.8065,
+   "x": 0.4878,
+   "y": 0.6559,
    "sha256": "d8903d0be70c30efcc34e1af47b03cdad4295d6e75c1860fb364e9e06cd643aa",
    "region": 8,
    "neighbours": [
@@ -782,10 +774,10 @@
   },
   {
    "name": "fine-tuning-new-knowledge",
-   "x": 0.3551,
-   "y": 0.6603,
+   "x": 0.4186,
+   "y": 0.6031,
    "sha256": "8d91d2fd25682fd278a9e6a1dd75990c5395ed4977aca76d6ff61bcf0590658a",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "robust-unlearning-evaluation",
     "fine-tuning-distorts-features",
@@ -794,10 +786,10 @@
   },
   {
    "name": "fine-tuning-wrappers",
-   "x": 0.3771,
-   "y": 0.5307,
+   "x": 0.4213,
+   "y": 0.4809,
    "sha256": "6f68773ab0b7c328e1896901b91857bdd0fe5693275f04d737a0ed5209893d69",
-   "region": 7,
+   "region": 5,
    "neighbours": [
     "fine-tuning-distorts-features",
     "alta",
@@ -806,22 +798,22 @@
   },
   {
    "name": "gelus",
-   "x": 0.5041,
-   "y": 0.3994,
+   "x": 0.1384,
+   "y": 0.1529,
    "sha256": "fcb4c86b210634656f798cc5cdd71416de27691f3711e9a2d9c93840e5b9b619",
-   "region": 5,
+   "region": 7,
    "neighbours": [
+    "silu",
     "softplus-option-pricing",
-    "neurons-speak-in-ranges",
-    "glu-variants"
+    "neurons-speak-in-ranges"
    ]
   },
   {
    "name": "glu-variants",
-   "x": 0.4229,
-   "y": 0.3686,
+   "x": 0.3352,
+   "y": 0.2761,
    "sha256": "cb65e79341de8758e9590438a3502f50941f7ffe7d390397eab3cbdfda21a291",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "learning-transformer-programs",
     "weight-space-programming-without-transformers",
@@ -830,10 +822,10 @@
   },
   {
    "name": "gpt-2",
-   "x": 0.2704,
-   "y": 0.5964,
+   "x": 0.3263,
+   "y": 0.7223,
    "sha256": "fb5114a66ebae2cc7509fa76e4956cefdad1333af1042ddcf5670bb2dd566b07",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "olmo",
     "char-cnn",
@@ -842,10 +834,10 @@
   },
   {
    "name": "gradient-episodic-memory",
-   "x": 0.2363,
-   "y": 0.1441,
+   "x": 0.0794,
+   "y": 0.4233,
    "sha256": "3999f280ac0ad059549faf4b143872d60691b0598be95cb4a6debf36a79b78d0",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "hard-attention-to-the-task",
     "comprehensive-continual-learning-survey",
@@ -854,10 +846,10 @@
   },
   {
    "name": "gradient-routing",
-   "x": 0.4738,
-   "y": 0.2507,
+   "x": 0.3478,
+   "y": 0.1162,
    "sha256": "54e7a9138489f3db235066424c8cae63ce88759827a09770e62a2f818a62f600",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "transcoders",
     "neurons-as-an-interpretable-basis",
@@ -866,10 +858,10 @@
   },
   {
    "name": "grokking-progress-measures",
-   "x": 0.4008,
-   "y": 0.3764,
+   "x": 0.3686,
+   "y": 0.306,
    "sha256": "1ab7884200af89413a04b1d242df3bc40ffe4c0bd6653367a63bcc5c31d1a139",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "trigonometry-addition",
     "tracr",
@@ -878,10 +870,10 @@
   },
   {
    "name": "hard-attention-to-the-task",
-   "x": 0.2415,
-   "y": 0.0893,
+   "x": 0.0367,
+   "y": 0.3725,
    "sha256": "49444830d0564aa8b24c41ff4bb75dc20a3b0d9db914e2720ff595a567fe8fe1",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "catastrophic-forgetting-empirical",
     "gradient-episodic-memory",
@@ -890,10 +882,10 @@
   },
   {
    "name": "hydra-effect",
-   "x": 0.2128,
-   "y": 0.4254,
+   "x": 0.2461,
+   "y": 0.5853,
    "sha256": "6e21e1f10a281128a7f6cc160d97db7e86206f9e378ffdcc21d7ab05d116d4f4",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "mechanistic-forgetting-continual-fine-tuning",
     "concept-ablation-fine-tuning",
@@ -902,10 +894,10 @@
   },
   {
    "name": "hypernetworks",
-   "x": 0.3757,
-   "y": 0.1019,
+   "x": 0.1357,
+   "y": 0.2663,
    "sha256": "4fdfbec8333c65414f81aee672a1314208ee1fd7cdfecd68e26ed0e90a67ea76",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "continual-learning-hypernetworks",
     "net2net",
@@ -914,10 +906,10 @@
   },
   {
    "name": "implicit-inference-forgetting",
-   "x": 0.1757,
-   "y": 0.3575,
+   "x": 0.2166,
+   "y": 0.5775,
    "sha256": "289b94b0c995909fe44ad714621c870eb1d6a39e2c83fd35936b5b2fe558a605",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "mechanistic-forgetting-continual-fine-tuning",
     "llm-continual-fine-tuning-forgetting",
@@ -926,10 +918,10 @@
   },
   {
    "name": "in-context-learning-by-gradient-descent",
-   "x": 0.3093,
-   "y": 0.335,
+   "x": 0.2495,
+   "y": 0.4027,
    "sha256": "d97135f0a3e6c8b236055253e4414a2a48e0e40ee04cb10070fc396242bd87c4",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "end-to-end-test-time-training",
     "test-time-training-layers",
@@ -938,10 +930,10 @@
   },
   {
    "name": "induction-heads-in-context-learning",
-   "x": 0.3066,
-   "y": 0.3656,
+   "x": 0.2456,
+   "y": 0.4148,
    "sha256": "38118e14d418545d98fa827f36ff1955613298ea31983846cca876f55b319bf9",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "in-context-learning-by-gradient-descent",
     "end-to-end-test-time-training",
@@ -950,8 +942,8 @@
   },
   {
    "name": "inference-time-intervention",
-   "x": 0.3873,
-   "y": 0.7141,
+   "x": 0.4891,
+   "y": 0.6013,
    "sha256": "0e3410d1dc5b7ad4bee125d7cd7ae7107fb081b0a0b90306a4abd56e95ef731c",
    "region": 8,
    "neighbours": [
@@ -962,10 +954,10 @@
   },
   {
    "name": "interchange-intervention-training",
-   "x": 0.3216,
-   "y": 0.2303,
+   "x": 0.1086,
+   "y": 0.4459,
    "sha256": "43fa7cec49d980f4a06e597a13ae4c4abfc2e881216f5bf3841ef72007d3451e",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "causally-grounded-explanations",
     "learning-without-forgetting",
@@ -974,10 +966,10 @@
   },
   {
    "name": "intriguing-properties",
-   "x": 0.4492,
-   "y": 0.1846,
+   "x": 0.1845,
+   "y": 0.1557,
    "sha256": "74c94ad0f67cb6bad8e1740a2d56bddba50d7e8f2c335e014f6db3ea5f91e75f",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "convergent-learning",
     "network-dissection",
@@ -986,10 +978,10 @@
   },
   {
    "name": "intrinsic-dimension-objective-landscapes",
-   "x": 0.4195,
-   "y": 0.2696,
+   "x": 0.2419,
+   "y": 0.2209,
    "sha256": "9358f74b12be5acc80f2a4952b62cbe041a5728f96949cbe1b4bce41166f1755",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "intrinsic-dimensionality-fine-tuning",
     "local-learning-coefficient",
@@ -998,10 +990,10 @@
   },
   {
    "name": "intrinsic-dimensionality-fine-tuning",
-   "x": 0.3478,
-   "y": 0.548,
+   "x": 0.349,
+   "y": 0.5382,
    "sha256": "cefd6d25cd3e58a45dc84b597acb515c60d18250f0f0fa57b3b38a4419ffd365",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "intrinsic-dimension-objective-landscapes",
     "parameter-efficient-transfer-learning",
@@ -1010,10 +1002,10 @@
   },
   {
    "name": "knn-lm",
-   "x": 0.2996,
-   "y": 0.4847,
+   "x": 0.3164,
+   "y": 0.5639,
    "sha256": "b7ac7745794ec2b4c19fda41eb457de3bafd5f56f46c249eda9877c467985fec",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "ffn-key-value-memories",
     "attention-sinks",
@@ -1022,10 +1014,10 @@
   },
   {
    "name": "knowledge-awareness-entities",
-   "x": 0.3198,
-   "y": 0.7478,
+   "x": 0.4509,
+   "y": 0.7182,
    "sha256": "2b853407d601c629976c9296af4b02327fb6df982050646a14e84b815c7d8800",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "crosscoder-chat-tuning",
     "abstention-direction",
@@ -1034,8 +1026,8 @@
   },
   {
    "name": "knowledge-in-superposition",
-   "x": 0.0045,
-   "y": 0.5478,
+   "x": 0.1462,
+   "y": 0.902,
    "sha256": "4cad311b698712d9d164ba0c4fdce5ce2749bada08b089a1eaa4d643174edfef",
    "region": 9,
    "neighbours": [
@@ -1046,10 +1038,10 @@
   },
   {
    "name": "latent-steering-vectors",
-   "x": 0.3068,
-   "y": 0.5131,
+   "x": 0.3069,
+   "y": 0.594,
    "sha256": "1b2cad494ed7579cab0444e988442b748f4919c3a2d667d14158c987f59400b2",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "gpt-2",
     "attention-sinks",
@@ -1058,10 +1050,10 @@
   },
   {
    "name": "learning-transformer-programs",
-   "x": 0.3889,
-   "y": 0.3679,
+   "x": 0.3418,
+   "y": 0.3172,
    "sha256": "12d5f855283b511fa82785c01ee5b12bc965527bc91584acd8087f0bbc04a0e4",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "thinking-like-transformers",
     "alta",
@@ -1070,10 +1062,10 @@
   },
   {
    "name": "learning-without-forgetting",
-   "x": 0.2743,
-   "y": 0.1291,
+   "x": 0.0659,
+   "y": 0.3763,
    "sha256": "0f4f201b2664469bf65194cd63d85d7e2a762ae409cb847499e8bb05f3388459",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "fast-weights-deblur",
     "loss-of-plasticity",
@@ -1082,8 +1074,8 @@
   },
   {
    "name": "levins-ingressing-minds-from-platonic-space",
-   "x": 0.8111,
-   "y": 0.4679,
+   "x": 0.7703,
+   "y": 0.1267,
    "sha256": "5286377b450b074e27ca75abf58e23b762472552751ad3f48716c0cb858b8af5",
    "region": 1,
    "neighbours": [
@@ -1094,10 +1086,10 @@
   },
   {
    "name": "linear-attention-transformers-are-rnns",
-   "x": 0.3339,
-   "y": 0.3623,
+   "x": 0.2788,
+   "y": 0.3756,
    "sha256": "d1d4c8b156c31b51a3768d76654289b5c65d0c4ccad98be391c3433b0eab1511",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "linear-transformers-fast-weight-programmers",
     "in-context-learning-by-gradient-descent",
@@ -1106,10 +1098,10 @@
   },
   {
    "name": "linear-probe-evidence",
-   "x": 0.4957,
-   "y": 0.6278,
+   "x": 0.5357,
+   "y": 0.4723,
    "sha256": "610ba4f50ad6b66a8133cd7ec936e573ef7fdb34862f44d5c23b404e11e45527",
-   "region": 5,
+   "region": 6,
    "neighbours": [
     "probing-classifiers",
     "pretty-linear-liars",
@@ -1118,10 +1110,10 @@
   },
   {
    "name": "linear-transformers-fast-weight-programmers",
-   "x": 0.3572,
-   "y": 0.3447,
+   "x": 0.2841,
+   "y": 0.3366,
    "sha256": "3964451073e15e2da3b851d3c5d4ed7f0ce255b2dccb00587dd65459fe69bfd8",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "linear-attention-transformers-are-rnns",
     "in-context-learning-by-gradient-descent",
@@ -1130,10 +1122,10 @@
   },
   {
    "name": "llm-continual-fine-tuning-forgetting",
-   "x": 0.1583,
-   "y": 0.3825,
+   "x": 0.2336,
+   "y": 0.6574,
    "sha256": "eb8f8dfb866138f44aa858923faff9a2d5e7aacca1010de886888511b4523650",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "implicit-inference-forgetting",
     "mechanistic-forgetting-continual-fine-tuning",
@@ -1142,10 +1134,10 @@
   },
   {
    "name": "local-learning-coefficient",
-   "x": 0.3704,
-   "y": 0.2831,
+   "x": 0.2361,
+   "y": 0.2971,
    "sha256": "830c81ad50c6522c203d85f7358657c096ae1b585d31c697eb5e696c1d0e780b",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "stagewise-development",
     "intrinsic-dimension-objective-landscapes",
@@ -1154,8 +1146,8 @@
   },
   {
    "name": "locating-editing-factual-associations",
-   "x": 0.1299,
-   "y": 0.509,
+   "x": 0.1517,
+   "y": 0.7172,
    "sha256": "dafcde4808e0f83b61e2a1209dd2ede733152d5849afef339ff72c96607af86e",
    "region": 9,
    "neighbours": [
@@ -1166,8 +1158,8 @@
   },
   {
    "name": "loki-knowledge-implanting",
-   "x": 0.3638,
-   "y": 0.278,
+   "x": 0.2384,
+   "y": 0.3097,
    "sha256": "caaa608f5e5e7765f9542f3f3844008d25118be19a3481fd189ba7bea02231f0",
    "region": 8,
    "neighbours": [
@@ -1178,8 +1170,8 @@
   },
   {
    "name": "lora-feature-geometry",
-   "x": 0.3661,
-   "y": 0.958,
+   "x": 0.455,
+   "y": 0.9609,
    "sha256": "c31d0eb9259b70aaf20cccb2ed9ed591839cb37f37cbdee088ff051c5c2ff441",
    "region": 8,
    "neighbours": [
@@ -1190,8 +1182,8 @@
   },
   {
    "name": "lora-illusion-of-equivalence",
-   "x": 0.3691,
-   "y": 0.9767,
+   "x": 0.477,
+   "y": 0.9594,
    "sha256": "40c3cd746ccf4392beda93cd10843c8ad100ce78cae80122973981f688db8175",
    "region": 8,
    "neighbours": [
@@ -1202,8 +1194,8 @@
   },
   {
    "name": "lora-learns-less-forgets-less",
-   "x": 0.3712,
-   "y": 0.9756,
+   "x": 0.4486,
+   "y": 0.9826,
    "sha256": "f7277a0bd8bd193c6bc98986529f5d2a0118d81db7e7705e13a3164a92ca94a7",
    "region": 8,
    "neighbours": [
@@ -1214,8 +1206,8 @@
   },
   {
    "name": "lora-low-rank-adaptation",
-   "x": 0.3674,
-   "y": 0.9691,
+   "x": 0.4456,
+   "y": 0.9718,
    "sha256": "a89c1c6a1e2e253c027734e31a8d209c5a1c3214f0aed5ed6869c3254c19a744",
    "region": 8,
    "neighbours": [
@@ -1226,8 +1218,8 @@
   },
   {
    "name": "lora-plus",
-   "x": 0.3534,
-   "y": 0.999,
+   "x": 0.4639,
+   "y": 0.956,
    "sha256": "3cf540a0d45d8891c9af59e04151e6c123627749207b29fea39e40335876b5bd",
    "region": 8,
    "neighbours": [
@@ -1238,8 +1230,8 @@
   },
   {
    "name": "lora-without-regret",
-   "x": 0.3626,
-   "y": 1.0,
+   "x": 0.4633,
+   "y": 0.9677,
    "sha256": "1535a42af8d85bc987809a58f2d2357edd1c1a81acccaed5a65ea44c7a8872b4",
    "region": 8,
    "neighbours": [
@@ -1250,8 +1242,8 @@
   },
   {
    "name": "lorahub",
-   "x": 0.365,
-   "y": 0.9594,
+   "x": 0.4481,
+   "y": 0.9335,
    "sha256": "db7a5d67a8af2b1bc11fa06bf92917fda2d80a99c6ffb9fd792f76fd4e9a9f54",
    "region": 8,
    "neighbours": [
@@ -1262,10 +1254,10 @@
   },
   {
    "name": "loss-of-plasticity",
-   "x": 0.2682,
-   "y": 0.0444,
+   "x": 0.0,
+   "y": 0.321,
    "sha256": "9c4600b6ec56ac3b2785c288a3f76894b34f0f3d9315fa44a81c648045fee665",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "continual-learning-survey",
     "anatomy-of-catastrophic-forgetting",
@@ -1274,10 +1266,10 @@
   },
   {
    "name": "massive-activations",
-   "x": 0.5545,
-   "y": 0.4771,
+   "x": 0.487,
+   "y": 0.1077,
    "sha256": "0285a6480921f9cb4e2859fac78e9a36fc7dd840e9cc325f70da9589df01977f",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "neurons-speak-in-ranges",
     "neuron-basis-circuits",
@@ -1286,10 +1278,10 @@
   },
   {
    "name": "mechanistic-forgetting-continual-fine-tuning",
-   "x": 0.1841,
-   "y": 0.3917,
+   "x": 0.2266,
+   "y": 0.5926,
    "sha256": "5bd198ccad5a71674c21cf6a901f549594ef1dc1ef772b5c1812fda1844f184a",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "implicit-inference-forgetting",
     "llm-continual-fine-tuning-forgetting",
@@ -1298,8 +1290,8 @@
   },
   {
    "name": "mechanistic-unlearning",
-   "x": 0.0706,
-   "y": 0.4977,
+   "x": 0.1181,
+   "y": 0.7551,
    "sha256": "2a2924d0e5473222e11ac57324a006d7efe819339eae5d011edf7991733c239f",
    "region": 9,
    "neighbours": [
@@ -1310,8 +1302,8 @@
   },
   {
    "name": "memit",
-   "x": 0.0525,
-   "y": 0.5139,
+   "x": 0.127,
+   "y": 0.7872,
    "sha256": "ffc9e1553b86a619ab54d087d5558daad43dce91534b47fbe40641b055790a3a",
    "region": 9,
    "neighbours": [
@@ -1322,8 +1314,8 @@
   },
   {
    "name": "memory-based-model-editing",
-   "x": 0.0124,
-   "y": 0.5565,
+   "x": 0.1643,
+   "y": 0.9057,
    "sha256": "1ba2d379843dcd7895d55ebe19a419cf8dbdcc5f6a89934b4124fa48c2cc8c3f",
    "region": 9,
    "neighbours": [
@@ -1334,8 +1326,8 @@
   },
   {
    "name": "mirage-of-model-editing",
-   "x": 0.0763,
-   "y": 0.549,
+   "x": 0.1366,
+   "y": 0.8427,
    "sha256": "b9a2b2fe8cd33a82b0ed1ce41997a7a1bc78098477ab8ca99279ffaa97f46426",
    "region": 9,
    "neighbours": [
@@ -1346,8 +1338,8 @@
   },
   {
    "name": "model-graded-robustness",
-   "x": 0.6408,
-   "y": 0.6168,
+   "x": 0.6545,
+   "y": 0.2929,
    "sha256": "b09e1ff11eb5801ab7b5a20a189fe752050f300a8fd4dd92ddc37e3d1c26c3e4",
    "region": 1,
    "neighbours": [
@@ -1358,8 +1350,8 @@
   },
   {
    "name": "model-soups",
-   "x": 0.2671,
-   "y": 0.1863,
+   "x": 0.1517,
+   "y": 0.3628,
    "sha256": "f12bcd126189623f5b7c0f57c4238444676983f5dc848c234ec5ec7b2e94c870",
    "region": 7,
    "neighbours": [
@@ -1370,8 +1362,8 @@
   },
   {
    "name": "models-rewrite-own-weights",
-   "x": 0.0237,
-   "y": 0.5284,
+   "x": 0.1824,
+   "y": 0.8459,
    "sha256": "be938bd393521df2a6878bd075f13ed3e5ab279b6c2cbef5730d86735816c657",
    "region": 9,
    "neighbours": [
@@ -1382,8 +1374,8 @@
   },
   {
    "name": "mquake",
-   "x": 0.0603,
-   "y": 0.5547,
+   "x": 0.1192,
+   "y": 0.8002,
    "sha256": "0797afe3dbd68bb4e4d557f9feb66e50bf5de1b22e53076fa90ce02ecfbeb22a",
    "region": 9,
    "neighbours": [
@@ -1394,10 +1386,10 @@
   },
   {
    "name": "net2net",
-   "x": 0.3406,
-   "y": 0.0276,
+   "x": 0.0287,
+   "y": 0.2328,
    "sha256": "8cef4ce0b9cffa4e44df04d2c70e2a64dccead71554ede10beb6a4f1207e9488",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "convergent-learning",
     "loss-of-plasticity",
@@ -1406,10 +1398,10 @@
   },
   {
    "name": "network-dissection",
-   "x": 0.6303,
-   "y": 0.4966,
+   "x": 0.6102,
+   "y": 0.2115,
    "sha256": "06160bb4e479b2323ca3c672e259516168dd73673328a04853c3b118720079f9",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "intriguing-properties",
     "beyond-top-activations",
@@ -1418,10 +1410,10 @@
   },
   {
    "name": "neuron-basis-circuits",
-   "x": 0.5417,
-   "y": 0.4482,
+   "x": 0.4602,
+   "y": 0.1278,
    "sha256": "9808cdc71dfeb6118071e7891e2811dffadf6b0b4a03198cf7c0907856cb9c24",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "sparse-feature-circuits",
     "neurons-as-an-interpretable-basis",
@@ -1430,10 +1422,10 @@
   },
   {
    "name": "neurons-as-an-interpretable-basis",
-   "x": 0.5671,
-   "y": 0.4124,
+   "x": 0.4653,
+   "y": 0.0827,
    "sha256": "b2dc4ab8f9046bb410468cc6821004e7d425f4ea52c5fea773780b73ebdeffd5",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "neuron-basis-circuits",
     "neurons-in-disguise",
@@ -1442,10 +1434,10 @@
   },
   {
    "name": "neurons-in-a-haystack",
-   "x": 0.5686,
-   "y": 0.4801,
+   "x": 0.4786,
+   "y": 0.1095,
    "sha256": "b6be4e6670dbb13e743b0c83d09356888de22be31c13eac59ec5fb08866cd907",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "neuron-basis-circuits",
     "neurons-speak-in-ranges",
@@ -1454,10 +1446,10 @@
   },
   {
    "name": "neurons-in-disguise",
-   "x": 0.5328,
-   "y": 0.4164,
+   "x": 0.4339,
+   "y": 0.0865,
    "sha256": "ca9d05785e151b140d336d1c2fd51547e52d163884b804d030d8adbd288009e7",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "transcoders",
     "neurons-as-an-interpretable-basis",
@@ -1466,10 +1458,10 @@
   },
   {
    "name": "neurons-speak-in-ranges",
-   "x": 0.6114,
-   "y": 0.4657,
+   "x": 0.5491,
+   "y": 0.0894,
    "sha256": "37d6ecfdce9d0e33684e3e128e37f46be278c12bd7ccf8a85ab503cd0eda0518",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "massive-activations",
     "evaluating-neuron-explanations",
@@ -1478,10 +1470,10 @@
   },
   {
    "name": "non-factual-hallucination-mechanisms",
-   "x": 0.2605,
-   "y": 0.6566,
+   "x": 0.3745,
+   "y": 0.738,
    "sha256": "10e06b5324115a69bd4aab86877c7f409123faa2685653a829e062cdbd2ccb51",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "dissecting-factual-recall",
     "biology-of-a-large-language-model",
@@ -1490,10 +1482,10 @@
   },
   {
    "name": "olmo",
-   "x": 0.2443,
-   "y": 0.6057,
+   "x": 0.3178,
+   "y": 0.7102,
    "sha256": "48631cb36517ab2aa1bbf6edc442d3d743f3d72e7184ec5dad0ed1c34219c22d",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "gpt-2",
     "pythia",
@@ -1502,10 +1494,10 @@
   },
   {
    "name": "orthogonal-gradient-descent",
-   "x": 0.2549,
-   "y": 0.1298,
+   "x": 0.0646,
+   "y": 0.3823,
    "sha256": "5a83ade01ba9ef84bc9b7f5cfe8c3435d8e7e368af311627998d756982a83da0",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "gradient-episodic-memory",
     "continual-learning-hypernetworks",
@@ -1514,10 +1506,10 @@
   },
   {
    "name": "packnet",
-   "x": 0.2788,
-   "y": 0.0236,
+   "x": 0.0033,
+   "y": 0.2644,
    "sha256": "9c900d56e3e5c20574c6e55ef318e69e34bbbf6de9c2b40503759cf09c0d7b2f",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "net2net",
     "continual-learning-hypernetworks",
@@ -1526,10 +1518,10 @@
   },
   {
    "name": "parameter-efficient-transfer-learning",
-   "x": 0.3587,
-   "y": 0.3449,
+   "x": 0.2969,
+   "y": 0.4063,
    "sha256": "b0e749dd611c85a4a5e0d250a1ba5c64bc77beda68e01d412c7087732449930f",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "ffn-key-value-memories",
     "learning-transformer-programs",
@@ -1538,10 +1530,10 @@
   },
   {
    "name": "persona-vectors",
-   "x": 0.3711,
-   "y": 0.7172,
+   "x": 0.4575,
+   "y": 0.7123,
    "sha256": "305301c90ca48930f9f205dc4fdbd1b10b320339b9a6072bb175f95e6140e09c",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "abstention-direction",
     "biology-of-a-large-language-model",
@@ -1550,10 +1542,10 @@
   },
   {
    "name": "polypythias",
-   "x": 0.2373,
-   "y": 0.5532,
+   "x": 0.2819,
+   "y": 0.6866,
    "sha256": "c6a3ae10df981c6bebfe8b8ccae855253306fef12f19ed47833a9b5e8dc3af94",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "pythia",
     "olmo",
@@ -1562,10 +1554,10 @@
   },
   {
    "name": "pretty-linear-liars",
-   "x": 0.4675,
-   "y": 0.6551,
+   "x": 0.5283,
+   "y": 0.5046,
    "sha256": "2d6241a89220499e6b0cdf6208a1655dd6bb6c01a088c7770774a435fb922dca",
-   "region": 5,
+   "region": 6,
    "neighbours": [
     "inference-time-intervention",
     "probing-classifiers",
@@ -1574,10 +1566,10 @@
   },
   {
    "name": "probing-classifiers",
-   "x": 0.4916,
-   "y": 0.6097,
+   "x": 0.5183,
+   "y": 0.4437,
    "sha256": "111f60ce76d83b0613c725eb68fcb20f08ece51806b9d1f9cdcba6579ebfe416",
-   "region": 5,
+   "region": 1,
    "neighbours": [
     "evaluating-neuron-explanations",
     "beyond-top-activations",
@@ -1586,10 +1578,10 @@
   },
   {
    "name": "progressive-neural-networks",
-   "x": 0.2505,
-   "y": 0.0792,
+   "x": 0.0103,
+   "y": 0.3499,
    "sha256": "324f804bcd6c5170b145b5645ecb50714c1f03c3220016872d71ce3cd12c5cfd",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "comprehensive-continual-learning-survey",
     "loss-of-plasticity",
@@ -1598,10 +1590,10 @@
   },
   {
    "name": "pythia",
-   "x": 0.2292,
-   "y": 0.5442,
+   "x": 0.2947,
+   "y": 0.6854,
    "sha256": "50e4804d1fca4d5bb825eaea8b4bad770c9ae76230f76dcfdd243bd76fa2d060",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "polypythias",
     "olmo",
@@ -1610,8 +1602,8 @@
   },
   {
    "name": "qlora",
-   "x": 0.3522,
-   "y": 0.9873,
+   "x": 0.4393,
+   "y": 0.9903,
    "sha256": "e3eebd8f7fbaeac1092c8185014c9a2f686b19ccc721525a22b2140518313463",
    "region": 8,
    "neighbours": [
@@ -1622,10 +1614,10 @@
   },
   {
    "name": "qwen2-5",
-   "x": 0.1119,
-   "y": 0.5619,
+   "x": 0.2054,
+   "y": 0.7953,
    "sha256": "b8cfe7e743925410130329016ac88a2b092d7a1ae1db1f213e70e795b204712c",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "mirage-of-model-editing",
     "gpt-2",
@@ -1634,8 +1626,8 @@
   },
   {
    "name": "rank-1-lora-reasoning-signals",
-   "x": 0.3715,
-   "y": 0.9403,
+   "x": 0.4309,
+   "y": 0.9561,
    "sha256": "54758d3a26e7f3c12dc2da25829d67df986b5822d4bb1e5d85688a057ff4064c",
    "region": 8,
    "neighbours": [
@@ -1646,10 +1638,10 @@
   },
   {
    "name": "rapid-learning-compositional-structure",
-   "x": 0.307,
-   "y": 0.275,
+   "x": 0.2187,
+   "y": 0.4036,
    "sha256": "9139616499c72335e8b9ed18bb13da9501f333dc04f7e57c7d78df01504ad59f",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "end-to-end-test-time-training",
     "test-time-training-layers",
@@ -1658,10 +1650,10 @@
   },
   {
    "name": "recursive-language-models",
-   "x": 0.1814,
-   "y": 0.6226,
+   "x": 0.2687,
+   "y": 0.7691,
    "sha256": "6d8df5fb3d182dc8d48af064f7f7a3885e7fec0a8ee279c949e707d63bf891cd",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "context-language-models",
     "llm-continual-fine-tuning-forgetting",
@@ -1670,10 +1662,10 @@
   },
   {
    "name": "reft-representation-finetuning",
-   "x": 0.2703,
-   "y": 0.6747,
+   "x": 0.3373,
+   "y": 0.6343,
    "sha256": "0c2c6067db3471de95125bb8a1190ddd42643832a7c44aa669c9a3218e26ea64",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "attention-sinks",
     "lora-low-rank-adaptation",
@@ -1682,10 +1674,10 @@
   },
   {
    "name": "refusal-single-direction",
-   "x": 0.3259,
-   "y": 0.7365,
+   "x": 0.441,
+   "y": 0.7383,
    "sha256": "511fb7fee51fce05cab652a3706b684434aee418a5fb1cedd1b477140e93430e",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "abstention-direction",
     "knowledge-awareness-entities",
@@ -1694,10 +1686,10 @@
   },
   {
    "name": "rehearsal-and-pseudorehearsal",
-   "x": 0.2843,
-   "y": 0.0677,
+   "x": 0.0409,
+   "y": 0.3207,
    "sha256": "503be5c9465c913904781332957be0f73cec6691953d5c3f7e62bcb69b139b73",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "catastrophic-forgetting-connectionist",
     "anatomy-of-catastrophic-forgetting",
@@ -1706,8 +1698,8 @@
   },
   {
    "name": "representation-engineering",
-   "x": 0.6932,
-   "y": 0.4888,
+   "x": 0.6706,
+   "y": 0.0918,
    "sha256": "68aa5f31b4f29d07e4e4bb7e750d5aa5900b8375a1f5fcf8ab5228d0efcd50af",
    "region": 1,
    "neighbours": [
@@ -1718,8 +1710,8 @@
   },
   {
    "name": "ripple-effects-of-knowledge-editing",
-   "x": 0.0291,
-   "y": 0.5718,
+   "x": 0.1301,
+   "y": 0.8523,
    "sha256": "375869c0302d0fe6f874d4551cae8a7f4f19182260ebfb5eaa20aabf8bc6570a",
    "region": 9,
    "neighbours": [
@@ -1730,10 +1722,10 @@
   },
   {
    "name": "rls-razor",
-   "x": 0.1527,
-   "y": 0.3704,
+   "x": 0.224,
+   "y": 0.6401,
    "sha256": "5a0971d9b7cfa32916ec49bd545530bfa4b9fcbb1084912123dcc7863ae9c796",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "mechanistic-forgetting-continual-fine-tuning",
     "implicit-inference-forgetting",
@@ -1742,10 +1734,10 @@
   },
   {
    "name": "robust-unlearning-evaluation",
-   "x": 0.3484,
-   "y": 0.6699,
+   "x": 0.4352,
+   "y": 0.6147,
    "sha256": "9a98f6080ae6163d98ab8c4d9ee5524013ed2bc3bdd89a6cc08affd0c8e96ea3",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "fine-tuning-new-knowledge",
     "scoring-explanations-without-reading-them",
@@ -1754,8 +1746,8 @@
   },
   {
    "name": "scoring-explanations-without-reading-them",
-   "x": 0.6478,
-   "y": 0.615,
+   "x": 0.6636,
+   "y": 0.2606,
    "sha256": "748f58a8d4fbc55e392d615768cd6c545f0bf4b5807070b6c8ad85adb0ea62f4",
    "region": 1,
    "neighbours": [
@@ -1766,10 +1758,10 @@
   },
   {
    "name": "self-referential-weight-matrix",
-   "x": 0.3227,
-   "y": 0.1087,
+   "x": 0.0918,
+   "y": 0.3072,
    "sha256": "2003e31fe9d457011ee5647b0666c1b72a0169ef3e9338bd7fa980432e8725c1",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "fast-weight-memories",
     "fast-weights-deblur",
@@ -1777,11 +1769,23 @@
    ]
   },
   {
-   "name": "simplified-model-illusions",
-   "x": 0.4336,
-   "y": 0.5102,
-   "sha256": "ac2f3a31bb449c8b606749baa0fb2541e00aebcc3ad1ffd71341e9fd3219bfbf",
+   "name": "silu",
+   "x": 0.0912,
+   "y": 0.1985,
+   "sha256": "83f9c66d47a5bc230cae9d0ffb19c97d24f4b56fbdbb14bb6d270c0a2184c253",
    "region": 3,
+   "neighbours": [
+    "softplus-option-pricing",
+    "fast-weight-memories",
+    "catastrophic-forgetting-empirical"
+   ]
+  },
+  {
+   "name": "simplified-model-illusions",
+   "x": 0.3843,
+   "y": 0.3857,
+   "sha256": "ac2f3a31bb449c8b606749baa0fb2541e00aebcc3ad1ffd71341e9fd3219bfbf",
+   "region": 2,
    "neighbours": [
     "attribution-parameter-decomposition",
     "attention-sinks",
@@ -1790,22 +1794,22 @@
   },
   {
    "name": "softplus-option-pricing",
-   "x": 0.2986,
-   "y": 0.0143,
+   "x": 0.1172,
+   "y": 0.1777,
    "sha256": "aaeaf8dc8129636ac70ffbf07e3ce2c449760ab6f5fd153ae4efb2fd6904b082",
-   "region": 2,
+   "region": 3,
    "neighbours": [
+    "silu",
     "fast-weight-memories",
-    "attribution-parameter-decomposition",
-    "catastrophic-forgetting-empirical"
+    "attribution-parameter-decomposition"
    ]
   },
   {
    "name": "sparse-feature-circuits",
-   "x": 0.5525,
-   "y": 0.6579,
+   "x": 0.5715,
+   "y": 0.4049,
    "sha256": "123c724e3b743499dd720ca899b16aa870b795f0544bbe3c0c734caed8d5a463",
-   "region": 10,
+   "region": 6,
    "neighbours": [
     "neuron-basis-circuits",
     "axbench",
@@ -1814,10 +1818,10 @@
   },
   {
    "name": "spurious-forgetting",
-   "x": 0.1489,
-   "y": 0.3842,
+   "x": 0.2141,
+   "y": 0.5988,
    "sha256": "c8c248fa9129adf097a3b9ff07a4f99e49035402ebf9dcb787300d6df4d6293a",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "mechanistic-forgetting-continual-fine-tuning",
     "anatomy-of-catastrophic-forgetting",
@@ -1826,10 +1830,10 @@
   },
   {
    "name": "stagewise-development",
-   "x": 0.3309,
-   "y": 0.3242,
+   "x": 0.2462,
+   "y": 0.3761,
    "sha256": "c31cb917a4688f06f01e82a427edbdfbbd659ca701a21928c39307bf7b3c443e",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "in-context-learning-by-gradient-descent",
     "parameter-efficient-transfer-learning",
@@ -1838,8 +1842,8 @@
   },
   {
    "name": "steering-specificity",
-   "x": 0.4474,
-   "y": 0.7232,
+   "x": 0.4808,
+   "y": 0.4564,
    "sha256": "52cadde9dbf79e43268b688d27e8a849cbdb27c98b93466da3de02cd9b326dfd",
    "region": 1,
    "neighbours": [
@@ -1850,8 +1854,8 @@
   },
   {
    "name": "steering-vector-reliability",
-   "x": 0.4289,
-   "y": 0.7413,
+   "x": 0.4897,
+   "y": 0.5184,
    "sha256": "d16b42f9283ae13a5a30a13f08265833f5ecb3613ac3240f6276e096c3351a4c",
    "region": 1,
    "neighbours": [
@@ -1862,10 +1866,10 @@
   },
   {
    "name": "stochastic-parameter-decomposition",
-   "x": 0.4106,
-   "y": 0.1972,
+   "x": 0.2074,
+   "y": 0.2072,
    "sha256": "993e5f9e9be266e483400c182ae46af32a3b443a119efe80a4f0cb132590b694",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "attribution-parameter-decomposition",
     "linear-transformers-fast-weight-programmers",
@@ -1874,10 +1878,10 @@
   },
   {
    "name": "superpose-task-features",
-   "x": 0.3654,
-   "y": 0.2256,
+   "x": 0.1899,
+   "y": 0.2539,
    "sha256": "28ad8bbbdbb3350ee4ff1a994535670496dd63bf7a9cd2a773d25bb2f03f0768",
-   "region": 8,
+   "region": 7,
    "neighbours": [
     "task-singular-vectors",
     "ties-merging",
@@ -1886,10 +1890,10 @@
   },
   {
    "name": "synaptic-intelligence",
-   "x": 0.2452,
-   "y": 0.0514,
+   "x": 0.0378,
+   "y": 0.3874,
    "sha256": "151e9730ee34368de389f10434f972e5b7b3041d9daf56e6b6d017211b8240a1",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "elastic-weight-consolidation",
     "hard-attention-to-the-task",
@@ -1898,10 +1902,10 @@
   },
   {
    "name": "tangent-space-task-arithmetic",
-   "x": 0.2976,
-   "y": 0.1714,
+   "x": 0.1433,
+   "y": 0.3302,
    "sha256": "9fdbcf3c66732a04c1a2583b0c6fb650ddff6aab280b5d8a6bd60ad23ac39cc9",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "task-arithmetic",
     "fast-weight-memories",
@@ -1910,8 +1914,8 @@
   },
   {
    "name": "task-arithmetic",
-   "x": 0.2736,
-   "y": 0.182,
+   "x": 0.1471,
+   "y": 0.3327,
    "sha256": "ad90ac58b843b3d33c9cbcbfe2870665b62826be3b9018bdf46829a7d0da8cce",
    "region": 7,
    "neighbours": [
@@ -1922,10 +1926,10 @@
   },
   {
    "name": "task-singular-vectors",
-   "x": 0.3442,
-   "y": 0.1925,
+   "x": 0.1791,
+   "y": 0.2699,
    "sha256": "bffa019714b99a1369e891490d97156d15500b0dc1902737c4db6fb8004d34f2",
-   "region": 8,
+   "region": 7,
    "neighbours": [
     "superpose-task-features",
     "ties-merging",
@@ -1934,10 +1938,10 @@
   },
   {
    "name": "test-time-training-layers",
-   "x": 0.2862,
-   "y": 0.2413,
+   "x": 0.1864,
+   "y": 0.4404,
    "sha256": "d3741231836abc886e01ee02f8b26092b573edf358a1d534c57cfd65882b0dd4",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "end-to-end-test-time-training",
     "fast-weight-memories",
@@ -1946,8 +1950,8 @@
   },
   {
    "name": "text-to-lora",
-   "x": 0.3454,
-   "y": 0.8904,
+   "x": 0.4441,
+   "y": 0.9142,
    "sha256": "be33876f21d2d8aaab2b16784900d128f190ae0d7494746c12036ab4ef3a8a36",
    "region": 8,
    "neighbours": [
@@ -1958,10 +1962,10 @@
   },
   {
    "name": "the-pile",
-   "x": 0.2802,
-   "y": 0.6178,
+   "x": 0.3399,
+   "y": 0.7039,
    "sha256": "9b90d2262f012f48aa936d72533c850c64e2c36968f2eeeb612fff6357643cd7",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "gpt-2",
     "char-cnn",
@@ -1970,10 +1974,10 @@
   },
   {
    "name": "thinking-like-transformers",
-   "x": 0.4045,
-   "y": 0.3789,
+   "x": 0.349,
+   "y": 0.344,
    "sha256": "52c2fcb23373fc83c0b9342f912345fa7ab01069446a6150b0f3ce86089ae4cf",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "tracr",
     "learning-transformer-programs",
@@ -1982,10 +1986,10 @@
   },
   {
    "name": "ties-merging",
-   "x": 0.3273,
-   "y": 0.199,
+   "x": 0.1763,
+   "y": 0.2883,
    "sha256": "e92a89b292b49d7a187cd22c655aae3e454d4f574e2ea0a7bc08694b58f529ba",
-   "region": 8,
+   "region": 7,
    "neighbours": [
     "task-singular-vectors",
     "superpose-task-features",
@@ -1994,10 +1998,10 @@
   },
   {
    "name": "titans-test-time-memory",
-   "x": 0.2573,
-   "y": 0.2528,
+   "x": 0.1751,
+   "y": 0.4887,
    "sha256": "9a9d9a7669e65fc000190b9bf5b6c9f981dcc8f623b36538bd2c4697eff7af38",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "test-time-training-layers",
     "gradient-episodic-memory",
@@ -2006,10 +2010,10 @@
   },
   {
    "name": "toy-models-of-superposition",
-   "x": 0.4793,
-   "y": 0.2713,
+   "x": 0.2488,
+   "y": 0.1546,
    "sha256": "ec09a5f6cc6205ae720e0d22db7bf8b9f927c416cc86bef49d9e49a4a16c24ae",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "attribution-parameter-decomposition",
     "intriguing-properties",
@@ -2018,10 +2022,10 @@
   },
   {
    "name": "tracr",
-   "x": 0.4028,
-   "y": 0.404,
+   "x": 0.3796,
+   "y": 0.3394,
    "sha256": "170ccd31a3eb987561b97ea0b22ed0627516d01b1cf48383b471965d451a0791",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "thinking-like-transformers",
     "alta",
@@ -2030,10 +2034,10 @@
   },
   {
    "name": "training-llms-to-predict-world-events",
-   "x": 0.1794,
-   "y": 0.3025,
+   "x": 0.2447,
+   "y": 0.5125,
    "sha256": "ca5bf11e16ac3dc44e3655adfe06eaab457eea38102e23b36e849ef6835e670d",
-   "region": 7,
+   "region": 4,
    "neighbours": [
     "test-time-training-layers",
     "gradient-episodic-memory",
@@ -2042,10 +2046,10 @@
   },
   {
    "name": "transcoders",
-   "x": 0.477,
-   "y": 0.3876,
+   "x": 0.3716,
+   "y": 0.1466,
    "sha256": "094f7f774c255e4693de3ee45baf8654665ca732c56d6906860497edf8a7692d",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "neurons-in-disguise",
     "sparse-feature-circuits",
@@ -2054,10 +2058,10 @@
   },
   {
    "name": "transformer-patcher",
-   "x": 0.2838,
-   "y": 0.3569,
+   "x": 0.2095,
+   "y": 0.4311,
    "sha256": "be8d96f79907952e7d79a2e4b647c6ee2bd021190ba9f49b866bb2da3f9e93bd",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "linear-attention-transformers-are-rnns",
     "mechanistic-forgetting-continual-fine-tuning",
@@ -2066,10 +2070,10 @@
   },
   {
    "name": "trigonometry-addition",
-   "x": 0.2146,
-   "y": 0.5354,
+   "x": 0.2436,
+   "y": 0.6721,
    "sha256": "d4a3c0659e501a2f6dd98bfa3e1c3a12148f777344b3ca8164f6e2e031637fdf",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "arithmetic-bag-of-heuristics",
     "pythia",
@@ -2078,8 +2082,8 @@
   },
   {
    "name": "understanding-ai-from-the-inside",
-   "x": 0.7505,
-   "y": 0.6175,
+   "x": 0.7269,
+   "y": 0.2403,
    "sha256": "9013538e3e25610d4823d0f22e9c7dd23e471aeba794c993e9f8b420b685fe69",
    "region": 1,
    "neighbours": [
@@ -2090,10 +2094,10 @@
   },
   {
    "name": "universal-dependencies-v2",
-   "x": 0.289,
-   "y": 0.637,
+   "x": 0.391,
+   "y": 0.6559,
    "sha256": "19beb189202fff15fe00c314507c474957cfb0eb911aad578f298d38dd8a5841",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "control-tasks",
     "abstention-direction",
@@ -2102,10 +2106,10 @@
   },
   {
    "name": "universal-neurons",
-   "x": 0.5832,
-   "y": 0.4902,
+   "x": 0.5106,
+   "y": 0.0911,
    "sha256": "107b3f438614b0acfa13f52f44967a73b0392f9ff488cff3287da0f3f65e8e7c",
-   "region": 5,
+   "region": 7,
    "neighbours": [
     "neurons-speak-in-ranges",
     "massive-activations",
@@ -2114,10 +2118,10 @@
   },
   {
    "name": "visualizing-recurrent-networks",
-   "x": 0.3004,
-   "y": 0.4889,
+   "x": 0.2856,
+   "y": 0.5457,
    "sha256": "97e2f0d1d2b4cbe6d87a60a383f9adc93cf50215828f91d118f5a0bddcf6ae48",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "attention-sinks",
     "ffn-key-value-memories",
@@ -2126,10 +2130,10 @@
   },
   {
    "name": "weight-space-programming-without-transformers",
-   "x": 0.4323,
-   "y": 0.3648,
+   "x": 0.3681,
+   "y": 0.2854,
    "sha256": "86bfecae71bec096ee7d94b8980d3c377bb458c7534d5d4ca12b263b50a0bbe7",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "learning-transformer-programs",
     "alta",
@@ -2138,10 +2142,10 @@
   },
   {
    "name": "what-survives-distillation",
-   "x": 0.2134,
-   "y": 0.4075,
+   "x": 0.1427,
+   "y": 0.5829,
    "sha256": "a05704050208ff41e24b6cf627ef54a5127c59351378273865b9bc6fe9bcc1af",
-   "region": 7,
+   "region": 2,
    "neighbours": [
     "copy-suppression-head",
     "learning-without-forgetting",
@@ -2150,10 +2154,10 @@
   },
   {
    "name": "who-cares-about-brackets",
-   "x": 0.2033,
-   "y": 0.467,
+   "x": 0.1659,
+   "y": 0.6385,
    "sha256": "1fe25ba48fe935d5f04503dfebb422b644d2aeb56a93291cc2fab9f4ee783eff",
-   "region": 6,
+   "region": 5,
    "neighbours": [
     "dissecting-factual-recall",
     "causally-grounded-explanations",
@@ -2162,10 +2166,10 @@
   },
   {
    "name": "why-language-models-hallucinate",
-   "x": 0.2724,
-   "y": 0.6844,
+   "x": 0.3828,
+   "y": 0.7,
    "sha256": "9ec63f354923bba2f9df86a57a8a6a7be3b1f8a80606a0800d52a666c3dea709",
-   "region": 3,
+   "region": 2,
    "neighbours": [
     "biology-of-a-large-language-model",
     "non-factual-hallucination-mechanisms",
@@ -2174,8 +2178,8 @@
   },
   {
    "name": "wise-lifelong-editing",
-   "x": 0.0146,
-   "y": 0.5125,
+   "x": 0.1732,
+   "y": 0.9197,
    "sha256": "0f316509a851256ee737f71c5cf0cb436ce259259713c9d95b757b82bce18150",
    "region": 9,
    "neighbours": [
@@ -2186,10 +2190,10 @@
   },
   {
    "name": "wmdp-rmu-unlearning",
-   "x": 0.2009,
-   "y": 0.3161,
+   "x": 0.1321,
+   "y": 0.5294,
    "sha256": "477546cd1f880b042686f0cd011199c6e0374c8d9e6aea3cfb8947f1b929281d",
-   "region": 2,
+   "region": 3,
    "neighbours": [
     "distillation-robustifies-unlearning",
     "test-time-training-layers",
@@ -2201,891 +2205,884 @@
   {
    "number": 3386,
    "title": "Alex Wang's post on associative memory",
-   "x": 0.9251,
-   "y": 0.7051,
+   "x": 0.9388,
+   "y": 0.4565,
    "region": 4
   },
   {
    "number": 3387,
    "title": "Sasha Rush's \"Sampling to Reinforce\"",
-   "x": 0.9604,
-   "y": 0.6224,
+   "x": 0.9755,
+   "y": 0.427,
    "region": 4
   },
   {
    "number": 3389,
    "title": "\"Mechanistic Insights into LoRA: Layer Sparsity for Adaptive Fine-Tuning via Path Patching\" (arXiv\u2026",
-   "x": 0.3607,
-   "y": 0.9837,
+   "x": 0.443,
+   "y": 1.0,
    "region": 8
   },
   {
    "number": 3390,
    "title": "\"Cross-modal Steering Vectors Exist Across Both Image and Text Generation\" (arXiv 2610.36269)",
-   "x": 0.7105,
-   "y": 0.4145,
+   "x": 0.5835,
+   "y": 0.1123,
    "region": 1
   },
   {
    "number": 3391,
    "title": "OpenAI's \"How we detect frontier model misalignment\"",
-   "x": 0.4921,
-   "y": 0.5647,
+   "x": 0.5277,
+   "y": 0.2651,
    "region": 1
   },
   {
    "number": 3392,
    "title": "\"Proving and Improving the Platonic Representation Hypothesis with JEPAs\" (arXiv 2610.39302)",
-   "x": 0.7844,
-   "y": 0.4342,
+   "x": 0.7316,
+   "y": 0.0931,
    "region": 1
   },
   {
    "number": 3393,
    "title": "\"world2vec: Mechanistic world models through latent dynamics learning\" (arXiv 2610.40637)",
-   "x": 0.9355,
-   "y": 0.5944,
+   "x": 0.9404,
+   "y": 0.3562,
    "region": 4
   },
   {
    "number": 3395,
    "title": "\"Reasoning or Pattern Exploitation? Mechanistic Insights from RL-Trained Language Models\" (arXiv\u2026",
-   "x": 0.2006,
-   "y": 0.6289,
-   "region": 3
+   "x": 0.3068,
+   "y": 0.7534,
+   "region": 2
   },
   {
    "number": 3396,
    "title": "\"Discovering Interpretable Acoustic Features in Autoregressive Voice-Cloning TTS Models\" (arXiv\u2026",
-   "x": 0.8351,
-   "y": 0.7228,
+   "x": 0.8214,
+   "y": 0.4268,
    "region": 4
   },
   {
    "number": 3398,
    "title": "Commanding Heights",
-   "x": 0.9669,
-   "y": 0.7254,
+   "x": 0.956,
+   "y": 0.4883,
    "region": 4
   },
   {
    "number": 3399,
    "title": "\"CANS: Capability-Preserving Neuron Steering for Large Language Models\" (arXiv 2610.35530)",
-   "x": 0.7101,
-   "y": 0.4013,
+   "x": 0.5824,
+   "y": 0.096,
    "region": 1
   },
   {
    "number": 3400,
    "title": "\"Uncovering Why LLMs Fail: From Internal Mechanisms to Adversarial Reasoning Trajectories\" (arXiv\u2026",
-   "x": 0.7161,
-   "y": 0.7359,
+   "x": 0.7371,
+   "y": 0.3656,
    "region": 1
   },
   {
    "number": 3401,
    "title": "mechinterp.neuralavb.com",
-   "x": 0.7518,
-   "y": 0.5651,
+   "x": 0.7313,
+   "y": 0.2181,
    "region": 1
   },
   {
    "number": 3402,
    "title": "\"Opening the Box Changes the Cat: LLMs Detect Chain-of-Thought Monitoring - What now?\" (arXiv\u2026",
-   "x": 0.783,
-   "y": 0.7517,
+   "x": 0.8027,
+   "y": 0.4559,
    "region": 4
   },
   {
    "number": 3403,
    "title": "\"Task Vectors Can Be Linearly Decomposed into Interpretable and Controllable Components\" (arXiv\u2026",
-   "x": 0.5249,
-   "y": 0.3211,
-   "region": 5
+   "x": 0.2995,
+   "y": 0.1808,
+   "region": 7
   },
   {
    "number": 3404,
    "title": "Edward Benson's \"Embedding a state machine in a neural network\"",
-   "x": 0.5427,
-   "y": 0.231,
-   "region": 1
+   "x": 0.4547,
+   "y": 0.2284,
+   "region": 3
   },
   {
    "number": 3405,
    "title": "rikiyat's post on weight-space programming",
-   "x": 0.575,
-   "y": 0.2586,
-   "region": 1
+   "x": 0.4832,
+   "y": 0.2527,
+   "region": 5
   },
   {
    "number": 3406,
    "title": "Q Labs' research on parameters",
-   "x": 0.9524,
-   "y": 0.7065,
+   "x": 0.948,
+   "y": 0.4732,
    "region": 4
   },
   {
    "number": 3407,
    "title": "Prefrontal's post on LSA",
-   "x": 0.9391,
-   "y": 0.725,
+   "x": 0.9341,
+   "y": 0.4661,
    "region": 4
   },
   {
    "number": 3408,
    "title": "Zyphra's post on hierarchical attention",
-   "x": 0.9092,
-   "y": 0.739,
+   "x": 0.9049,
+   "y": 0.4431,
    "region": 4
   },
   {
    "number": 3410,
    "title": "\"Mechanistic Interpretability for End-to-End Self-Driving\" (arXiv 2610.41185)",
-   "x": 0.8419,
-   "y": 0.7129,
+   "x": 0.8276,
+   "y": 0.3878,
    "region": 4
   },
   {
    "number": 3411,
    "title": "\"Library of Layers (LoL): Adaptively Ordering Transformer Layers at Runtime\" (arXiv 2611.03526)",
-   "x": 0.4055,
-   "y": 0.3628,
-   "region": 6
+   "x": 0.3304,
+   "y": 0.3281,
+   "region": 5
   },
   {
    "number": 3412,
    "title": "\"Follow the Gradient: Tracing Safety Degradation Back to Training Data\" (arXiv 2610.37481)",
-   "x": 0.8164,
-   "y": 0.6317,
+   "x": 0.8259,
+   "y": 0.4919,
    "region": 4
   },
   {
    "number": 3413,
    "title": "Anthropic's research on provable inference",
-   "x": 0.9632,
-   "y": 0.6767,
+   "x": 0.9525,
+   "y": 0.4692,
    "region": 4
   },
   {
    "number": 3414,
    "title": "\"Measuring AI Agents as Teammates with Collaborative Intelligence\" (arXiv 2611.02633)",
-   "x": 0.9754,
-   "y": 0.6455,
+   "x": 0.9508,
+   "y": 0.3985,
    "region": 4
   },
   {
    "number": 3415,
    "title": "Karpathy's nanochat",
-   "x": 0.9913,
-   "y": 0.7494,
+   "x": 0.9723,
+   "y": 0.5136,
    "region": 4
   },
   {
    "number": 3416,
    "title": "Schmidhuber's post on the 1991 fast weight programmer and transformers",
-   "x": 1.0,
-   "y": 0.7466,
+   "x": 0.9093,
+   "y": 0.498,
    "region": 4
   },
   {
    "number": 3417,
    "title": "ravfogel's X post",
-   "x": 0.977,
-   "y": 0.7384,
+   "x": 0.958,
+   "y": 0.4914,
    "region": 4
   },
   {
    "number": 3418,
    "title": "Let's Data Science's post on GPT-6 Astra editing 0.016% of Qwen's weights",
-   "x": 0.0726,
-   "y": 0.5421,
+   "x": 0.1154,
+   "y": 0.8623,
    "region": 9
   },
   {
    "number": 3419,
    "title": "\"Steering with Multilingual Lexicons for Sentiment Control in Low-Resource Languages\" (arXiv\u2026",
-   "x": 0.7191,
-   "y": 0.42,
+   "x": 0.5883,
+   "y": 0.1192,
    "region": 1
   },
   {
    "number": 3420,
    "title": "\"Agentic Backdoors via Pretraining Poisoning\" (arXiv 2610.37741)",
-   "x": 0.8403,
-   "y": 0.6078,
+   "x": 0.8472,
+   "y": 0.4839,
    "region": 4
   },
   {
    "number": 3421,
    "title": "\"Align Once to Explain: Feature Alignment for Scalable B-cosification of Foundational Vision\u2026",
-   "x": 0.8785,
-   "y": 0.7165,
+   "x": 0.8567,
+   "y": 0.3872,
    "region": 4
   },
   {
    "number": 3422,
    "title": "\"Say the Same, Act Differently: Diagnosing and Steering Text-Action Divergence in Reasoning VLAs\"\u2026",
-   "x": 0.8787,
-   "y": 0.7365,
+   "x": 0.8671,
+   "y": 0.4148,
    "region": 4
   },
   {
    "number": 3423,
    "title": "Goodfire's \"Mechanistic Shaping\"",
-   "x": 0.6972,
-   "y": 0.4222,
+   "x": 0.6136,
+   "y": 0.0738,
    "region": 1
   },
   {
    "number": 3424,
    "title": "\"Subspace Crystallization\"",
-   "x": 0.5147,
-   "y": 0.3071,
-   "region": 10
+   "x": 0.3121,
+   "y": 0.1967,
+   "region": 6
   },
   {
    "number": 3425,
    "title": "\"Shaping & Monitoring Models through their Internal Representations\" (arXiv 2611.07071)",
-   "x": 0.7197,
-   "y": 0.4462,
+   "x": 0.6132,
+   "y": 0.1113,
    "region": 1
   },
   {
    "number": 3428,
    "title": "\"User Embeddings are Superpositions of Interpretable Behavioral Modes\" (arXiv 2611.08487)",
-   "x": 0.9383,
-   "y": 0.5758,
+   "x": 0.9535,
+   "y": 0.3416,
    "region": 4
   },
   {
    "number": 3429,
    "title": "\"Persona Perspectives: Adopting Viewpoints Reorganizes Representations in LLMs\" (arXiv 2611.06848)",
-   "x": 0.7028,
-   "y": 0.7306,
+   "x": 0.7245,
+   "y": 0.3677,
    "region": 1
   },
   {
    "number": 3430,
    "title": "DoubleAI's \"Can LLMs Redesign Themselves as They Train?\"",
-   "x": 0.9487,
-   "y": 0.707,
+   "x": 0.9258,
+   "y": 0.4576,
    "region": 4
   },
   {
    "number": 3431,
    "title": "\"SAE Interprets MoE: Sparse AutoEncoders Reveal That MoE Experts Exhibit Human-Interpretable\u2026",
-   "x": 0.6338,
-   "y": 0.7651,
-   "region": 10
+   "x": 0.7075,
+   "y": 0.481,
+   "region": 6
   },
   {
    "number": 3432,
    "title": "\"Geometry-Adaptive Explainer for Faithful Dictionary-Based Interpretability under Distribution Shift\"\u2026",
-   "x": 0.69,
-   "y": 0.6867,
-   "region": 1
+   "x": 0.7339,
+   "y": 0.2953,
+   "region": 6
   },
   {
    "number": 3433,
    "title": "\"Identically Trained Language Models Break on Different Jailbreaks\" (arXiv 2610.34074)",
-   "x": 0.6843,
-   "y": 0.3926,
-   "region": 5
+   "x": 0.5774,
+   "y": 0.0557,
+   "region": 1
   },
   {
    "number": 3434,
    "title": "\"Scaling Laws for SAE Training Data\" (arXiv 2611.07756)",
-   "x": 0.6366,
-   "y": 0.8266,
-   "region": 10
+   "x": 0.7206,
+   "y": 0.5331,
+   "region": 6
   },
   {
    "number": 3435,
    "title": "\"Encoding and Propagation of Grammatical Number in Large Language Models\" (arXiv 2611.07283)",
-   "x": 0.2802,
-   "y": 0.6006,
-   "region": 3
+   "x": 0.3409,
+   "y": 0.6651,
+   "region": 2
   },
   {
    "number": 3436,
    "title": "\"Towards Multi-Value Alignment via Value Localization in LLMs\" (arXiv 2611.02503)",
-   "x": 0.602,
-   "y": 0.8315,
+   "x": 0.6955,
+   "y": 0.5566,
    "region": 8
   },
   {
    "number": 3437,
    "title": "\"Unifying and Beyond the Theory of Pervasive Capability Degradation in LLM Post-training SFT from\u2026",
-   "x": 0.3814,
-   "y": 0.5364,
-   "region": 7
+   "x": 0.4455,
+   "y": 0.5577,
+   "region": 2
   },
   {
    "number": 3438,
    "title": "\"Towards Foundation Decision Models: Drex\" (arXiv 2611.07854)",
-   "x": 0.9341,
-   "y": 0.7285,
+   "x": 0.9457,
+   "y": 0.4971,
    "region": 4
   },
   {
    "number": 3439,
    "title": "\"SwarmEvolve: Latent Agent Swarms for Evolutionary Discovery and Optimization\" (arXiv 2611.08483)",
-   "x": 0.9648,
-   "y": 0.6151,
+   "x": 0.9457,
+   "y": 0.3787,
    "region": 4
   },
   {
    "number": 3440,
    "title": "Anthropic's \"Teaching AI to build scientific models\" (Macke, Gedon and Wahl)",
-   "x": 0.9214,
-   "y": 0.6146,
+   "x": 0.9041,
+   "y": 0.3475,
    "region": 4
   },
   {
    "number": 3442,
    "title": "\"SteerGR: Steering Generative Recommendation via Sparse Autoencoders for Controllable Game Discovery\"\u2026",
-   "x": 0.9467,
-   "y": 0.5834,
+   "x": 0.9583,
+   "y": 0.3174,
    "region": 4
   },
   {
    "number": 3443,
    "title": "\"Teach the Way It Thinks: Guiding LLM Post-training Data Engineering with Sparse Autoencoders\" (arXiv\u2026",
-   "x": 0.6021,
-   "y": 0.7796,
-   "region": 10
+   "x": 0.697,
+   "y": 0.5134,
+   "region": 6
   },
   {
    "number": 3444,
    "title": "\"Farther the Shift, Sparser the Representation: Analyzing OOD Mechanisms in LLMs\" (arXiv 2603.03415)",
-   "x": 0.6679,
-   "y": 0.7262,
-   "region": 1
+   "x": 0.7001,
+   "y": 0.3699,
+   "region": 6
   },
   {
    "number": 3446,
    "title": "ROTATE, which disentangles MLP neurons in weight space with no forward passes (arXiv 2604.06005)",
-   "x": 0.6091,
-   "y": 0.3553,
+   "x": 0.5154,
+   "y": 0.048,
    "region": 1
   },
   {
    "number": 3447,
    "title": "\"NeuronScope: A Multi-Agent Framework for Explaining Polysemantic Neurons in Language Models\" (arXiv\u2026",
-   "x": 0.7165,
-   "y": 0.4996,
+   "x": 0.6899,
+   "y": 0.1217,
    "region": 1
   },
   {
    "number": 3449,
    "title": "\"Neuron to Graph: Interpreting Language Model Neurons at Scale\" (Foote et al., arXiv 2305.19911)",
-   "x": 0.672,
-   "y": 0.424,
+   "x": 0.6075,
+   "y": 0.0415,
    "region": 1
   },
   {
    "number": 3450,
    "title": "Anthropic's May 2026 Circuits Update, for its TWERA ranking of downstream features",
-   "x": 0.4755,
-   "y": 0.793,
+   "x": 0.5429,
+   "y": 0.6179,
    "region": 8
   },
   {
    "number": 3451,
    "title": "\"Bilinear MLPs enable weight-based mechanistic interpretability\" (arXiv 2410.08417)",
-   "x": 0.6249,
-   "y": 0.3461,
-   "region": 1
+   "x": 0.5952,
+   "y": 0.2816,
+   "region": 5
   },
   {
    "number": 3452,
    "title": "Goodfire's public neuron atlas",
-   "x": 0.6932,
-   "y": 0.3897,
+   "x": 0.611,
+   "y": 0.0228,
    "region": 1
   },
   {
    "number": 3454,
    "title": "Agentic Learning's post on deleting weights",
-   "x": 0.9731,
-   "y": 0.6535,
+   "x": 0.9395,
+   "y": 0.4308,
    "region": 4
   },
   {
    "number": 3455,
    "title": "E-means",
-   "x": 0.956,
-   "y": 0.7269,
+   "x": 0.9443,
+   "y": 0.5106,
    "region": 4
   },
   {
    "number": 3456,
    "title": "\"Mechanistic Interpretability Needs a Logic of Inference\" (Hu et al., arXiv 2611.14483)",
-   "x": 0.7605,
-   "y": 0.6434,
+   "x": 0.7639,
+   "y": 0.2854,
    "region": 1
   },
   {
    "number": 3457,
    "title": "\"A Geometric Invariant of Attention Predicts Head Specialization from Weights Alone\" (Bento, arXiv\u2026",
-   "x": 0.6538,
-   "y": 0.5613,
-   "region": 6
+   "x": 0.5994,
+   "y": 0.3295,
+   "region": 5
   },
   {
    "number": 3458,
    "title": "\"SWEET: Mitigating Spurious Feature Reliance in LLM Reasoning via Weight Editing\" (Fu et al., arXiv\u2026",
-   "x": 0.6786,
-   "y": 0.4706,
+   "x": 0.6076,
+   "y": 0.1549,
    "region": 1
   },
   {
    "number": 3459,
    "title": "Google DeepMind's \"Introducing AlphaProof code\"",
-   "x": 0.9898,
-   "y": 0.7508,
+   "x": 0.9832,
+   "y": 0.5141,
    "region": 4
   },
   {
    "number": 3460,
    "title": "\"e-means: outperforming k-means (in one-tenth the epochs)\" (Bessa et al., arXiv 2611.09501)",
-   "x": 0.9305,
-   "y": 0.7044,
+   "x": 0.9233,
+   "y": 0.5404,
    "region": 4
   },
   {
    "number": 3463,
    "title": "\"Explaining Attention with Program Synthesis\" (Hayes, Li and Andreas, arXiv 2606.19317)",
-   "x": 0.6961,
-   "y": 0.5883,
+   "x": 0.6832,
+   "y": 0.2449,
    "region": 1
   },
   {
    "number": 3464,
    "title": "\"Linear Explanations for Individual Neurons\" (Oikarinen and Weng, arXiv 2405.06855)",
-   "x": 0.7036,
-   "y": 0.4727,
+   "x": 0.6766,
+   "y": 0.0746,
    "region": 1
   },
   {
    "number": 3465,
    "title": "\"Automated Interpretability and Feature Discovery in Language Models with Agents\" (InterpAgent, arXiv\u2026",
-   "x": 0.7413,
-   "y": 0.6514,
+   "x": 0.7423,
+   "y": 0.2795,
    "region": 1
   },
   {
    "number": 3466,
    "title": "\"The Story is Not the Science: Execution-Grounded Evaluation of Mechanistic Interpretability Research\"\u2026",
-   "x": 0.7547,
-   "y": 0.673,
+   "x": 0.7681,
+   "y": 0.3094,
    "region": 1
   },
   {
    "number": 3468,
    "title": "\"Massive Activations Confound Sparse Autoencoders\" (arXiv 2611.13548)",
-   "x": 0.6175,
-   "y": 0.7868,
-   "region": 10
+   "x": 0.685,
+   "y": 0.4911,
+   "region": 6
   },
   {
    "number": 3469,
    "title": "\"Sanity Checks for Sparse Autoencoders: Do SAEs Beat Random Baselines?\" (arXiv 2602.14111)",
-   "x": 0.6029,
-   "y": 0.7681,
-   "region": 10
+   "x": 0.6769,
+   "y": 0.5127,
+   "region": 6
   },
   {
    "number": 3470,
    "title": "\"Tree-Ising: Repairing Language Models with Bit-Level Ising Edits\" (arXiv 2611.14210)",
-   "x": 0.039,
-   "y": 0.5925,
+   "x": 0.1873,
+   "y": 0.9004,
    "region": 9
   },
   {
    "number": 3471,
    "title": "Microsoft Research's \"Lazare, veni foras: reprogramming dormant neurons to backdoor AI agents\"",
-   "x": 0.7517,
-   "y": 0.4871,
+   "x": 0.6506,
+   "y": 0.0509,
    "region": 1
   },
   {
    "number": 3472,
    "title": "\"Predictive Surprise as Self-Grounding Concept Bottleneck for Interpretable Time Series\" (arXiv\u2026",
-   "x": 0.8441,
-   "y": 0.7253,
+   "x": 0.8357,
+   "y": 0.4043,
    "region": 4
   },
   {
    "number": 3473,
    "title": "\"Are Dense Rewards Worth Their Tokens in GRPO?\" (arXiv 2611.13560)",
-   "x": 0.9829,
-   "y": 0.6284,
+   "x": 1.0,
+   "y": 0.4177,
    "region": 4
   },
   {
    "number": 3474,
    "title": "Meta's \"Introducing Our Smallest, Most Efficient Model: Muse Ember\"",
-   "x": 0.6672,
-   "y": 0.814,
-   "region": 1
+   "x": 0.7567,
+   "y": 0.5287,
+   "region": 6
   },
   {
    "number": 3475,
    "title": "Hugging Face's \"Token Pooling-Aware Training for Multi-Vector Embedding Models\"",
-   "x": 0.9263,
-   "y": 0.561,
+   "x": 0.9473,
+   "y": 0.332,
    "region": 4
   },
   {
    "number": 3479,
    "title": "\"Constructing Interpretable Features from Compositional Neuron Groups\" (arXiv 2506.10920)",
-   "x": 0.719,
-   "y": 0.462,
+   "x": 0.6567,
+   "y": 0.0623,
    "region": 1
   },
   {
    "number": 3480,
    "title": "\"Circuit Insights: Towards Interpretability Beyond Activations\" (arXiv 2510.14936)",
-   "x": 0.6391,
-   "y": 0.394,
+   "x": 0.5887,
+   "y": 0.2361,
    "region": 1
   },
   {
    "number": 3481,
    "title": "Transluce's \"Scaling Automatic Neuron Description\", with its descriptions of all 458,752 MLP neurons\u2026",
-   "x": 0.5844,
-   "y": 0.4328,
-   "region": 5
+   "x": 0.4915,
+   "y": 0.0445,
+   "region": 7
   },
   {
    "number": 3482,
    "title": "the neuron descriptions that came with Goodfire's *Neural Networks Are Already Clean*, of neurons in\u2026",
-   "x": 0.6984,
-   "y": 0.4004,
+   "x": 0.6192,
+   "y": 0.0157,
    "region": 1
   },
   {
    "number": 3664,
    "title": "\"Mechanistic Interpretability of Deep Neural Networks: Methods, Frameworks, and Perspectives\" (arXiv 2611.13868)",
-   "x": 0.6871,
-   "y": 0.516,
+   "x": 0.6612,
+   "y": 0.1228,
    "region": 1
   },
   {
    "number": 3665,
    "title": "\"Neural Representations as New Modes of Interactivity\" (arXiv 2611.17058)",
-   "x": 0.7119,
-   "y": 0.4874,
+   "x": 0.6667,
+   "y": 0.105,
    "region": 1
   },
   {
    "number": 3666,
    "title": "\"Open Vision Banana: A Fully Open Recipe for Generative Visual Perception\" (arXiv 2611.15844)",
-   "x": 0.6267,
-   "y": 0.4899,
-   "region": 5
+   "x": 0.6237,
+   "y": 0.2411,
+   "region": 7
   },
   {
    "number": 3667,
    "title": "llama.cpp (ggml-org/llama.cpp) as a scan backend",
-   "x": 0.6632,
-   "y": 0.8558,
+   "x": 0.7246,
+   "y": 0.5864,
    "region": 8
   },
   {
    "number": 3799,
    "title": "\"Hedonic Neurons: A Mechanistic Mapping of Latent Coalitions in Transformer MLPs\" (ICLR 2026)",
-   "x": 0.6304,
-   "y": 0.3706,
+   "x": 0.5587,
+   "y": 0.0,
    "region": 1
   },
   {
    "number": 3800,
    "title": "Anthropic's \"Building strong safety evaluations\"",
-   "x": 0.7601,
-   "y": 0.7063,
+   "x": 0.7834,
+   "y": 0.3254,
    "region": 1
   },
   {
    "number": 4108,
    "title": "Descriptive Collision in Sparse Autoencoder Auto-Interpretability",
-   "x": 0.631,
-   "y": 0.7489,
-   "region": 10
+   "x": 0.7025,
+   "y": 0.4587,
+   "region": 6
   },
   {
    "number": 4109,
    "title": "SAEScientist-Bench",
-   "x": 0.6408,
-   "y": 0.8322,
-   "region": 1
+   "x": 0.7339,
+   "y": 0.564,
+   "region": 6
   },
   {
    "number": 4110,
    "title": "Darkness Visible: Reading the Exception Handler of a Language Model",
-   "x": 0.6238,
-   "y": 0.4411,
-   "region": 5
+   "x": 0.5433,
+   "y": 0.0724,
+   "region": 7
   },
   {
    "number": 4395,
    "title": "CoSy: Evaluating Textual Explanations of Neurons",
-   "x": 0.6769,
-   "y": 0.5929,
+   "x": 0.6729,
+   "y": 0.2139,
    "region": 1
   },
   {
    "number": 4396,
    "title": "Foundations of Neuron-level Interpretability: Automation, Evaluation and Training (Oikarinen, 2026)",
-   "x": 0.704,
-   "y": 0.52,
+   "x": 0.6539,
+   "y": 0.1453,
    "region": 1
   },
   {
    "number": 4471,
    "title": "Interpretable Weight-Space Programming Builds Transparent Transformers and Brain Encoding Models (Mehta et al., 2026)",
-   "x": 0.5414,
-   "y": 0.316,
-   "region": 1
+   "x": 0.4422,
+   "y": 0.2634,
+   "region": 5
   },
   {
    "number": 4603,
    "title": "Discovering Neuron Communities in Language Models (Shilov et al., 2026)",
-   "x": 0.5678,
-   "y": 0.417,
-   "region": 5
+   "x": 0.4832,
+   "y": 0.0463,
+   "region": 7
   },
   {
    "number": 4782,
    "title": "Literature: cover catastrophic interference, weight-space programming and LoRA",
-   "x": 0.6035,
-   "y": 0.2955,
+   "x": 0.5134,
+   "y": 0.2118,
    "region": 1
   },
   {
    "number": 5171,
    "title": "Evaluating Sparse Autoencoders for Monosemantic Representation",
-   "x": 0.5876,
-   "y": 0.7006,
-   "region": 10
+   "x": 0.634,
+   "y": 0.4546,
+   "region": 6
   },
   {
    "number": 5172,
    "title": "Rethinking SAE Evaluation: An Atomic Interpretable Unit Framework Reveals Hidden Polysemanticity and Redundancy",
-   "x": 0.6041,
-   "y": 0.644,
-   "region": 10
+   "x": 0.6235,
+   "y": 0.322,
+   "region": 6
   },
   {
    "number": 5213,
    "title": "Sketching Language Models for Context Attribution",
-   "x": 0.2214,
-   "y": 0.662,
-   "region": 3
+   "x": 0.332,
+   "y": 0.7705,
+   "region": 2
   },
   {
    "number": 5264,
    "title": "Control Reinforcement Learning: Interpretable Token-Level Steering of LLMs via Sparse Autoencoder Features",
-   "x": 0.5617,
-   "y": 0.7083,
-   "region": 10
+   "x": 0.6174,
+   "y": 0.4664,
+   "region": 6
   },
   {
    "number": 5275,
    "title": "Centered Ablation: Why Last-Layer Directional Ablation Under-Fires or Collapses, and a Closed-Form Fix",
-   "x": 0.3931,
-   "y": 0.5513,
-   "region": 7
+   "x": 0.3844,
+   "y": 0.465,
+   "region": 1
   },
   {
    "number": 5276,
    "title": "Representational Change Under Self-Consuming Training: A Sparse Autoencoder Analysis",
-   "x": 0.5716,
-   "y": 0.7147,
-   "region": 10
-  },
-  {
-   "number": 5341,
-   "title": "Incorporating second-order functional knowledge for better option pricing",
-   "x": 0.3004,
-   "y": 0.0148,
-   "region": 2
+   "x": 0.6423,
+   "y": 0.4869,
+   "region": 6
   },
   {
    "number": 5342,
    "title": "Sigmoid-weighted linear units for neural network function approximation in reinforcement learning",
-   "x": 0.2813,
-   "y": 0.0,
-   "region": 2
+   "x": 0.09,
+   "y": 0.2183,
+   "region": 3
   },
   {
    "number": 5343,
    "title": "Decoupled weight decay regularization",
-   "x": 0.3763,
-   "y": 0.1462,
-   "region": 2
+   "x": 0.116,
+   "y": 0.2837,
+   "region": 3
   },
   {
    "number": 5344,
    "title": "Confidence regulation neurons in language models",
-   "x": 0.5734,
-   "y": 0.4321,
-   "region": 5
+   "x": 0.5235,
+   "y": 0.0346,
+   "region": 7
   },
   {
    "number": 5365,
    "title": "GateWatch: Low-Overhead LLM Monitoring with Boolean Circuits",
-   "x": 0.5443,
-   "y": 0.6444,
-   "region": 10
+   "x": 0.588,
+   "y": 0.3948,
+   "region": 6
   },
   {
    "number": 5366,
    "title": "How to Turn an Attention Neural Network into an Interpretable Hard-Logic Predicate Circuit",
-   "x": 0.4484,
-   "y": 0.5132,
+   "x": 0.654,
+   "y": 0.1452,
    "region": 1
   },
   {
    "number": 5367,
    "title": "Tracking Representations in LLM Reasoning Traces for Iterated Games",
-   "x": 0.7138,
-   "y": 0.7499,
-   "region": 7
+   "x": 0.7309,
+   "y": 0.379,
+   "region": 1
   },
   {
    "number": 5400,
    "title": "Epiplexity Guided Data Selection and Generation for Out-of-Distribution Generalization",
-   "x": 0.1883,
-   "y": 0.3051,
-   "region": 7
+   "x": 0.2846,
+   "y": 0.4995,
+   "region": 4
   },
   {
    "number": 5419,
    "title": "The Platonic Representation Hypothesis",
-   "x": 0.8424,
-   "y": 0.4463,
+   "x": 0.8038,
+   "y": 0.1317,
    "region": 1
   },
   {
    "number": 5420,
    "title": "UMAP: Uniform Manifold Approximation and Projection",
-   "x": 0.8641,
-   "y": 0.4514,
-   "region": 1
+   "x": 0.8479,
+   "y": 0.1791,
+   "region": 6
   },
   {
    "number": 5421,
    "title": "From Louvain to Leiden",
-   "x": 0.869,
-   "y": 0.4486,
-   "region": 1
+   "x": 0.8465,
+   "y": 0.1688,
+   "region": 6
   },
   {
    "number": 5422,
    "title": "Sentence-BERT",
-   "x": 0.844,
-   "y": 0.4311,
+   "x": 0.822,
+   "y": 0.1348,
    "region": 1
   },
   {
    "number": 5423,
    "title": "MiniLM",
-   "x": 0.8689,
-   "y": 0.4543,
-   "region": 1
+   "x": 0.8493,
+   "y": 0.1695,
+   "region": 6
   },
   {
    "number": 5512,
    "title": "RL Post-Training in Diffusion Transformers Is Activation Steering",
-   "x": 0.2286,
-   "y": 0.2783,
-   "region": 6
+   "x": 0.3609,
+   "y": 0.4555,
+   "region": 1
   },
   {
    "number": 5513,
    "title": "Separating Interpretability and Reconstruction in Sparse Autoencoders (DualSAE)",
-   "x": 0.6125,
-   "y": 0.7631,
-   "region": 10
+   "x": 0.6597,
+   "y": 0.4834,
+   "region": 6
   },
   {
    "number": 5514,
    "title": "CurvDelta: Low-Curvature Delta Modeling For Surgical Learning and Unlearning",
-   "x": 0.2148,
-   "y": 0.2894,
-   "region": 7
+   "x": 0.3846,
+   "y": 0.4563,
+   "region": 1
   },
   {
    "number": 5515,
    "title": "General progress substitutes for specific training data in language models",
-   "x": 0.19,
-   "y": 0.411,
-   "region": 7
+   "x": 0.254,
+   "y": 0.6164,
+   "region": 2
   },
   {
    "number": 5559,
    "title": "Automated Interpretability Metrics Do Not Distinguish Trained and Random Transformers",
-   "x": 0.7019,
-   "y": 0.6468,
+   "x": 0.7058,
+   "y": 0.2867,
    "region": 1
   },
   {
    "number": 5560,
    "title": "Evaluating SAE Interpretability Without Explanations",
-   "x": 0.6648,
-   "y": 0.6362,
+   "x": 0.679,
+   "y": 0.28,
    "region": 1
   },
   {
    "number": 5561,
    "title": "Counterfactual World Models: JEPAs That Reason About \"What If\"",
-   "x": 0.1487,
-   "y": 0.4602,
-   "region": 7
+   "x": 0.1558,
+   "y": 0.7111,
+   "region": 2
   },
   {
    "number": 5597,
    "title": "Observed Universality of Phase Transitions in High-Dimensional Geometry",
-   "x": 0.5604,
-   "y": 0.7859,
-   "region": 10
+   "x": 0.6329,
+   "y": 0.533,
+   "region": 6
   },
   {
    "number": 5598,
    "title": "Compute Optimal Inference and Provable Amortisation Gap in Sparse Autoencoders",
-   "x": 0.5835,
-   "y": 0.7805,
-   "region": 10
+   "x": 0.661,
+   "y": 0.5153,
+   "region": 6
   },
   {
    "number": 5599,
    "title": "SPEX: Scaling Feature Interaction Explanations for LLMs",
-   "x": 0.6045,
-   "y": 0.7032,
-   "region": 10
+   "x": 0.6597,
+   "y": 0.4146,
+   "region": 6
   },
   {
    "number": 5600,
    "title": "Compressed Sensing for Capability Localization in Large Language Models",
-   "x": 0.2838,
-   "y": 0.5673,
-   "region": 3
+   "x": 0.3308,
+   "y": 0.6371,
+   "region": 2
   },
   {
    "number": 5601,
    "title": "An Introduction to Compressive Sampling",
-   "x": 0.5577,
-   "y": 0.7904,
-   "region": 10
+   "x": 0.6344,
+   "y": 0.5392,
+   "region": 6
   },
   {
    "number": 5646,
    "title": "Interpreting Inkling 2 Mini",
-   "x": 0.4769,
-   "y": 0.3393,
-   "region": 5
+   "x": 0.4023,
+   "y": 0.1447,
+   "region": 7
   }
  ]
 }
