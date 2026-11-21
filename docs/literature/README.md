@@ -35,6 +35,7 @@ Status marks how the work relates to this repo:
 | [Gaussian Error Linear Units (GELUs)](gelus.md) (Hendrycks and Gimpel, 2016) | used | GPT-2's activation function, in the tanh form that this paper gives. Three papers rest on its dip below zero. The paper never states the minimum near −0.75, so one citation moved. |
 | [GLU Variants Improve Transformer](glu-variants.md) (Shazeer, 2020) | used | Defines SwiGLU, Qwen2.5's MLP: a Swish-gated half times a linear half. Our citation checks out. A SwiGLU neuron reads two input directions, not one. |
 | [Language Models are Unsupervised Multitask Learners](gpt-2.md) (Radford, Wu, Child et al., 2019) | used | The GPT-2 paper: WebText, byte-level BPE and four sizes, the smallest with 12 layers. It never states the MLP width, so two papers now credit the 3,072 neurons to the released weights. |
+| [Qwen2.5 Technical Report](qwen2-5.md) (Yang, Yang, Zhang et al., 2024) | used | The report on two configured registry models: 24 and 28 layers, SwiGLU, and one 151,643-token vocabulary across the family. All three papers that cite it match the source. |
 
 ## Forecasting and evaluation
 
@@ -56,9 +57,12 @@ Status marks how the work relates to this repo:
 
 | Page | Status | Why |
 | --- | --- | --- |
+| [Efficient Streaming Language Models with Attention Sinks](attention-sinks.md) (Xiao, Tian, Chen et al., 2023) | used | Initial tokens draw attention whatever they mean, because softmax must put weight somewhere. The protocol calls the first token "the attention sink". The source didn't test GPT-2, so one preprint sentence now names the models it did test. |
 | [Finding Neurons in a Haystack: Case Studies with Sparse Probing](neurons-in-a-haystack.md) (Gurnee, Nanda, Pauly et al., 2023) | used | The method behind `sparse-probing-search`. Across seven Pythia sizes, code languages and facts become more local with scale, and some features split. At k = 1 the mean-difference probe reaches F1 0.832, against 0.573 for random neurons. |
+| [Intriguing Properties of Neural Networks](intriguing-properties.md) (Szegedy, Zaremba, Sutskever et al., 2014) | used | The claim that a random direction reads as well as a unit, judged by eye on 4 units and 4 directions per image model. The registry measures it. Our two quotes match. |
 | [Language Model Circuits Are Sparse in the Neuron Basis](neuron-basis-circuits.md) (Arora, Wu, Steinhardt and Schwettmann, 2026) | planned | Task circuits of about 10² MLP neurons, the protocol's unit, control Llama 3.1 8B's behaviour. Its RelP attribution is a candidate for our wiring and attribution selection (#3582). |
 | [Many Transcoder Features Are Neurons in Disguise](neurons-in-disguise.md) (Shabalin and Piotrowski, 2026) | used | On gated models, 14–59% of late-layer active transcoder features align with one neuron, and only those match the MLP across training runs. On GPT-2, 1 of our 40 audited latents is one (`docs/analyses/neuron-features.md`, #3608). |
+| [Universal Neurons in GPT2 Language Models](universal-neurons.md) (Gurnee, Horsley, Guo et al., 2024) | used | 1–5% of GPT-2 neurons recur across seeds, measured by maximum correlation against a rotated baseline. The sister search uses the same method across model families. Our citations check out. |
 | [What Survives Distillation?](what-survives-distillation.md) (Faumi and Sumanathilaka, 2026) | planned | DistilGPT-2 keeps GPT-2's early circuits and loses its late ones, by heads, CKA and SAE features. No neurons are studied. It makes DistilGPT-2 a cheap sibling for the sister search (#3853). |
 | [Neurons Speak in Ranges](neurons-speak-in-ranges.md) (Haider, Rizwan, Sajjad, Ju and Siddique, 2026) | not applicable | Concepts occupy distinct activation ranges of residual-stream dimensions, and masking only the range spares other concepts. Not MLP neurons, but range-split modes are one form for #3215. |
 | [Massive Activations in Large Language Models](massive-activations.md) (Sun, Chen, Kolter and Liu, 2024) | used | A few residual-stream values are huge and near-constant, on GPT-2's starting token. They act as biases and draw attention. One preprint sentence now names them apart from neuron activations. |
@@ -249,6 +253,8 @@ Part of #4782. These pages link weight edits and merged task updates to the unit
 
 | Page | Status | Why |
 | --- | --- | --- |
+| [Character-level Convolutional Networks for Text Classification](char-cnn.md) (Zhang, Zhao and LeCun, 2015) | used | Built the AG News set that the `ag_news` preset reads. Its topics are the corpus's categories, and the source doesn't say how they were assigned, so one preprint now says so. |
+| [Introduction to the CoNLL-2003 Shared Task: Language-Independent Named Entity Recognition](conll-2003.md) (Tjong Kim Sang and De Meulder, 2003) | used | The source of the `conll2003-ner` and `conll2003-pos` presets. People tagged the entities, and a tagger made the part-of-speech tags, so the preset's comment now says so. |
 | [The Pile: An 800GB Dataset of Diverse Text for Language Modeling](the-pile.md) (Gao, Biderman, Black et al., 2020) | used | The source of the registry's scan corpus, through the `NeelNanda/pile-10k` subset, and of three papers' data. Our citations check out. The subset and its licence are the dataset card's, not the Pile's. |
 | [Universal Dependencies v2: An Evergrowing Multilingual Treebank Collection](universal-dependencies-v2.md) (Nivre, de Marneffe, Ginter et al., 2020) | used | One scheme of parts of speech and relations for 157 treebanks in 90 languages. The source of the `ud-upos` and `ud-deprel` presets and of one paper's labels. Our citation checks out. The licences come from each treebank, not the paper. |
 

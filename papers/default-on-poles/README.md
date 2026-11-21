@@ -131,7 +131,7 @@ The variation still does something. The clamp's KL is 1.9× its null's, at the s
 
 ### The first token
 
-The first token behaves differently from the rest. If interventions also change each window's first token, the positive clamp costs 6.14 nats, not 1.34, and only 13% of top predictions stay. Holding every neuron at its mean costs 5.63, not 4.09. The negative side barely changes, at 0.19 for the clamp and 3.75 for the zero. In our data the first token has very large positive neuron activations. Sun et al. (2024) find massive values on GPT-2's starting token in the residual stream, a different quantity, and Xiao et al. (2023) find attention sinks there. That both quantities are extreme at this position is our observation, not theirs. Any population clamp needs to say what it does at this position.
+The first token behaves differently from the rest. If interventions also change each window's first token, the positive clamp costs 6.14 nats, not 1.34, and only 13% of top predictions stay. Holding every neuron at its mean costs 5.63, not 4.09. The negative side barely changes, at 0.19 for the clamp and 3.75 for the zero. In our data the first token has very large positive neuron activations. Sun et al. (2024) find massive values on GPT-2's starting token in the residual stream, a different quantity. Xiao et al. (2023) find attention sinks on the initial tokens of Llama-2, MPT, Falcon and Pythia. They didn't test GPT-2. That both quantities are extreme at this position is our observation, not theirs. Any population clamp needs to say what it does at this position.
 
 ## Is the negative side the same signal, scaled down?
 
@@ -261,7 +261,7 @@ The top prediction goes the other way late. The negative side matches the model'
 
 A lead does not show that training built the negative side for this. Both sides read the same $h$, so weights learned for the positive side would also help the negative side beat random weights. This test cannot separate the two.
 
-**Human labels.** The labels come from Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and a language-identification dataset. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup reads the current token's rate of the label (Table 9).
+**Human labels.** The labels come from Universal Dependencies (Nivre et al., 2020), CoNLL-2003 (Tjong Kim Sang & De Meulder, 2003), AG News (Zhang et al., 2015) and a language-identification dataset. AG News's topics are its source corpus's categories, and Zhang et al. don't say how they were assigned. There is one row per token, on layers 0, 3, 6, 9 and 11. Documents are split between fit and test, and each is cut to one window. The score is the mean AUROC over labels on the ambiguous tokens. These are the test tokens whose type both has the label and lacks it in the fit documents. The lookup reads the current token's rate of the label (Table 9).
 
 | Dataset | Labels | Lookup | − at L6 | + at L6 | Best null at L6 | − minus best null: L0 | L3 | L6 | L9 | L11 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
