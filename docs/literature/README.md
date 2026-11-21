@@ -239,6 +239,7 @@ Part of #4782. These pages ask whether one network can write another's weights, 
 | [Embedding a State Machine in a Neural Network](embedding-state-machine.md) (Benson, 2026) | not applicable | A blog post that builds a three-state machine from latches of hard 0-or-1 neurons. It names no host model, gives no code and measures nothing. Its stateful latch is a possible design for the context rules that #3201's single-neuron plants could not hold. |
 | [Sparks of Weight-Space Programming](rikiyat-weight-space-programming.md) (Takehi, Teoh, Zhang and Khattab, 2026) | planned | A frontier LLM names copying heads from weights alone, but needs activations to tell a sycophantic Gemma from an honest one. Its edit to Qwen3.5-0.8B mostly cures runaway reasoning. Evidence for #5144. |
 | [Neural Nets Learn to Program Neural Nets with Fast Weights (1991)](fast-weight-programmer-1991-transformer.md) (Schmidhuber, 2021) | not applicable | A history page that calls the 1991 fast weight programmer an unnormalised linear Transformer. It reports no experiment, and the method already has its own pages here. |
+| [Interpretable Weight-Space Programming Builds Transparent Transformers and Brain Encoding Models](interpretable-weight-space-programming.md) (Mehta, Singh, Xu et al., 2026) | planned | A coding agent writes small transformers and brain-encoding features with no backpropagation. A fresh agent rebuilds each model from 200 words. Its story-fMRI search found a scan-position confound in the visible score. Evidence for #3249. |
 
 ## LoRA and low-rank fine-tuning
 
