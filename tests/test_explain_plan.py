@@ -343,3 +343,49 @@ def test_the_greedy_plan_stops_when_nothing_helps(monkeypatch):
     found = ec.coverage_plan(None, "p", None, 0, -1, [], planned, 0.5)
     assert found["chosen"] == ["a"] and found["experiments"] is None  # out of reach
     assert ec.coverage_plan(None, "p", None, 0, -1, [], planned, 0.0)["experiments"] == 0
+
+
+def _toy_superposition():
+    from openinterpretability.core.profiles import SuperpositionProfile
+    from openinterpretability.planner_superpositions import definition_identifier
+
+    members = [{"neuron_idx": 1, "weight": 1.0}, {"neuron_idx": 2, "weight": -1.0}]
+    profile = SuperpositionProfile.model_validate(
+        {"members": members, "method": "c", "source": "t"}
+    )
+    definition = {"model": "toy", "layer": 0, **profile.model_dump(mode="json")}
+    ident = definition_identifier(definition)
+    name = ident.slug.split("/", 1)[1]
+    group = GroupDef("superposition", name, ident.slug, ((0, 1, 1.0), (0, 2, -1.0)),
+                     definition=definition)  # fmt: skip
+    return group, ident, profile
+
+
+def test_an_unstudied_superposition_gets_the_planners_draw(toy_runner, means):  # noqa: F811
+    group, ident, _ = _toy_superposition()
+    result = ex.explain(toy_runner, "toy", PROMPT, means, {}, groups=[group], edges=0)
+    (planned,) = ep.plan(result, {}, "toy", groups=[group]).groups
+    assert planned.entity == "superposition" and planned.draw == "superposition"
+    assert planned.commands[0].startswith(
+        f"open-interpretability superpositions show {ident.superposition_id} --model toy"
+    )
+    assert "an unstudied superposition of 2 neurons on layer 0" in planned.rationale
+
+
+def test_a_studied_superposition_gets_its_heaviest_follow_up(toy_runner, means, record, tmp_path):  # noqa: F811
+    from openinterpretability.core.schemas import AuditRecord
+    from openinterpretability.planner_states import NeuronState
+
+    group, ident, profile = _toy_superposition()
+    submission = record.submission.model_copy(
+        update={"identifier": ident, "superposition_profile": profile}
+    )
+    verdict = record.verdict.model_copy(update={"status": "NEEDS_REVISION"})
+    studied = AuditRecord(submission=submission, verdict=verdict)
+    path = tmp_path / "r.json"
+    state = NeuronState(ident.slug, studied, path, experiments=1, last=verdict.timestamp)
+    result = ex.explain(toy_runner, "toy", PROMPT, means, {}, groups=[group], edges=0)
+    (planned,) = ep.plan(result, {ident.slug: state}, "toy", groups=[group]).groups
+    # The heaviest follow-up on the record, not a new audit of the definition.
+    assert planned.draw == "reevaluate"
+    assert planned.commands == [f"open-interpretability reevaluate --record {path}"]
