@@ -11,7 +11,7 @@ from openinterpretability.core.schemas import (
     ReviewMetrics,
     ReviewPolicy,
 )
-from openinterpretability.draw_steps import random_neuron, render, steps
+from openinterpretability.draw_steps import draw_slug, random_neuron, render, steps
 from openinterpretability.evidence import ScanRequest, pick_unit
 from openinterpretability.planner import plan_next
 
@@ -188,3 +188,24 @@ def test_cli_next_steps(tmp_path, record):
     assert result.exit_code == 0, result.output
     assert "Steps:\n1. Claim it before any other work" in result.output
     assert "Post the result, whatever it is" in result.output
+
+
+def _candidate(**kwargs):
+    from openinterpretability.planner import Candidate
+
+    return Candidate(model="Qwen/Qwen2.5-0.5B", weight=1.0, rationale="", commands=[], **kwargs)
+
+
+def test_a_random_draw_without_a_seed_has_no_known_unit():
+    choice = _candidate(kind="explore", audit="--random --pole positive")
+    assert draw_slug(choice) is None
+
+
+def test_reevaluate_steps_rerun_the_record_without_llm_calls():
+    from openinterpretability.planner import Plan
+
+    record = "wiki/experiments/Qwen--Qwen2.5-0.5B/L3/N5-positive/20261020T120000Z.json"
+    choice = _candidate(kind="reevaluate", slug="Qwen--Qwen2.5-0.5B/L3/N5-positive", record=record)
+    text = _text(Plan(seed=1, choice=choice, explored=False, candidates=[choice]))
+    assert "Re-evaluate (no LLM calls)" in text
+    assert f"uv run open-interpretability reevaluate --record {record}" in text

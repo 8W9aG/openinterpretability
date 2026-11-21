@@ -123,3 +123,19 @@ def test_record_at_the_long_level_asks_the_narrator_once(toy_runner, tmp_path, m
     assert len(asked) == 1
     (((_, record),),) = load_all(wiki).values()
     assert record.narration.paragraph == "Narration 1."
+
+
+def test_groups_and_path_ends_go_into_the_evidence_and_count_as_cited(toy_runner, means):  # noqa: F811
+    from dataclasses import replace
+
+    from openinterpretability.explain_groups import GroupAttribution
+
+    base = ex.explain(toy_runner, "toy", PROMPT, means, {}, top=2, edges=0)
+    group = GroupAttribution("circuit", "C4", 3, base.total / 2, "VERIFIED", "a copy circuit")
+    path = {"source": "L0/N1+", "target": "L2/N5−", "weight": 0.5}
+    result = replace(base, groups=[group], edges=[path])
+    ev = evidence(result, COVERAGE, ep.plan(result, {}, "toy"))
+    (row,) = ev["groups"]
+    assert row["unit"] == "C4" and row["kind"] == "circuit" and row["members"] == 3
+    assert row["share"] == pytest.approx(0.5) and "a copy circuit" in row["explanation"]
+    assert check_citations(_story("C4 feeds L0/N1+ then L2/N5- and L8/N8+."), ev) == ["L8/N8+"]
