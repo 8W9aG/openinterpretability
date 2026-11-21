@@ -36,7 +36,7 @@ NAME = re.compile(r"exchange/([A-Za-z0-9._-]+)")
 # command writes them, and no analysis reads them. `bench` also holds the benchmark's
 # private test probes, so it is never published.
 OUTPUTS = {
-    "bench", "bench-dev", "bench-redteam", "code-detection", "dreams", "gpt2-spd",
+    "bench", "bench-dev", "bench-redteam", "code-detection", "dream-arms", "dreams", "gpt2-spd",
     "language-detection", "rescore-pilot", "score-backfill",
     "spd-up-neurons.json", ".published",
 }  # fmt: skip
