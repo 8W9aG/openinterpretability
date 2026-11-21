@@ -64,7 +64,7 @@ $$
 L_{\mathrm{imp}} = \sum_{c=1}^{C} (g_c + \epsilon)^p
 $$
 
-where the exponent $p$ falls during training. The *objective* is the sum of a run's weighted losses.
+with an exponent $p > 0$. The source fixes $p$ for each model. Our runs lower it during training (Method, *Training*), which is our choice. The *objective* is the sum of a run's weighted losses.
 
 **Input projections.** The output loss and the fit are measured after GELU. A neuron that is off on a token can then be dropped at no cost, and a subcomponent that writes to many neurons cannot. That is the reason to expect a preference. It is our argument, not the source's.
 
