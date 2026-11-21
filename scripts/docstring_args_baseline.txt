@@ -1534,7 +1534,6 @@ openinterpretability/harness/dictionaries.py::_load
 openinterpretability/harness/dictionaries.py::spec_profile
 openinterpretability/harness/dreaming.py::_score
 openinterpretability/harness/dreaming.py::_score.grab
-openinterpretability/harness/dreaming.py::dream
 openinterpretability/harness/environment.py::run_environment
 openinterpretability/harness/environment.py::device_name
 openinterpretability/harness/explanation_scores.py::Window.hot
