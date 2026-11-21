@@ -32,3 +32,10 @@ _CLASSES = {
 MAP_STATUSES = tuple(_CLASSES)
 STATUS_FILL = {s: fill for s, (fill, _) in _CLASSES.items()}
 STATUS_BADGE = {s: badge for s, (_, badge) in _CLASSES.items()}
+
+# A status grid's cell is CELL_HEIGHT px high (#5797). Its height says its status without
+# colour. Each step down MAP_STATUSES is 2 px less. So VERIFIED is the full 10 px, and
+# STOPPED is 2 px. A 2 px step is the smallest that a reader can see. A legend swatch has its
+# status's height, so it has the same shape as the cell.
+CELL_HEIGHT = 10
+STATUS_HEIGHT = {s: CELL_HEIGHT - 2 * i for i, s in enumerate(MAP_STATUSES)}

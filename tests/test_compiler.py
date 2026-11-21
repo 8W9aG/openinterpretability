@@ -184,91 +184,85 @@ def test_old_records_get_a_width_in_the_build_only(tmp_path, records):
     assert without.model_dump_json() in signed  # the record itself stays as it was signed
 
 
-def test_layer_map(tmp_path, records):
-    from openinterpretability.builder.charts import layer_map
-    from openinterpretability.builder.tree import ModelNode, build_tree
-
-    (model,) = build_tree(records, [])
-    chart = layer_map(model)
-    assert chart["counts"] == {
-        "VERIFIED": 1,
-        "CONTESTED": 0,
-        "NEEDS_REVISION": 0,
-        "REJECTED": 1,
-        "STOPPED": 0,
-    }
-    assert chart["unexplored"] == 116_736 - 2
-    assert len(chart["rows"]) == 24 and chart["label_every"] == 2
-    # Worst status drawn first, so the verified neuron is on top; N117 shows its best pole.
-    assert [(m["status"], m["label"]) for m in chart["marks"]] == [
-        ("REJECTED", "L3 N9 · positive REJECTED"),
-        ("VERIFIED", "L3 N117 · positive VERIFIED, negative REJECTED"),
-    ]
-    n9, n117 = chart["marks"]
-    assert chart["left"] < n9["x"] < n117["x"] < chart["right"]
-    assert n9["y"] == n117["y"] == chart["rows"][3][1]
-    assert [label for _, label in chart["ticks"]] == ["0", "2,000", "4,000"]
-    assert layer_map(ModelNode("m", "m", 2, "m/index.html")) is None  # no width, no map
-
-    compile_site(records, tmp_path)
-    page = (tmp_path / "models" / MODEL / "index.html").read_text()
-    assert "Layer map: 2 studied neurons of 116,736" in page
-    assert '<a href="../../models/Qwen--Qwen2.5-0.5B/L3/N117.html">' in page
-    assert "Studied neurons per layer" not in page  # the map replaces the histogram
-
-
-def test_a_cell_fills_by_its_share_of_poles():
-    from openinterpretability.builder.pieces import fill, studied_poles
+def test_a_model_status_grid(tmp_path, record, records):
+    from openinterpretability.builder.pieces import GRID_PITCH, status_grid, studied_poles
+    from openinterpretability.builder.statuses import STATUS_HEIGHT
     from openinterpretability.builder.stopped import StoppedNeuron
+    from openinterpretability.builder.tree import build_tree
 
-    assert [fill(s, 4) for s in (0, 0.01, 0.5, 1.0)] == [0, 1, 2, 4]  # any pole shows
+    # N120 shares N117's 38-neuron block (114–151); the block shows the better status.
+    records = [*records, experiment(record, idx=120, status="REJECTED", counts=(3, 3, 1, 3))]
+    (model,) = build_tree(records, [])
+    grid = status_grid(model)
+    assert grid["block"] == 38 and len(grid["rows"]) == 24  # 4,864 neurons in 128 cells
+    assert dict((s, n) for s, _, n in grid["legend"]) == {
+        "VERIFIED": 1, "CONTESTED": 0, "NEEDS_REVISION": 0, "REJECTED": 2, "STOPPED": 0,
+    }  # fmt: skip
+    assert grid["unexplored"] == 116_736 - 3
+    n9, n117 = grid["cells"]
+    assert (n9["status"], n117["status"]) == ("REJECTED", "VERIFIED")
+    assert n117["x"] - n9["x"] == 3 * GRID_PITCH and n117["href"] == n9["href"]  # the layer
+    assert n117["label"].startswith("L3 N114–151, 3 of 76 poles studied: N117 positive VERIFIED")
+    # Height gives the status without colour, from the bottom of the row.
+    assert (n117["height"], n9["height"]) == (STATUS_HEIGHT["VERIFIED"], STATUS_HEIGHT["REJECTED"])
+    assert n9["y"] + n9["height"] == n117["y"] + n117["height"] == grid["rows"][3]["y"] + 10
     both = StoppedNeuron(1, 2, ["negative default-on", "positive dead"])
     assert studied_poles(both) == 2 and studied_poles(StoppedNeuron(1, 2, ["negative dead"])) == 1
 
+    compile_site(records, tmp_path)
+    page = (tmp_path / "models" / MODEL / "index.html").read_text()
+    assert "Status grid of Qwen/Qwen2.5-0.5B: one row per layer" in page
+    assert '<a href="../../models/Qwen--Qwen2.5-0.5B/L3/index.html">' in page
+    assert "Studied neurons per layer" not in page  # the grid replaces the histogram
 
-def test_pieces_bars(tmp_path, record, records):
-    from openinterpretability.builder.pieces import layer_pieces, model_pieces
+
+def test_a_layer_status_grid(record, records):
+    from openinterpretability.builder.pieces import status_grid
     from openinterpretability.builder.tree import ModelNode, build_tree
 
-    # N120 shares N117's 76-neuron block (76–151); the block shows the better status.
     records = [*records, experiment(record, idx=120, status="REJECTED", counts=(3, 3, 1, 3))]
     (model,) = build_tree(records, [])
-    bars = model_pieces(model)
-    # Every model card has 64 cells per layer and 6 px per layer (#5724).
-    assert bars["block"] == 76 and bars["cells"] == 24 * 64 and bars["lit"] == 2
-    assert bars["row"] == 6 and bars["height"] == 24 * 6 - 1 and bars["verified"] == 1
-    assert len(bars["rows"]) == 24 and not bars["rows"][0]["cells"]
-    n9, n117 = bars["rows"][3]["cells"]
-    assert (n9["x"], n9["status"]) == (0, "REJECTED")
-    assert (n117["x"], n117["status"]) == (8, "VERIFIED")
-    assert n117["label"].startswith("L3 N76–151, 3 of 152 poles studied: N117 positive VERIFIED")
-    assert "N120 positive REJECTED" in n117["label"]
-    # Height says VERIFIED without colour: the full 5 px, or 2 px at the bottom of the row.
-    assert (n117["height"], n117["y"]) == (5, 3 * 6)
-    assert (n9["height"], n9["y"]) == (2, 3 * 6 + 3)
-
-    grid = layer_pieces(model, model.layers[0])
-    assert len(grid["rows"]) == 38 and grid["unexplored"] == 4864 - 3
-    assert grid["counts"] == {
-        "VERIFIED": 1,
-        "CONTESTED": 0,
-        "NEEDS_REVISION": 0,
-        "REJECTED": 2,
-        "STOPPED": 0,
-    }
+    grid = status_grid(model, model.layers[0])
+    assert grid["block"] == 1 and len(grid["rows"]) == 38 and grid["unexplored"] == 4864 - 3
+    assert [r["label"] for r in grid["rows"] if r["shown"]][:2] == ["N0", "N512"]
     cell = next(c for c in grid["cells"] if c["href"].endswith("/N120.html"))
-    # One of its two poles is studied: the cell fills the lower half of its 4 px.
-    assert (cell["x"], cell["y"], cell["height"]) == (grid["left"] + 120 * 5, 2, 2)
-    assert model_pieces(ModelNode("m", "m", 2, "m/index.html")) is None  # no width, no bars
+    assert cell["label"] == "N120 positive REJECTED, 1 of 2 poles studied"
+    assert status_grid(ModelNode("m", "m", 2, "m/index.html")) is None  # no width, no grid
+
+
+def test_no_two_cells_of_a_status_grid_overlap(record, records):
+    from openinterpretability.builder.pieces import GRID_PITCH, status_grid
+    from openinterpretability.builder.tree import build_tree
+
+    more = [experiment(record, idx=i, status="REJECTED", counts=(3, 3, 1, 3)) for i in range(40)]
+    (model,) = build_tree([*records, *more], [])
+    for grid in (status_grid(model), status_grid(model, model.layers[0])):
+        boxes = {(c["x"], c["y"] + c["height"]) for c in grid["cells"]}
+        assert len(boxes) == len(grid["cells"])  # one cell per place
+        assert all(c["x"] + GRID_PITCH - 1 <= grid["width"] for c in grid["cells"])
+
+
+def test_each_status_grid_legend_names_every_status_its_cells_use(tmp_path, records):
+    import re
 
     compile_site(records, tmp_path)
-    index = (tmp_path / "index.html").read_text()
-    assert "Studied neurons per layer" not in index  # the pieces bars replace the histogram
-    assert "2 of 1,536 cells hold a studied neuron, and 1 of them a VERIFIED pole" in index
+    pages = [tmp_path / "index.html", tmp_path / "models" / MODEL / "index.html",
+             *(tmp_path / "models" / MODEL).glob("L*/index.html")]  # fmt: skip
+    seen = 0
+    for page in pages:
+        for figure in re.findall(
+            r"<figure[^>]*data-status-grid>.*?</figure>", page.read_text(), re.S
+        ):
+            used = set(re.findall(r'data-status="([A-Z_]+)"', figure))
+            assert used <= set(re.findall(r'data-swatch="([A-Z_]+)"', figure)), page
+            seen += bool(used)
+    assert seen >= 3  # the card, the model page and a layer page
+    index = pages[0].read_text()
+    assert "Studied neurons per layer" not in index  # the grid replaces the histogram
     assert "Neurons studied</dt>" in index and "Target</dt>" in index  # one layout per card
     layer = (tmp_path / "models" / MODEL / "L3" / "index.html").read_text()
-    assert "Pieces map of layer 3: one cell per neuron, 128 to a row, 3 of 4,864 studied" in layer
-    assert '<a href="../../../models/Qwen--Qwen2.5-0.5B/L3/N120.html"><title>' in layer
+    assert "layer 3: one row of 128 neurons, each cell one neuron. 2 studied neurons" in layer
+    assert '<a href="../../../models/Qwen--Qwen2.5-0.5B/L3/N117.html"><rect' in layer
 
 
 def test_pct_fine():
@@ -1672,7 +1666,7 @@ def test_models_page_shows_each_models_pieces_bars_as_the_home_page_does(tmp_pat
     home = (tmp_path / "site" / "index.html").read_text()
 
     def card(page):  # the card's statistics and its bars, without the page-relative link
-        found = re.search(r'aria-label="Pieces bars for [^"]+"', page)
+        found = re.search(r'aria-label="Status grid of [^"]+"', page)
         stats = re.search(r"\d+ experiments ·[^<]+", page)
         return found and found.group(0), stats and " ".join(stats.group(0).split())
 
