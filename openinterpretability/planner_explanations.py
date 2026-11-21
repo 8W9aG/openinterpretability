@@ -98,12 +98,12 @@ def unit_candidates(views, states, windows: dict) -> list[Candidate]:
                 continue
             seen.add(u.slug)
             found = UNIT_PAGE.match(u.slug)
-            if found is None:
+            if found is None:  # pragma: no cover - ExplainedUnit.slug is validated by UNIT_SLUG
                 continue
             index = int(found["unit"][1:])
             pole = HEAD if found["unit"][0] == "H" else found["pole"]
-            if pole is None:
-                continue  # a neuron slug names its pole
+            if pole is None:  # pragma: no cover - UNIT_SLUG requires a neuron's pole
+                continue
             audit = audit_command(model, (int(found["layer"]), index, pole), windows.get(model))
             why = (f"unstudied, and the explanation of {view.record.prompt[:60]!r} needs it "
                    f"({u.share:.1%} of the attribution)")  # fmt: skip

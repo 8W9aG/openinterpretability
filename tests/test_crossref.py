@@ -22,10 +22,14 @@ from openinterpretability.crossref import (
     crossref,
     describe,
     format_for_reviewer,
+    latent_explanations,
     load_rows,
     neuronpedia_description,
     neuronpedia_explanations,
     neuronpedia_url,
+    registry_explanations,
+    sort_rows,
+    user_agent,
 )
 from openinterpretability.harness import dictionaries
 from openinterpretability.harness.crossref import align_layer
@@ -310,3 +314,116 @@ def test_neuronpedia_is_given_time_when_busy(planted, tmp_path, monkeypatch):
         is None
     )
     assert waits == [2.0, 4.0]  # no Retry-After: wait longer each time, then give up
+
+
+def _as(record, ident, **verdict):
+    sub = record.submission.model_copy(update={"identifier": ident})
+    v = record.verdict and record.verdict.model_copy(update=verdict)
+    return record.model_copy(update={"submission": sub, "verdict": v})
+
+
+def test_crossref_loads_each_model_once_and_skips_an_unsupported_one(
+    tmp_path, gpt2_runner, planted, record, monkeypatch
+):
+    from transformers import Gemma2Config, Gemma2ForCausalLM
+
+    from openinterpretability.core.schemas import FeatureIdentifier
+
+    torch.manual_seed(5)
+    _spec(tmp_path, monkeypatch, "tiny-tc-b", "tiny-gpt2", "mlp_in",
+          torch.randn(32, N_FEATURES), torch.randn(N_FEATURES, 32))  # fmt: skip
+    _spec(tmp_path, monkeypatch, "gemma-tc", "tiny-gemma2", "mlp_in",
+          torch.randn(32, N_FEATURES), torch.randn(N_FEATURES, 32))  # fmt: skip
+    # Gemma 2 normalises its MLP's output, so a latent's write is in another space.
+    config = Gemma2Config(vocab_size=64, hidden_size=32, intermediate_size=48, num_hidden_layers=2,
+                          num_attention_heads=2, num_key_value_heads=1, head_dim=16)  # fmt: skip
+    gemma2 = NeuronHookRunner(Gemma2ForCausalLM(config).eval(), FakeTokenizer())
+    gpt2 = NeuronIdentifier(model_name="tiny-gpt2", layer=1, neuron_idx=NEURON, pole="positive")
+    gemma = NeuronIdentifier(model_name="tiny-gemma2", layer=1, neuron_idx=3, pole="positive")
+    feature = FeatureIdentifier(model_name="tiny-gpt2", layer=1, dictionary="tiny-tc",
+                                feature_idx=PLANTED)  # fmt: skip
+    records = [_as(record, gpt2), _as(record, gemma), _as(record, feature)]
+    runners = {"tiny-gpt2": gpt2_runner, "tiny-gemma2": gemma2}
+    loads, said = [], []
+
+    def load(model_name, revision):
+        loads.append(model_name)
+        return runners[model_name]
+
+    out = tmp_path / "alignment.jsonl"
+    assert crossref(records, load, out, k=2, echo=said.append) == 2
+    assert loads == ["tiny-gemma2", "tiny-gpt2"]  # two dictionaries of tiny-gpt2, one load
+    assert said[0].startswith("skip gemma-tc L1: the MLP's output is normalised")
+    assert said[1:] == ["tiny-tc L1: 1 poles", "tiny-tc-b L1: 1 poles"]
+    rows = load_rows(out)
+    assert set(rows) == {gpt2.slug}  # the latent is no pole, and Gemma 2 was skipped
+    assert [r.dictionary for r in rows[gpt2.slug]] == ["tiny-tc", "tiny-tc-b"]
+
+    # Rows appended out of order, with a blank line, are sorted by pole and dictionary.
+    lines = out.read_text().splitlines()
+    out.write_text(f"{lines[1]}\n\n{lines[0]}\n")
+    sort_rows(out)
+    assert out.read_text().splitlines() == lines
+
+
+def test_the_user_agent_leaves_out_the_repo_when_the_package_is_not_installed(monkeypatch):
+    from importlib import metadata
+
+    from openinterpretability import __version__
+
+    def missing(name):
+        raise metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(metadata, "metadata", missing)
+    assert user_agent() == f"openinterpretability/{__version__}"
+
+
+def test_a_failed_or_unreadable_answer_is_not_an_explanation(planted, monkeypatch):
+    monkeypatch.setenv("OPENINTERPRETABILITY_NEURONPEDIA_CACHE", "off")
+
+    def offline(request, timeout):
+        raise urllib.error.URLError("no route to host")
+
+    def not_json(request, timeout):
+        return _Text(None)
+
+    assert latent_explanations("tiny-tc", 1, 2, opener=offline, retries=0) is None
+    assert latent_explanations("tiny-tc", 1, 2, opener=not_json, retries=0) is None
+    # With no attempt allowed, nothing is asked.
+    assert latent_explanations("tiny-tc", 1, 2, opener=offline, retries=-1) is None
+    # A dictionary that Neuronpedia does not host is never asked for.
+    assert latent_explanations("no-such-dictionary", 1, 2, opener=offline) is None
+    assert latent_explanations("tiny-tc", 0, 2, opener=offline) is None  # not at layer 0
+
+
+class _Text(_Response):
+    """A response whose body is not JSON."""
+
+    def __enter__(self):
+        return io.BytesIO(b"<html>busy</html>")
+
+
+def test_registry_explanations_keep_the_newest_review_of_each_latent(record):
+    from datetime import timedelta
+
+    from openinterpretability.core.schemas import FeatureIdentifier
+
+    feature = FeatureIdentifier(model_name="tiny-gpt2", layer=1, dictionary="tiny-tc",
+                                feature_idx=PLANTED)  # fmt: skip
+    old, new = record.verdict.timestamp, record.verdict.timestamp + timedelta(days=1)
+
+    def latent(text, when, **update):
+        r = _as(record, feature, timestamp=when)
+        sub = r.submission.model_copy(update={"natural_language_explanation": text})
+        return r.model_copy(update={"submission": sub, **update})
+
+    records = [
+        latent("newest", new),
+        latent("older", old),  # older than the one before it, so left out
+        latent("unreviewed", new + timedelta(days=1), verdict=None),
+        record,  # a neuron
+    ]
+    assert registry_explanations(records) == {feature.slug: "newest"}
+    assert registry_explanations([latent("older", old), latent("newest", new)]) == {
+        feature.slug: "newest"
+    }
