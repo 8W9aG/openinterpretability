@@ -7,6 +7,7 @@ How to change the code, what CI checks on a pull request, where the code lives, 
 ```bash
 make install        # uv sync
 make test           # pytest, one process per core (CPU only, no downloads); TEST_WORKERS=0 runs one at a time; waits for other heavy jobs with OPENINTERPRETABILITY_HEAVY_LOCK=1
+make coverage       # the tests with branch coverage, at least [tool.coverage.report] fail_under, then diff-cover at 90% against origin/main (what CI runs)
 make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, types, Markdown, Vale, STE
 make typecheck      # mypy, strict, on the packages in [tool.mypy] files (pyproject.toml)
 make vale           # comment and docstring prose against our STE rules (needs Vale)
@@ -131,6 +132,20 @@ dist/
 `data/neuronpedia/` holds the lead experiment of each VERIFIED unit in Neuronpedia's export layout, so a self-hosted Neuronpedia can import it (`openinterpretability/builder/neuronpedia_export.py`). A dictionary latent goes to the source Neuronpedia hosts it under, with the same index. A native neuron goes to `<layer>-openinterpretability-neurons`, with its pole. Only models that Neuronpedia knows are exported, today GPT-2 small. Each row links to its signed record and carries the data licence. Nothing is sent to Neuronpedia.
 
 Cache policy: content-addressed files (`data/snapshots/*` and Pagefind shards) are served with `max-age=31536000, immutable`. Everything else, including HTML and `registry.parquet`, gets `max-age=3600`. Deploys upload assets before HTML, so a page never references an object that has not arrived yet.
+
+**Querying the registry.** `open-interpretability query` searches `registry.parquet` without a clone (`openinterpretability/registry_query.py`, #3242). It filters by `--model`, `--layer`, `--kind`, `--status` (the unit's standing), `--text` (in the explanation, any case) and `--token` (an activating token). By default it returns each unit's newest experiment, and `--all` returns every one. It reads `dist/data/registry.parquet` after a local build, and otherwise the published file, by HTTP range requests:
+
+```bash
+open-interpretability query --model EleutherAI/pythia-70m --status VERIFIED --text colour
+open-interpretability query --token " sky" --json
+```
+
+`open-interpretability mcp` serves the same search as a read-only MCP tool, `query_registry`, over stdio. It needs the `mcp` extra. To add it to Claude Code:
+
+```bash
+pip install 'open-interpretability[mcp]'
+claude mcp add open-interpretability -- open-interpretability mcp
+```
 
 R2 credentials are read from `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` and `R2_SECRET_ACCESS_KEY`.
 
