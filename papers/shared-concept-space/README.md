@@ -137,7 +137,7 @@ One shared map now holds every model's studied poles, and new poles extend it wi
 
 ## References
 
-- Huh, M., Cheung, B., Wang, T., & Isola, P. (2024). *The Platonic Representation Hypothesis*. Preprint. [arXiv:2405.07987](https://arxiv.org/abs/2405.07987).
+- Huh, M., Cheung, B., Wang, T., & Isola, P. (2024). *Position: The Platonic Representation Hypothesis*. In Proceedings of the 41st International Conference on Machine Learning (PMLR 235, pp. 20617–20642). [PMLR](https://proceedings.mlr.press/v235/huh24a.html). Preprint: [arXiv:2405.07987](https://arxiv.org/abs/2405.07987).
 - McInnes, L., Healy, J., & Melville, J. (2018). *UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction*. Preprint. [arXiv:1802.03426](https://arxiv.org/abs/1802.03426).
 - Reimers, N., & Gurevych, I. (2019). *Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks*. EMNLP 2019. [arXiv:1908.10084](https://arxiv.org/abs/1908.10084).
 - Traag, V. A., Waltman, L., & van Eck, N. J. (2019). *From Louvain to Leiden: Guaranteeing Well-Connected Communities*. Scientific Reports, 9, 5233. [arXiv:1810.08473](https://arxiv.org/abs/1810.08473).
