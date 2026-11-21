@@ -90,3 +90,29 @@ def test_a_key_outside_its_window_signs_nothing(tmp_path, record):
     assert result.exit_code == 1
     assert f"Did not sign {path}" in result.output and "not valid now" in result.output
     assert not path.with_name("r.json.sig").exists()
+
+
+def _reproduce_a_non_record(tmp_path):
+    path = tmp_path / "r.json"
+    path.write_text('{"submission": {}}')
+    return path, CliRunner().invoke(cli, ["reproduce", str(path)])
+
+
+def test_outside_github_actions_no_step_summary_is_written(tmp_path, monkeypatch):
+    summary = tmp_path / "summary.md"
+    monkeypatch.delenv("GITHUB_ACTIONS", raising=False)
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    path, result = _reproduce_a_non_record(tmp_path)
+    assert result.exit_code == 1
+    assert "0/1 record(s) reproduced." in result.output
+    assert f"::error file={path}" not in result.output
+    assert not summary.exists()
+
+
+def test_in_github_actions_without_a_step_summary_the_result_is_only_echoed(tmp_path, monkeypatch):
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.delenv("GITHUB_STEP_SUMMARY", raising=False)
+    path, result = _reproduce_a_non_record(tmp_path)
+    assert result.exit_code == 1
+    assert f"::error file={path}::" in result.output
+    assert "0/1 record(s) reproduced." in result.output
