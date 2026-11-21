@@ -2,7 +2,7 @@
 
 A prompt A/B test compares two arms on the same units. Its noise sets how many units it
 needs. This script measures the noise from the reviews of the reviewer crossover and the
-verdict-stability study (``exchange/crossover``), where each of 30 submissions has three
+verdict-stability study (``exchange/crossover``). Each of their 30 submissions has three
 Sonnet reviews at 20 probes and two at 30. Two reviews of one submission on one prompt
 differ only by chance, so they form a null A/B test.
 
