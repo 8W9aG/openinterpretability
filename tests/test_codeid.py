@@ -93,3 +93,14 @@ def test_build_from_hub_records_detected_programming_languages(
         build_from_hub(
             "org/web", out, files="*.parquet", code_language_column="lang", detect_code=True
         )
+
+
+def test_the_real_magika_model_loads_and_names_python():
+    code = (
+        "import os\n\n\ndef main():\n    for name in os.listdir('.'):\n"
+        "        if name.endswith('.py'):\n            print(name)\n\n\n"
+        "if __name__ == '__main__':\n    main()\n"
+    )
+    language, confidence = codeid.predict(code)
+    assert language == "Python" and confidence >= codeid.MIN_CONFIDENCE
+    assert codeid._magika().get_model_name()  # the bundled model, no download

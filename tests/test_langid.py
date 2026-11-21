@@ -83,3 +83,17 @@ def test_build_from_hub_records_detected_languages(tmp_path, shards, monkeypatch
     assert source.lang_detector == langid.DETECTOR and source.lang_pattern is None
     with pytest.raises(ValueError, match="not both"):
         build_from_hub("org/web", out, files="*.parquet", lang_pattern="x", detect_lang=True)
+
+
+def test_the_fasttext_model_is_loaded_once_from_the_cached_file(tmp_path, monkeypatch):
+    import fasttext
+
+    loaded = []
+    monkeypatch.setattr(langid, "model_path", lambda: tmp_path / "lid.176.ftz")
+    monkeypatch.setattr(fasttext, "load_model", lambda path: loaded.append(path) or "the model")
+    langid._model.cache_clear()
+    try:
+        assert langid._model() == "the model" and langid._model() == "the model"
+    finally:
+        langid._model.cache_clear()  # later tests must not get the fake model
+    assert loaded == [str(tmp_path / "lid.176.ftz")]

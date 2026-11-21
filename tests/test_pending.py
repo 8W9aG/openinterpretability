@@ -1,5 +1,9 @@
 """Pending experiments on the home and model pages (builder/pending.py, #3283)."""
 
+import subprocess
+
+import pytest
+
 from openinterpretability.builder import pending
 from openinterpretability.builder.compiler import compile_site
 
@@ -45,4 +49,17 @@ def test_the_home_and_model_pages_list_the_pending_experiments(tmp_path, record)
 
 def test_without_gh_nothing_is_fetched(monkeypatch):
     monkeypatch.setattr(pending.shutil, "which", lambda _: None)
+    assert pending.open_experiments() == []
+
+
+@pytest.mark.parametrize(
+    "error",
+    [subprocess.TimeoutExpired("gh", 60), subprocess.CalledProcessError(1, "gh"), OSError("gh")],
+)
+def test_a_gh_call_that_fails_or_times_out_lists_nothing(monkeypatch, error):
+    def fail(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(pending.shutil, "which", lambda _: "/usr/bin/gh")
+    monkeypatch.setattr(pending.subprocess, "run", fail)
     assert pending.open_experiments() == []

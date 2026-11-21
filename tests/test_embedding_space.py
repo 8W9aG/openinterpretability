@@ -91,3 +91,16 @@ def test_route_directions_are_unit_and_signed(tiny_gpt2, tmp_path, monkeypatch):
     assert dirs.shape == (3, 32)
     assert torch.allclose(dirs.norm(dim=-1), torch.ones(3, dtype=dirs.dtype), atol=1e-5)
     assert torch.allclose(dirs[0], -dirs[1])  # the other pole writes the other way
+
+
+def test_a_short_corpus_gives_every_position_it_has_after_the_first_of_each_window(
+    tiny_gpt2, monkeypatch
+):
+    monkeypatch.setattr(es, "WINDOW", 8)
+    runner = _runner(tiny_gpt2)
+    texts = TEXTS[:3]
+    ids = [i for t in texts for i in runner.tokenizer.encode(t)]
+    windows = len(ids) // 8
+    states = es.corpus_states(runner, texts, points=1000)
+    assert windows > 0
+    assert states.shape[:2] == (3, windows * 7)  # fewer than asked: the corpus ran out

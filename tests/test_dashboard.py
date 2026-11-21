@@ -77,3 +77,11 @@ def test_no_layer_chart_is_alone_on_a_row():
 
     for count in (2, 3, 4, 6, 8, 9):
         assert count % layer_grid_columns(count) == 0
+
+
+def test_a_day_before_any_experiment_has_no_share_to_date():
+    rows = [row("2026-10-01", "a", 0, "VERIFIED", 0), row("2026-10-02", "a", 0, "VERIFIED", 1)]
+    first, second = timeline(rows)["columns"]
+    assert first["to_date"] is None
+    assert first["label"] == "2026-10-01 · 0 experiments"
+    assert second["to_date"] == 1.0 and "VERIFIED to date: 100% (1 of 1)" in second["label"]
