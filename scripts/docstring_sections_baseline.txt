@@ -252,7 +252,6 @@ openinterpretability/builder/pending.py::parse
 openinterpretability/builder/pending.py::open_experiments
 openinterpretability/builder/pieces.py::studied_poles
 openinterpretability/builder/pieces.py::fill
-openinterpretability/builder/pieces.py::model_pieces
 openinterpretability/builder/pieces.py::cell_status
 openinterpretability/builder/pieces.py::cell_label
 openinterpretability/builder/pieces.py::layer_pieces
