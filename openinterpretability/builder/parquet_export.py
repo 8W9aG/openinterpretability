@@ -440,6 +440,10 @@ def _with_width(row: dict, widths: dict[str, int]) -> dict:
     return {**row, "model_mlp_width": row["model_mlp_width"] or widths.get(row["model_name"])}
 
 
+LATEST = "data/registry.parquet"
+"""The registry parquet's path under the site: the build writes it, ``query`` reads it."""
+
+
 def export_registry(
     experiments: Sequence[Experiment],
     output_dir: Path,
@@ -450,7 +454,7 @@ def export_registry(
     """Write the registry parquet, a snapshot and a manifest; return the parquet's path."""
     data_dir = Path(output_dir) / "data"
     (data_dir / "snapshots").mkdir(parents=True, exist_ok=True)
-    latest = data_dir / "registry.parquet"
+    latest = Path(output_dir) / LATEST
     # One row group per batch, so no column is ever whole in memory (#4652).
     with pq.ParquetWriter(latest, registry_schema(with_json), compression="zstd") as writer:
         for batch in record_batches(experiments, corpus_sources, with_json):
@@ -463,7 +467,7 @@ def export_registry(
     shutil.copyfile(latest, snapshot)
 
     manifest = {
-        "latest": "data/registry.parquet",
+        "latest": LATEST,
         "snapshot": snapshot.relative_to(output_dir).as_posix(),
         "sha256_prefix": digest,
         "experiments": len(experiments),
