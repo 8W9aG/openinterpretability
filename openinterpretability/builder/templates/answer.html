@@ -35,7 +35,7 @@
     <thead class="text-xs uppercase tracking-wide text-slate-500"><tr><th class="py-1 pr-3">Step</th><th class="py-1 pr-3">Unit</th><th class="py-1 pr-3">Its role here</th></tr></thead>
     <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
       {% for u in answer.route %}
-      <tr class="align-top"><td class="py-1 pr-3 font-mono tabular-nums">{{ loop.index }}</td><td class="py-1 pr-3 font-mono"><a class="underline underline-offset-2" href="{{ root }}{{ u.href }}">{{ u.unit }}</a></td><td class="py-1 pr-3">{{ u.role or "—" }}</td></tr>
+      <tr class="align-top"><td class="py-1 pr-3 font-mono tabular-nums">{{ loop.index }}</td><td class="py-1 pr-3 font-mono">{% if u.href %}<a class="underline underline-offset-2" href="{{ root }}{{ u.href }}">{{ u.unit }}</a>{% else %}{{ u.unit }}<span class="block font-sans text-xs text-slate-500">(not yet studied)</span>{% endif %}</td><td class="py-1 pr-3">{{ u.role or "—" }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
