@@ -359,3 +359,48 @@ def test_the_ci_gate_runs_alone_from_the_base_branch(tmp_path, monkeypatch, keys
     assert gate(paths["signed"], paths["unsigned"]).stdout.strip() == "true"
     assert gate().returncode == 0  # no records: nothing to reproduce
     assert subprocess.run(["python3", "-I", str(GATE)], capture_output=True).returncode == 2
+
+
+def test_the_default_key_is_the_new_name_without_an_old_key(tmp_path, monkeypatch):
+    from openinterpretability.signing import default_key, signing_key
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("OPENINTERPRETABILITY_SIGNING_KEY", raising=False)
+    assert default_key() == Path("~/.ssh/openinterpretability_signing")
+    assert signing_key() == tmp_path / ".ssh" / "openinterpretability_signing"
+
+
+def test_the_gate_prints_whether_records_need_a_reproduction(tmp_path, monkeypatch, keys, capsys):
+    from openinterpretability.signing import _gate
+
+    paths, signers = gate_records(tmp_path, monkeypatch, keys)
+    git = git_repo(tmp_path)
+    Path(".github").mkdir()
+    Path(".github/allowed_signers").write_text(signers)
+    git("add", ".github/allowed_signers")
+    git("commit", "-q", "-m", "base")
+    assert _gate(["gate", "--base-ref", "main", paths["signed"]]) == 0
+    assert capsys.readouterr().out.strip() == "false"
+    assert _gate(["gate", "--base-ref", "main", paths["unsigned"]]) == 0
+    assert capsys.readouterr().out.strip() == "true"
+    assert _gate(["verify"]) == 2
+    assert "usage: signing.py gate" in capsys.readouterr().err
+
+
+def test_the_gate_run_as_a_script_exits_with_its_code(monkeypatch, capsys):
+    import runpy
+    import sys
+
+    monkeypatch.setattr(sys, "argv", ["signing.py"])
+    with pytest.raises(SystemExit) as exit_info:
+        runpy.run_path(str(GATE), run_name="__main__")
+    assert exit_info.value.code == 2
+    assert "usage: signing.py gate" in capsys.readouterr().err
+
+
+def test_signing_with_a_missing_key_names_the_failed_step(tmp_path):
+    record = tmp_path / "r.json"
+    record.write_text("{}")
+    with pytest.raises(SignatureError, match="ssh-keygen sign failed"):
+        sign_record(record, tmp_path / "no-such-key")
+    assert not signature_path(record).exists()
