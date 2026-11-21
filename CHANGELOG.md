@@ -13,6 +13,95 @@ Changes waiting for the next release are files in [changelog.d/](changelog.d/REA
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-21
+
+Ships with protocol version **0.10**.
+
+### Added
+
+- `make coverage` runs the tests with branch coverage and fails below 90%. CI also requires 90% of the lines that a pull request changes, with diff-cover (#3166).
+- The new `test-new-paths` skill checks that a change tests each path that it adds (#3166).
+- **Prompt A/B noise** (`scripts/ab_variance.py`, `docs/analyses/ab-variance.md`). Holding the hypotheses fixed cuts the units needed from 62 to 34, and 30 probes to 21 (#3198).
+- `open-interpretability query` searches the registry by model, layer, kind, standing, explanation text or token, without a clone. `open-interpretability mcp` serves the search as a read-only MCP tool (#3242).
+- **Dreaming, three arms** (`scripts/dream_arms.py`, `docs/analyses/dreaming.md`). VERIFIED explanations miss over half of firing dreams and call about 63% of silenced prompts active, on GPT-2 and pythia-70m (#3779).
+- **Literature.** A review of *Language Models Use Trigonometry to Do Addition* (Kantamneni and Tegmark, 2025). Numbers as a helix bear on the read and write interfaces of the fix plan's math module (#5226).
+- **Literature.** A review of *Finding Neurons in a Haystack: Case Studies with Sparse Probing* (Gurnee, Nanda, Pauly et al., 2023), the method behind the `sparse-probing-search` skill (#5227).
+- **Literature.** A review of *Progress measures for grokking via mechanistic interpretability* (Nanda, Chan, Lieberum, Smith and Steinhardt, 2023). It is the reference for a complete arithmetic explanation in the fix plan (#5228).
+- **Literature.** A review of *Can Mechanistic Interpretability Help Explain LLM Agent Failures? A Case Study on Web Element Hallucination* (Aghzal, Geva, Stein and Yao, 2026). A probe and a steering fix for one failure, with what each misses (#5263).
+- **Literature.** A review of *Pretty Linear Liars: Unregularized Probes Favor Intervention-Unfaithful Features* (Emneby, Yocum and Allen, 2026). Weakly regularised probes can pick directions the model doesn't use (#5273).
+- **Literature.** A review of *Abstention Direction in Large Language Models* (Itai, Hirako and Yamagiwa, 2026). It finds partly shared abstention directions, and it bears on making a model say it doesn't know (#5274).
+- **Literature.** A review of *Probing Classifiers: Promises, Shortcomings, and Advances* (Belinkov, 2022), which `papers/default-on-poles` cites. Both of the paper's quotes match the source (#5312).
+- **Literature.** A review of *The Pile: An 800GB Dataset of Diverse Text for Language Modeling* (Gao et al., 2020), the source of the scan corpus. Our citations check out, and the page says that the `pile-10k` subset and its licence come from the dataset card (#5313).
+- **Literature.** A review of *Gaussian Error Linear Units (GELUs)* (Hendrycks and Gimpel, 2016), which three papers cite. The source never states GELU's minimum, so `papers/default-on-poles` now cites it for GELU only, and says that the −0.75 is our computation (#5314).
+- **Literature.** A review of *Designing and Interpreting Probes with Control Tasks* (Hewitt and Liang, 2019), which `papers/default-on-poles` cites. Its quote and its account of selectivity match the source (#5315).
+- **Literature.** A review of *The Hydra Effect: Emergent Self-repair in Language Model Computations* (McGrath et al., 2023), which `papers/default-on-poles` cites. Both quotes match the source. The page notes that the harness's freeze of later MLPs blocks their erasure but not the attention compensation that the paper names the Hydra effect. Issue #5654 follows that up (#5316).
+- **Literature.** A review of *Universal Dependencies v2: An Evergrowing Multilingual Treebank Collection* (Nivre et al., 2020), the source of the `ud-upos` and `ud-deprel` presets. `papers/default-on-poles` cites it correctly (#5317).
+- **Literature.** A review of *Language Models are Unsupervised Multitask Learners* (Radford et al., 2019), the GPT-2 paper, which six papers cite. The source never states the MLP width, so `papers/native-vs-learned` and `papers/spd-input-projections` now credit GPT-2's 3,072 neurons to the released weights (#5318).
+- **Literature.** A review of *GLU Variants Improve Transformer* (Shazeer, 2020), which defines the SwiGLU layer of Qwen2.5's MLP. `papers/default-on-poles` cites it correctly (#5319).
+- **Literature.** A review of *Massive Activations in Large Language Models* (Sun et al., 2024). The source measures massive activations in the residual stream, so `papers/default-on-poles` now names them apart from its first token's neuron activations (#5320).
+- **Literature.** A review of *Intriguing Properties of Neural Networks* (Szegedy et al., 2014), the claim that random directions read as well as units. `papers/default-on-poles` quotes it correctly (#5321).
+- **Literature.** A review of *Introduction to the CoNLL-2003 Shared Task* (Tjong Kim Sang and De Meulder, 2003). People tagged its named entities, and a tagger made its part-of-speech tags. The `conll2003-pos` preset's comment now says so (#5322).
+- **Literature.** A review of *Efficient Streaming Language Models with Attention Sinks* (Xiao et al., 2023), the evidence behind the protocol's name for the first token. The source didn't test GPT-2, so `papers/default-on-poles` now names the models that it did test (#5323).
+- **Literature.** A review of the *Qwen2.5 Technical Report* (Yang et al., 2024), the report on two configured models. The three papers that cite it match the source (#5324).
+- **Literature.** A review of *Character-level Convolutional Networks for Text Classification* (Zhang et al., 2015), which built the AG News set. `papers/default-on-poles` now says that AG News's topics are its corpus's categories, which the source doesn't describe further (#5325).
+- **Literature.** A review of *Universal Neurons in GPT2 Language Models* (Gurnee et al., 2024), the method behind the sister search. Both papers that cite it match the source (#5326).
+- **Literature.** A review of *Convergent Learning: Do Different Neural Networks Learn the Same Representations?* (Li et al., 2016), the matching that the sister search's mutual step tightens. `papers/explanations-across-models` cites it correctly (#5327).
+- **Literature.** A review of *Stochastic Parameter Decomposition* (Bushnaq et al., 2025). The source fixes the importance exponent, so `papers/spd-input-projections` now says that lowering it during training is its own choice (#5328).
+- **Literature.** A review of *Transcoders Find Interpretable LLM Feature Circuits* (Dunefsky et al., 2024), the source of the learned-basis baseline's dictionary. `papers/native-vs-learned` cites it correctly (#5329).
+- **Literature.** A review of *Network Dissection* (Bau et al., 2017). Its rotation test finds 80% fewer interpretable units after a random rotation. `papers/neuron-development` cites it correctly (#5330).
+- **Literature.** A review of *Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling* (Biderman et al., 2023). It is the suite of pythia-70m and its checkpoints. Both papers that cite it match the source (#5331).
+- **Literature.** A review of *OLMo: Accelerating the Science of Language Models* (Groeneveld et al., 2024), an open model that issues #4156 and #3377 plan to study. `papers/neuron-development` cites it correctly (#5332).
+- **Literature.** A review of *Loss Landscape Degeneracy and Stagewise Development in Transformers* (Hoogland et al., 2025). It is the measure that #4156 plans to try on neurons. `papers/neuron-development` cites it correctly (#5333).
+- **Literature.** A review of *The Local Learning Coefficient* (Lau et al., 2023), the measure that #4156 plans to use on training checkpoints. `papers/neuron-development` cites it correctly (#5334).
+- **Literature.** A review of *PolyPythias* (van der Wal et al., 2025), in `docs/literature/polypythias.md`. Our citations of its nine extra pythia-70m runs check out (#5335).
+- **Literature.** A review of *Attribution-based Parameter Decomposition* (Braun et al., 2025), the method that SPD replaced. `papers/spd-input-projections` cites it correctly (#5336).
+- **Literature.** A review of *Who cares about brackets?* (Clark et al., 2023), a hackathon report on brackets in GPT-2 small. `papers/syntax-positive-controls` cites it correctly (#5337).
+- **Literature.** A review of *Interpretability Illusions in the Generalization of Simplified Models* (Friedman et al., 2024). `papers/syntax-positive-controls` cites it correctly (#5338).
+- **Literature.** A review of *Visualizing and Understanding Recurrent Networks* (Karpathy et al., 2015). `papers/syntax-positive-controls` cites it correctly (#5339).
+- **Literature.** A review of *Attribution Patching Outperforms Automated Circuit Discovery* (Syed et al., 2023), the estimate that `pole_effects.py` uses (#5340).
+- **Literature.** A review of Dugas et al. (2001), the paper that defines and names softplus. `papers/why-neurons-rest` cites it correctly (#5341).
+- **Literature.** A review of Elfwing et al. (2017), the first paper on arXiv to define and name the SiLU. `papers/why-neurons-rest` cites it correctly (#5342).
+- **Literature.** A review of *Decoupled Weight Decay Regularization* (Loshchilov and Hutter, 2019), the AdamW paper. `papers/why-neurons-rest` cites it correctly (#5343).
+- **Literature.** A review of *Confidence Regulation Neurons in Language Models* (Stolfo et al., 2024), the source of two triage families. `papers/why-neurons-rest` cites it correctly (#5344).
+- **Literature.** A review of *The Platonic Representation Hypothesis* (Huh et al., 2024). The reference in `papers/shared-concept-space` now names its ICML 2024 venue (#5419).
+- **Literature.** A review of *UMAP* (McInnes et al., 2018), the layout of the concept and literature maps. `papers/shared-concept-space` cites it correctly (#5420).
+- **Literature.** A review of *From Louvain to Leiden* (Traag et al., 2019), which finds the regions of both maps. `papers/shared-concept-space` cites it correctly (#5421).
+- **Literature.** A review of *Sentence-BERT* (Reimers and Gurevych, 2019), whose library embeds both maps and the scorer's texts. `papers/shared-concept-space` cites it correctly (#5422).
+- **Literature.** A review of *MiniLM* (Wang et al., 2020). `papers/shared-concept-space` now names its NeurIPS 2020 venue, and says what its embedder starts from (#5423).
+- **Literature.** A review of *RL Post-Training in Diffusion Transformers Is Activation Steering* (Meral et al., 2026), from the research digest (#5512).
+- **Literature.** A review of *CurvDelta* (Xiao et al., 2026), a curvature constraint on fine-tunes, from the research digest (#5514).
+- **Draft posts.** A post marked `Draft` in `posts/README.md` builds at `posts/drafts/<slug>/`, with a badge and a `noindex` tag, in local builds and deploys. No index, feed or sitemap lists it. The first draft is *We are on X* (#5529, #5551).
+- **Head figures on X and in link cards.** A paper's or post's post on X carries its head figure: a video when the figure animates, else an image, with its alt text (#5534). `scripts/social_images.py` draws them from the SVG, the feeds link them, and each page's link card shows its own figure.
+- **Literature.** A review of *Automated Interpretability Metrics Do Not Distinguish Trained and Random Transformers* (Heap et al., 2025), with follow-up #5758 (#5559).
+- **Literature.** A review of *Compressed Sensing for Capability Localization in Large Language Models* (Bair et al., 2026), for research question #5602 (#5600).
+
+### Changed
+
+- **Papers.** The maintainer is now the first author of every paper, and Open Interpretability the second. `scripts/papers.py` writes both into each paper's `CITATION.cff` from the root `CITATION.cff`, and its check fails on a paper that leaves them out. The paper pages, their PDFs and the Research index show the authors (#5260).
+- **Breaking.** Posts to X now carry published papers and site posts only, not VERIFIED units (#5533). `open-interpretability social post` reads `--papers` and the new `--posts`. `--experiments` and `--site` are gone, with the digest post. A feed new to the saved state seeds and posts nothing, so the first deploy posts no old post.
+- **Header.** The site's header no longer shows the "mechanistic interpretability lab" tagline. The meta description and the About page keep it (#5535).
+- **The explain post.** *Why did the model say that?* is a draft again, rewritten on the two pythia-70m explanations. It walks through how an explanation is built: attribution, causal coverage, the matched random baseline and the answer experiment. It follows the " days" hallucination in depth (#5564).
+- **Site.** Pages show the result first and keep the method text behind **Read more**. On an experiment page, the hypothesis, the verdict, the four deciding values and the gates are on top. Every other section is closed until the reader opens it, and a section with no data isn't shown. The minimal-pair table and the per-pair causal numbers are now one table. Two macros, `fold` and `read_more`, do this on every page (#5566).
+- **About page.** The About page is as wide as the other pages. Its figures and the registry's parts use the full width, and its paragraphs keep the reading width that the home page uses (#5569).
+- **Wrapping table text.** Prose pages are the literature index, papers, posts and the changelog. On them, a table cell longer than 40 characters now wraps, with a least width of 14rem. Short values and numbers stay on one line. The literature tables' Why column fits the page at desktop width (#5570).
+- **Site.** The About page shows its full text again, without **Read more** (#5661).
+- The site has one content column, 60rem wide, set once in `openinterpretability/builder/css.py` (#5726). Prose, captions, figures, tables and maps share its right edge. Prose was 48rem and papers were 52rem, and figures ran to the page's edge. The About page's taxonomy draws at 1.26 times its size, not 1.3, so that it fits.
+- One function and one macro, both named `status_grid`, draw the status grid of the model cards, the model pages and the layer pages (#5797). The function is in `openinterpretability/builder/pieces.py`, and the macro is in `_macros.html`. A cell's colour and its height both give the best status in it. A VERIFIED cell is 10 px high, and each step down is 2 px less, to 2 px for STOPPED. Each legend swatch has its cell's shape and a count. The model page's map had marks that overlapped. Its cells are now blocks of neurons, 128 to a layer, and the map is as wide as the text.
+- **Registry coverage refreshed on 2026-11-21.** There are 70 new layer rows, with these VERIFIED poles per model:
+  - Qwen2.5-0.5B: 350 poles (was 347), at most 1.9% of the loss recovered in any layer.
+  - Qwen2.5-1.5B: 67 poles (was 63), at most 0.4%.
+  - GPT-2: 208 poles (was 206), at most 13.0%.
+  - Pythia-70m: 115 poles (was 107), at most 6.8% (was 6.7%).
+- **Sister neurons.** The 0.4.0 refresh searched the 18 poles VERIFIED since the last run against each other configured model. It added 54 new rows and 12 new sisters. Pythia-70m (8 poles) added the most rows, and Qwen2.5-1.5B against Qwen2.5-0.5B added the most sisters (3). The strongest are Qwen2.5-1.5B L8/N982+ with Qwen2.5-0.5B L4/N940+ (Pearson 0.78), GPT-2 L11/N932+ with Qwen2.5-1.5B L22/N5178+ (0.68), and Pythia-70m L1/N394+ with Qwen2.5-1.5B L1/N5813− (0.62).
+
+### Fixed
+
+- **Site.** Two accessibility fixes on the Research and Posts pages. Each figure link is hidden from screen readers and the tab order, because the title beside it goes to the same page. Each table in a paper, post or literature page can take keyboard focus, so a reader without a mouse can scroll it. The axe check in CI now also covers the Research index and one paper (#5649).
+- **Site.** Chart text stays one size on every screen. Each chart with text now draws at its natural size, through one `chart` macro, and its text is 12 px, from `CHART_TEXT_PX` in `builder/charts.py`. A chart wider than the screen scrolls in its own box, never the page. On the home page, "Verdicts per model" is 640 px wide, and "Verdicts per layer" uses a grid with no chart alone on a row. The About page's diagrams keep their drawn text sizes at a fixed 1.3 times their size (#5660).
+- Model cards on the home and Models pages have one layout: the name, then four statistics in a grid. Their pieces bars fill the card, with 64 cells and 6 px per layer on every model. A cell with a VERIFIED pole is drawn full height, so the status shows without colour (#5724).
+- Answer and explanation pages link a unit only when the site has its page. A neuron with no experiment shows as plain text, marked "not yet studied" (#5727).
+- `open-interpretability query` prints a record's text in its table with no control characters (#5816). A tab, a newline or a carriage return becomes a space, and any other control character becomes its `\x` code. `--json` already escaped them.
+
 ## [0.3.0] - 2026-11-20
 
 Ships with protocol version **0.10**.
