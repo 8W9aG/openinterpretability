@@ -6,11 +6,37 @@ See :mod:`openinterpretability.registry_query`.
 from __future__ import annotations
 
 import json
+import unicodedata
 
 import click
 
 from openinterpretability.cli import cli
 from openinterpretability.registry_query import MAX_LIMIT, search, unit_label
+
+
+def plain(text: str | None) -> str:
+    """Return record text that is safe to print in a terminal table.
+
+    Anyone can write a record's text, so it can hold control characters. A terminal runs
+    escape sequences, so each control character becomes visible text. A tab, a newline or a
+    carriage return becomes a space. Any other becomes its ``\\x`` code.
+
+    Args:
+        text: A text field of a row, or None.
+
+    Returns:
+        The text with no control characters.
+
+    >>> plain("Fires\\non dates\\x1b[2K")
+    'Fires on dates\\\\x1b[2K'
+    """
+    out = []
+    for c in text or "":
+        if unicodedata.category(c) != "Cc":
+            out.append(c)
+        else:
+            out.append(" " if c in "\t\n\r" else f"\\x{ord(c):02x}")
+    return "".join(out)
 
 
 @cli.command("query")
@@ -57,8 +83,8 @@ def _query(source, model, layer, kind, status, text, token, all_records, limit, 
         return
     for row in rows:
         tokens = ", ".join(repr(t) for t in row["activating_tokens"][:5])
-        click.echo(f"{row['model_name']} {unit_label(row)}  {row['unit_status'] or '—'}  "
-                   f"{row['experiment_id']}")  # fmt: skip
-        click.echo(f"    {(row['explanation'] or '').strip()[:160]}")
+        status, experiment = plain(row["unit_status"]) or "—", plain(row["experiment_id"])
+        click.echo(f"{plain(row['model_name'])} {unit_label(row)}  {status}  {experiment}")
+        click.echo(f"    {plain(row['explanation']).strip()[:160]}")
         if tokens:
             click.echo(f"    tokens: {tokens}")
