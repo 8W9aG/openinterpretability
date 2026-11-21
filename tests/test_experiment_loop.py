@@ -298,3 +298,143 @@ def test_an_iteration_says_each_stage_in_order(repo, fakes, capsys):
               "loop: merging", f"RESULT: {SLUG} VERIFIED {URL} merged"]  # fmt: skip
     found = [out.index(stage) for stage in stages]
     assert found == sorted(found)
+
+
+def test_a_command_that_runs_too_long_is_a_loop_error():
+    with pytest.raises(el.LoopError, match="timed out"):
+        el.sh([sys.executable, "-c", "import time; time.sleep(5)"], timeout=0.2)
+
+
+@pytest.fixture
+def exit_command(monkeypatch):
+    """A temporary ``zz-exit <code>`` command: it exits with a code from 0 up, else returns."""
+    import click
+
+    from openinterpretability.cli import cli
+
+    @click.command(name="zz-exit")
+    @click.argument("code", type=int)
+    def zz_exit(code):
+        if code >= 0:
+            sys.exit(code)
+
+    monkeypatch.setitem(cli.commands, "zz-exit", zz_exit)
+
+
+def test_an_in_process_command_that_exits_non_zero_is_a_loop_error(exit_command, capsys):
+    with pytest.raises(el.LoopError, match="`openinterpretability zz-exit` exited 3"):
+        el.openinterpretability(["zz-exit", "3"])
+    assert "$ openinterpretability zz-exit 3\n" in capsys.readouterr().out
+
+
+def test_an_in_process_command_that_exits_zero_or_returns_is_fine(exit_command):
+    assert el.openinterpretability(["zz-exit", "0"]) is None
+    assert el.openinterpretability(["zz-exit", "--", "-1"]) is None
+
+
+def test_proposer_of_reads_the_record_when_it_exists(tmp_path, record):
+    path = tmp_path / "rec.json"
+    path.write_text(record.model_dump_json())
+    assert el.proposer_of(str(path)) == "openai/gpt-test"
+    assert el.proposer_of(str(tmp_path / "missing.json")) is None
+    assert el.proposer_of(None) is None
+
+
+def _write(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+
+def test_the_verdict_of_a_new_experiment_record(repo, record):
+    from openinterpretability.core.schemas import ReviewMetrics
+
+    _write(Path("wiki/experiments/m/a.json"), record.model_dump_json())
+    assert el.new_files(Path("wiki/experiments")) == [Path("wiki/experiments/m/a.json")]
+    assert el.verdict_of("explore", "k") == ("VERIFIED", "Explore k (VERIFIED, n/a)")
+    metrics = ReviewMetrics(specificity=1.0, sensitivity=1.0, balanced_accuracy=0.875,
+                            counterfactual_reproduction=1.0, lookahead_consistent=True,
+                            independent_review=True, gates={})  # fmt: skip
+    scored = record.model_copy(update={"verdict": record.verdict.model_copy(
+        update={"metrics": metrics})})  # fmt: skip
+    _write(Path("wiki/experiments/m/a.json"), scored.model_dump_json())
+    assert el.verdict_of("explore", "k") == ("VERIFIED", "Explore k (VERIFIED, 0.88)")
+
+
+def test_a_scan_that_stopped_has_a_stopped_verdict_and_no_record_is_an_error(repo):
+    from openinterpretability.core.paths import draws_dir
+
+    with pytest.raises(el.LoopError, match="wrote no record"):
+        el.verdict_of("explore", "k")
+    _write(draws_dir(Path("wiki")) / "d.json", "{}")
+    assert el.verdict_of("explore", "k") == ("STOPPED", "Explore k (STOPPED)")
+
+
+def test_say_also_writes_to_the_console_of_the_loop(capsys):
+    import io
+
+    console = io.StringIO()
+    el._CONSOLE[:] = [sys.stdout, console]
+    try:
+        el.say("hello")
+    finally:
+        el._CONSOLE.clear()
+    assert console.getvalue() == "loop: hello\n"
+    assert capsys.readouterr().out == "loop: hello\n"
+
+
+def test_a_pr_that_auto_merge_already_merged_counts_as_merged(monkeypatch):
+    calls = []
+
+    def sh(args, check=True, timeout=None):
+        calls.append(args)
+        return json.dumps({"state": "MERGED"}) if args[:2] == ["gh", "pr"] else ""
+
+    monkeypatch.setattr(el, "sh", sh)
+    assert el.land(URL) is True
+    assert [c[:3] for c in calls] == [["gh", "pr", "checks"], ["gh", "pr", "view"]]
+
+
+def test_a_draw_whose_unit_is_unknown_is_a_loop_error(repo, fakes, monkeypatch):
+    monkeypatch.setattr(el, "draw_slug", lambda choice: None)
+    with pytest.raises(el.LoopError, match="the unit of a explore draw on toy/model is unknown"):
+        el.iteration(_loop().options, lambda *a, **k: _plan(), lambda: [])
+    assert fakes == []
+
+
+def test_an_until_verified_draw_ends_after_a_verified_first_turn(repo, fakes, capsys):
+    options = el.Options("api/proposer", "api/reviewer", corpus="c.jsonl", until_verified=True)
+    result = el.iteration(options, lambda *a, **k: _plan(), lambda: [])
+    assert (result.slug, result.verdict, result.merged) == (SLUG, "VERIFIED", True)
+    assert [a[0] for a in fakes] == ["audit", "verify", "wiki", "check"]
+
+
+def test_a_scan_that_stops_on_its_unit_is_posted_at_once(monkeypatch, capsys):
+    from openinterpretability.evidence import Unauditable
+
+    ran, posted = [], []
+
+    def run_command(command):
+        ran.append(command)
+        raise Unauditable("dead neuron", draw=None)
+
+    monkeypatch.setattr(el, "run_command", run_command)
+    monkeypatch.setattr(el, "post", lambda kind, key: posted.append((kind, key)) or "STOPPED")
+    work = [SimpleNamespace(title="scan", commands=["a", "b"])]
+    assert el.run_work(work, "explore", "k") == "STOPPED"
+    assert ran == ["a"] and posted == [("explore", "k")]
+    assert "The scan stopped on the unit: dead neuron\n" in capsys.readouterr().out
+
+
+def test_the_loop_waits_while_paused_and_says_so_once(repo, monkeypatch, capsys):
+    from openinterpretability.core import pause
+
+    held = pause.Pause("maintenance", "me", "2026-11-21T00:00:00+00:00",
+                       "2026-11-21T02:00:00+00:00")  # fmt: skip
+    reads = iter([held, held, None])
+    monkeypatch.setattr(pause, "read", lambda: next(reads))
+    loop = _loop()
+    waits = []
+    loop.sleep = waits.append
+    loop._wait_while_paused()
+    assert waits == [60, 60]
+    assert capsys.readouterr().out.count("New experiments are paused until") == 1

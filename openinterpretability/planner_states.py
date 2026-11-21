@@ -86,7 +86,9 @@ def states_of(pairs, errata) -> dict[str, NeuronState]:
         state.independent_reviews += not record.self_reviewed
         state.last = record.verdict.timestamp
     for slug, standing in standings(records, errata).items():
-        if slug in states:
+        # Every standing's lead is a record that the loop above already added, so this always
+        # holds. It guards against a change to how standings are built.
+        if slug in states:  # pragma: no branch
             state = states[slug]
             state.status, state.standing_record = standing.status, standing.lead.record
             state.contested = standing.contested

@@ -707,3 +707,193 @@ def test_a_bfloat16_scans_counterfactuals_get_the_16_bit_tolerance(record, toy_r
     assert any("counterfactual" in m for m in float32.mismatches)
     edited = reproduce_record(_edit_deltas(_scanned_in(record, "bfloat16"), 0.2), toy_runner)
     assert any("counterfactual" in m for m in edited.mismatches)
+
+
+def _report(record):
+    from openinterpretability.reproduce import ReproductionReport
+
+    return ReproductionReport(path=None, record=record)
+
+
+def test_a_record_without_a_verdict_cannot_be_reproduced(record, toy_runner):
+    bare = record.model_copy(update={"verdict": None})
+    report = reproduce_record(bare, toy_runner)
+    assert report.mismatches == ["record has no verdict"]
+
+
+def test_a_first_token_floor_that_does_not_reproduce_is_caught(record, toy_runner):
+    from functools import partial
+
+    from openinterpretability.core.schemas import ReviewPolicy
+    from openinterpretability.harness.scan import has_first_token_floor
+    from openinterpretability.harness.units import submission_unit
+
+    sub = record.submission
+    read = partial(submission_unit(sub).strengths, toy_runner)
+    actual = has_first_token_floor(toy_runner, read, sub.max_activation, ReviewPolicy())
+    wrong = record.model_copy(
+        update={"submission": sub.model_copy(update={"first_token_floor": not actual})}
+    )
+    report = reproduce_record(wrong, toy_runner)
+    assert f"first_token_floor {not actual} does not reproduce" in report.mismatches
+
+
+def test_counterfactuals_are_not_compared_without_a_scale(record, toy_runner):
+    from openinterpretability.harness.units import submission_unit
+    from openinterpretability.reproduce import DEFAULT_TOLERANCE, _check_counterfactuals
+
+    report = _report(record)
+    unit = submission_unit(record.submission)
+    _check_counterfactuals(record, unit, toy_runner, DEFAULT_TOLERANCE, 0.0, report)
+    assert report.compared == 0 and report.ok
+
+
+def test_top_example_tokens_that_differ_from_the_record_are_caught(record, toy_runner):
+    sub = record.submission
+    ex = sub.top_examples[0]
+    renamed = ex.model_copy(update={"tokens": ["?", *ex.tokens[1:]]})
+    tampered = record.model_copy(
+        update={"submission": sub.model_copy(update={"top_examples": [renamed,
+                                                                      *sub.top_examples[1:]]})}
+    )  # fmt: skip
+    report = reproduce_record(tampered, toy_runner)
+    assert "top example 1: tokens differ from the record" in report.mismatches
+
+
+def test_a_record_without_a_corpus_sample_skips_the_sample_check(record, toy_runner):
+    assert record.submission.provenance is None or (
+        record.submission.provenance.corpus_sample is None
+    )
+    report = reproduce_record(record, toy_runner, corpus=(["unrelated text"], "abc"))
+    assert report.ok, report.mismatches
+    assert not any("sample" in w for w in report.warnings)
+
+
+def test_an_edited_explanation_score_window_is_a_warning(record, toy_runner):
+    from openinterpretability.core.explanation import ExplanationScores
+    from openinterpretability.harness.explanation_scores import (
+        label_windows,
+        remeasure,
+        sample_heldout,
+    )
+    from tests.test_explanation_scores import CORPUS, IDENT, UNIT, _threshold
+
+    threshold = _threshold(toy_runner)
+    sample = sample_heldout(toy_runner, CORPUS, UNIT, threshold, seed=1, window_tokens=8,
+                            quantiles=2, per_quantile=2)  # fmt: skip
+    windows = label_windows(sample.detection, threshold, sample.quantile_edges, fuzzing=False)
+    windows = [w.model_copy(update={"judged": w.label, "similarity": 0.1}) for w in windows]
+    scores = remeasure(
+        ExplanationScores(
+            slug=IDENT.slug, explanation="x", threshold=threshold, window_tokens=8, quantiles=2,
+            quantile_edges=sample.quantile_edges, seed=1, corpus="c", candidate_windows=1,
+            active_windows=1, detection_windows=windows,
+        ),
+        toy_runner,
+        UNIT,
+    )  # fmt: skip
+    first = scores.detection_windows[0]
+    louder = first.model_copy(update={"activations": [a + 1.0 for a in first.activations]})
+    edited = scores.model_copy(
+        update={"detection_windows": [louder, *scores.detection_windows[1:]]}
+    )
+    tampered = record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"explanation_scores": edited})}
+    )
+    report = reproduce_record(tampered, toy_runner)
+    assert report.ok, report.mismatches
+    assert any("detection window 1 re-measures differently" in w for w in report.warnings)
+
+
+def test_another_model_revision_than_the_pinned_one_fails(record, toy_runner):
+    from openinterpretability.harness.environment import run_environment
+    from openinterpretability.reproduce import _compare_environment
+
+    env = record.verdict.environment.model_copy(update={"model_revision": "abc"})
+    pinned = record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"environment": env})}
+    )
+    now = run_environment(toy_runner).model_copy(update={"model_revision": "def"})
+    report = _report(pinned)
+    _compare_environment(pinned, now, report)
+    assert report.mismatches == ["model revision def is not the pinned abc"]
+
+
+def test_a_record_from_before_environment_pinning_is_a_warning(record, toy_runner):
+    from openinterpretability.harness.environment import run_environment
+    from openinterpretability.reproduce import _compare_environment
+
+    old = record.model_copy(update={"verdict": record.verdict.model_copy(
+        update={"environment": None})})  # fmt: skip
+    report = _report(old)
+    _compare_environment(old, run_environment(toy_runner), report)
+    assert report.ok
+    assert report.warnings == ["record predates environment pinning; device and versions unknown"]
+
+
+def test_other_versions_warn_and_an_unrecorded_device_name_does_not(record, toy_runner):
+    from openinterpretability.harness.environment import run_environment
+    from openinterpretability.reproduce import _compare_environment
+
+    now = run_environment(toy_runner).model_copy(update={"device_name": "Some CPU"})
+    env = now.model_copy(update={"device_name": None, "torch_version": "0.0"})
+    pinned = record.model_copy(
+        update={"verdict": record.verdict.model_copy(update={"environment": env})}
+    )
+    report = _report(pinned)
+    _compare_environment(pinned, now, report)
+    assert report.ok
+    assert report.warnings == [f"torch_version: recorded 0.0, now {now.torch_version}"]
+
+
+def test_a_verdict_with_a_missing_test_result_fails(record):
+    from openinterpretability.reproduce import DEFAULT_TOLERANCE, _compare_verdicts
+
+    old = record.verdict
+    short = old.model_copy(update={"adversarial_test_results": old.adversarial_test_results[1:]})
+    report = _report(record)
+    _compare_verdicts(old, short, DEFAULT_TOLERANCE, record.submission.max_activation, report)
+    assert report.mismatches == [
+        "the record's test results don't match the probes and pairs it stores"
+    ]
+
+
+def test_a_test_that_does_not_match_its_stored_probe_fails(record):
+    from openinterpretability.reproduce import DEFAULT_TOLERANCE, _compare_verdicts
+
+    old = record.verdict
+    results = list(old.adversarial_test_results)
+    results[0] = results[0].model_copy(update={"prompt": "another prompt"})
+    new = old.model_copy(update={"adversarial_test_results": results})
+    report = _report(record)
+    _compare_verdicts(old, new, DEFAULT_TOLERANCE, record.submission.max_activation, report)
+    assert any("does not match the stored probe" in m for m in report.mismatches)
+
+
+def _half_flip(record, toy_runner, old_update=None, new_update=None):
+    """A 16-bit flip at a threshold, with ``old_update`` and ``new_update`` on the verdicts."""
+    from openinterpretability.half_precision import rederived
+    from openinterpretability.reproduce import DEFAULT_TOLERANCE, _compare_verdicts
+
+    i, under, over = _at_threshold(record, toy_runner)
+    old = edit_result(record, i, activation=under).verdict
+    new_results = list(old.adversarial_test_results)
+    new_results[i] = new_results[i].model_copy(update={"activation": over, "passed": False})
+    new = rederived(old.model_copy(update={"adversarial_test_results": new_results}))
+    old, new = old.model_copy(update=old_update or {}), new.model_copy(update=new_update or {})
+    report = _report(record)
+    tolerance = DEFAULT_TOLERANCE.for_dtype("bfloat16")
+    _compare_verdicts(old, new, tolerance, record.submission.max_activation, report, half=True)
+    return report
+
+
+def test_a_16_bit_flip_without_metrics_to_rederive_fails(record, toy_runner):
+    report = _half_flip(record, toy_runner, old_update={"metrics": None})
+    assert "a result flipped, and the record has no metrics to re-derive" in report.mismatches
+
+
+def test_a_16_bit_flip_that_changes_the_decision_is_a_warning(record, toy_runner):
+    other = "REJECTED" if record.verdict.status == "VERIFIED" else "VERIFIED"
+    report = _half_flip(record, toy_runner, new_update={"status": other})
+    assert report.ok, report.mismatches
+    assert any(w.startswith(f"reproduced decision {other} with gates") for w in report.warnings)
