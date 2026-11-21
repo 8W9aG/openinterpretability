@@ -1,7 +1,7 @@
 {# The answer's verdict, which leads the prompt's page and each explanation's page (#4778). Each answer experiment has its own page (#4909). #}
 {% from "_macros.html" import read_more %}
 {% set a = prompt.standing_answer %}
-<section class="mt-4 max-w-3xl rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700" aria-labelledby="answer-verdict">
+<section class="mt-4 rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-700" aria-labelledby="answer-verdict">
   <h2 id="answer-verdict" class="font-semibold">
     {% if prompt.understood %}Answer understood: a route claim is VERIFIED
     {% elif a %}Answer not understood yet: {{ prompt.answers | length }} route claim{{ 's' if prompt.answers | length != 1 }} tested, none VERIFIED

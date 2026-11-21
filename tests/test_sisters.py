@@ -431,14 +431,9 @@ def test_the_staged_search_over_many_pairs_equals_the_search_per_pair(
 
 
 def test_the_sister_graphs_are_no_wider_than_the_text_above_them():
-    # #4579, #5660: the graph draws at its natural width. That fits the paragraph's
-    # max-w-3xl (768 px), so the graph never runs past the text.
-    from pathlib import Path
-
+    # #4579, #5660: the graph draws at its natural width. #5726: it fits the one content
+    # column that the text also fills, so the graph never runs past the text.
+    from openinterpretability.builder.css import COLUMN_REM
     from openinterpretability.builder.sister_graph import WIDTH
 
-    template = Path(__file__).parents[1] / "openinterpretability/builder/templates/model.html"
-    section = template.read_text().split('{% call fold("Sister neurons", level=2) %}')[1]
-    assert '<p class="max-w-3xl' in section
-    assert "call chart(g.width, g.height" in section
-    assert WIDTH <= 768
+    assert WIDTH <= COLUMN_REM * 16

@@ -5,7 +5,7 @@
 {% block content %}
 <section class="mb-10">
   <h1 class="text-3xl font-semibold tracking-tight">Neuron registry</h1>
-  <p class="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
+  <p class="mt-2 text-slate-600 dark:text-slate-400">
     Every experiment on the neurons and attention heads of open-weight models, each tested by an adversarial reviewer. Failed hypotheses are published too. <a class="underline" href="{{ root }}about.html">How it works</a>.
   </p>
   <dl class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-4 lg:grid-cols-7 dark:border-slate-800 dark:bg-slate-800">
@@ -51,7 +51,7 @@
 {% if dashboard %}{% include "_dashboard.html" %}{% endif %}
 
 {% if stats.baseline %}
-<p class="mb-10 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<p class="mb-10 text-sm text-slate-600 dark:text-slate-400">
   {% for b in stats.baseline %}<span class="font-mono">{{ b.model_name }}</span>: {{ b.features.verified }} of {{ b.features.units }} random latents of <span class="font-mono">{{ b.dictionary }}</span> verified, against {{ b.positive_poles.verified }} of {{ b.positive_poles.units }} random positive poles. {% endfor %}
   <a class="underline" href="{{ root }}learned-baseline.html">Learned-basis baseline</a>.
 </p>

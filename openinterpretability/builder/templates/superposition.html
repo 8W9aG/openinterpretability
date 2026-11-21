@@ -13,7 +13,7 @@
     {% for side in neuron.sides %}
     {% set s = neuron.standings.get(side) %}
     {% set side_exps = neuron.experiments | selectattr("side", "equalto", side) | selectattr("independent") | list %}
-    <div class="mt-4 max-w-3xl rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
+    <div class="mt-4 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
       {% if s %}
       <div class="flex items-center gap-2">
         <span class="text-slate-500">Superposition of {{ neuron.members | length }} neurons</span>

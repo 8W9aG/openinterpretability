@@ -3,7 +3,7 @@
   {% if neuron.experiments or stops %}
   <section aria-labelledby="experiments">
     <h2 id="experiments" class="text-base font-semibold">Experiments</h2>
-    <p class="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
       {% if neuron.experiments %}Most conclusive first, null and superseded results included.{% if stops %} Scans that stopped come last.{% endif %}
       {% else %}No experiment: every scan of this {{ neuron.noun }} stopped.{% endif %}
     </p>

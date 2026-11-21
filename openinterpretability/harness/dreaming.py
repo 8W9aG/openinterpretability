@@ -16,6 +16,15 @@ children, with replacement.
 f here is the pole's largest strength over the prompt, with the first token left out:
 many units take extreme values there (``docs/PROTOCOL.md`` §1). This version has no
 restarts, and the defaults for ``k`` and the number of steps are lower than the paper's.
+
+Three goals replace f in L (#3779):
+
+- ``max``: f, the paper's goal. It finds inputs that fire the pole.
+- ``min``: −f. It starts from a prompt with some positions frozen. So it keeps an
+  explanation's trigger tokens, and finds the context that silences the pole: a false
+  positive.
+- ``hit``: −|f − target|. It finds inputs at a set strength, such as the active line, to
+  show how sharp an explanation's boundary is.
 """
 
 from __future__ import annotations
@@ -33,6 +42,7 @@ LAMBDAS = tuple(math.exp(x) for x in torch.linspace(math.log(0.1), math.log(10),
 CHILDREN = 32
 TOP_K = 128
 STEPS = 150
+GOALS = ("max", "min", "hit")
 
 
 @dataclass
@@ -66,6 +76,49 @@ def _score(runner, layer, neuron, pole, embeds: torch.Tensor, tokens: torch.Tens
     return strength.float(), ce
 
 
+def _aim(f: torch.Tensor, goal: str, target: float | None) -> torch.Tensor:
+    """The goal's term of L (module docstring).
+
+    Args:
+        f: The pole strengths.
+        goal: ``max``, ``min`` or ``hit``.
+        target: The strength that ``hit`` aims at.
+
+    Returns:
+        The term, one value per strength.
+    """
+    if goal == "max":
+        return f
+    return -f if goal == "min" else -(f - target).abs()
+
+
+def _start(members: int, length: int, vocab: int, gen, start, frozen) -> tuple:
+    """The first population, and the positions that may change.
+
+    Args:
+        members: One per λ.
+        length: Tokens per prompt, when ``start`` is not given.
+        vocab: The vocabulary size.
+        gen: The random generator.
+        start: Token ids that every member starts from, or None for random tokens.
+        frozen: Positions that never change.
+
+    Returns:
+        The population ``[members, n]`` on the CPU, and the free positions.
+
+    Raises:
+        ValueError: Every position is frozen.
+    """
+    if start is not None:
+        pop = torch.tensor(list(start)).repeat(members, 1)
+    else:
+        pop = torch.randint(vocab, (members, length), generator=gen)
+    free = torch.tensor([i for i in range(pop.shape[1]) if i not in set(frozen)])
+    if not len(free):
+        raise ValueError("every position is frozen")
+    return pop, free
+
+
 def dream(
     runner: NeuronHookRunner,
     layer: int,
@@ -78,20 +131,51 @@ def dream(
     top_k: int = TOP_K,
     steps: int = STEPS,
     seed: int = 0,
+    goal: str = "max",
+    target: float | None = None,
+    start: Sequence[int] | None = None,
+    frozen: Sequence[int] = (),
 ) -> list[Dream]:
-    """Run EPO for one pole and return each λ's final prompt."""
+    """Run EPO for one pole and return each λ's final prompt.
+
+    Args:
+        runner: The model, with hooks.
+        layer: The pole's layer.
+        neuron: The pole's neuron.
+        pole: ``positive`` or ``negative``.
+        length: Tokens per prompt, when ``start`` is not given.
+        lambdas: The fluency weights, one population member each.
+        children: Children per member per step.
+        top_k: Candidate tokens per position.
+        steps: Optimisation steps.
+        seed: The random seed.
+        goal: ``max``, ``min`` or ``hit`` (module docstring).
+        target: The strength that ``hit`` aims at.
+        start: Token ids that every member starts from, instead of random tokens.
+        frozen: Positions of ``start`` that never change.
+
+    Returns:
+        Each λ's final prompt, with its strength and self-cross-entropy.
+
+    Raises:
+        ValueError: The goal is unknown, ``hit`` has no target, or no position is free.
+    """
+    if goal not in GOALS or (goal == "hit") != (target is not None):
+        raise ValueError(f"goal must be one of {GOALS}, with a target for 'hit' only")
     gen = torch.Generator().manual_seed(seed)
     table = runner.model.get_input_embeddings().weight
     vocab, device = table.shape[0], table.device
     lams = torch.tensor(lambdas, device=device)
-    pop = torch.randint(vocab, (len(lambdas), length), generator=gen).to(device)
+    pop, free = _start(len(lambdas), length, vocab, gen, start, frozen)
+    pop, length = pop.to(device), pop.shape[1]
+
     for _ in range(steps):
         onehot = torch.nn.functional.one_hot(pop, vocab).to(table.dtype).requires_grad_(True)
         f, ce = _score(runner, layer, neuron, pole, onehot @ table, pop)
-        (f - lams * ce).sum().backward()
+        (_aim(f, goal, target) - lams * ce).sum().backward()
         top = onehot.grad.topk(top_k, dim=-1).indices  # [M, n, k]
         member = torch.arange(len(lambdas)).repeat_interleave(children)
-        where = torch.randint(length, (len(member),), generator=gen)
+        where = free[torch.randint(len(free), (len(member),), generator=gen)]
         pick = torch.randint(top_k, (len(member),), generator=gen)
         kids = pop[member].clone()
         kids[torch.arange(len(member)), where.to(device)] = top[
@@ -100,8 +184,7 @@ def dream(
         pool = torch.cat([pop, kids])
         with torch.no_grad():
             f_pool, ce_pool = _score(runner, layer, neuron, pole, table[pool], pool)
-        best = (f_pool[None, :] - lams[:, None] * ce_pool[None, :]).argmax(dim=1)
-        pop = pool[best]
+        pop = pool[(_aim(f_pool, goal, target) - lams[:, None] * ce_pool).argmax(dim=1)]
     with torch.no_grad():
         f, ce = _score(runner, layer, neuron, pole, table[pop], pop)
     return [

@@ -3,7 +3,7 @@
 {% set tl = dashboard.timeline %}{% set mb = dashboard.models %}
 <section class="mb-10" id="dashboard" data-pagefind-ignore>
   <h2 class="mb-1 text-lg font-semibold">Registry dashboard</h2>
-  <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Every verdict on a neuron pole or an attention head, by day, model and layer.</p>
+  <p class="text-sm text-slate-600 dark:text-slate-400">Every verdict on a neuron pole or an attention head, by day, model and layer.</p>
   {% call read_more() %}<p>By the day of the review (UTC). Repeat experiments count each time, so these are verdicts, not unit statuses. Dictionary latents are left out.</p>{% endcall %}
   <div class="mb-4"></div>
   <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
@@ -110,7 +110,7 @@
       </div>
       {% endfor %}
     </div>
-    <figcaption class="mt-1 max-w-3xl text-xs text-slate-500">Each model has its own vertical scale, up to its busiest layer. Every layer has a slot, so an empty slot is a layer with no experiments yet.</figcaption>
+    <figcaption class="mt-1 text-xs text-slate-500">Each model has its own vertical scale, up to its busiest layer. Every layer has a slot, so an empty slot is a layer with no experiments yet.</figcaption>
     <details class="mt-2">
       <summary class="cursor-pointer text-xs text-slate-500">Values</summary>
       <div class="mt-2 max-h-80 overflow-auto rounded-lg border border-slate-200 dark:border-slate-800" tabindex="0" role="region" aria-label="Values">

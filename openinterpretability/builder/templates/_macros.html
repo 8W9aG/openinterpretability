@@ -71,7 +71,7 @@
 {# What errata changed about one experiment (core/errata.py). Errata have no page of their own. #}
 {% macro errata_notes(errata, edits, repo_url) -%}
 {% for x in errata %}
-<div role="note" class="mt-3 max-w-3xl rounded-lg border border-amber-400 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+<div role="note" class="mt-3 rounded-lg border border-amber-400 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
   <p><span class="font-semibold">Erratum, {{ x.date.isoformat() }}: {{ x.title }}.</span>
     {% if x.set_aside %}This record is set aside: it no longer counts toward the status.{% else %}This page shows the record with these corrections:{% endif %}</p>
   {% if not x.set_aside %}
@@ -117,7 +117,7 @@
 {# A model's card: its statistics and its pieces bars (builder/pieces.py), on the home and
    Models pages (#3287). `idx` keeps each card's SVG pattern id unique on the page. #}
 {% macro model_card(m, explore, root, idx) -%}
-{% set pc = pieces.model_pieces(m) %}
+{% set pc = pieces.status_grid(m) %}
 <a href="{{ root }}{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-brand-500 dark:border-slate-800">
   {# One layout on every card (#5724): the name, then the same four statistics in a grid. #}
   <div class="flex flex-wrap items-center gap-2">
@@ -130,26 +130,7 @@
     <div><dt class="text-xs text-slate-500">Verified</dt><dd class="tabular-nums">{{ v.verified | thousands }} of {{ m.total_neurons | thousands }} ({{ (v.verified / m.total_neurons if m.total_neurons else none) | pct_fine }})</dd>{% if v.dead %}<dd class="text-xs text-slate-500">{{ v.dead }} of them proven dead</dd>{% endif %}</div>
     <div><dt class="text-xs text-slate-500">Target</dt><dd class="tabular-nums">{{ '{:g}%'.format(100 * explore.target) }} verified</dd></div>
   </dl>
-  {% if pc %}
-  {# No text, and inside a link. It stretches to the card's width, and each layer stays pc.row px high (#5660, #5724). #}
-  <svg viewBox="0 0 {{ pc.width }} {{ pc.height }}" preserveAspectRatio="none" class="mt-3 block w-full" style="height: {{ pc.height }}px" role="img" data-pagefind-ignore
-       aria-label="Pieces bars for {{ m.name }}: one row per layer, L0 at the top, each cell {{ pc.block }} neurons. {{ pc.lit }} of {{ pc.cells | thousands }} cells hold a studied neuron, and {{ pc.verified }} of them a VERIFIED pole, drawn full height. A cell's colour is the best status in it.">
-    <defs><pattern id="pieces-{{ idx }}" width="{{ pc.pitch }}" height="{{ pc.row }}" patternUnits="userSpaceOnUse"><rect width="{{ pc.pitch - 1 }}" height="{{ pc.cell }}" class="fill-slate-200 dark:fill-slate-800"/></pattern></defs>
-    <rect width="{{ pc.width + 1 }}" height="{{ pc.height + 1 }}" fill="url(#pieces-{{ idx }})"/>
-    {% for row in pc.rows %}
-    {% for c in row.cells %}
-    <rect x="{{ c.x }}" y="{{ c.y }}" width="{{ pc.pitch - 1 }}" height="{{ c.height }}" class="{{ map_fill[c.status] }}"><title>{{ c.label }}</title></rect>
-    {% endfor %}
-    {% endfor %}
-  </svg>
-  {# The legend says by shape what the colours also say (#5724): the target counts VERIFIED neurons. #}
-  <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-    <span class="inline-flex items-center gap-1"><svg width="14" height="{{ pc.cell }}" aria-hidden="true"><rect width="14" height="{{ pc.cell }}" class="{{ map_fill['VERIFIED'] }}"/></svg>a VERIFIED pole</span>
-    <span class="inline-flex items-center gap-1"><svg width="14" height="{{ pc.cell }}" aria-hidden="true"><rect y="{{ pc.cell - pc.short }}" width="14" height="{{ pc.short }}" class="fill-slate-500"/></svg>studied, none VERIFIED</span>
-    <span class="inline-flex items-center gap-1"><svg width="14" height="{{ pc.cell }}" aria-hidden="true"><rect width="14" height="{{ pc.cell }}" class="fill-slate-200 dark:fill-slate-800"/></svg>not studied</span>
-    <span>One row per layer, L0 at the top. Each cell is {{ pc.block }} neurons.</span>
-  </p>
-  {% endif %}
+  {% if pc %}<div class="mt-3">{{ status_grid(pc, root, "card-" ~ idx, m.name, stretch=true) }}</div>{% endif %}
 </a>
 {%- endmacro %}
 
@@ -189,7 +170,7 @@
 
 {# Method text that the reader opens: how a value is measured, what a gate tests, caveats (#5566). The page shows the result, and this holds the rest. #}
 {% macro read_more(label="Read more") -%}
-<details class="group mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<details class="group mt-1 text-sm text-slate-600 dark:text-slate-400">
   <summary class="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 [&::-webkit-details-marker]:hidden">{{ chevron() }}{{ label }}</summary>
   <div class="mt-1 space-y-2">{{ caller() }}</div>
 </details>
@@ -221,4 +202,32 @@
 {%- if fits != "hidden" %}
 <p class="mt-1 text-xs text-slate-500 {{ fits }}" aria-hidden="true">Scroll the chart sideways to see all of it.</p>
 {%- endif %}
+{%- endmacro %}
+
+{# A status grid (#5797): pieces.status_grid's cells, and a legend drawn from the same data.
+   A cell's colour and height both give its best status, and each legend swatch has the
+   shape of its cell. `stretch` is a model card's: no text and no links (the card is a link),
+   and the cells stretch to the card's width while each row keeps its height in px. #}
+{% macro status_grid(g, root, key, name, stretch=false) -%}
+{%- set each = "one neuron" if g.block == 1 else g.block ~ " neurons" -%}
+{%- set label -%}Status grid of {{ name }}: one row {{ "per layer, L0 at the top" if g.block > 1 else "of " ~ g.per_row ~ " neurons" }}, each cell {{ each }}. {{ g.studied | thousands }} studied neurons ({% for s, h, n in g.legend %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). A cell's colour and height give the best status in it.{%- endset -%}
+{%- set body -%}
+  <defs><pattern id="grid-{{ key }}" x="{{ g.left }}" width="{{ g.pitch }}" height="{{ g.cell + 2 }}" patternUnits="userSpaceOnUse"><rect width="{{ g.pitch - 1 }}" height="{{ g.cell }}" class="fill-slate-100 dark:fill-slate-800/60"/></pattern></defs>
+  {% for r in g.rows %}<rect x="{{ g.left }}" y="{{ r.y }}" width="{{ r.width + 1 }}" height="{{ g.cell }}" fill="url(#grid-{{ key }})"/>{% if r.shown and not stretch %}<text x="{{ g.left - 6 }}" y="{{ r.y + g.cell - 1 }}" text-anchor="end" class="fill-slate-500 font-mono">{{ r.label }}</text>{% endif %}
+  {% endfor %}
+  {% for c in g.cells %}{% if not stretch %}<a href="{{ root }}{{ c.href }}">{% endif %}<rect x="{{ c.x }}" y="{{ c.y }}" width="{{ g.pitch - 1 }}" height="{{ c.height }}" class="{{ map_fill[c.status] }}" data-status="{{ c.status }}"><title>{{ c.label }}</title></rect>{% if not stretch %}</a>{% endif %}
+  {% endfor %}
+{%- endset -%}
+<figure data-pagefind-ignore data-status-grid>
+{%- if stretch %}
+  <svg viewBox="{{ g.left }} 0 {{ g.width - g.left }} {{ g.height }}" preserveAspectRatio="none" class="block w-full" style="height: {{ g.height }}px" role="img" aria-label="{{ label }}">{{ body }}</svg>
+{%- else %}
+  {% call chart(g.width, g.height, "Status grid", label, role="group") %}{{ body }}{% endcall %}
+{%- endif %}
+  <figcaption class="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1 text-xs text-slate-500">
+    {% for s, h, n in g.legend %}<span class="inline-flex items-end gap-1" data-swatch="{{ s }}"><svg width="{{ g.pitch - 1 }}" height="{{ g.cell }}" aria-hidden="true"><rect y="{{ g.cell - h }}" width="{{ g.pitch - 1 }}" height="{{ h }}" class="{{ map_fill[s] }}"/></svg>{{ s | replace('_', ' ') }} {{ n | thousands }}</span>
+    {% endfor %}<span class="inline-flex items-end gap-1"><svg width="{{ g.pitch - 1 }}" height="{{ g.cell }}" aria-hidden="true"><rect width="{{ g.pitch - 1 }}" height="{{ g.cell }}" class="fill-slate-100 dark:fill-slate-800/60"/></svg>not studied {{ g.unexplored | thousands }}</span>
+    <span>{% if g.block > 1 %}One row per layer, L0 at the top. {% endif %}Each cell is {{ each }}; colour and height both give the best status in it.</span>
+  </figcaption>
+</figure>
 {%- endmacro %}

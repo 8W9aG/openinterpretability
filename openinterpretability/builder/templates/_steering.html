@@ -14,7 +14,7 @@
           </div>
   {% endmacro %}
   {% call fold("Steering", "Turner et al., 2023; Goodfire, Neural Networks Are Already Clean, 2026") %}<div data-pagefind-ignore>
-    <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">What the model writes with this {{ what }} ablated, untouched, and clamped. Text that matches the baseline is faded.</p>
+    <p class="text-sm text-slate-600 dark:text-slate-400">What the model writes with this {{ what }} ablated, untouched, and clamped. Text that matches the baseline is faded.</p>
     {% call read_more() %}<p>The prompts are neutral. The clamp is a multiple of the top activation in the scan ({{ st.clamp_unit | num(2) }}), at every token, and decoding is greedy. Drift at ×1 or ×2 shows what the {{ what }} makes the model write. Drift only at ×4 is off-distribution. At most {{ st.max_new_tokens }} new tokens. Taken after the proposer answered, and shown to neither agent. Reported, not gated.</p>{% endcall %}
     <div class="mt-3"></div>
     <div class="space-y-4">
