@@ -26,6 +26,7 @@ Status marks how the work relates to this repo:
 | [Robustness of Model-Graded Evaluations](model-graded-robustness.md) (Lermen and Kvapil, 2023) | not applicable | Injected text sways LLM graders of quality. Our verdicts are measured, our scores are checked against measured activations, and prompts fence untrusted text. |
 | [Causally Grounded Explanations](causally-grounded-explanations.md) (Mahale, 2026) | not applicable | An MSc thesis on six IOI heads in GPT-2 small, with no held-out tests. Its sufficiency is 100% by construction, which shows why our causal scores rank against matched neurons. |
 | [Understanding AI from the Inside](understanding-ai-from-the-inside.md) (Barez, Wu et al., 2026) | planned | A 183-page survey with an evaluation protocol and guardrails for automated interpretability. The registry already has most of both. Its missing guardrail, a blind human audit of a random sample of verdicts, is #4034. |
+| [Automated Interpretability Metrics Do Not Distinguish Trained and Random Transformers](random-transformers-autointerp.md) (Heap, Lawson, Farnik and Aitchison, 2025) | planned | SAE latents on random-init Pythia score about as well on fuzzing and detection as on trained ones. The protocol's verdicts do separate trained and random GPT-2. #5758 would test the repo's scores |
 
 ## Model architecture
 
@@ -64,6 +65,7 @@ Status marks how the work relates to this repo:
 | Page | Status | Why |
 | --- | --- | --- |
 | [Attribution Patching Outperforms Automated Circuit Discovery](attribution-patching.md) (Syed, Rager and Conmy, 2023) | used | A gradient estimate of activation patching that ranks edges in two forward passes and one backward pass. `pole_effects.py` uses it on single poles, where it ranks them far better than on edges |
+| [Compressed Sensing for Capability Localization in Large Language Models](compressed-sensing-localization.md) (Bair, Xu, Sun and Kolter, 2026) | planned | A Lasso on 100–400 random knock-outs finds 5 heads per task in place of thousands of single tests. Heads only, first order, per task. #5602 would adapt it to `explain` |
 | [Confidence Regulation Neurons in Language Models](confidence-regulation-neurons.md) (Stolfo, Wu, Gurnee et al., 2024) | used | Entropy neurons scale the logits through the final LayerNorm, and token frequency neurons pull toward the unigram distribution. The triage skill lists both families |
 | [Convergent Learning: Do Different Neural Networks Learn the Same Representations?](convergent-learning.md) (Li, Yosinski, Clune et al., 2016) | used | Matches units across vision networks from different seeds by correlation. The sister search's mutual best match is a strict form of its one-to-one matching. It has no random baseline. Our citations check out. |
 | [Efficient Streaming Language Models with Attention Sinks](attention-sinks.md) (Xiao, Tian, Chen et al., 2023) | used | Initial tokens draw attention whatever they mean, because softmax must put weight somewhere. The protocol calls the first token "the attention sink". The source didn't test GPT-2, so one preprint sentence now names the models it did test. |
