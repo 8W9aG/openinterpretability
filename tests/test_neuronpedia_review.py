@@ -5,7 +5,13 @@ The command is `open-interpretability neuronpedia-review`.
 
 from openinterpretability.cli_neuronpedia import baseline_submission
 from openinterpretability.crossref import Explanation
-from openinterpretability.neuronpedia_review import NOT_PROBE_GATES, ReviewRow, probe_gates, report
+from openinterpretability.neuronpedia_review import (
+    NOT_PROBE_GATES,
+    ReviewRow,
+    probe_gates,
+    report,
+    side,
+)
 
 THEIRS = Explanation(description="references to the number 39", explainer="gpt-4o-mini")
 
@@ -50,3 +56,31 @@ def test_report_counts_latents_that_pass_every_probe_gate():
     assert "| Balanced accuracy (mean, n = 2) | 0.85 | 0.72 (sign test p = 1) |" in md
     assert "failed: specificity ×1." in md
     assert "n \\| x" in md and "not reviewed yet" in md
+
+
+def test_side_reads_the_probe_metrics_and_gates_of_a_verdict():
+    from openinterpretability.core.schemas import ReviewMetrics
+
+    gates = {"specificity": True, "sensitivity": False, "independent_review": False}
+    metrics = ReviewMetrics(
+        specificity=0.9, sensitivity=0.5, balanced_accuracy=0.7, counterfactual_reproduction=None,
+        lookahead_consistent=True, independent_review=False, gates=gates,
+    )  # fmt: skip
+    assert side(metrics) == {
+        "balanced_accuracy": 0.7,
+        "specificity": 0.9,
+        "sensitivity": 0.5,
+        "gates": {"specificity": True, "sensitivity": False},
+        "probe_verified": False,
+    }
+
+
+def test_report_leaves_out_metrics_with_no_pairs_and_an_empty_failure_line():
+    row = dict(experiment_id="e", url=None, agent_status="VERIFIED",
+               agent_explanation="a", neuronpedia_explanation="n", explainer="m")  # fmt: skip
+    agent = _side(0.9, True) | {"specificity": None}
+    rows = [ReviewRow(slug="u/F1", agent=agent, neuronpedia=_side(0.8, True), **row)]
+    md = report(rows)
+    assert "| Specificity (mean" not in md  # one side has no value, so no row
+    assert "| Balanced accuracy (mean, n = 1) |" in md
+    assert "failed:" not in md  # every gate passed

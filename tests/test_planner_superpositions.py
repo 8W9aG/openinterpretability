@@ -156,3 +156,13 @@ def test_a_superposition_record_offers_follow_ups(tmp_path, record):
     assert f"uv run {revise.commands[0]}" in text
     assert f"audit --superposition {definition} --corpus c.jsonl" in text
     assert f"--supersedes {revise.record}" in text
+
+
+def test_a_definition_in_another_file_with_a_window_names_both(tmp_path):
+    root = _root(tmp_path, name="extra.jsonl")
+    (root / "pyproject.toml").write_text(
+        '[tool.openinterpretability.window_tokens]\n"o/m" = 256\n', encoding="utf-8"
+    )
+    (c,) = superposition_candidates({}, [], root)
+    assert c.commands[0].endswith(" --definitions data/superpositions/extra.jsonl")
+    assert c.audit == f"--superposition exchange/{KEY}/superposition.json --window-tokens 256"

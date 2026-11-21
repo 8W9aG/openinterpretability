@@ -607,3 +607,31 @@ def test_a_failed_rival_of_a_verified_hypothesis_draws_a_revision(tmp_path, reco
               if (c.kind, c.slug.rsplit("/", 1)[-1]) == ("revise", "N1-positive")]  # fmt: skip
     assert revise and "submit one that addresses both" in revise[0].rationale
     assert ("resolve", "N1-positive") not in _kinds(plan)
+
+
+def test_a_unit_studied_in_the_last_day_is_drawn_at_half_weight(tmp_path, record):
+    rec = _record(record, status="REJECTED", idx=7, gates={})
+    twelve_hours_ago = NOW - timedelta(hours=12)
+    rec = rec.model_copy(
+        update={"verdict": rec.verdict.model_copy(update={"timestamp": twelve_hours_ago})}
+    )
+    plan = plan_next(_registry(tmp_path, rec), seed=1, epsilon=0.0, now=NOW)
+    new_hyp = next(c for c in plan.candidates if c.kind == "new_hypothesis")
+    assert new_hyp.weight == pytest.approx(BASE_WEIGHTS["new_hypothesis"] * 0.5)
+    assert "studied in the last 24h" in new_hyp.rationale and "6h" not in new_hyp.rationale
+
+
+def test_an_explore_draw_can_be_weighted_by_effect(tmp_path):
+    from openinterpretability.planner_effects import table_path
+
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.openinterpretability]\nmodels = ["toy/model"]\nhead_share = 0.0\n'
+        "effect_share = 1.0\n"
+    )
+    table = table_path(tmp_path, "toy/model")
+    table.parent.mkdir(parents=True)
+    rows = [{"layer": 2, "neuron": 9, "pole": "negative", "effect": 0.5}]
+    table.write_text(json.dumps({"poles": rows}))
+    plan = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW)
+    assert plan.explored and plan.choice.slug.endswith("L2/N9-negative")
+    assert "--selection attribution" in plan.choice.commands[0]

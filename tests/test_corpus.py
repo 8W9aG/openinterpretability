@@ -924,3 +924,35 @@ def test_committed_table_names_corpora_not_covered_elsewhere():
     shas = [CorpusSource.model_validate(e).sha256 for e in entries]
     assert len(set(shas)) == len(shas)
     assert CorpusSource.model_validate_json(sidecar.read_text()).sha256 not in shas
+
+
+def test_first_documents_join_rows_into_documents_with_a_layout(tmp_path):
+    path = tmp_path / "wikitext.parquet"
+    pq.write_table(pa.table({"text": WIKITEXT}), path, row_group_size=len(WIKITEXT))
+    fs = fsspec.filesystem("file")
+    docs = first_documents(
+        fs, [str(path)], text_column="text", documents=5, max_chars=1000, layout="wikitext"
+    )
+    assert docs == wikitext_articles(WIKITEXT)
+    assert [d.split("\n")[0] for d in docs] == ["Homarus gammarus", "Second"]
+
+
+def test_a_glob_that_matches_no_file_is_an_error(tmp_path, monkeypatch):
+    class EmptyFS:
+        def glob(self, pattern):
+            return []
+
+    info = SimpleNamespace(sha="sha1", card_data=None)
+    monkeypatch.setattr("huggingface_hub.HfFileSystem", EmptyFS)
+    monkeypatch.setattr(
+        "huggingface_hub.HfApi", lambda: SimpleNamespace(dataset_info=lambda d, revision: info)
+    )
+    with pytest.raises(FileNotFoundError, match="no files match 'a/\\*.parquet' in org/data"):
+        build_from_hub("org/data", tmp_path / "c.jsonl", files="a/*.parquet", documents=2)
+    assert not (tmp_path / "c.jsonl").exists()
+
+
+def test_a_glob_language_needs_a_match_unless_there_is_no_pattern():
+    with pytest.raises(ValueError, match="names no language under the pattern"):
+        _glob_lang(r"^1\.(\w+)/", "other/x.parquet")
+    assert _glob_lang(None, "other/x.parquet") is None

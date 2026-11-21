@@ -82,3 +82,16 @@ def test_the_loop_posts_a_circuit_draw_by_its_verdict(monkeypatch):
     monkeypatch.setattr(el, "new_files", lambda prefix: [])
     with pytest.raises(el.LoopError, match="no circuit record"):
         el.verdict_of("circuit", "k")
+
+
+def test_a_circuit_draw_names_the_configured_model_of_its_slug(tmp_path):
+    # The slug alone reads as a/b/c. The configured model a/b--c has the same slug.
+    data = tmp_path / "data" / "circuits"
+    data.mkdir(parents=True)
+    line = {"date": "2026-11-16", "event": "new", "id": "C1", "members": NOW}
+    (data / "a--b--c.jsonl").write_text(json.dumps(line) + "\n")
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.openinterpretability]\nmodels = ["x/y", "a/b--c"]\n'
+    )
+    (c,) = circuit_candidates([], tmp_path)
+    assert c.model == "a/b--c" and "--model a/b--c " in c.commands[0]
