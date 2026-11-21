@@ -60,6 +60,7 @@ Status marks how the work relates to this repo:
 
 | Page | Status | Why |
 | --- | --- | --- |
+| [Attribution Patching Outperforms Automated Circuit Discovery](attribution-patching.md) (Syed, Rager and Conmy, 2023) | used | A gradient estimate of activation patching that ranks edges in two forward passes and one backward pass. `pole_effects.py` uses it on single poles, where it ranks them far better than on edges |
 | [Convergent Learning: Do Different Neural Networks Learn the Same Representations?](convergent-learning.md) (Li, Yosinski, Clune et al., 2016) | used | Matches units across vision networks from different seeds by correlation. The sister search's mutual best match is a strict form of its one-to-one matching. It has no random baseline. Our citations check out. |
 | [Efficient Streaming Language Models with Attention Sinks](attention-sinks.md) (Xiao, Tian, Chen et al., 2023) | used | Initial tokens draw attention whatever they mean, because softmax must put weight somewhere. The protocol calls the first token "the attention sink". The source didn't test GPT-2, so one preprint sentence now names the models it did test. |
 | [Finding Neurons in a Haystack: Case Studies with Sparse Probing](neurons-in-a-haystack.md) (Gurnee, Nanda, Pauly et al., 2023) | used | The method behind `sparse-probing-search`. Across seven Pythia sizes, code languages and facts become more local with scale, and some features split. At k = 1 the mean-difference probe reaches F1 0.832, against 0.573 for random neurons. |
