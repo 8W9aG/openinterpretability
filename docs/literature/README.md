@@ -172,6 +172,7 @@ Part of the review of how to fix a model's behaviour (#4784). These pages cover 
 | [AxBench](axbench.md) (Wu et al., 2025) | planned | On 500 concepts in Gemma-2, prompting steers best (0.894) and SAE steering scores 0.165. Any steering fix needs a prompting baseline and a fluency score, and our steering samples have neither (#4784, #3209). |
 | [Steering Safely or Off a Cliff?](steering-specificity.md) (Goyal and Daumé, 2026) | planned | It splits a steering fix's side effects into general, control and shift checks: steering keeps refusal on harmful queries but loses 8–55% of jailbreak safety. For #4781 the control set already exists: same-frame prompts where copying is right (" legs", " wheels"). |
 | [Does Steering Break Your Model?](does-steering-break-your-model.md) (Yang et al., 2026) | planned | On two Gemma 2 models, none of 23 activation-steering methods beats prompt steering on effect against side effects such as fluency. That is a reason to score the side effects of our steering samples, and to compare any steering fix with a prompt (#4784, #3209). |
+| [RL Post-Training in Diffusion Transformers Is Activation Steering](rl-post-training-is-steering.md) (Meral, Oktay, Helbling et al., 2026) | not applicable | Fitted constant vectors on a frozen diffusion transformer recover 90.0–96.3% of RL fine-tunes' reward gains. A constant shift can hold a fine-tune, but no language model is tested |
 
 ## Catastrophic interference and forgetting
 
