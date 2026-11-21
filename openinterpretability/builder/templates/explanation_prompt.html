@@ -9,10 +9,10 @@
 {% block content %}
 {% set r = prompt.record %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}{{ prompt.model_href }}">{{ r.model_name }}</a> / <a class="underline" href="{{ root }}explanations/index.html">Explanations</a></nav>
-<h1 class="max-w-3xl text-2xl font-semibold">Why <span class="font-mono">{{ r.model_name }}</span> answers <span class="font-mono">{{ r.answer }}</span></h1>
-<p class="mt-2 max-w-3xl font-mono text-sm text-slate-700 dark:text-slate-300">{{ r.prompt }}</p>
+<h1 class="text-2xl font-semibold">Why <span class="font-mono">{{ r.model_name }}</span> answers <span class="font-mono">{{ r.answer }}</span></h1>
+<p class="mt-2 font-mono text-sm text-slate-700 dark:text-slate-300">{{ r.prompt }}</p>
 {% include "_answer_verdict.html" %}
-<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">This prompt is a sub-unit of <a class="underline" href="{{ root }}{{ prompt.model_href }}">{{ r.model_name }}</a>. Each explanation of it is an experiment, with its own page. A later one builds on an earlier one. An explanation that reaches the coverage asked for is reused, not run again.</p>
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">This prompt is a sub-unit of <a class="underline" href="{{ root }}{{ prompt.model_href }}">{{ r.model_name }}</a>. Each explanation of it is an experiment, with its own page. A later one builds on an earlier one. An explanation that reaches the coverage asked for is reused, not run again.</p>
 
 {% if r.narration %}
 <div class="paper mt-6">
@@ -23,7 +23,7 @@
 {% endif %}
 
 <h2 class="mb-1 mt-8 text-lg font-semibold">Explanations</h2>
-<p class="mb-3 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Newest first. Coverage is causal: the share of the answer's log-probability that the explained units bring back, with the rest mean-ablated, against random units of the same count. It is capped at 100%: an overshoot means the kept units push the answer above the clean model. The share is of first-order |attribution|.</p>
+<p class="mb-3 text-sm text-slate-600 dark:text-slate-400">Newest first. Coverage is causal: the share of the answer's log-probability that the explained units bring back, with the rest mean-ablated, against random units of the same count. It is capped at 100%: an overshoot means the kept units push the answer above the clean model. The share is of first-order |attribution|.</p>
 <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
   <table class="w-full text-left text-sm">
     <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900">

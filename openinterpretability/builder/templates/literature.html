@@ -9,7 +9,7 @@
 
 {% block content %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="{{ root }}research/index.html">Research</a>{% if review.name != "README" %} / <a class="underline" href="index.html">Literature review</a>{% else %} / Literature review{% endif %}</nav>
-<h1 class="max-w-3xl text-2xl font-semibold">{{ review.title }}</h1>
+<h1 class="text-2xl font-semibold">{{ review.title }}</h1>
 <p class="mt-2 text-xs text-slate-500"><a class="underline" href="{{ repo_url }}/blob/main/docs/literature/{{ review.name }}.md">Source</a></p>
 {% if points is defined and points %}
 {# The map (builder/literature_map_view.py, #4577), after Alexander Coulton's map of cancer

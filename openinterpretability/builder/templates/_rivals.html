@@ -2,7 +2,7 @@
 {% from "_macros.html" import fold, read_more %}
   {% if verdict and verdict.rivals %}
   {% call fold("Rival readings") %}<div data-pagefind-ignore>
-    <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">Other readings that fit the same examples, each scored on the same probes.</p>
+    <p class="text-sm text-slate-600 dark:text-slate-400">Other readings that fit the same examples, each scored on the same probes.</p>
     {% call read_more() %}<p>The proposer wrote the rivals, and the reviewer labelled what each one predicts on each probe. The score is balanced accuracy on the measured probes. Recorded, not gated: the verdict is about the hypothesis alone.</p>{% endcall %}
     <div class="mt-3"></div>
     <div class="overflow-x-auto">

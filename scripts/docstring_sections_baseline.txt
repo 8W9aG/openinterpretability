@@ -886,7 +886,6 @@ openinterpretability/harness/dictionaries.py::Dictionary.reconstruct
 openinterpretability/harness/dictionaries.py::load_dictionary
 openinterpretability/harness/dictionaries.py::load_spec
 openinterpretability/harness/dictionaries.py::spec_profile
-openinterpretability/harness/dreaming.py::dream
 openinterpretability/harness/environment.py::host
 openinterpretability/harness/environment.py::agent_product
 openinterpretability/harness/environment.py::run_environment

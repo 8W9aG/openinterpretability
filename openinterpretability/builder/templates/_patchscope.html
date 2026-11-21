@@ -3,7 +3,7 @@
   {% if sub.patchscope and sub.patchscope.readings %}
   {% set ps = sub.patchscope %}
   {% call fold("Patchscope", "Ghandeharioun et al., 2024; Chen et al., 2024 (SelfIE)") %}<div data-pagefind-ignore>
-    <p class="max-w-3xl text-sm text-slate-600 dark:text-slate-400">The model's own description of this unit's output, with no examples.</p>
+    <p class="text-sm text-slate-600 dark:text-slate-400">The model's own description of this unit's output, with no examples.</p>
     {% call read_more() %}<p>The unit's direction replaces the residual stream after the named layer, at the <code class="tok">{{ ps.placeholder }}</code> of each prompt. It is scaled to each multiple of the norm it replaces, and the model continues greedily. The control injects a random direction, so text that both rows share comes from the prompt. Read after the proposer answered, and shown to neither agent. Reported, not gated.</p>{% endcall %}
     <div class="mt-3"></div>
     <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">

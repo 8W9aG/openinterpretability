@@ -6,7 +6,7 @@
 {% block content %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / Explanations</nav>
 <h1 class="text-2xl font-semibold">Explanations</h1>
-<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">Why a model gives one answer to one prompt, as far as the registry explains it. Explanations are sub-units of a model, so the prompts are grouped by model. A prompt's page lists each explanation of it, and each explanation is an experiment with its own page. Each is written from the registry's evidence by <code class="font-mono">open-interpretability explain</code>, and only VERIFIED units count as explained. A stale one cites a unit whose status has changed since it was written.</p>
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Why a model gives one answer to one prompt, as far as the registry explains it. Explanations are sub-units of a model, so the prompts are grouped by model. A prompt's page lists each explanation of it, and each explanation is an experiment with its own page. Each is written from the registry's evidence by <code class="font-mono">open-interpretability explain</code>, and only VERIFIED units count as explained. A stale one cites a unit whose status has changed since it was written.</p>
 {% for model_name, prompts in groups.items() %}
 <h2 class="mb-2 mt-8 text-lg font-semibold"><span class="font-mono">{{ model_name }}</span></h2>
 {{ explanation_rows(prompts, root, show_model=false) }}

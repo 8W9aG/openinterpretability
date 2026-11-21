@@ -9,7 +9,7 @@
 {% block content %}
 {{ breadcrumb(root, model) }}
 <h1 class="font-mono text-2xl font-semibold">Circuits in {{ model.name }}</h1>
-<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
   Units in the registry joined by their wiring: each experiment records its unit's strongest direct connections, from the weights and from activations on its review's prompts, and an edge is kept when the unit at its other end has a page too. A hub, a unit wired to at least {{ (hub_share * 100) | round | int }}% of the model's studied units (and at least {{ hub_min }}), would join them all into one star, so its edges don't join circuits; hubs are listed last. The registry's <strong>circuits</strong> are clusters of the wiring graph (Leiden communities of at least 3 units), with ids that survive as the registry grows. Each is audited by task hypotheses. Units joined edge to edge form a <strong>wiring group</strong>, laid out by layer (attention heads above neurons in a layer, since attention runs first), named after its lowest-layer unit. Edges are direct effects only, and a unit's wiring lists only its top connections, so a missing edge is not evidence of no connection. Reported, not gated.
 </p>
 <p class="mt-2 text-xs text-slate-500">

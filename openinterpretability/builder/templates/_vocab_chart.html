@@ -4,7 +4,7 @@
   {% if sub.vocabulary_lens %}
   {% set vl = sub.vocabulary_lens %}{% set vc = v.vocab %}
   {% call fold("Vocabulary projection") %}<div data-pagefind-ignore>
-    <p class="mb-4 max-w-3xl text-sm text-slate-600 dark:text-slate-400">The tokens that this unit's output raises and lowers most.</p>
+    <p class="mb-4 text-sm text-slate-600 dark:text-slate-400">The tokens that this unit's output raises and lowers most.</p>
     {% if vc %}
     <figure>
       <div class="grid gap-x-8 gap-y-6 lg:grid-cols-2">
@@ -60,7 +60,7 @@
       </div>
     </details>
     {% else %}
-    <table class="w-full max-w-3xl text-xs">
+    <table class="w-full text-xs">
       <thead class="text-slate-500">
         <tr>
           <th class="pb-1 text-left font-normal"></th>
