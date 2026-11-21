@@ -7,6 +7,7 @@ How to change the code, what CI checks on a pull request, where the code lives, 
 ```bash
 make install        # uv sync
 make test           # pytest, one process per core (CPU only, no downloads); TEST_WORKERS=0 runs one at a time; waits for other heavy jobs with OPENINTERPRETABILITY_HEAVY_LOCK=1
+make coverage       # the tests with branch coverage, at least [tool.coverage.report] fail_under, then diff-cover at 90% against origin/main (what CI runs)
 make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, types, Markdown, Vale, STE
 make typecheck      # mypy, strict, on the packages in [tool.mypy] files (pyproject.toml)
 make vale           # comment and docstring prose against our STE rules (needs Vale)
