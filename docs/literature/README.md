@@ -26,6 +26,7 @@ Status marks how the work relates to this repo:
 | [Robustness of Model-Graded Evaluations](model-graded-robustness.md) (Lermen and Kvapil, 2023) | not applicable | Injected text sways LLM graders of quality. Our verdicts are measured, our scores are checked against measured activations, and prompts fence untrusted text. |
 | [Causally Grounded Explanations](causally-grounded-explanations.md) (Mahale, 2026) | not applicable | An MSc thesis on six IOI heads in GPT-2 small, with no held-out tests. Its sufficiency is 100% by construction, which shows why our causal scores rank against matched neurons. |
 | [Understanding AI from the Inside](understanding-ai-from-the-inside.md) (Barez, Wu et al., 2026) | planned | A 183-page survey with an evaluation protocol and guardrails for automated interpretability. The registry already has most of both. Its missing guardrail, a blind human audit of a random sample of verdicts, is #4034. |
+| [Automated Interpretability Metrics Do Not Distinguish Trained and Random Transformers](random-transformers-autointerp.md) (Heap, Lawson, Farnik and Aitchison, 2025) | planned | SAE latents on random-init Pythia score about as well on fuzzing and detection as on trained ones. The protocol's verdicts do separate trained and random GPT-2. #5758 would test the repo's scores |
 
 ## Model architecture
 
