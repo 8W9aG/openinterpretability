@@ -238,6 +238,9 @@ def test_studied_poles_take_the_newest_record_with_texts_and_the_first_date(
 
 
 def test_clusters_split_two_far_groups_at_the_target_count():
+    # Leiden comes with the map extra, which CI doesn't install.
+    pytest.importorskip("igraph")
+    pytest.importorskip("leidenalg")
     rng = np.random.default_rng(0)
     near = [np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0])]
     rows = [c + 0.01 * rng.normal(size=3) for c in near for _ in range(6)]
