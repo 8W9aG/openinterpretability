@@ -4,10 +4,17 @@
 [extend]
 useDefault = true
 
-[allowlist]
+[[allowlists]]
 description = "Corpus excerpts in records, pages and benchmark data"
 paths = [
   '''^wiki/experiments/''',
   '''^wiki/draws/''',
   '''^benchmark/''',
 ]
+
+# An ssh signer line's validity option, such as valid-before="20200101Z", in the signing
+# tests. The generic rule takes the date for a key. It is a date, not a secret.
+[[allowlists]]
+description = "Validity dates of test ssh signer lines"
+regexTarget = "line"
+regexes = ['''valid-(before|after)="[0-9]{8}Z"''']
