@@ -201,10 +201,10 @@ source = ["openinterpretability"]
 branch = true
 
 [tool.coverage.report]
-# Just below the measured total (90.92% on 2026-11-21). Raise it as coverage rises, never
+# Just below the measured total (91.17% on 2026-11-21). Raise it as coverage rises, never
 # lower it, up to 100 (#5855). The lines that a pull request changes are held to
 # [tool.diff_cover] fail_under.
-fail_under = 90
+fail_under = 91
 skip_covered = true
 show_missing = true
 

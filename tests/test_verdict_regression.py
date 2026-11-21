@@ -86,3 +86,22 @@ def test_check_registry_reports_drift(tmp_path, monkeypatch, judged):
     write_experiment_page(_with(judged, status="REJECTED"), tmp_path / "wiki")
     report = check_registry(tmp_path / "wiki")
     assert any("different verdict" in p.message for p in report.problems)
+
+
+def test_a_record_without_a_confound_baseline_is_recomputed_without_one(submission, verdict):
+    from openinterpretability.verdict_regression import recompute
+
+    policy = ReviewPolicy()
+    results = _results()
+    metrics = review_metrics(results, policy, independent=True)
+    update = {
+        "adversarial_test_results": results,
+        "policy": policy,
+        "metrics": metrics,
+        "status": decide(metrics, policy),
+        "confidence_score": metrics.balanced_accuracy,
+    }
+    record = AuditRecord(submission=submission, verdict=verdict.model_copy(update=update))
+    again, status = recompute(record)
+    assert again.confound_baseline is None and again == metrics
+    assert status == record.verdict.status and verdict_drift(record) is None

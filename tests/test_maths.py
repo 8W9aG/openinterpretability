@@ -34,6 +34,7 @@ def test_a_paper_renders_inline_and_display_maths(tmp_path):
     [
         ("x^{", "braces"),
         ("\\frac{a", "braces"),
+        ("a}{b", "braces"),  # a brace closes before one opens
         ("\\nosuch{x}", "unknown"),
         ("\\left( x", "can.t typeset"),
     ],

@@ -29,3 +29,12 @@ def test_long_runs_are_given_in_hours():
     progress = Progress("pieces", 10, interval=0, clock=clock)
     clock.now = 3 * 3600
     assert progress.step(5) == "pieces: 5/10, 3.0 h so far, about 3.0 h left"
+
+
+def test_no_time_left_is_given_before_the_first_item_or_after_the_last():
+    clock = Clock()
+    progress = Progress("pieces", 2, clock=clock)
+    clock.now = 10
+    assert progress.line() == "pieces: 0/2, 10 s so far"
+    progress.done = 2
+    assert progress.line() == "pieces: 2/2, 10 s so far"

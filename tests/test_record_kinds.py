@@ -36,3 +36,11 @@ def test_every_wiki_record_kind_is_listed_and_documented():
     assert reproducible("wiki/experiments/m/L1/N2-positive/1.json")
     assert reproducible("wiki/explanations/m/abc/1.json")  # since #4793
     assert not reproducible("wiki/circuits/m/abc/1.json")
+
+
+def test_the_module_run_as_a_script_in_this_process_prints_the_prefixes(capsys):
+    # The subprocess test above is not measured by coverage, so run it here too.
+    import runpy
+
+    runpy.run_path(str(ROOT / "openinterpretability/core/record_kinds.py"), run_name="__main__")
+    assert capsys.readouterr().out.split() == list(REPRODUCIBLE)
