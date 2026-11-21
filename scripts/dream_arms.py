@@ -114,7 +114,13 @@ def arm_dreams(runner, record, threshold: float) -> list[dict]:
     items: dict[str, dict] = {}
 
     def keep(arm: str, dreams, test) -> None:
-        """Add each dream that passes ``test`` and is new."""
+        """Add each dream that passes ``test`` and is new.
+
+        Args:
+            arm: The arm's name, which becomes the item's kind.
+            dreams: The arm's dreams.
+            test: A function of one dream's strength that is true to keep it.
+        """
         for d in dreams:
             if test(d.strength) and d.text not in items:
                 items[d.text] = {"text": d.text, "kind": arm, "strength": d.strength,
@@ -148,7 +154,13 @@ def cli() -> None:
 @click.option("--dir", "out_dir", required=True, type=click.Path(file_okay=False, path_type=Path))
 @click.option("--device", default="cpu", show_default=True)
 def prepare(wiki_dir: Path, out_dir: Path, device: str) -> None:
-    """Run the three arms on each pole, and write one detection prompt per pole."""
+    """Run the three arms on each pole, and write one detection prompt per pole.
+
+    Args:
+        wiki_dir: The wiki that holds the records.
+        out_dir: The folder for the prompts, keys and dreams.
+        device: The torch device for the models.
+    """
     from openinterpretability.agents.judge import DetectionAnswer, ExplanationJudge, TaskWindow
     from openinterpretability.cli import _load_runner
     from openinterpretability.core.schemas import ReviewPolicy
@@ -226,7 +238,13 @@ def rates(items: list[dict]) -> dict:
 @click.option("--dir", "out_dir", required=True, type=click.Path(file_okay=False, path_type=Path))
 @click.option("--device", default="cpu", show_default=True)
 def review(wiki_dir: Path, out_dir: Path, device: str) -> None:
-    """Add each GPT-2 pole's firing dreams to its record's probes, and re-measure the verdict."""
+    """Add each GPT-2 pole's firing dreams to its record's probes, and re-measure the verdict.
+
+    Args:
+        wiki_dir: The wiki that holds the records.
+        out_dir: The folder with the keys and the judge's answers.
+        device: The torch device for the model.
+    """
     from null_calibration import review_probes
 
     from openinterpretability.agents.reviewer import AdversarialProbe, probes_from_verdict
@@ -257,7 +275,12 @@ def review(wiki_dir: Path, out_dir: Path, device: str) -> None:
 @click.option("--dir", "out_dir", required=True, type=click.Path(file_okay=False, path_type=Path))
 @click.option("--out", type=click.Path(dir_okay=False, path_type=Path), required=True)
 def report(out_dir: Path, out: Path) -> None:
-    """Write one row per pole, one per model, and the review arm's verdict moves."""
+    """Write one row per pole, one per model, and the review arm's verdict moves.
+
+    Args:
+        out_dir: The folder with the keys, answers and reviews.
+        out: The JSONL file to write.
+    """
     rows, by_model = [], {}
     for key_path in sorted(out_dir.glob("*.key.json")):
         key = json.loads(key_path.read_text(encoding="utf-8"))
