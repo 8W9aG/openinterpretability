@@ -15,7 +15,7 @@
 {% block content %}
 <nav class="mb-4 text-xs text-slate-500"><a class="underline" href="{{ root }}index.html">Registry</a> / <a class="underline" href="../index.html">Posts</a></nav>
 {% if post.draft %}<p class="mb-2 inline-block rounded border-2 border-dashed border-slate-500 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-slate-700 dark:text-slate-200">Draft: not published, and not listed</p>{% endif %}
-<h1 class="max-w-3xl text-2xl font-semibold">{{ post.title }}</h1>
+<h1 class="text-2xl font-semibold">{{ post.title }}</h1>
 <p class="mt-2 text-xs text-slate-500">
   {% if post.published %}<time datetime="{{ post.published }}">{{ post.published }}</time> ·{% endif %}
   <a class="underline" href="{{ repo_url }}/blob/main/posts/{{ post.slug }}/README.md">Source</a>

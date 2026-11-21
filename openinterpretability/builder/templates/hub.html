@@ -8,12 +8,12 @@
 {% set inbound = hub.edges | selectattr("target", "sameas", hub.unit) | list %}
 {{ nav(root, model, "Hub " ~ unit_name(hub.unit)) }}
 <h1 class="font-mono text-2xl font-semibold">Hub <a class="underline" href="{{ root }}{{ hub.unit.href }}">{{ unit_name(hub.unit) }}</a></h1>
-<p class="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
   Wired to {{ hub.neighbours | length }} studied units of {{ model.name }} ({{ inbound | length }} edges in, {{ hub.edges | length - inbound | length }} out). A hub would join them all into one star, so its edges don't join circuits. See <a class="underline" href="{{ root }}models/{{ model.slug }}/circuits.html">all circuits</a>. Reported, not gated.
 </p>
 <section class="mt-6" aria-labelledby="hub-standing">
   <h2 id="hub-standing" class="text-base font-semibold">Standing and artefact checks</h2>
-  <p class="mt-1 max-w-3xl text-xs text-slate-500">A hub has no experiments of its own, so its standing is its center's. A hub can be an artefact: a unit that is on most of the time, or that writes with a large norm, touches many units without carrying anything particular. These facts are reported, not gated.</p>
+  <p class="mt-1 text-xs text-slate-500">A hub has no experiments of its own, so its standing is its center's. A hub can be an artefact: a unit that is on most of the time, or that writes with a large norm, touches many units without carrying anything particular. These facts are reported, not gated.</p>
   <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
     <table class="w-full text-left text-sm">
       <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:bg-slate-900"><tr><th class="px-3 py-2">{{ "Head" if hub.unit.is_head else "Pole" }}</th><th class="px-3 py-2">Standing</th><th class="px-3 py-2 text-right">Active share</th><th class="px-3 py-2">Default-on</th></tr></thead>

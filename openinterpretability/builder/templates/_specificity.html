@@ -11,7 +11,7 @@
         </div>
   {% endmacro %}
   {% call fold("WordNet specificity") %}<div data-pagefind-ignore>
-    <p class="max-w-3xl text-sm">AUROC <strong>{{ sp.auroc | num(2) }}</strong> for <span class="font-mono">{{ sp.synset }}</span> against its sibling categories. Active on {{ sp.category_active | pct }} of category words and {{ sp.siblings_active | pct }} of sibling words.</p>
+    <p class="text-sm">AUROC <strong>{{ sp.auroc | num(2) }}</strong> for <span class="font-mono">{{ sp.synset }}</span> against its sibling categories. Active on {{ sp.category_active | pct }} of category words and {{ sp.siblings_active | pct }} of sibling words.</p>
     {% call read_more() %}<p>The category is {{ sp.lemma }}{{ ", named by the proposer" if sp.source == "proposer" else ", the largest category of the peak words" }}. Each word is measured in {{ sp.carriers | length }} neutral sentences, and peak words are left out. AUROC is the chance that a category word is stronger than a sibling word, so 0.5 is no difference. Strengths are fractions of the top activation in the scan. Measured after the proposer answered, and shown to neither agent. Reported, not gated.</p>{% endcall %}
     <div class="mt-3"></div>
     <div class="grid gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 sm:grid-cols-2 dark:border-slate-800 dark:bg-slate-800">
