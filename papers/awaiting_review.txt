@@ -1,11 +1,7 @@
 # Works that a paper cites and that have no page in docs/literature/ yet, each with the
 # open area: literature issue that will write it (scripts/cited_works.py, #5346).
 # Delete a line when its page lands. tests/test_papers.py fails on a stale line.
-1702.03118 #5342
-1711.05101 #5343
 1802.03426 #5420
 1810.08473 #5421
 1908.10084 #5422
 2002.10957 #5423
-2405.07987 #5419
-2406.16254 #5344
