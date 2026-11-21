@@ -1,113 +1,124 @@
-# Why did the model say that? How an explanation is built
+# Explaining an AI's answer
 
-`open-interpretability explain` takes one prompt and asks why the model gave its answer. This post follows two explanations of EleutherAI/pythia-70m through to the end, and shows how each part of an explanation is built and tested. One of the answers is wrong, and the explanation says how the model gets it wrong.
+AI seems pretty impregnable at first glance. Even the smallest models are tens of millions of parameters, all mixed up in a giant web of matrix multiplications. But a recent essay, [Neural Networks Are Already Clean](https://already-clean.goodfire.com/), challenged the idea that models are impenetrable nests of superpositions. It argues that each neuron has a defined role, and that role can be studied, at scale, by agents.
 
-Every number here comes from a record in the repository. Each record was written by `explain --record` or by an answer experiment. The records name the package version that wrote them, 0.1.0 or 0.2.0, and the post gives the record with each number.
+Open Interpretability was made to do just that, and then to use what we learn to expand what we can do with these models. Our first example is `open-interpretability explain`. Give it a prompt, and it explains how the model got to its answer.
 
-## Two prompts
+We'll follow one prompt all the way through. We give EleutherAI/pythia-70m "The sun rises in the", and it answers " sky". Why " sky"? Let's find out.
 
-- **"The sun rises in the" → " sky".** The record is `wiki/explanations/EleutherAI--pythia-70m/6c78ac114096/20261119T013311Z.json`.
-- **"A week has seven days and a year has twelve" → " days".** The right answer is " months". The record is `wiki/explanations/EleutherAI--pythia-70m/970a91e11d8c/20261118T235000Z.json`, and its answer experiments are in `wiki/answers/EleutherAI--pythia-70m/970a91e11d8c/`.
+## What explain does
 
-## Attribution is a first guess
+### A baseline for each neuron
 
-`explain` first measures each unit's attribution. Each MLP neuron pole and each attention head gets a first-order estimate of how much it pushes the answer's logit, against the unit's mean on a corpus. Then it asks the registry which of those units have a VERIFIED explanation.
+To tell whether a neuron is affecting the answer, we first need to know how it behaves normally. So we run 20k tokens of ordinary text through the model, 128 tokens at a time, and record every neuron and attention head. The average becomes each one's baseline.
 
-For " days", the units with verified explanations hold 6.4% of the total attribution (`explained_share` 0.064). For " sky" they hold 10.1%. Read alone, that looks like a model that is barely explained.
+![Three neurons' means settling on their baselines](media/baseline.svg)
 
-But attribution is first-order. Many units push the answer up and many push it down, and the pushes cancel. A unit's share of the total says little about what the answer needs. So `explain` doesn't use attribution as its target.
+Here's that for three neurons. The average settles down after a few dozen windows. Now look at what each one does on our prompt: way outside anything it does on ordinary text. That's what we're looking for.
 
-## Causal coverage is the target
+### Who pushed the answer?
 
-Coverage asks a direct question. Keep the explained units as they are, set every other unit to its corpus mean, and run the model again. How much of the answer's log-probability comes back?
+Next we run the prompt through the model, and then backwards, which tells us how sensitive the score for " sky" is to every neuron and head. For each one, we multiply how far it is from its baseline by that sensitivity. A neuron that's far from normal, at a spot the answer cares about, gets a big number. That gives us a ranked list of who pushed the answer, and how hard.
 
-- **" days":** the explained units bring back 93.8% (`prompt_coverage` 0.938).
-- **" sky":** they bring back 81.9% (0.819).
+(One wrinkle: we treat each neuron as two units, one for when it fires positive and one for negative, because the two halves often do different jobs.)
 
-So a set of units that holds 6.4% of the attribution brings back 93.8% of the answer. Coverage is the number that `explain --target` aims at, and the one an explanation is judged by (`openinterpretability/explain_coverage.py`).
+Then our registry comes to the rescue. Agents have already run experiments on many of these units, so we can look up what each one does. A unit counts as explained when it has a VERIFIED explanation.
 
-`explain` also prunes the explained set to a minimal set that keeps at least 90% of the coverage. For " days" that is 23 units, which keep 84.8%. For " sky" it is 21 units, which keep 75.7%.
+![The top 20 units, their pushes on " sky", and which ones we already understand](media/known.svg)
 
-## The random baseline
+The explained units hold 10.1% of the total push. Not great, right? But notice that plenty of units push " sky" *down*, so a lot of this pushing cancels out. Hold that thought.
 
-High coverage could mean that any units of the same kinds would do. So every record also measures random sets of units, with the same number of heads and of neuron poles in each layer as the explained set.
+### Checking the guesses
 
-- **" days":** random sets bring back 10.1% (`random_coverage` 0.101), against 93.8%.
-- **" sky":** random sets bring back 13.0%, against 81.9%.
+Everything so far is an estimate. So `explain` spot-checks it: it switches the top units off one at a time and sees how far " sky" moves. It also traces which top units drive each other. Perhaps a head in layer 0 is really driving a neuron in layer 5. That gives us a rough map of the wiring.
 
-Even so, both records set `coverage_caution`. It is true when coverage is within 0.2 of the random baseline, or when verified units hold less than a quarter of the attribution. Here the second applies, with 6.4% and 10.1%. Then coverage shows that the units are sufficient on this prompt, not how they make the answer. The page and the narrator both say so.
+### The real test
 
-## Heads and neuron poles
+Now we switch off every unit in the model, setting it to its baseline, except the explained ones. How much of " sky" comes back?
 
-The record also splits coverage by kind of unit:
+![How likely " sky" is with the model as it is, with everything off, and with only the explained units kept](media/coverage.svg)
 
-| Prompt | Heads only | Poles only | Both |
-| --- | --- | --- | --- |
-| " days" | 0.422 | 0.034 | 0.938 |
-| " sky" | 0.234 | 0.019 | 0.819 |
+As it is, the model gives " sky" a 6.1% chance. With everything off, that falls to almost nothing. Keep just the 86 explained units, and 81.9% of it comes back. Random sets of units of the same shape bring back only 13.0%.
 
-Neither kind alone brings back much. Together they bring back most of the answer. The heads and the poles work as one route, which is what the answer experiment then tests.
+Remember that 10.1%? Units holding a tenth of the push bring back four-fifths of the answer. Most of the pushing was just cancelling itself out.
 
-## Coverage changes as the registry grows
+### Finding the core
 
-The " sky" explanation has seven records, each building on the one before (`previous`):
+Do all 86 units matter? We take them out one at a time, smallest first, and leave each out as long as the answer holds up.
 
-| Record | Package | Coverage |
-| --- | --- | --- |
-| `20261117T191922Z` | 0.1.0 | 0.316 |
-| `20261117T200746Z` | 0.1.0 | 0.519 |
-| `20261117T224241Z` | 0.1.0 | 0.751 |
-| `20261118T053532Z` | 0.1.0 | 1.0 |
-| `20261118T151956Z` | 0.2.0 | 0.745 |
-| `20261118T155641Z` | 0.2.0 | 1.0 |
-| `20261119T013311Z` | 0.2.0 | 0.819 |
+![Pruning the explained units to a core of 21, and heads against neuron poles](media/core.svg)
 
-The first four rise as unit experiments VERIFY more of the units on the route. The fall to 0.745 came when coverage was measured again against the matched random baseline (#4777, #4780), and more experiments brought it back to 1.0.
+Just 21 units are left, and they still bring back 75.7%. Neither kind of unit can do it alone: the heads bring back 23.4% by themselves, the neurons 1.9%. They work together, as one route.
 
-The last record measures it again with its inputs stored, so that CI can reproduce it (#4793). By then the explained set had grown to 86 units, with poles VERIFIED in the meantime. Coverage is not additive: keeping more units live can bring back less, because each kept unit also keeps its pushes the wrong way. The 100% record stays on the prompt's page.
+So we know *which* units produce " sky". But how?
 
-## The wrong answer: " days" for " months"
+## Testing the claim
 
-The model completes "A week has seven days and a year has twelve" with " days". The answer experiment tests a claim about how it does that.
+### A claim about how
 
-**The claim.** It starts from three source tokens, " seven", " days" and " twelve". The VERIFIED claim's route has 32 units:
+An agent, the proposer, reads everything we've found and writes a claim: the route from the prompt to the answer, and what each unit on it does.
 
-- **Count-word neurons** in layer 0, such as L0/N1877+ and L0/N1277+. They fire on " seven" and on the final " twelve", and mark each as a bare count word that wants a counted noun.
-- **Time-unit neurons**, such as L0/N1101+. They write the identity of " days".
-- **Early heads** in layers 0 and 1. They line up the two parallel clauses of the form "a X has" and a count.
-- **A copy step.** At " twelve", the induction-style head L3/H3, with L4/H0 and L4/H7, attends to " days", the noun after the earlier count word. It copies " days" to the last position.
-- **Layer-5 neurons** push a counted noun up and layout tokens down. They don't choose between " days" and " months".
+![The proposer's route from " sun" to " sky"](media/route.svg)
 
-So the copied " days" wins over the fact that a year has twelve months. The model completes a pattern from the first clause rather than recalling a fact.
+Four neurons spot " sun". A few more units set up the "in the" at the end. Heads copy "sun" forward to the last word, and two units at the top turn "sun + in the" into " sky".
 
-**The test.** A claim is VERIFIED only when every gate passes:
+It's a neat story. Now let's try to prove it wrong.
 
-| Gate | Rule | First claim | Second claim |
-| --- | --- | --- | --- |
-| necessity | ablating the route cuts ≥ 50% of what ablating everything cuts | 0.667 | 0.683 |
-| beats null | the cut is ≥ 3 × the mean cut of 8 matched random sets | 51 × | 123.9 × |
-| sufficiency | with only the route live, ≥ 50% of the answer comes back | 0.567 | 0.624 |
-| patching | the route's activations from a corrupted prompt move the answer ≥ 50% of the gap | 0.653 | 0.749 |
-| patching null | the random sets, patched, move it ≤ 0.1 on the mean (rule 1.0) | 0.160 | −0.004 |
-| controls | every proposer prompt comes out as claimed | 8 of 8 | 7 of 7 |
-| probes | ≥ 80% of the reviewer's prompts come out as claimed | 17 of 20 | 20 of 24 |
+### Take the route away, or keep only it
 
-The ratios in the necessity and beats-null rows come from the records' measured cuts. For example, the second claim's route cuts 6.227 against 9.122 for every unit, and 0.050 on the mean for random sets.
+If the route really carries the answer, switching it off should hurt " sky" a lot, and keeping only the route should bring most of it back.
 
-**Why the first claim failed.** The first attempt (`20261118T194721Z`) passed six gates and failed `patching_null`. Its corrupted prompt changed " days" to " hours": "A week has seven hours and a year has twelve". Random sets of units, patched from that prompt, moved the answer by 0.16 on the mean, more than the 0.1 that rule 1.0 allows. So the patching result didn't belong to the route. It was REJECTED.
+![How far " sky" falls with the route off, against every unit and random sets](media/cuts.svg)
 
-**What the second claim changed.** The second attempt (`20261118T234629Z`) changed the count word instead: "A week has seven days and a year has the". That turns off the count-word neurons, so the copy doesn't fire, and the answer leaves " days". The random sets, patched from it, moved the answer by −0.004 on the mean. Its route added count and quantity neurons, and more layer-1 heads. It passed every gate and is VERIFIED.
+Taking the route away does 73% of the damage of taking everything away, and 7.3 times what random units do. Keeping only the route brings back 54%. So far, so good.
 
-**What the reviewer tested.** The reviewer writes prompts that try to break the claim, without seeing any measure. They include the order swapped ("A year has twelve months and a week has seven"), paraphrases, and other counted pairs. The second claim got 20 of 24 right. Among the four it got wrong is "A week has seven days and a year has twenty". Another is "There are seven days in a week and twelve", where the clauses aren't parallel.
+### Swap the subject
 
-## What this shows, and what it doesn't
+The proposer also gives a corrupted prompt: "The price rises in the". We copy just the route's values from that prompt into the original. If the route really carries "sun", the model should act as if the subject changed, even though the prompt still says "sun".
 
-It shows a mechanism for one wrong answer on one prompt: a copy route that the gates can't explain away by chance. It names the units, and it tests what happens when the count word or the noun changes.
+![The route copied over from "The price rises in the", against random sets](media/patching.svg)
 
-It doesn't show that pythia-70m always copies in this way, or why it doesn't recall that a year has twelve months. The answer experiment is VERIFIED for this prompt only. And `coverage_caution` holds: the units with verified explanations hold 6.4% of the attribution, so most units on this prompt still have no explanation of their own.
+It does: the answer moves 86% of the way. Random units move it just 8.3%.
 
-## How unit experiments add to it
+### Try to break it
 
-An explanation counts a unit as explained when the registry holds a VERIFIED experiment for it, or for a superposition or circuit that holds it. `explain` lists the experiments that would explain the rest, ranked by the coverage each would add. `explain --run N` runs them through the experiment loop, and `explain --record` writes a new record. That is how the " sky" chain above went from 0.316 to 1.0.
+Finally, a second agent, the reviewer, gets the claim, but never sees a single measurement. Its whole job is to write prompts that should break the claim if it's wrong: "The comet streaks across the", "The kitchen rises in the", "The sun rises in a", even the words scrambled. All 20 came out as the claim predicts.
 
-`open-interpretability explain --help` lists every option. A test checks that each option this post names still exists.
+That's every gate passed, so the route from " sun" to " sky" is VERIFIED.
+
+## How a model makes mistakes
+
+So far the model got it right. But often the more interesting question is: when a model gets something wrong, why?
+
+We asked pythia-70m "A week has seven days and a year has twelve". It should say " months". It says " days", and it's sure.
+
+![The model's top next tokens: " days" at 73%, " months" at 3%](media/days-mistake.svg)
+
+We ran the same steps. Again, a small set of units we already understand brings back most of the answer (93.8%, against 10.1% for random units), even though it's the wrong answer. And the claim tells a very human story: the model isn't recalling a fact, it's completing a pattern.
+
+![Count-word and time-unit neurons, and the copy from " days" to the end](media/days-copy.svg)
+
+Some neurons mark " seven" and " twelve" as count words, words that want a noun after them. Others mark " week", " days" and " year" as units of time. Then, at " twelve", a copy head looks back for the last count word, " seven", grabs the word after it, " days", and carries it to the end. Nothing in the model stops to check that a year has twelve *months*.
+
+(The first claim about this was REJECTED: its corrupted prompt let random units move the answer too far. The second passed every gate.)
+
+The reviewer's prompts show the habit in action. Swap the number and the model still copies. Swap the noun and the answer follows it, however silly: "A week has seven colours and a year has twelve" gives " colours", and "A tricycle has three wheels and a year has twelve" gives " wheels".
+
+![The reviewer's 24 prompts for the " days" claim, what it predicts and what the model says](media/days-probes.svg)
+
+20 of the 24 came out as the claim predicts. In three of the misses, the claim expected the copy to switch off, but the model still said " days". The habit is even stronger than the claim thought.
+
+So that's a hallucination, explained: the pattern beats the fact. And because we know which units do the copying, we know where to look to fix it.
+
+## Why this matters
+
+We've explained two answers, on one small model. That's a start, not the finish line: many units still have no explanation of their own, and every new experiment in the registry adds to what `open-interpretability explain --run` can do. But once we really understand how these models work, a lot opens up.
+
+1. **Fixing hallucinations, and new ways for models to improve themselves.** We found the units that copy " days" when they shouldn't. Once we know where a mistake lives, we can fix it there, rather than retraining the whole model and hoping. And because agents run these experiments, the loop can close: models finding and fixing the mistakes of other models, and eventually their own.
+2. **Faster training.** If we can see what a model has learned, and which units have learned it, we can see when training has done its job. We can also spot what it's missing, and aim the data at the gaps instead of training blind.
+3. **Smaller models.** Of the 86 units that explained " sky", 21 did most of the work. If we know what each unit is for, we can keep the ones that matter for the job and drop the rest.
+4. **Merging models.** Today, combining two models means lining up millions of numbers without knowing what they mean. If we know what each neuron does in both models, we can match them by role, and merge what each model knows.
+
+None of this needs a magic breakthrough, just a lot of careful experiments, one unit at a time. That's exactly what Open Interpretability is built to run.
+
+Every number here comes from the records for these prompts: the [sun explanation](../../wiki/explanations/EleutherAI--pythia-70m/6c78ac114096/20261119T013311Z.json), its [answer experiment](../../wiki/answers/EleutherAI--pythia-70m/6c78ac114096/20261118T182635Z.json), and the [" days" answer experiments](../../wiki/answers/EleutherAI--pythia-70m/970a91e11d8c/). The figures are drawn by `scripts/figures_explain_post.py`.
