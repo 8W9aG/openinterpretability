@@ -136,11 +136,12 @@ jobs:
         # [tool.coverage.report] fail_under (#3166).
         run: pytest -n auto --cov --cov-report=xml --cov-report=term
       - name: Coverage of the changed lines (diff-cover)
-        # 90% of the lines that the pull request changes must be tested (#3166).
+        # [tool.diff_cover] fail_under of the lines that the pull request changes must be
+        # tested (#3166, #5855).
         if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
-        run: diff-cover coverage.xml --compare-branch="origin/$BASE_REF" --fail-under=90
+        run: diff-cover coverage.xml -c pyproject.toml --compare-branch="origin/$BASE_REF"
 
   accessibility:
     name: Accessibility (axe-core)
