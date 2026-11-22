@@ -42,12 +42,12 @@ Issue #3225. Arora et al. (arXiv 2601.22594, `docs/literature/neuron-basis-circu
 
 | Circuit | Neurons the registry studied (either pole) | VERIFIED | Explanation mentions number or agreement | Expected studied, by chance |
 | --- | --- | --- | --- | --- |
-| Top 50 | 20 | 7 | 17 | 0.3 |
-| Top 100 | 20 | 7 | 17 | 0.7 |
-| Top 200 | 21 | 7 | 17 | 1.4 |
-| Top 500 | 21 | 7 | 17 | 3.4 |
+| Top 50 | 20 | 13 | 17 | 0.3 |
+| Top 100 | 20 | 13 | 17 | 0.7 |
+| Top 200 | 21 | 13 | 17 | 1.4 |
+| Top 500 | 21 | 13 | 17 | 3.4 |
 
-The table counts the 20 targeted audits of 2026-11-15 (next section). Before them, the counts were 0, 0, 1 and 1 studied, none VERIFIED and none about number. The last column is what random draws alone would give. Before the audits, the registry had studied 793 of Qwen2.5-0.5B's 116,736 neurons (0.68%). So random draws are expected to find fewer than one of the top 100, and they found none. The one neuron they studied is L23/N2539, at rank 197. It was REJECTED twice. Its explanation is about a token that its left frame licenses as the start of a unit.
+The table counts the 20 targeted audits of 2026-11-15 and their second attempts of 2026-11-19 and 2026-11-22 (next sections). A unit counts as VERIFIED when any of its records is. Before them, the counts were 0, 0, 1 and 1 studied, none VERIFIED and none about number. The last column is what random draws alone would give. Before the audits, the registry had studied 793 of Qwen2.5-0.5B's 116,736 neurons (0.68%). So random draws are expected to find fewer than one of the top 100, and they found none. The one neuron they studied is L23/N2539, at rank 197. It was REJECTED twice. Its explanation is about a token that its left frame licenses as the start of a unit.
 
 So random draws could not say whether the neurons that carry agreement have clean explanations. Random draws are not where task circuits are. They are too few to reach a set of 100 neurons out of 116,736. The circuit is a list of units that are known to matter, so we audited its top 20 as targeted draws.
 
@@ -87,7 +87,7 @@ The records carry `selection = "attribution"`, so the random-draw statistics lea
 
 - **The explanations are about number.** 17 of the 20 explanations match the number pattern of `scripts/sva_circuit.py` (`NUMBER_WORDS`). The other three are token lists. Proposers found grammatical number from the scan alone, with no hint of the task.
 - **7 of 20 are VERIFIED** (35%, Wilson 95% interval 18–57%). Of random Qwen2.5-0.5B neuron poles, 30.2% are VERIFIED on first reading (27.1–33.5%, `registry-stats.md`). So the circuit's neurons do about as well. A sample of 20 can't show a difference smaller than about 20 points.
-- **The rate depends on the layer.** In layer 0, 5 of 8 verified. In layers 16–23, 2 of 12 verified. The layer-0 units read the noun token itself, and most explanations of them are token detectors. The late units track the subject's number across the clause. That claim is harder to state so that 20 hard negatives and 10 holdouts all agree.
+- **The rate depends on the layer.** In layer 0, 5 of 8 verified. In layers 16–23, 2 of 12 verified. The layer-0 units read the noun token itself, and most explanations of them are token detectors. The late units track the subject's number across the clause. That claim is harder to state so that 20 hard negatives and 10 holdouts all agree. The second attempts below closed most of this gap.
 - **Four late units failed on lookahead.** These are ranks 3, 8, 15 and 20. Each explanation claimed that the unit prepares the verb. The lookahead check measured each one as retrospective: ablating it changed the next-token distribution little (KL 0.0002–0.003). But the tokens that the ablation moved most are agreeing verbs. For the singular units they are " is", " was" and " has". For rank 15 they are " are", " have" and " were". Ranks 3, 15 and 20 failed no other gate. Ranks 15 and 20 passed 8 of 10 holdouts and 19 or 20 of 20 negatives. A retrospective restatement of these four is the obvious next attempt.
 - **Five late units failed sensitivity or the confound baseline.** These are ranks 2, 9, 10, 11 and 13. Four of them passed only 4 of 10 holdouts. For four, probe length alone (a threshold between 8 and 17 tokens) predicted the labels as well as the hypothesis did.
 
@@ -96,6 +96,27 @@ The records carry `selection = "attribution"`, so the random-draw statistics lea
 - **The baseline is not matched.** The 30.2% pools all proposers and protocol versions. The same proposer and reviewer verified 47 of 61 random Qwen2.5-0.5B units, under protocols 0.5–0.8. Protocol 0.9 adds the confound and lookahead gates, and only 5 random first readings ran under it. So the right comparison does not exist yet.
 - **One reading per unit.** The verdict stability study (`verdict-stability.md`) shows that repeat reviews agree on VERIFIED or not for 82% of pairs. Some of the 13 NEEDS_REVISION verdicts would change on a second reading.
 - **The proposer saw scans, not the task.** A proposer told about agreement could write sharper hypotheses. We kept it blind, so that the explanations count as independent evidence of what the neurons do.
+
+## Second attempts (#4058)
+
+The late units failed in two ways, so each got a second attempt on its own record: the planner's `revise` follow-up, which names the failed gates. The pipeline was the same as in the first audits. Ranks 9 and 11 had their second records already, from 2026-11-19, and both stayed NEEDS_REVISION. The other seven ran on 2026-11-22.
+
+| Rank | Unit | First reading | Second reading | Confidence | What changed |
+| --- | --- | --- | --- | --- | --- |
+| 3 | L19/N1274+ | NEEDS_REVISION (lookahead) | VERIFIED | 0.93 | the claim became retrospective |
+| 8 | L22/N4567+ | NEEDS_REVISION (specificity, lookahead, confound) | REJECTED | 0.56 | lookahead passed, but 4 of 20 negatives |
+| 15 | L19/N4688+ | NEEDS_REVISION (lookahead) | VERIFIED | 0.82 | the claim became retrospective |
+| 20 | L22/N1532+ | NEEDS_REVISION (lookahead) | VERIFIED | 0.88 | retrospective, and only subjects able to act |
+| 2 | L20/N4662+ | NEEDS_REVISION (sensitivity, confound) | VERIFIED | 0.95 | plural subjects, strong only in Romance languages |
+| 10 | L19/N4551+ | NEEDS_REVISION (sensitivity, confound) | VERIFIED | 0.75 | the first token that marks a phrase plural |
+| 13 | L23/N4102− | NEEDS_REVISION (sensitivity, confound) | VERIFIED | 0.82 | French -ent stems and a pronoun after "if" |
+
+- **Six of seven verified.** With the second attempts, 13 of the top 20 are VERIFIED (65%, Wilson 95% interval 43–82%).
+- **The layer split closed.** In layers 16–23, 8 of 12 are now VERIFIED (39–86%), against 2 of 12 at first reading. Layer 0 stays at 5 of 8 (31–86%). So the late units were not harder to explain. Their first claims were wrong in a way that one more attempt fixed.
+- **Lookahead was the claim, not the unit.** Each of the four lookahead units now passes the lookahead gate as retrospective, and three are VERIFIED. Their weights still promote the agreeing verbs, and the explanations say so. The units read the subject's number. They don't measurably steer the next token on their own.
+- **The failed holdouts were a narrower rule.** Each sensitivity unit fires on a narrower set than its first claim said. For example, rank 2 fires weakly on English plural subjects, which were all of its earlier failed holdouts. Rank 10 fires on the first token that marks plurality, so "laws" fires and "these laws" doesn't.
+- **Rank 8 failed specificity.** Its proposer found that the unit is active on a text's first token alone, and most negatives start with an ordinary first token. Its earlier lookahead failure is gone.
+- **Second attempts select.** A unit got a second attempt because its first failed, and the proposer saw the failed probes. So 13 of 20 is a rate after two attempts, not a first-reading rate to set against the 30.2% of random units.
 
 ## Limits
 
@@ -109,6 +130,6 @@ The records carry `selection = "attribution"`, so the random-draw statistics lea
 ## Follow-ups
 
 - Audit the circuit's top neurons with the registry's protocol, as targeted draws (#3656, done above).
-- Restate the four lookahead failures as retrospective, and audit ranks 21–100 (#4058).
+- Restate the four lookahead failures as retrospective (#4058, done above), and audit ranks 21–100 (#6011).
 - Use the circuit as the ground truth for grammatical number as a labelled concept (#3224).
 - Repeat with RelP once #3582 has it.
