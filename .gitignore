@@ -235,3 +235,5 @@ hf_models/**/*.safetensors
 
 # Private benchmark test labels (open-interpretability benchmark measure); only their hash is published
 *.private.jsonl
+# mutmut's copy of the package (make mutation, #5763)
+mutants/
