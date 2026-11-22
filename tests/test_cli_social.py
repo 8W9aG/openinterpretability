@@ -28,7 +28,7 @@ def test_the_preview_prints_each_post_with_its_length(tmp_path, feed):
     out = CliRunner().invoke(cli, _args(tmp_path, feed, "--preview", "1"))
     assert out.exit_code == 0, out.output
     head, text = out.output.split("\n", 1)
-    assert head.startswith("--- ") and head.endswith(" of 280")
+    assert head.startswith("would post (") and head.endswith(" of 280):")
     assert text.startswith("A bracket neuron\n\nIt reads brackets.")
 
 
