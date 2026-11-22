@@ -48,7 +48,7 @@ def _entries(path: Path | None) -> list:
               help="Write the entries that this run posts, and their post URLs, here, for "
               "`social link` (#5840).")  # fmt: skip
 def post_command(papers, posts, state, dry_run, newest, repost, record) -> None:
-    """Post each new published paper and site post once, within the daily limit (#5533).
+    """Post each new published paper and site post once (#5533, #6081).
 
     Args:
         papers: The feed of published papers, or None for the build's.

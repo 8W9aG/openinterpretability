@@ -146,14 +146,12 @@ def test_a_draft_post_never_posts(tmp_path, poster):
     assert poster.sent == []
 
 
-def test_the_daily_limit_holds_the_rest_for_later(tmp_path, poster, monkeypatch):
-    monkeypatch.setattr(social, "PER_DAY", 1)
+def test_a_backlog_posts_in_one_run_with_no_daily_limit(tmp_path, poster):
     state = tmp_path / "x.json"
     social.run(state, _feeds(), poster, now=0)
-    social.run(state, _feeds(_post(1), _post(2)), poster, now=10)
-    assert len(poster.sent) == 1
-    social.run(state, _feeds(_post(1), _post(2)), poster, now=10 + social.DAY)
-    assert len(poster.sent) == 2  # the held one goes out the next day
+    backlog = [_post(i) for i in range(20)]  # more than the old limit of 15 a day (#6081)
+    social.run(state, _feeds(*backlog), poster, now=10)
+    assert len(poster.sent) == 20
 
 
 def test_a_dry_run_prints_and_changes_no_state(tmp_path, poster):
