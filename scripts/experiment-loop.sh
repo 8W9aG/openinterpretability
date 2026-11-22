@@ -94,11 +94,10 @@ STEP_MODELS=""
 [[ $REVIEWER != external/* ]] && STEP_MODELS+=" --reviewer $REVIEWER"
 
 command -v "$CLAUDE_BIN" >/dev/null || { echo "claude not found; set CLAUDE_BIN" >&2; exit 1; }
+export CLAUDE_BIN # read by `open-interpretability claude-session`, which launches each session
 # A provider's profile sets the environment and the model, so `--model` is passed once.
-LAUNCH=("$CLAUDE_BIN")
-if [[ -n $PROVIDER ]]; then
-  [[ -z $DRIVER_GIVEN ]] && DRIVER=$(uv run --quiet open-interpretability provider model "$PROVIDER")
-  LAUNCH=(uv run --quiet open-interpretability provider exec "$PROVIDER" -- "$CLAUDE_BIN")
+if [[ -n $PROVIDER && -z $DRIVER_GIVEN ]]; then
+  DRIVER=$(uv run --quiet open-interpretability provider model "$PROVIDER")
 fi
 # Records name the product that drove them (RunEnvironment.agent_product, issue #3235).
 export OPENINTERPRETABILITY_AGENT_PRODUCT="${OPENINTERPRETABILITY_AGENT_PRODUCT:-claude-code-loop}"
@@ -120,13 +119,6 @@ fi
 
 LOG_DIR="$REPO/logs/loop"
 mkdir -p "$LOG_DIR"
-
-# Tools the session may use without asking. Nothing outside the repo workflow.
-ALLOWED_TOOLS=(
-  Read Edit Write Glob Grep Skill Agent
-  "Bash(uv run:*)" "Bash(make:*)" "Bash(git:*)" "Bash(gh pr:*)" "Bash(gh run:*)" "Bash(gh repo view:*)"
-  "Bash(ls:*)" "Bash(cat:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(grep:*)" "Bash(jq:*)"
-)
 
 prompt() {
   cat <<EOF
@@ -157,10 +149,6 @@ describes and note it in the PR description.
   RESULT: <slug> <verdict> <PR url> <merged|open>   (or RESULT: none <reason>)
 EOF
 }
-
-claude_args=(-p --output-format json --permission-mode acceptEdits --max-turns "$MAX_TURNS")
-[[ -n $DRIVER ]] && claude_args+=(--model "$DRIVER")
-claude_args+=(--allowedTools "${ALLOWED_TOOLS[@]}") # variadic, so last
 
 # Wait while `open-interpretability pause` is in force (exit 75); any other failure doesn't wait.
 wait_while_paused() {
@@ -276,8 +264,11 @@ while [[ $MAX -eq 0 || $i -lt $MAX ]]; do
   check_limits "$i"
 
   status=0
-  (cd "$WORKTREE" && prompt | OPENINTERPRETABILITY_COSTS_LOG="$ledger" "${LAUNCH[@]}" "${claude_args[@]}") \
-    >"$session" 2>"$log" || status=$?
+  # One launcher for this script and `explain --run` (openinterpretability/claude_sessions.py):
+  # the allowed tools, claude's arguments, the provider wrapper and the costs ledger.
+  (cd "$WORKTREE" && prompt | uv run --quiet open-interpretability claude-session \
+    --driver "$DRIVER" --max-turns "$MAX_TURNS" --provider "$PROVIDER" \
+    --result "$session" --log "$log" --ledger "$ledger") || status=$?
   # Record the model that really drove the session, not the name Claude Code saw.
   echo "driver: provider=${PROVIDER:-anthropic} model=${DRIVER:-claude default}" >>"$log"
   if [[ -n $PROVIDER ]]; then

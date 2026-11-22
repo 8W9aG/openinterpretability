@@ -547,3 +547,72 @@ def test_a_local_loop_makes_no_worktree_and_reads_no_claims(monkeypatch, tmp_pat
     assert cli_loop.run_loop("p", "r", lambda *a, **k: None, out=out, local=True) == 0
     loop = out["loop"]
     assert loop.options.local and loop.claims() == [] and loop.log_dir == tmp_path / "logs/loop"
+
+
+# #5831: with no LiteLLM model, a headless Claude Code session runs each draw.
+
+CLAUDE = """#!{python}
+import json, os, sys
+prompt = sys.stdin.read()
+with open(os.environ["CLAUDE_LOG"], "a") as log:
+    ledger = os.environ.get("OPENINTERPRETABILITY_COSTS_LOG", "")
+    log.write(" ".join(sys.argv[1:]) + " | " + ledger + "\\n")
+    log.write(prompt.replace("\\n", " ") + "\\n")
+reply = os.environ.get("CLAUDE_REPLY", "done\\nRESULT: {slug} VERIFIED {url} open")
+print(json.dumps({{"result": reply}}))
+sys.exit(int(os.environ.get("CLAUDE_EXIT", "0")))
+"""
+
+
+@pytest.fixture
+def claude(repo, monkeypatch):
+    """A fake ``claude`` on PATH that logs its arguments and prompt, and replies RESULT."""
+    path = repo.tmp / "bin" / "claude"
+    path.write_text(CLAUDE.format(python=sys.executable, slug=SLUG, url=URL))
+    path.chmod(0o755)
+    monkeypatch.setenv("CLAUDE_LOG", str(repo.tmp / "claude.log"))
+    monkeypatch.delenv("CLAUDE_BIN", raising=False)
+    return repo.tmp / "claude.log"
+
+
+def _session_loop(tmp, **kw):
+    from openinterpretability.claude_sessions import Session
+    from openinterpretability.loop_sessions import SUBAGENTS, SessionRun
+
+    run = SessionRun(Session("claude-haiku-5-5", 7), tmp / "sessions")
+    options = el.Options(SUBAGENTS, SUBAGENTS, corpus="c.jsonl", sessions=run)
+    return el.Loop(options, Path("../logs"), plan_next=lambda *a, **k: _plan(), claims=lambda: [],
+                   sleep=lambda s: None, **kw)  # fmt: skip
+
+
+def test_each_draw_runs_in_its_own_headless_claude_session(repo, fakes, claude):
+    loop = _session_loop(repo.tmp, max_experiments=2)
+    assert loop.run() == 0
+    assert [(r.slug, r.verdict, r.url, r.merged) for r in loop.results] == [
+        (SLUG, "VERIFIED", URL, False)] * 2  # fmt: skip
+    calls = claude.read_text().splitlines()
+    args, prompt = calls[0], calls[1]
+    assert len(calls) == 4  # two sessions, each its arguments and its prompt
+    assert "-p --output-format json" in args and "--max-turns 7 --model claude-haiku-5-5" in args
+    assert "--allowedTools" in args and ".costs.jsonl" in args  # the session's own ledger
+    assert "Don't run `open-interpretability next`" in prompt and "Don't wait for CI" in prompt
+    assert len(list((repo.tmp / "sessions").glob("*.json"))) == 2
+
+
+@pytest.mark.parametrize(
+    ("reply", "code", "error"),
+    [("RESULT: none paused", "0", "ran no experiment"), ("no line", "0", "no RESULT line"),
+     ("x", "3", "claude exited 3")],
+)  # fmt: skip
+def test_a_session_that_runs_nothing_or_fails_is_a_loop_error(repo, fakes, claude, monkeypatch,
+                                                              reply, code, error):  # fmt: skip
+    monkeypatch.setenv("CLAUDE_REPLY", reply)
+    monkeypatch.setenv("CLAUDE_EXIT", code)
+    with pytest.raises(el.LoopError, match=error):
+        el.iteration(_session_loop(repo.tmp).options, lambda *a, **k: _plan(), lambda: [])
+
+
+def test_a_session_draw_with_an_unknown_unit_is_a_loop_error(repo, fakes, monkeypatch):
+    monkeypatch.setattr(el, "draw_slug", lambda choice: None)
+    with pytest.raises(el.LoopError, match="is unknown"):
+        el.iteration(_session_loop(repo.tmp).options, lambda *a, **k: _plan(), lambda: [])

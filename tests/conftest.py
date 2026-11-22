@@ -199,6 +199,16 @@ def _any_review_policy(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _outside_claude_code(monkeypatch):
+    """Run every test as outside Claude Code, which sets CLAUDECODE=1 for its shells (#5831).
+
+    Inside it, `explain` picks an external narrator, so a test's result would depend on
+    where it runs. A test that wants it sets it.
+    """
+    monkeypatch.delenv("CLAUDECODE", raising=False)
+
+
+@pytest.fixture(autouse=True)
 def no_name_model(monkeypatch):
     """Scans in tests find no names: the real model is a 460 MB download."""
     monkeypatch.setattr("openinterpretability.names.person_matches", lambda text: ())

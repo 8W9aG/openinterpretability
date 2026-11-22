@@ -53,6 +53,9 @@ class Options:
     pending: PendingRecords = field(default_factory=PendingRecords)
     # explain --local: run in the user's checkout, with no claim, push or PR (#5827).
     local: bool = False
+    # explain --run with no LiteLLM model: a headless Claude Code session runs each draw
+    # (loop_sessions.SessionRun, #5831).
+    sessions: object = None
 
 
 @dataclass(frozen=True)
@@ -274,12 +277,30 @@ def delete_branch() -> None:
     sh(["git", "push", "--quiet", "origin", "--delete", branch], check=False)
 
 
-def iteration(options: Options, plan_next, claims) -> Result:
-    """Run one experiment: reset, draw, claim, run, post and land, or a local one (#5827)."""
+def _variant(options: Options):
+    """The iteration of a local run (#5827) or a run in sessions (#5831), or None.
+
+    Args:
+        options: The loop's options.
+
+    Returns:
+        The iteration function, or None for :func:`iteration`'s own steps.
+    """
     if options.local:
         from openinterpretability.loop_local import local_iteration
 
-        return local_iteration(options, plan_next, claims)
+        return local_iteration
+    if options.sessions is not None:
+        from openinterpretability.loop_sessions import session_iteration
+
+        return session_iteration
+    return None
+
+
+def iteration(options: Options, plan_next, claims) -> Result:
+    """Run one experiment: reset, draw, claim, run, post and land, or a local one (#5827)."""
+    if (variant := _variant(options)) is not None:
+        return variant(options, plan_next, claims)
     reset()
     with options.pending.applied():  # the open PRs' records count too (#5826)
         plan = draw(options, plan_next, claims)
