@@ -253,7 +253,14 @@ def answer_step(wiki_dir, model: str, prompt: str, position: int, answer: str,
 
 
 def _cancel_reason(dependence: dict) -> str:
-    """Why :func:`answer_step` plans no attempt when the units' effects cancel (#5967)."""
+    """Why :func:`answer_step` plans no attempt when the units' effects cancel (#5967).
+
+    Args:
+        dependence: The output of :func:`~openinterpretability.answer_review.dependence`.
+
+    Returns:
+        The reason, with the all-unit cut and the largest absolute cut of a random set.
+    """
     largest = max((abs(c) for c in dependence["null_cuts"]), default=0.0)
     return (f"not planned: ablating every unit cuts the answer's log-probability by "
             f"{dependence['all_cut']:.3f}, no more than a random set of the minimal set's "
