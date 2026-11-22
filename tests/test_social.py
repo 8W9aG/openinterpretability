@@ -95,7 +95,7 @@ def test_repost_on_a_dry_run_changes_no_state(tmp_path, poster):
     social.run(state, _feeds(_post(1)), poster, now=0)
     before = state.read_text()
     lines = social.run(state, _feeds(_post(1)), None, now=10, repost=frozenset({_post(1).id}))
-    assert lines[0].startswith("would post:") and state.read_text() == before
+    assert lines[0].startswith("would post (") and state.read_text() == before
 
 
 def _paper(published: bool):
@@ -161,7 +161,7 @@ def test_a_dry_run_prints_and_changes_no_state(tmp_path, poster):
     social.run(state, _feeds(), poster, now=0)
     before = state.read_text()
     lines = social.run(state, _feeds(_post(3)), None, now=10)
-    assert lines[0].startswith("would post:") and state.read_text() == before
+    assert lines[0].startswith("would post (") and state.read_text() == before
     assert social.run(tmp_path / "none.json", _feeds(_post(3)), None, now=0)[0].startswith("seeded")
     assert not (tmp_path / "none.json").exists()
 

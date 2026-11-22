@@ -50,6 +50,18 @@ uv run --with playwright==1.65.2 python scripts/social_images.py
 
 It writes `social.png` (the final frame), `social.mp4` (one loop, when the figure animates) and `social.json` (the hash that a test checks). It needs ffmpeg. Commit the three files. The post on X carries the figure, and the page's link card shows `social.png`.
 
+## The thread on X
+
+Write the post's X thread in `thread.yaml`, in the same PR (#5833). The rules are the paper's (`.claude/skills/write-paper/SKILL.md`, *Figures and animations*, and `openinterpretability/social/thread.py`):
+
+- 2 to 10 tweets, each about one `##` section.
+- Each tweet is 280 characters or fewer, with each link counting as 23.
+- The first and the last tweet link to the post with `{link}`.
+- Numbers come from the post only.
+- At most 4 figures, or one figure that animates, in a tweet.
+
+Run `scripts/social_images.py` again to draw each figure that the thread names. A post with no `thread.yaml` posts as one post, as before. The thread posts once the post is published, never as a draft.
+
 ## Check it
 
 ```bash
