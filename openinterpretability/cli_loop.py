@@ -192,7 +192,9 @@ def loop_worktree(worktree: Path | None = None) -> tuple[Path, Path]:
     worktree = (worktree or repo.parent / f"{repo.name}-loop").resolve()
     if not worktree.exists():
         _git("fetch", "--quiet", "origin", "main")
-        _git("worktree", "add", "--detach", str(worktree), "origin/main")
+        # -f: git may still list a worktree whose folder was deleted, and then refuses the
+        # path (#5965). It is a detached checkout, so -f takes no branch from elsewhere.
+        _git("worktree", "add", "-f", "--detach", str(worktree), "origin/main")
     return repo, worktree
 
 

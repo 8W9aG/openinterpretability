@@ -3,6 +3,8 @@
 import subprocess
 from datetime import UTC, datetime
 
+import pytest
+
 from openinterpretability import experiment_loop as el
 from openinterpretability.core.explanation_records import ExplainRun
 from openinterpretability.explain_land import branch_name, land_record, pr_body, write_local
@@ -73,3 +75,25 @@ def test_explanation_pages_are_scrubbed_of_personal_data(tmp_path):
     write_local(record.model_copy(update={"narration": told}), tmp_path / "wiki")
     (view,) = load_views(tmp_path / "wiki", states={})
     assert view.record.narration.paragraph == f"Login from {REMOVED_TEXT} failed."
+
+
+def test_a_record_that_fails_to_land_is_kept_with_how_to_land_it(tmp_path, monkeypatch):
+    # #5965: the record, and its paid-for narration, survive a failed landing.
+    import click
+
+    from openinterpretability import cli_explain, explain_land
+    from openinterpretability.core.explanation_records import record_path
+    from openinterpretability.experiment_loop import LoopError
+
+    def fail(record):
+        raise LoopError("git worktree failed")
+
+    monkeypatch.setattr(explain_land, "land_record", fail)
+    record = _landed()
+    with pytest.raises(click.ClickException, match="explain-share") as caught:
+        cli_explain._keep(record, tmp_path, land=True)
+    path = record_path(tmp_path, record)
+    assert path.exists() and str(path) in caught.value.message
+    monkeypatch.setattr(explain_land, "land_record", lambda r: ("https://x/pull/3", False))
+    cli_explain._keep(record, tmp_path, land=True)
+    assert not path.exists()  # landed: no untracked copy for a later pull to meet
