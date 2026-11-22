@@ -139,3 +139,46 @@ def test_groups_and_path_ends_go_into_the_evidence_and_count_as_cited(toy_runner
     assert row["unit"] == "C4" and row["kind"] == "circuit" and row["members"] == 3
     assert row["share"] == pytest.approx(0.5) and "a copy circuit" in row["explanation"]
     assert check_citations(_story("C4 feeds L0/N1+ then L2/N5- and L8/N8+."), ev) == ["L8/N8+"]
+
+
+def test_inside_claude_code_the_narrator_defaults_to_a_subagent(toy_runner, tmp_path,
+                                                               monkeypatch):  # fmt: skip
+    # #5831: no --narrator-model inside Claude Code means external/, answered by a subagent.
+    from openinterpretability.agents.narrator import Narrator
+    from openinterpretability.cli import cli
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("ANTHROPIC_MODEL", "claude-test-1")
+    models = []
+
+    def narrate(self, ev):
+        models.append(self.model)
+        return _story("Nothing is explained.")
+
+    monkeypatch.setattr(Narrator, "narrate", narrate)
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    args = [
+        "explain",
+        PROMPT,
+        "--model",
+        "toy",
+        "--corpus",
+        str(corpus),
+        "--mean-tokens",
+        "200",
+        "--wiki-dir",
+        str(tmp_path / "wiki"),
+        "--edges",
+        "0",
+        "--level",
+        "paragraph",
+        "--yes",
+    ]
+    out = CliRunner().invoke(cli, args)
+    assert out.exit_code == 0, out.output
+    assert models == ["external/claude-test-1"]
+    assert "with the explanation-narrator agent" in out.output

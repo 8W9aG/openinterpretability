@@ -18,6 +18,7 @@ import click
 from openinterpretability import explain_plan
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
 from openinterpretability.cli_patch import patch_options, patch_target
+from openinterpretability.explain_backend import narrator
 from openinterpretability.explain_output import (
     _as_json,
     _print_coverage,
@@ -229,6 +230,7 @@ def _explain(  # long-function: the body of explain_command, one line per step
     told = {}
     if level != "mechanism":
         stages.next("Narrating the explanation")
+        narrator_model = narrator(narrator_model, lambda line: click.echo(line, err=True))
         told = _narrate(result, coverage, planned, narrator_model, found.answer)
     if as_json:
         out = _as_json(result, planned, show) | {
