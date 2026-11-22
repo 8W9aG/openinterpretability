@@ -74,6 +74,41 @@ def test_an_external_narrator_writes_its_prompt(tmp_path):
     assert "Cite a unit for every claim" in prompt and "paragraph" in prompt
 
 
+def _answer_once(path, text):
+    """Write ``text`` to ``path`` once the narrator has asked, as a subagent would."""
+    import threading
+    import time
+
+    def write():
+        while not (path.parent / "Narrator.prompt.md").exists():
+            time.sleep(0.005)
+        path.write_text(text)
+
+    thread = threading.Thread(target=write, daemon=True)
+    thread.start()
+    return thread
+
+
+def test_an_external_narrator_is_recorded_as_the_model_it_reports(tmp_path):
+    # #5966: the record names the subagent that wrote the text, not external/claude-code.
+    story = _story("Nothing is explained.")
+    answer = {**story.model_dump(), "model": "Claude-Sonnet-5-5"}
+    narrator = Narrator("external/claude-code", exchange_dir=tmp_path, poll_interval=0.01)
+    _answer_once(tmp_path / "Narrator.response.json", json.dumps(answer))
+    assert narrator.narrate({"units": []}) == story
+    assert narrator.model == "external/claude-sonnet-5-5"
+    assert '"model"' in (tmp_path / "Narrator.prompt.md").read_text()
+
+
+def test_an_external_answer_without_its_model_is_refused(tmp_path):
+    narrator = Narrator("external/claude-code", exchange_dir=tmp_path, timeout=2.0,
+                        poll_interval=0.01)  # fmt: skip
+    _answer_once(tmp_path / "Narrator.response.json", _story("x").model_dump_json())
+    with pytest.raises(Exception, match="no response"):
+        narrator.narrate({"units": []})
+    assert "model" in (tmp_path / "Narrator.error.txt").read_text()
+
+
 def test_cli_narrates_a_paragraph(toy_runner, tmp_path, monkeypatch):
     from openinterpretability.cli import cli
 
