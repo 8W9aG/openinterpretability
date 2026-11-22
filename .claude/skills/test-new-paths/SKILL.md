@@ -25,7 +25,7 @@ Coverage says which lines ran. It doesn't say whether a test checked what they d
    - a bad input from the user, with the message that the user sees.
 5. **Run the checks.** Run `make coverage`. It runs the suite with branch coverage, and fails below `fail_under` in `[tool.coverage.report]`. Then it runs diff-cover against `origin/main` at `fail_under` in `[tool.diff_cover]`, which is 100% (#5855). Every changed line must be tested, or marked as the next step says.
 6. **Mark only what no test can reach.** A line that CI can't run gets `# pragma: no cover` and a comment with the reason. Examples are a guard for a device that CI lacks (CUDA, MPS, the Neural Engine) and a real network download. Never mark code that a test can reach, however hard. Mock the boundary, not the code under test.
-7. **Mutation testing is planned.** #5763 would add `make mutation` for the verdict code. Until then, read the tests of any verdict code that the change touches, and ask what change to the code they would miss.
+7. **Run mutation testing on verdict code.** If the change touches a file in `only_mutate` of `[tool.mutmut]` in `pyproject.toml`, run `make mutation`. It takes about 5 minutes. Look at each surviving mutant in the functions that you changed (`uv run --with mutmut==3.8.1 mutmut show <name>`). Add a test that kills it, or say in the PR why it can't change a verdict (#5763).
 
 ## Notes
 

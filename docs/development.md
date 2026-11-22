@@ -11,6 +11,7 @@ make coverage       # the tests with branch coverage, at least [tool.coverage.re
 make lint           # ruff (incl. docstrings), the 500-line limit, JSON and YAML, docstring coverage, types, Markdown, Vale, STE
 make typecheck      # mypy, strict, on the packages in [tool.mypy] files (pyproject.toml)
 make vale           # comment and docstring prose against our STE rules (needs Vale)
+make mutation       # mutation testing of the verdict code ([tool.mutmut]), about 5 minutes, by hand only
 make perf           # wall time, CPU time and peak memory of fixed workloads, against docs/analyses/perf-baseline.json
 make check          # registry consistency of this branch's changes (what CI's "Experiment records" job runs on a PR)
 make check-all      # the same for every record (what it runs on main)
