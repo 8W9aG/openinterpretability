@@ -28,13 +28,18 @@ Ask the user for the prompt and the model if they didn't give them. The default 
    2. Don't wait for CI, and don't merge. `auto-merge.yml` merges the PR once CI passes (#5826).
    3. Run step 1 again, and read the coverage. Say it, as `experiment k of N: <unit>, <verdict>, coverage X%`. An open PR's records count before it merges.
    4. Stop when the coverage reaches the target, when the limit is reached, or when the plan has no experiment left. A unit that isn't VERIFIED after 5 attempts leaves the plan.
-4. **Run the answer experiment.** `answer_experiment` in the JSON gives its commands. `answer-proposer` answers the proposer prompt and `answer-reviewer` the reviewer prompt, as their agent files say.
-5. **Narrate and record.** Start the record in the background, because the narrator waits for its answer:
+4. **Record the explanation.** The answer experiment's proposer starts from it, so it comes first (#5964). This calls no LLM:
+   ```bash
+   uv run open-interpretability explain --model <model> --target <target> --record --yes -- '<prompt>'
+   ```
+   It writes the record at the mechanism level and opens its PR, which doesn't wait for CI.
+5. **Run the answer experiment.** `answer_experiment` in the JSON gives its commands. `answer-proposer` answers the proposer prompt and `answer-reviewer` the reviewer prompt, as their agent files say.
+6. **Narrate.** Start this in the background, because the narrator waits for its answer:
    ```bash
    uv run open-interpretability explain --model <model> --target <target> --level long --record --yes -- '<prompt>'
    ```
-   In this session the narrator is `external/` with no option (#5831). Ask `explanation-narrator` to answer `exchange/Narrator.prompt.md`. Then the command writes the record and opens its PR. The PR doesn't wait for CI either. To keep everything off GitHub, run step 3 with `--local` records instead (#5827), and share them later with `open-interpretability explain-share <record>`.
-6. **Report.** Give the coverage before and after, each experiment's verdict and PR, the answer experiment's verdict and the explanation's PR. Then give the narration's paragraph.
+   The record of step 4 reaches the target already, so this only adds the narration (#4503). The narrator also reads the answer experiment of step 5. In this session the narrator is `external/` with no option (#5831). Ask `explanation-narrator` to answer `exchange/Narrator.prompt.md`. Then the command writes the narrated record and opens its PR. To keep everything off GitHub, use `--local` records in step 3 and `--no-land` here (#5827), and share them later with `open-interpretability explain-share <record>`.
+7. **Report.** Give the coverage before and after, each experiment's verdict and PR, the answer experiment's verdict and the explanation's PR. Then give the narration's paragraph.
 
 ## Notes
 
