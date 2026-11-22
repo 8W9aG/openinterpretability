@@ -34,6 +34,10 @@ STATUS = re.compile(
     re.M,
 )
 ADDENDA = "## Addenda"  # a published paper changes only below this heading
+# A published paper's page on the alphaXiv AI Track (#5259): a ``url`` identifier of its
+# CITATION.cff, with this description. The field is outside the paper's frozen hash.
+ALPHAXIV = "alphaXiv AI Track"
+ALPHAXIV_URL = re.compile(r"https://www\.alphaxiv\.org/abs/[\w.\-]+(?:v\d+)?")
 
 
 @dataclass(frozen=True)
@@ -158,6 +162,7 @@ class Paper:
     authors: tuple[str, ...] = ()  # from the folder's CITATION.cff, in order (#5260)
     thread: tuple = ()  # its X thread (social.thread.Prepared), from thread.yaml (#5833)
     x_url: str | None = None  # its post on X, once posted (media/social.json, #5840)
+    alphaxiv_url: str | None = None  # its alphaXiv page, once uploaded (CITATION.cff, #5259)
 
     @property
     def href(self) -> str:
@@ -237,6 +242,34 @@ def cff_authors(folder: Path) -> tuple[str, ...]:
     )
 
 
+def alphaxiv_url(folder: Path) -> str | None:
+    r"""The paper's alphaXiv URL, from the ``url`` identifier of its ``CITATION.cff``.
+
+    Args:
+        folder: The paper's folder.
+
+    Returns:
+        The URL, or None when the paper has no citation file or no such identifier.
+
+    Examples:
+        >>> import tempfile
+        >>> folder = Path(tempfile.mkdtemp())
+        >>> alphaxiv_url(folder) is None
+        True
+        >>> _ = (folder / "CITATION.cff").write_text(
+        ...     "identifiers:\n- type: url\n  value: https://www.alphaxiv.org/abs/2611.00001\n"
+        ...     "  description: alphaXiv AI Track\n")
+        >>> alphaxiv_url(folder)
+        'https://www.alphaxiv.org/abs/2611.00001'
+    """
+    path = folder / "CITATION.cff"
+    if not path.is_file():
+        return None
+    found = yaml.safe_load(path.read_text(encoding="utf-8")).get("identifiers") or []
+    return next((i["value"] for i in found
+                 if i.get("type") == "url" and i.get("description") == ALPHAXIV), None)  # fmt: skip
+
+
 def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
     """Render one paper or post. Its text passes the same search for personal data as all the site.
 
@@ -281,6 +314,7 @@ def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
         authors=cff_authors(folder),
         thread=_thread(folder, sections),
         x_url=x_url(folder),
+        alphaxiv_url=alphaxiv_url(folder),
     )
 
 
