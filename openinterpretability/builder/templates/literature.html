@@ -14,7 +14,8 @@
 {% if points is defined and points %}
 {# The map (builder/literature_map_view.py, #4577), after Alexander Coulton's map of cancer
    research: dots coloured by region on a soft glow, numbered region badges and a numbered
-   legend, callout cards for the papers the repo uses, and a card on hover or focus. #}
+   legend, callout cards for the most-cited papers the repo uses (#5798), and a card on
+   hover or focus. #}
 {% include "_map_theme.html" %}
 <figure class="litmap relative mt-6 rounded-lg p-2" style="background: var(--surface)" data-pagefind-ignore>
   <svg viewBox="0 0 {{ map_size[0] }} {{ map_size[1] }}" class="w-full" role="group" aria-label="A map of {{ points | length }} reviewed papers and {{ queued | length }} queued ones in {{ badges | length }} numbered regions. Close points are papers about similar things, and the axes have no meaning. The legend below names the regions. Shape gives each review's status.">
@@ -36,8 +37,7 @@
     {% for p in points %}
     {% set cx, cy = p.cx, p.cy %}
     <a href="{{ p.name }}.html" data-name="{{ p.name }}" data-near="{{ p.neighbours | join(' ') }}" data-x="{{ cx }}" data-y="{{ cy }}" data-title="{{ p.title }}" data-credit="{{ p.credit }}" data-status="{{ p.status }}" data-why="{{ p.why }}"><title>{{ p.title }} ({{ p.status }})</title>
-      {% set r = 7.5 if p.called_out else 5 %}
-      {% if p.status == "used" %}<circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r }}" class="paper f{{ p.slot }}"/>
+      {% if p.status == "used" %}<circle cx="{{ cx }}" cy="{{ cy }}" r="{{ 6 if p.name in called else 5 }}" class="paper f{{ p.slot }}{{ ' called' if p.name in called }}"/>
       {% elif p.status == "planned" %}<path d="M{{ cx }} {{ cy - 6 }} L{{ cx + 6 }} {{ cy + 4.5 }} L{{ cx - 6 }} {{ cy + 4.5 }} Z" class="paper f{{ p.slot }}"/>
       {% else %}<rect x="{{ cx - 4.5 }}" y="{{ cy - 4.5 }}" width="9" height="9" class="paper f{{ p.slot }}"/>{% endif %}
     </a>
@@ -56,7 +56,7 @@
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><path d="M6 1 L11 10 L1 10 Z" style="fill: var(--muted)"/></svg> planned</span>
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><rect x="2" y="2" width="8" height="8" style="fill: var(--muted)"/></svg> not applicable</span>
     <span><svg class="inline align-middle" width="12" height="12" aria-hidden="true"><circle cx="6" cy="6" r="2.5" style="fill: var(--muted)"/></svg> queued, not reviewed yet</span>
-    <span>Each dot is a paper. Titles and summaries were embedded with a sentence-transformer, linked into a k-nearest-neighbour graph, laid out with UMAP and grouped with Leiden (scripts/literature_map.py). A region is named by the index section that most of its reviews are under. Close points are papers about similar things. The axes have no meaning. Hover over a paper, or move to it with Tab, for its card and lines to its three nearest papers.{% if missing %} Not placed yet: {% for m in missing %}<a class="underline" href="{{ m.name }}.html">{{ m.title }}</a>{{ ", " if not loop.last }}{% endfor %}.{% endif %}</span>
+    <span>Each dot is a paper. Titles and summaries were embedded with a sentence-transformer, linked into a k-nearest-neighbour graph, laid out with UMAP and grouped with Leiden (scripts/literature_map.py). A region is named by the index section that most of its reviews are under, and a queued paper sits in the region of its topic. The cards in the margins name up to 8 papers a side: the reviews with status used, outside the index sections on model architecture and data, that the most pages in docs/ and papers/ link to, as many as fit beside their dots with no crossing lines. Close points are papers about similar things. The axes have no meaning. Hover over a paper, or move to it with Tab, for its card and lines to its three nearest papers.{% if missing %} Not placed yet: {% for m in missing %}<a class="underline" href="{{ m.name }}.html">{{ m.title }}</a>{{ ", " if not loop.last }}{% endfor %}.{% endif %}</span>
   </figcaption>
 </figure>
 {% endif %}
