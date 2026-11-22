@@ -174,3 +174,17 @@ def test_open_blockers_keeps_only_open_ones(monkeypatch):
     data = {"data": {"repository": {"issue": {"blockedBy": {"nodes": nodes}}}}}
     monkeypatch.setattr(next_issue, "gh_json", lambda *a: data)
     assert OPEN_BLOCKERS("1") == [9]
+
+
+def test_muse_issues_are_never_picked_ranked_or_answered(monkeypatch):
+    issues = [_issue(1, "a"), _issue(2, "a", extra=("muse",))]
+    assert [i["number"] for i in next_issue.unstarted(issues, {})] == [1]
+    assert [i["number"] for i in next_issue.unprioritised(issues, {})] == [1]
+    replied = _comments("**Question**\n\nWhich?", "1")
+    views = {
+        n: i | {"state": "OPEN", "comments": replied}
+        for n, i in (("1", issues[0]), ("2", issues[1]))
+    }
+    monkeypatch.setattr(next_issue, "gh_json", lambda *args: dict(views[args[2]]))
+    states = {"1": {"state": "In Progress"}, "2": {"state": "In Progress"}}
+    assert [i["number"] for i in next_issue.answered(states)] == [1]
