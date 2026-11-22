@@ -81,6 +81,7 @@ class _FakeX(BaseHTTPRequestHandler):
     calls: list = []
     files: dict = {}
     fail_upload = False
+    agents: list = []  # each site request's User-Agent
 
     def log_message(self, *args):  # quiet
         pass
@@ -94,6 +95,10 @@ class _FakeX(BaseHTTPRequestHandler):
 
     def do_GET(self):  # noqa: N802 (the handler's interface)
         if self.path.startswith("/site/"):
+            self.agents.append(self.headers.get("User-Agent", ""))
+            if self.agents[-1].startswith("Python-urllib"):  # the CDN refuses it (#6072)
+                self._reply({"title": "Forbidden"}, status=403)
+                return
             data = self.files[self.path]
             self.send_response(200)
             self.send_header("Content-Length", str(len(data)))
@@ -124,7 +129,7 @@ class _FakeX(BaseHTTPRequestHandler):
 
 @pytest.fixture
 def fake_x():
-    _FakeX.calls, _FakeX.files, _FakeX.fail_upload = [], {}, False
+    _FakeX.calls, _FakeX.files, _FakeX.fail_upload, _FakeX.agents = [], {}, False, []
     server = HTTPServer(("127.0.0.1", 0), _FakeX)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_port}"
@@ -164,13 +169,24 @@ def test_a_video_uploads_in_segments_and_waits_for_processing(fake_x):
     assert _FakeX.calls[-1][2]["media"] == {"media_ids": ["v1"]}
 
 
-def test_a_failed_upload_posts_the_text_alone(fake_x, capsys):
+def test_a_failed_upload_posts_nothing(fake_x):
+    from openinterpretability.social.poster import MediaError
+
     _FakeX.files["/site/social.png"] = b"\x89PNG"
     _FakeX.fail_upload = True
     poster = XPoster(KEYS, api=fake_x)
-    assert poster.post("A paper", Media(f"{fake_x}/site/social.png", "image/png", "")) == "t1"
-    assert _FakeX.calls[-1][2] == {"text": "A paper"}
-    assert "media upload failed" in capsys.readouterr().err
+    with pytest.raises(MediaError, match="media upload failed for .*/site/social.png"):
+        poster.post("A paper", Media(f"{fake_x}/site/social.png", "image/png", ""))
+    assert all(c[1] != "/2/tweets" for c in _FakeX.calls)  # no post without its figure (#6072)
+
+
+def test_the_site_gets_the_named_user_agent(fake_x):
+    from openinterpretability.social.poster import USER_AGENT
+
+    _FakeX.files["/site/social.png"] = b"\x89PNG"
+    XPoster(KEYS, api=fake_x).post("A paper", Media(f"{fake_x}/site/social.png", "image/png", ""))
+    assert _FakeX.agents == [USER_AGENT]  # Python's default agent gets 403 from the CDN (#6072)
+    assert _FakeX.calls[-1][2]["media"] == {"media_ids": ["i1"]}
 
 
 def test_the_status_query_is_signed():
