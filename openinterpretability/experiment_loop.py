@@ -19,11 +19,11 @@ from pathlib import Path
 from openinterpretability.core.paths import DEFAULT_WIKI_DIR, draws_dir, experiments_dir, stops_dir
 from openinterpretability.core.record_kinds import reproducible
 from openinterpretability.draw_steps import REVIEW_KINDS, VERBS, draw_slug, steps
+from openinterpretability.loop_pending import PendingRecords
 from openinterpretability.planner import claim_key
 from openinterpretability.until_verified import decide, keep_going, next_turn
 
 MERGE_PERMISSIONS = ("ADMIN", "MAINTAIN", "WRITE")
-CHECKS_TIMEOUT = 45 * 60  # seconds; the land-experiment skill gives up after 45 minutes
 OPENINTERPRETABILITY = ("uv", "run", "open-interpretability")
 
 
@@ -49,6 +49,8 @@ class Options:
     corpus: str | None = None  # None: each new scan builds a fresh corpus from its seed
     until_verified: bool | None = False  # None: a seeded chance per draw (until_verified.py)
     max_turns: int = 3  # an until-verified draw's turns, at most (until_verified.MAX_TURNS)
+    # The records of the loop's open PRs, which draws and measures count (#5826).
+    pending: PendingRecords = field(default_factory=PendingRecords)
 
 
 @dataclass(frozen=True)
@@ -197,7 +199,12 @@ def post(kind: str, key: str) -> str:
 
 
 def merge_blockers(view: dict, permission: str) -> list[str]:
-    """Why the PR described by ``view`` (``gh pr view --json``) may not be merged, if at all."""
+    """Why the auto-merge workflow won't merge the PR described by ``view``, if at all.
+
+    ``view`` is ``gh pr view --json files``. The rules are ``auto-merge.yml``'s: the
+    maintainer's PR may change anything in ``wiki/``, and anyone else's only records that CI
+    reproduces. A token below ``WRITE`` means that CI waits for a maintainer's approval.
+    """
     files = [f["path"] for f in view.get("files", [])]
     wiki = f"{DEFAULT_WIKI_DIR}/"
     reasons = [f"it changes {p}, outside {wiki}" for p in files if not p.startswith(wiki)]
@@ -205,11 +212,8 @@ def merge_blockers(view: dict, permission: str) -> list[str]:
         reasons += [f"{p} is not a record that CI reproduces" for p in files
                     if p.startswith(wiki) and not reproducible(p)]  # fmt: skip
     if permission not in MERGE_PERMISSIONS:
-        reasons.append(f"the token's permission is {permission or 'unknown'}")
-    if view.get("isDraft"):
-        reasons.append("it is a draft")
-    if view.get("mergeable") != "MERGEABLE":
-        reasons.append(f"GitHub says it is {view.get('mergeable', 'not mergeable')}")
+        reasons.append(f"CI needs a maintainer's approval (the token's permission is "
+                       f"{permission or 'unknown'})")  # fmt: skip
     return reasons
 
 
@@ -231,31 +235,27 @@ def say(text: str) -> None:
 
 
 def land(url: str) -> bool:
-    """Wait for the checks, then merge the PR if every merge condition holds. True if merged."""
+    """Hand the PR over to whoever merges it, without waiting for CI (#5826). True if merged.
+
+    The loop never waits for the checks and never merges. ``auto-merge.yml`` merges a PR
+    that it qualifies once CI passes, and a maintainer takes any other. A PR that is still
+    a draft is marked ready, so the workflow sees it.
+    """
     import json
 
-    say(f"waiting for the checks on {url}")
-    try:
-        sh(
-            ["gh", "pr", "checks", url, "--watch", "--fail-fast", "--interval", "30"],
-            timeout=CHECKS_TIMEOUT,
-        )
-    except LoopError as exc:
-        sh(["gh", "pr", "comment", url, "--body", f"Left open: the checks didn't pass ({exc})."])
-        return False
-    fields = "state,isDraft,mergeable,files,headRefOid"
-    view = json.loads(sh(["gh", "pr", "view", url, "--json", fields]))
+    view = json.loads(sh(["gh", "pr", "view", url, "--json", "state,isDraft,files"]))
     if view.get("state") == "MERGED":  # the auto-merge workflow got there first
         return True
+    if view.get("isDraft"):
+        sh(["gh", "pr", "ready", url])
     permission = sh(["gh", "repo", "view", "--json", "viewerPermission", "-q", ".viewerPermission"])
     if reasons := merge_blockers(view, permission):
-        sh(["gh", "pr", "comment", url, "--body", "Left open: " + "; ".join(reasons) + "."])
-        say("left open: " + "; ".join(reasons))
-        return False
-    say("merging")
-    sh(["gh", "pr", "merge", url, "--squash", "--match-head-commit", view["headRefOid"]])
-    delete_branch()
-    return True
+        sh(["gh", "pr", "comment", url, "--body",
+            "Left for a maintainer: " + "; ".join(reasons) + "."])  # fmt: skip
+        say("left for a maintainer: " + "; ".join(reasons))
+    else:
+        say("left for auto-merge, once CI passes")
+    return False
 
 
 def delete_branch() -> None:
@@ -267,7 +267,8 @@ def delete_branch() -> None:
 def iteration(options: Options, plan_next, claims) -> Result:
     """Run one experiment end to end: reset, draw, claim, run, post and land."""
     reset()
-    plan = draw(options, plan_next, claims)
+    with options.pending.applied():  # the open PRs' records count too (#5826)
+        plan = draw(options, plan_next, claims)
     slug = draw_slug(plan.choice)
     if slug is None:
         raise LoopError(f"the unit of a {plan.choice.kind} draw on {plan.choice.model} is unknown")
@@ -298,7 +299,9 @@ def iteration(options: Options, plan_next, claims) -> Result:
         )
         delete_branch()
         raise
-    return Result(slug, status, url, land(url))
+    merged = land(url)
+    options.pending.keep()
+    return Result(slug, status, url, merged)
 
 
 def more_turns(options: Options, kind: str, slug: str, status: str) -> str:

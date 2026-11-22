@@ -74,8 +74,8 @@ from openinterpretability.patches.session import patched
 )  # fmt: skip
 @click.option(
     "--land/--no-land", "land", default=True, show_default=True,
-    help="--record: land the record as its own PR, merged on green (#4475). --no-land "
-    "writes it to --wiki-dir only.",
+    help="--record: land the record as its own PR, which auto-merge.yml merges on green "
+    "(#4475, #5826). --no-land writes it to --wiki-dir only.",
 )  # fmt: skip
 @click.option(
     "--complete", is_flag=True,
@@ -144,9 +144,10 @@ def _explain(  # long-function: the body of explain_command, one line per step
     ran, code = None, 0
     if run is not None:  # run, then explain the answer as the registry stands after it (#4474)
         agents = (proposer, reviewer, provider)
-        ran, code = run_plan(found, ask, agents, max_attempts, run, Path(wiki_dir),
-                             measure=(runner, means))  # fmt: skip
-        found = _analyse(runner, means, ask, Path(wiki_dir))
+        ran, code, pending = run_plan(found, ask, agents, max_attempts, run, Path(wiki_dir),
+                                      measure=(runner, means))  # fmt: skip
+        with pending.applied():  # its open PRs' records count, marked pending (#5826)
+            found = _analyse(runner, means, ask, Path(wiki_dir))
         ran = ran.model_copy(update={"share_after": found.coverage.get("coverage") or 0.0})
     result, planned, coverage = found.result, found.planned, found.coverage
     told = {}

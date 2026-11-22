@@ -12,16 +12,22 @@ from pathlib import Path
 
 import click
 
+from openinterpretability.loop_pending import PendingRecords
+
 
 def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit: int,
          wiki_dir: Path, measure=(None, None)):  # fmt: skip
-    """Run the plan through the experiment loop, and return what it did and its exit code.
+    """Run the plan through the experiment loop, and return what it did.
+
+    It returns the run's summary, its exit code and the records of its open PRs
+    (:class:`~openinterpretability.loop_pending.PendingRecords`).
 
     Units and superpositions run by coverage gain until the causal coverage reaches the
     target (#4473, #4476). ``measure`` is the ``(runner, means)`` that the coverage meter
     runs, or ``(None, None)`` to count the share of |attribution| instead. Circuits wait
     for an agent to write their task (``explanation_targets.circuit_notes``). When the loop
-    ends, its worktree is reset to ``origin/main``, so the records it landed are there.
+    ends, its worktree is reset to ``origin/main``. Its PRs land without waiting for CI, so
+    the caller measures with the pending records in place (#5826).
     """
     from openinterpretability.cli_loop import _api_model, _models, run_loop
     from openinterpretability.explanation_targets import (
@@ -55,8 +61,10 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
                           limit=limit, window=window)  # fmt: skip
     out: dict = {}
     code = run_loop(proposer, reviewer, draws, out=out)
-    ran = _ran(out.get("loop"), found.coverage.get("coverage") or 0.0, code)
-    return ran.model_copy(update={"shares": draws.shares}), code
+    loop = out.get("loop")
+    ran = _ran(loop, found.coverage.get("coverage") or 0.0, code)
+    pending = loop.options.pending if loop is not None else PendingRecords()
+    return ran.model_copy(update={"shares": draws.shares}), code, pending
 
 
 def _ran(loop, before: float, code: int):
@@ -74,6 +82,7 @@ def _ran(loop, before: float, code: int):
         share_before=before, share_after=before, stopped=stopped,
         landed=[f"{r.slug} {r.verdict} {r.url}" for r in results if r.merged],
         left_open=[r.url for r in results if r.url and not r.merged],
+        pending=[f"{r.slug} {r.verdict} {r.url}" for r in results if r.url and not r.merged],
     )  # fmt: skip
 
 

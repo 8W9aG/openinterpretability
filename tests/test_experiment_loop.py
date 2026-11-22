@@ -35,8 +35,6 @@ elif args[:2] == ["pr", "view"]:
                       "files": [{{"path": p}} for p in files], "headRefOid": "abc"}}))
 elif args[:2] == ["repo", "view"]:
     print(os.environ.get("GH_PERMISSION", "WRITE"))
-elif args[:2] == ["pr", "checks"]:
-    sys.exit(int(os.environ.get("GH_CHECKS_EXIT", "0")))
 """
 
 
@@ -117,10 +115,13 @@ def _loop(plan=None, **kw):
 
 def test_one_iteration_claims_runs_posts_and_lands(repo, fakes, capsys):
     assert _loop(max_experiments=1).run() == 0
-    assert f"RESULT: {SLUG} VERIFIED {URL} merged" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert f"RESULT: {SLUG} VERIFIED {URL} open" in out
+    assert "loop: left for auto-merge, once CI passes" in out
     gh = repo.gh_log.read_text()
     assert "pr create --draft" in gh and "pr ready" in gh
-    assert "pr merge https://github.com/o/r/pull/7 --squash --match-head-commit abc" in gh
+    # #5826: the loop neither waits for CI nor merges. auto-merge.yml does, once CI passes.
+    assert "pr checks" not in gh and "pr merge" not in gh
     assert [a[0] for a in fakes] == ["audit", "verify", "wiki", "check"]
     assert "--agent-model" in fakes[0] and "api/reviewer" in fakes[1]
     log = subprocess.run(
@@ -133,15 +134,14 @@ def test_one_iteration_claims_runs_posts_and_lands(repo, fakes, capsys):
     branches = subprocess.run(
         ["git", "branch", "--list", "experiment/*"], capture_output=True, text=True, cwd=repo.origin
     ).stdout
-    assert branches == ""  # deleted after the merge, so a later draw can claim it again
+    assert "experiment/" in branches  # the PR's branch stays until its PR merges
 
 
 @pytest.mark.parametrize(
     ("env", "reason"),
     [
         ({"GH_FILES": '["wiki/x.json", "openinterpretability/cli.py"]'}, "outside wiki/"),
-        ({"GH_PERMISSION": "READ"}, "permission is READ"),
-        ({"GH_CHECKS_EXIT": "1"}, "checks didn't pass"),
+        ({"GH_PERMISSION": "READ"}, "CI needs a maintainer's approval"),
     ],
 )
 def test_a_pr_that_may_not_merge_is_left_open(repo, fakes, monkeypatch, capsys, env, reason):
@@ -150,7 +150,8 @@ def test_a_pr_that_may_not_merge_is_left_open(repo, fakes, monkeypatch, capsys, 
     assert _loop(max_experiments=1).run() == 0
     assert capsys.readouterr().out.strip().endswith(" open")
     gh = repo.gh_log.read_text()
-    assert "pr merge" not in gh and reason in gh
+    assert "pr merge" not in gh and "pr checks" not in gh
+    assert "Left for a maintainer: " in gh and reason in gh
 
 
 def test_a_failed_step_closes_the_pr_and_counts(repo, fakes, monkeypatch, capsys):
@@ -214,10 +215,11 @@ def test_the_stop_file_stops_before_any_draw(repo, monkeypatch, capsys):
 
 def test_merge_blockers():
     record = "wiki/experiments/m/L1/N2-positive/1.json"
-    view = {"files": [{"path": record}], "isDraft": False, "mergeable": "MERGEABLE"}
+    view = {"files": [{"path": record}]}
     assert el.merge_blockers(view, "WRITE") == []
-    assert el.merge_blockers(view | {"isDraft": True}, "ADMIN") == ["it is a draft"]
-    assert len(el.merge_blockers(view | {"mergeable": "CONFLICTING"}, "")) == 2
+    assert el.merge_blockers(view, "") == [
+        "CI needs a maintainer's approval (the token's permission is unknown)"
+    ]
 
 
 def test_only_the_maintainer_merges_records_that_ci_cannot_reproduce():
@@ -294,8 +296,8 @@ def test_an_iteration_says_each_stage_in_order(repo, fakes, capsys):
     assert _loop(max_experiments=1).run() == 0
     out = capsys.readouterr().out
     stages = ["loop: drew explore", f"loop: claimed: {URL}", "loop: step 1/",
-              "loop: posting the result", f"loop: waiting for the checks on {URL}",
-              "loop: merging", f"RESULT: {SLUG} VERIFIED {URL} merged"]  # fmt: skip
+              "loop: posting the result", "loop: left for auto-merge, once CI passes",
+              f"RESULT: {SLUG} VERIFIED {URL} open"]  # fmt: skip
     found = [out.index(stage) for stage in stages]
     assert found == sorted(found)
 
@@ -303,6 +305,27 @@ def test_an_iteration_says_each_stage_in_order(repo, fakes, capsys):
 def test_a_command_that_runs_too_long_is_a_loop_error():
     with pytest.raises(el.LoopError, match="timed out"):
         el.sh([sys.executable, "-c", "import time; time.sleep(5)"], timeout=0.2)
+
+
+def test_a_command_that_fails_is_a_loop_error_with_its_last_line():
+    code = "import sys; print('first'); sys.exit('the last line')"
+    with pytest.raises(el.LoopError, match="failed: the last line"):
+        el.sh([sys.executable, "-c", code])
+
+
+def test_a_draft_pr_is_marked_ready_and_left_for_auto_merge(monkeypatch, capsys):
+    calls = []
+
+    def sh(args, check=True, timeout=None):
+        calls.append(args[:3])
+        if args[:3] == ["gh", "pr", "view"]:
+            return json.dumps({"state": "OPEN", "isDraft": True, "files": []})
+        return "ADMIN" if args[:3] == ["gh", "repo", "view"] else ""
+
+    monkeypatch.setattr(el, "sh", sh)
+    assert el.land(URL) is False
+    assert ["gh", "pr", "ready"] in calls and ["gh", "pr", "merge"] not in calls
+    assert "left for auto-merge" in capsys.readouterr().out
 
 
 @pytest.fixture
@@ -391,7 +414,7 @@ def test_a_pr_that_auto_merge_already_merged_counts_as_merged(monkeypatch):
 
     monkeypatch.setattr(el, "sh", sh)
     assert el.land(URL) is True
-    assert [c[:3] for c in calls] == [["gh", "pr", "checks"], ["gh", "pr", "view"]]
+    assert [c[:3] for c in calls] == [["gh", "pr", "view"]]  # no wait for the checks (#5826)
 
 
 def test_a_draw_whose_unit_is_unknown_is_a_loop_error(repo, fakes, monkeypatch):
@@ -404,7 +427,7 @@ def test_a_draw_whose_unit_is_unknown_is_a_loop_error(repo, fakes, monkeypatch):
 def test_an_until_verified_draw_ends_after_a_verified_first_turn(repo, fakes, capsys):
     options = el.Options("api/proposer", "api/reviewer", corpus="c.jsonl", until_verified=True)
     result = el.iteration(options, lambda *a, **k: _plan(), lambda: [])
-    assert (result.slug, result.verdict, result.merged) == (SLUG, "VERIFIED", True)
+    assert (result.slug, result.verdict, result.merged) == (SLUG, "VERIFIED", False)
     assert [a[0] for a in fakes] == ["audit", "verify", "wiki", "check"]
 
 
@@ -438,3 +461,26 @@ def test_the_loop_waits_while_paused_and_says_so_once(repo, monkeypatch, capsys)
     loop._wait_while_paused()
     assert waits == [60, 60]
     assert capsys.readouterr().out.count("New experiments are paused until") == 1
+
+
+def test_the_next_draw_counts_the_open_prs_records_but_no_commit_holds_them(repo, fakes):
+    # #5826: a landed PR's records are back in place while the next draw is chosen.
+    # They are gone while the next experiment runs, so no PR commits another PR's records.
+    record = Path("wiki/experiments") / SLUG.replace("/", "--", 1) / "rec.json"
+    seen = []
+
+    def plan_next(*a, **k):
+        seen.append(record.exists())
+        return _plan()
+
+    options = el.Options("api/proposer", "api/reviewer", corpus="c.jsonl")
+    el.iteration(options, plan_next, lambda: [])
+    assert options.pending.files == {str(record): b"{}"}  # what the first PR added
+    # The fake draws one slug. A real run's claims never redraw an open PR's unit, so this
+    # frees the branch name instead.
+    _git("push", "--quiet", "origin", "--delete", f"experiment/{SLUG.replace('/', '-')}")
+    el.iteration(options, plan_next, lambda: [])
+    assert seen == [False, True]  # the second draw saw the first PR's record
+    committed = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"],
+                               capture_output=True, text=True, check=True).stdout  # fmt: skip
+    assert committed.strip() == str(record)  # the second experiment's own record only
