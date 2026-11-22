@@ -6,6 +6,10 @@ head figure of its paper or post (#5534). The poster downloads it from the site,
 uploads it with X's v2 media API. An image takes one request. A video takes initialize,
 append and finalize, then a status poll. Then the poster sets the figure's alt text.
 
+The download sends :data:`USER_AGENT`. The site's CDN refuses Python's default agent with
+403, and every post went out without its figures (#6072). A failed upload raises
+:class:`MediaError` and nothing is posted, so the deploy's step fails and reports it.
+
 The signature is built here from the standard library, so the package gains no dependency.
 A JSON body is not part of an OAuth 1.0a signature. ``social.run`` takes any function from
 text to a post id, so a Bluesky or Mastodon client can take this one's place.
@@ -19,7 +23,6 @@ import hmac
 import json
 import os
 import secrets
-import sys
 import time
 import urllib.parse
 import urllib.request
@@ -27,6 +30,7 @@ import urllib.request
 API = "https://api.x.com"
 TWEETS = "/2/tweets"  # under API
 SECRETS = ("X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET")
+USER_AGENT = "openinterpretability-social (+https://open-interpretability.com)"  # #6072
 SEGMENT = 4 * 1024 * 1024  # a video's upload segment: X allows 4 MB in a JSON body
 LARGEST = 64 * 1024 * 1024  # the largest drawn figure the poster downloads
 WAIT = 300  # seconds to wait for X to process a video, at most
@@ -97,6 +101,13 @@ def keys_from_env() -> dict[str, str] | None:
     return keys if all(keys.values()) else None
 
 
+class MediaError(OSError):
+    """A figure that couldn't be downloaded or uploaded, so its post was not sent (#6072).
+
+    It is an :class:`OSError`, so ``social post`` reports it as a failed post.
+    """
+
+
 class XPoster:
     """Posts to X as the account that the access token belongs to."""
 
@@ -153,7 +164,8 @@ class XPoster:
         # address is fetched, never a file: or other scheme.
         if not url.startswith(("https://", "http://")):
             raise ValueError(f"not a web address: {url}")
-        with urllib.request.urlopen(url, timeout=60) as response:  # noqa: S310
+        request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})  # noqa: S310
+        with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310
             data = response.read(LARGEST + 1)
         if len(data) > LARGEST:
             raise ValueError(f"{url} is larger than {LARGEST} bytes")
@@ -204,8 +216,8 @@ class XPoster:
     def post(self, text: str, media=None, reply_to: str | None = None) -> str:
         """Publish ``text`` as a post, with its figures when there are any; return its id.
 
-        A failed upload doesn't stop the post, which goes out without that figure. The
-        failure is printed, so the deploy's log shows it. A failed post raises.
+        A failed upload raises before anything is posted, so no post goes out without its
+        figures (#6072). A failed post raises too.
 
         Args:
             text: The post.
@@ -215,14 +227,17 @@ class XPoster:
 
         Returns:
             The id that X gives the new post.
+
+        Raises:
+            MediaError: When a figure can't be downloaded or uploaded.
         """
         body: dict = {"text": text}
         ids = []
         for item in [media] if media is not None and hasattr(media, "url") else media or []:
             try:
                 ids.append(self.upload(item.url, item.type, item.alt))
-            except (OSError, KeyError, ValueError) as error:  # an upload's failure, not the post's
-                print(f"media upload failed, posting without it: {error}", file=sys.stderr)
+            except (OSError, KeyError, ValueError) as error:
+                raise MediaError(f"media upload failed for {item.url}: {error}") from error
         if ids:
             body["media"] = {"media_ids": ids}
         if reply_to is not None:
