@@ -22,7 +22,7 @@ If less than 24 hours have passed, stop and say when the next release may go out
 
 ## Before the release
 
-Do these six steps first, in order. Each fix goes in its own PR, which merges before the release branch is cut.
+Do these seven steps first, in order. Each fix goes in its own PR, which merges before the release branch is cut.
 
 1. **Resolve every open Dependabot alert.**
    ```bash
@@ -70,7 +70,20 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    - **A finding that only the maintainer can fix**, such as a repository setting or a secret, goes to the maintainer as a question. The release waits for the answer.
    - Say in the release PR when the sweep ran, the skill's commit and its scope. Say how many findings it proved and how many PRs fixed them, with no details.
 5. **Propose new work.** Read the *Use in this repo* section of each page in `docs/literature/`. Also read the *Limits* and *What this means* sections of the analyses and papers that changed since the last tag (`git diff --stat v<previous> -- docs papers`). Then do a short web search for new papers and posts on native-neuron interpretability, explanation scoring and automated interpretability. Before opening anything, search the open issues and `docs/literature/` for it. Open each new idea as an issue with an `area:` label and a priority label, and give no milestone. Open each new paper as an issue titled `Review <title>`, with the label `area: literature`. List them all in the release PR. Then list the works that the papers cite with no review page yet: `uv run python scripts/cited_works.py`. Check that each one's issue is still open. Open an issue for any that has none, in the form of #5312 (#5346).
-6. **Release the version**, with the procedure below.
+6. **Prepare the alphaXiv submissions.** The maintainer decided on 2026-11-19 that each published paper goes to the alphaXiv AI Track (#5259). alphaXiv has no upload API, so the maintainer uploads, and you prepare. Find the papers published since the last tag, and the published papers that got a new addendum:
+   ```bash
+   git diff --name-only v<previous> -- 'papers/*/README.md'
+   ```
+   For each changed paper whose status line says *Published*, build the site and write its package:
+   ```bash
+   make build
+   uv run python scripts/papers.py submit <slug>
+   ```
+   The package is `build/alphaxiv/<slug>/`: `paper.pdf` and `submission.md`. List each package's `submission.md` in the release PR, and ask the maintainer to approve it and upload it from the project account. Never upload it yourself, and never attach the PDF to an issue or a PR. An addendum is a new alphaXiv version, and `submission.md` gives its number. After the upload, record the URL in a separate PR:
+   ```bash
+   uv run python scripts/papers.py alphaxiv <slug> https://www.alphaxiv.org/abs/<id>
+   ```
+7. **Release the version**, with the procedure below.
 
 ## Procedure
 

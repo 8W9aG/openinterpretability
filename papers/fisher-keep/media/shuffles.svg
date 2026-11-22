@@ -1,0 +1,291 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" width="760" height="380" role="img">
+<title>A histogram of the null AUC that builds up over 10000 shuffles of the keep labels within each layer. It centres near 0.523. A vertical line marks the observed AUC of 0.475, inside the bulk of the null.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+@keyframes step0{0%{opacity:0}0.0%{opacity:1}16.7%{opacity:0}100%{opacity:0}}.step0{animation:step0 9s step-end infinite;opacity:0}@keyframes step1{0%{opacity:0}16.7%{opacity:1}33.3%{opacity:0}100%{opacity:0}}.step1{animation:step1 9s step-end infinite;opacity:0}@keyframes step2{0%{opacity:0}33.3%{opacity:1}50.0%{opacity:0}100%{opacity:0}}.step2{animation:step2 9s step-end infinite;opacity:0}@keyframes step3{0%{opacity:0}50.0%{opacity:1}66.7%{opacity:0}100%{opacity:0}}.step3{animation:step3 9s step-end infinite;opacity:0}@keyframes step4{0%{opacity:0}66.7%{opacity:1}83.3%{opacity:0}100%{opacity:0}}.step4{animation:step4 9s step-end infinite;opacity:0}@keyframes step5{0%{opacity:0}83.3%{opacity:1}100%{opacity:1}}.step5{animation:step5 9s step-end infinite;opacity:1}</style>
+<rect class="bg" width="760" height="380" rx="10"/>
+<text x="20.0" y="30.0" class="title">The observed AUC sits inside its null</text>
+<text x="20.0" y="50.0" class="sub">Bars: the AUC after shuffling keep and fail within each layer, as a share of the shuffles so far.</text>
+<text x="20.0" y="68.0" class="sub">Line: the observed AUC, 0.475. Two-sided p = 0.21.</text>
+<path class="grid" d="M60.0 112.0L60.0 312.0"/>
+<text x="60.0" y="327.0" class="small" text-anchor="middle">0.40</text>
+<path class="grid" d="M194.0 112.0L194.0 312.0"/>
+<text x="194.0" y="327.0" class="small" text-anchor="middle">0.45</text>
+<path class="grid" d="M328.0 112.0L328.0 312.0"/>
+<text x="328.0" y="327.0" class="small" text-anchor="middle">0.50</text>
+<path class="grid" d="M462.0 112.0L462.0 312.0"/>
+<text x="462.0" y="327.0" class="small" text-anchor="middle">0.55</text>
+<path class="grid" d="M596.0 112.0L596.0 312.0"/>
+<text x="596.0" y="327.0" class="small" text-anchor="middle">0.60</text>
+<path class="grid" d="M730.0 112.0L730.0 312.0"/>
+<text x="730.0" y="327.0" class="small" text-anchor="middle">0.65</text>
+<text x="395.0" y="343.0" class="small" text-anchor="middle">AUC: P(the Fisher percentile of a pole that keeps &gt; that of a pole that fails)</text>
+<rect class="fneutral step0" x="194.5" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="234.7" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="248.1" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="288.3" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="315.1" y="221.1" width="12.4" height="90.9" rx="1.5"/>
+<rect class="fneutral step0" x="341.9" y="130.2" width="12.4" height="181.8" rx="1.5"/>
+<rect class="fneutral step0" x="355.3" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="368.7" y="130.2" width="12.4" height="181.8" rx="1.5"/>
+<rect class="fneutral step0" x="382.1" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="395.5" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="408.9" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="435.7" y="130.2" width="12.4" height="181.8" rx="1.5"/>
+<rect class="fneutral step0" x="449.1" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="475.9" y="175.6" width="12.4" height="136.4" rx="1.5"/>
+<rect class="fneutral step0" x="516.1" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="596.5" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="636.7" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step0" x="650.1" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<text x="730.0" y="116.0" class="small step0" text-anchor="end">30 shuffles</text>
+<rect class="fneutral step1" x="154.3" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<rect class="fneutral step1" x="167.7" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<rect class="fneutral step1" x="194.5" y="271.1" width="12.4" height="40.9" rx="1.5"/>
+<rect class="fneutral step1" x="207.9" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<rect class="fneutral step1" x="234.7" y="271.1" width="12.4" height="40.9" rx="1.5"/>
+<rect class="fneutral step1" x="248.1" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step1" x="261.5" y="216.5" width="12.4" height="95.5" rx="1.5"/>
+<rect class="fneutral step1" x="274.9" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<rect class="fneutral step1" x="288.3" y="271.1" width="12.4" height="40.9" rx="1.5"/>
+<rect class="fneutral step1" x="301.7" y="271.1" width="12.4" height="40.9" rx="1.5"/>
+<rect class="fneutral step1" x="315.1" y="271.1" width="12.4" height="40.9" rx="1.5"/>
+<rect class="fneutral step1" x="328.5" y="257.5" width="12.4" height="54.5" rx="1.5"/>
+<rect class="fneutral step1" x="341.9" y="202.9" width="12.4" height="109.1" rx="1.5"/>
+<rect class="fneutral step1" x="355.3" y="230.2" width="12.4" height="81.8" rx="1.5"/>
+<rect class="fneutral step1" x="368.7" y="189.3" width="12.4" height="122.7" rx="1.5"/>
+<rect class="fneutral step1" x="382.1" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step1" x="395.5" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step1" x="408.9" y="271.1" width="12.4" height="40.9" rx="1.5"/>
+<rect class="fneutral step1" x="422.3" y="271.1" width="12.4" height="40.9" rx="1.5"/>
+<rect class="fneutral step1" x="435.7" y="202.9" width="12.4" height="109.1" rx="1.5"/>
+<rect class="fneutral step1" x="449.1" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step1" x="462.5" y="243.8" width="12.4" height="68.2" rx="1.5"/>
+<rect class="fneutral step1" x="475.9" y="257.5" width="12.4" height="54.5" rx="1.5"/>
+<rect class="fneutral step1" x="489.3" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step1" x="516.1" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<rect class="fneutral step1" x="542.9" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<rect class="fneutral step1" x="556.3" y="271.1" width="12.4" height="40.9" rx="1.5"/>
+<rect class="fneutral step1" x="569.7" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step1" x="583.1" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step1" x="596.5" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<rect class="fneutral step1" x="623.3" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step1" x="636.7" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<rect class="fneutral step1" x="650.1" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<text x="730.0" y="116.0" class="small step1" text-anchor="end">100 shuffles</text>
+<rect class="fneutral step2" x="154.3" y="302.9" width="12.4" height="9.1" rx="1.5"/>
+<rect class="fneutral step2" x="167.7" y="307.5" width="12.4" height="4.5" rx="1.5"/>
+<rect class="fneutral step2" x="181.1" y="307.5" width="12.4" height="4.5" rx="1.5"/>
+<rect class="fneutral step2" x="194.5" y="293.8" width="12.4" height="18.2" rx="1.5"/>
+<rect class="fneutral step2" x="207.9" y="293.8" width="12.4" height="18.2" rx="1.5"/>
+<rect class="fneutral step2" x="221.3" y="293.8" width="12.4" height="18.2" rx="1.5"/>
+<rect class="fneutral step2" x="234.7" y="280.2" width="12.4" height="31.8" rx="1.5"/>
+<rect class="fneutral step2" x="248.1" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step2" x="261.5" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step2" x="274.9" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step2" x="288.3" y="257.5" width="12.4" height="54.5" rx="1.5"/>
+<rect class="fneutral step2" x="301.7" y="266.5" width="12.4" height="45.5" rx="1.5"/>
+<rect class="fneutral step2" x="315.1" y="257.5" width="12.4" height="54.5" rx="1.5"/>
+<rect class="fneutral step2" x="328.5" y="239.3" width="12.4" height="72.7" rx="1.5"/>
+<rect class="fneutral step2" x="341.9" y="202.9" width="12.4" height="109.1" rx="1.5"/>
+<rect class="fneutral step2" x="355.3" y="225.6" width="12.4" height="86.4" rx="1.5"/>
+<rect class="fneutral step2" x="368.7" y="198.4" width="12.4" height="113.6" rx="1.5"/>
+<rect class="fneutral step2" x="382.1" y="262.0" width="12.4" height="50.0" rx="1.5"/>
+<rect class="fneutral step2" x="395.5" y="275.6" width="12.4" height="36.4" rx="1.5"/>
+<rect class="fneutral step2" x="408.9" y="257.5" width="12.4" height="54.5" rx="1.5"/>
+<rect class="fneutral step2" x="422.3" y="248.4" width="12.4" height="63.6" rx="1.5"/>
+<rect class="fneutral step2" x="435.7" y="243.8" width="12.4" height="68.2" rx="1.5"/>
+<rect class="fneutral step2" x="449.1" y="275.6" width="12.4" height="36.4" rx="1.5"/>
+<rect class="fneutral step2" x="462.5" y="252.9" width="12.4" height="59.1" rx="1.5"/>
+<rect class="fneutral step2" x="475.9" y="239.3" width="12.4" height="72.7" rx="1.5"/>
+<rect class="fneutral step2" x="489.3" y="280.2" width="12.4" height="31.8" rx="1.5"/>
+<rect class="fneutral step2" x="502.7" y="293.8" width="12.4" height="18.2" rx="1.5"/>
+<rect class="fneutral step2" x="516.1" y="284.7" width="12.4" height="27.3" rx="1.5"/>
+<rect class="fneutral step2" x="529.5" y="307.5" width="12.4" height="4.5" rx="1.5"/>
+<rect class="fneutral step2" x="542.9" y="293.8" width="12.4" height="18.2" rx="1.5"/>
+<rect class="fneutral step2" x="556.3" y="293.8" width="12.4" height="18.2" rx="1.5"/>
+<rect class="fneutral step2" x="569.7" y="293.8" width="12.4" height="18.2" rx="1.5"/>
+<rect class="fneutral step2" x="583.1" y="298.4" width="12.4" height="13.6" rx="1.5"/>
+<rect class="fneutral step2" x="596.5" y="307.5" width="12.4" height="4.5" rx="1.5"/>
+<rect class="fneutral step2" x="623.3" y="302.9" width="12.4" height="9.1" rx="1.5"/>
+<rect class="fneutral step2" x="636.7" y="307.5" width="12.4" height="4.5" rx="1.5"/>
+<rect class="fneutral step2" x="650.1" y="307.5" width="12.4" height="4.5" rx="1.5"/>
+<rect class="fneutral step2" x="690.3" y="307.5" width="12.4" height="4.5" rx="1.5"/>
+<rect class="fneutral step2" x="717.1" y="307.5" width="12.4" height="4.5" rx="1.5"/>
+<text x="730.0" y="116.0" class="small step2" text-anchor="end">300 shuffles</text>
+<rect class="fneutral step3" x="60.5" y="310.6" width="12.4" height="1.4" rx="1.5"/>
+<rect class="fneutral step3" x="127.5" y="310.6" width="12.4" height="1.4" rx="1.5"/>
+<rect class="fneutral step3" x="140.9" y="305.2" width="12.4" height="6.8" rx="1.5"/>
+<rect class="fneutral step3" x="154.3" y="303.8" width="12.4" height="8.2" rx="1.5"/>
+<rect class="fneutral step3" x="167.7" y="305.2" width="12.4" height="6.8" rx="1.5"/>
+<rect class="fneutral step3" x="181.1" y="305.2" width="12.4" height="6.8" rx="1.5"/>
+<rect class="fneutral step3" x="194.5" y="290.2" width="12.4" height="21.8" rx="1.5"/>
+<rect class="fneutral step3" x="207.9" y="295.6" width="12.4" height="16.4" rx="1.5"/>
+<rect class="fneutral step3" x="221.3" y="292.9" width="12.4" height="19.1" rx="1.5"/>
+<rect class="fneutral step3" x="234.7" y="290.2" width="12.4" height="21.8" rx="1.5"/>
+<rect class="fneutral step3" x="248.1" y="275.2" width="12.4" height="36.8" rx="1.5"/>
+<rect class="fneutral step3" x="261.5" y="279.3" width="12.4" height="32.7" rx="1.5"/>
+<rect class="fneutral step3" x="274.9" y="276.5" width="12.4" height="35.5" rx="1.5"/>
+<rect class="fneutral step3" x="288.3" y="276.5" width="12.4" height="35.5" rx="1.5"/>
+<rect class="fneutral step3" x="301.7" y="261.5" width="12.4" height="50.5" rx="1.5"/>
+<rect class="fneutral step3" x="315.1" y="254.7" width="12.4" height="57.3" rx="1.5"/>
+<rect class="fneutral step3" x="328.5" y="253.4" width="12.4" height="58.6" rx="1.5"/>
+<rect class="fneutral step3" x="341.9" y="238.4" width="12.4" height="73.6" rx="1.5"/>
+<rect class="fneutral step3" x="355.3" y="246.5" width="12.4" height="65.5" rx="1.5"/>
+<rect class="fneutral step3" x="368.7" y="232.9" width="12.4" height="79.1" rx="1.5"/>
+<rect class="fneutral step3" x="382.1" y="250.6" width="12.4" height="61.4" rx="1.5"/>
+<rect class="fneutral step3" x="395.5" y="246.5" width="12.4" height="65.5" rx="1.5"/>
+<rect class="fneutral step3" x="408.9" y="252.0" width="12.4" height="60.0" rx="1.5"/>
+<rect class="fneutral step3" x="422.3" y="242.5" width="12.4" height="69.5" rx="1.5"/>
+<rect class="fneutral step3" x="435.7" y="237.0" width="12.4" height="75.0" rx="1.5"/>
+<rect class="fneutral step3" x="449.1" y="260.2" width="12.4" height="51.8" rx="1.5"/>
+<rect class="fneutral step3" x="462.5" y="252.0" width="12.4" height="60.0" rx="1.5"/>
+<rect class="fneutral step3" x="475.9" y="261.5" width="12.4" height="50.5" rx="1.5"/>
+<rect class="fneutral step3" x="489.3" y="265.6" width="12.4" height="46.4" rx="1.5"/>
+<rect class="fneutral step3" x="502.7" y="286.1" width="12.4" height="25.9" rx="1.5"/>
+<rect class="fneutral step3" x="516.1" y="275.2" width="12.4" height="36.8" rx="1.5"/>
+<rect class="fneutral step3" x="529.5" y="287.5" width="12.4" height="24.5" rx="1.5"/>
+<rect class="fneutral step3" x="542.9" y="295.6" width="12.4" height="16.4" rx="1.5"/>
+<rect class="fneutral step3" x="556.3" y="286.1" width="12.4" height="25.9" rx="1.5"/>
+<rect class="fneutral step3" x="569.7" y="295.6" width="12.4" height="16.4" rx="1.5"/>
+<rect class="fneutral step3" x="583.1" y="301.1" width="12.4" height="10.9" rx="1.5"/>
+<rect class="fneutral step3" x="596.5" y="306.5" width="12.4" height="5.5" rx="1.5"/>
+<rect class="fneutral step3" x="609.9" y="302.5" width="12.4" height="9.5" rx="1.5"/>
+<rect class="fneutral step3" x="623.3" y="306.5" width="12.4" height="5.5" rx="1.5"/>
+<rect class="fneutral step3" x="636.7" y="306.5" width="12.4" height="5.5" rx="1.5"/>
+<rect class="fneutral step3" x="650.1" y="310.6" width="12.4" height="1.4" rx="1.5"/>
+<rect class="fneutral step3" x="690.3" y="310.6" width="12.4" height="1.4" rx="1.5"/>
+<rect class="fneutral step3" x="703.7" y="310.6" width="12.4" height="1.4" rx="1.5"/>
+<rect class="fneutral step3" x="717.1" y="310.6" width="12.4" height="1.4" rx="1.5"/>
+<text x="730.0" y="116.0" class="small step3" text-anchor="end">1,000 shuffles</text>
+<rect class="fneutral step4" x="60.5" y="310.6" width="12.4" height="1.4" rx="1.5"/>
+<rect class="fneutral step4" x="73.9" y="311.5" width="12.4" height="0.5" rx="1.5"/>
+<rect class="fneutral step4" x="87.3" y="311.5" width="12.4" height="0.5" rx="1.5"/>
+<rect class="fneutral step4" x="100.7" y="311.5" width="12.4" height="0.5" rx="1.5"/>
+<rect class="fneutral step4" x="114.1" y="309.3" width="12.4" height="2.7" rx="1.5"/>
+<rect class="fneutral step4" x="127.5" y="310.6" width="12.4" height="1.4" rx="1.5"/>
+<rect class="fneutral step4" x="140.9" y="305.6" width="12.4" height="6.4" rx="1.5"/>
+<rect class="fneutral step4" x="154.3" y="302.9" width="12.4" height="9.1" rx="1.5"/>
+<rect class="fneutral step4" x="167.7" y="303.4" width="12.4" height="8.6" rx="1.5"/>
+<rect class="fneutral step4" x="181.1" y="301.1" width="12.4" height="10.9" rx="1.5"/>
+<rect class="fneutral step4" x="194.5" y="294.3" width="12.4" height="17.7" rx="1.5"/>
+<rect class="fneutral step4" x="207.9" y="295.6" width="12.4" height="16.4" rx="1.5"/>
+<rect class="fneutral step4" x="221.3" y="287.5" width="12.4" height="24.5" rx="1.5"/>
+<rect class="fneutral step4" x="234.7" y="293.4" width="12.4" height="18.6" rx="1.5"/>
+<rect class="fneutral step4" x="248.1" y="281.5" width="12.4" height="30.5" rx="1.5"/>
+<rect class="fneutral step4" x="261.5" y="280.6" width="12.4" height="31.4" rx="1.5"/>
+<rect class="fneutral step4" x="274.9" y="275.6" width="12.4" height="36.4" rx="1.5"/>
+<rect class="fneutral step4" x="288.3" y="264.3" width="12.4" height="47.7" rx="1.5"/>
+<rect class="fneutral step4" x="301.7" y="257.9" width="12.4" height="54.1" rx="1.5"/>
+<rect class="fneutral step4" x="315.1" y="262.0" width="12.4" height="50.0" rx="1.5"/>
+<rect class="fneutral step4" x="328.5" y="259.7" width="12.4" height="52.3" rx="1.5"/>
+<rect class="fneutral step4" x="341.9" y="247.5" width="12.4" height="64.5" rx="1.5"/>
+<rect class="fneutral step4" x="355.3" y="251.5" width="12.4" height="60.5" rx="1.5"/>
+<rect class="fneutral step4" x="368.7" y="238.8" width="12.4" height="73.2" rx="1.5"/>
+<rect class="fneutral step4" x="382.1" y="241.5" width="12.4" height="70.5" rx="1.5"/>
+<rect class="fneutral step4" x="395.5" y="243.4" width="12.4" height="68.6" rx="1.5"/>
+<rect class="fneutral step4" x="408.9" y="246.5" width="12.4" height="65.5" rx="1.5"/>
+<rect class="fneutral step4" x="422.3" y="243.4" width="12.4" height="68.6" rx="1.5"/>
+<rect class="fneutral step4" x="435.7" y="246.5" width="12.4" height="65.5" rx="1.5"/>
+<rect class="fneutral step4" x="449.1" y="245.6" width="12.4" height="66.4" rx="1.5"/>
+<rect class="fneutral step4" x="462.5" y="258.4" width="12.4" height="53.6" rx="1.5"/>
+<rect class="fneutral step4" x="475.9" y="265.6" width="12.4" height="46.4" rx="1.5"/>
+<rect class="fneutral step4" x="489.3" y="260.6" width="12.4" height="51.4" rx="1.5"/>
+<rect class="fneutral step4" x="502.7" y="279.3" width="12.4" height="32.7" rx="1.5"/>
+<rect class="fneutral step4" x="516.1" y="275.6" width="12.4" height="36.4" rx="1.5"/>
+<rect class="fneutral step4" x="529.5" y="287.0" width="12.4" height="25.0" rx="1.5"/>
+<rect class="fneutral step4" x="542.9" y="295.2" width="12.4" height="16.8" rx="1.5"/>
+<rect class="fneutral step4" x="556.3" y="295.2" width="12.4" height="16.8" rx="1.5"/>
+<rect class="fneutral step4" x="569.7" y="299.3" width="12.4" height="12.7" rx="1.5"/>
+<rect class="fneutral step4" x="583.1" y="300.2" width="12.4" height="11.8" rx="1.5"/>
+<rect class="fneutral step4" x="596.5" y="304.7" width="12.4" height="7.3" rx="1.5"/>
+<rect class="fneutral step4" x="609.9" y="303.8" width="12.4" height="8.2" rx="1.5"/>
+<rect class="fneutral step4" x="623.3" y="307.0" width="12.4" height="5.0" rx="1.5"/>
+<rect class="fneutral step4" x="636.7" y="306.1" width="12.4" height="5.9" rx="1.5"/>
+<rect class="fneutral step4" x="650.1" y="308.8" width="12.4" height="3.2" rx="1.5"/>
+<rect class="fneutral step4" x="663.5" y="309.7" width="12.4" height="2.3" rx="1.5"/>
+<rect class="fneutral step4" x="676.9" y="311.1" width="12.4" height="0.9" rx="1.5"/>
+<rect class="fneutral step4" x="690.3" y="311.1" width="12.4" height="0.9" rx="1.5"/>
+<rect class="fneutral step4" x="703.7" y="311.5" width="12.4" height="0.5" rx="1.5"/>
+<rect class="fneutral step4" x="717.1" y="310.6" width="12.4" height="1.4" rx="1.5"/>
+<text x="730.0" y="116.0" class="small step4" text-anchor="end">3,000 shuffles</text>
+<rect class="fneutral step5" x="60.5" y="310.1" width="12.4" height="1.9" rx="1.5"/>
+<rect class="fneutral step5" x="73.9" y="310.8" width="12.4" height="1.2" rx="1.5"/>
+<rect class="fneutral step5" x="87.3" y="311.2" width="12.4" height="0.8" rx="1.5"/>
+<rect class="fneutral step5" x="100.7" y="310.5" width="12.4" height="1.5" rx="1.5"/>
+<rect class="fneutral step5" x="114.1" y="309.4" width="12.4" height="2.6" rx="1.5"/>
+<rect class="fneutral step5" x="127.5" y="309.0" width="12.4" height="3.0" rx="1.5"/>
+<rect class="fneutral step5" x="140.9" y="306.8" width="12.4" height="5.2" rx="1.5"/>
+<rect class="fneutral step5" x="154.3" y="305.5" width="12.4" height="6.5" rx="1.5"/>
+<rect class="fneutral step5" x="167.7" y="303.7" width="12.4" height="8.3" rx="1.5"/>
+<rect class="fneutral step5" x="181.1" y="301.1" width="12.4" height="10.9" rx="1.5"/>
+<rect class="fneutral step5" x="194.5" y="297.8" width="12.4" height="14.2" rx="1.5"/>
+<rect class="fneutral step5" x="207.9" y="296.2" width="12.4" height="15.8" rx="1.5"/>
+<rect class="fneutral step5" x="221.3" y="290.6" width="12.4" height="21.4" rx="1.5"/>
+<rect class="fneutral step5" x="234.7" y="289.4" width="12.4" height="22.6" rx="1.5"/>
+<rect class="fneutral step5" x="248.1" y="282.8" width="12.4" height="29.2" rx="1.5"/>
+<rect class="fneutral step5" x="261.5" y="276.4" width="12.4" height="35.6" rx="1.5"/>
+<rect class="fneutral step5" x="274.9" y="274.5" width="12.4" height="37.5" rx="1.5"/>
+<rect class="fneutral step5" x="288.3" y="265.0" width="12.4" height="47.0" rx="1.5"/>
+<rect class="fneutral step5" x="301.7" y="259.5" width="12.4" height="52.5" rx="1.5"/>
+<rect class="fneutral step5" x="315.1" y="254.5" width="12.4" height="57.5" rx="1.5"/>
+<rect class="fneutral step5" x="328.5" y="252.5" width="12.4" height="59.5" rx="1.5"/>
+<rect class="fneutral step5" x="341.9" y="250.4" width="12.4" height="61.6" rx="1.5"/>
+<rect class="fneutral step5" x="355.3" y="247.5" width="12.4" height="64.5" rx="1.5"/>
+<rect class="fneutral step5" x="368.7" y="243.8" width="12.4" height="68.2" rx="1.5"/>
+<rect class="fneutral step5" x="382.1" y="238.5" width="12.4" height="73.5" rx="1.5"/>
+<rect class="fneutral step5" x="395.5" y="243.4" width="12.4" height="68.6" rx="1.5"/>
+<rect class="fneutral step5" x="408.9" y="245.0" width="12.4" height="67.0" rx="1.5"/>
+<rect class="fneutral step5" x="422.3" y="249.3" width="12.4" height="62.7" rx="1.5"/>
+<rect class="fneutral step5" x="435.7" y="247.6" width="12.4" height="64.4" rx="1.5"/>
+<rect class="fneutral step5" x="449.1" y="252.3" width="12.4" height="59.7" rx="1.5"/>
+<rect class="fneutral step5" x="462.5" y="259.6" width="12.4" height="52.4" rx="1.5"/>
+<rect class="fneutral step5" x="475.9" y="266.6" width="12.4" height="45.4" rx="1.5"/>
+<rect class="fneutral step5" x="489.3" y="266.6" width="12.4" height="45.4" rx="1.5"/>
+<rect class="fneutral step5" x="502.7" y="276.5" width="12.4" height="35.5" rx="1.5"/>
+<rect class="fneutral step5" x="516.1" y="277.0" width="12.4" height="35.0" rx="1.5"/>
+<rect class="fneutral step5" x="529.5" y="282.8" width="12.4" height="29.2" rx="1.5"/>
+<rect class="fneutral step5" x="542.9" y="291.0" width="12.4" height="21.0" rx="1.5"/>
+<rect class="fneutral step5" x="556.3" y="296.0" width="12.4" height="16.0" rx="1.5"/>
+<rect class="fneutral step5" x="569.7" y="297.3" width="12.4" height="14.7" rx="1.5"/>
+<rect class="fneutral step5" x="583.1" y="301.0" width="12.4" height="11.0" rx="1.5"/>
+<rect class="fneutral step5" x="596.5" y="305.3" width="12.4" height="6.7" rx="1.5"/>
+<rect class="fneutral step5" x="609.9" y="304.8" width="12.4" height="7.2" rx="1.5"/>
+<rect class="fneutral step5" x="623.3" y="306.4" width="12.4" height="5.6" rx="1.5"/>
+<rect class="fneutral step5" x="636.7" y="307.5" width="12.4" height="4.5" rx="1.5"/>
+<rect class="fneutral step5" x="650.1" y="309.0" width="12.4" height="3.0" rx="1.5"/>
+<rect class="fneutral step5" x="663.5" y="310.2" width="12.4" height="1.8" rx="1.5"/>
+<rect class="fneutral step5" x="676.9" y="310.9" width="12.4" height="1.1" rx="1.5"/>
+<rect class="fneutral step5" x="690.3" y="311.0" width="12.4" height="1.0" rx="1.5"/>
+<rect class="fneutral step5" x="703.7" y="311.3" width="12.4" height="0.7" rx="1.5"/>
+<rect class="fneutral step5" x="717.1" y="310.5" width="12.4" height="1.5" rx="1.5"/>
+<text x="730.0" y="116.0" class="small step5" text-anchor="end">10,000 shuffles</text>
+<path class="line sc2" d="M261.0 112.0L261.0 312.0"/>
+<text x="255.0" y="126.0" class="small" text-anchor="end">observed 0.475</text>
+<path class="axis" d="M328.0 112.0L328.0 312.0"/>
+</svg>

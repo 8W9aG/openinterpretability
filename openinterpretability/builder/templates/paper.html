@@ -22,7 +22,8 @@
   <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/CITATION.cff">Cite</a> ·
   <a class="underline" href="{{ repo_url }}/blob/main/papers/{{ paper.slug }}/README.md">Source</a>{% if pdf %} ·
   <a class="underline" href="paper.pdf">PDF</a>{% endif %}{% if paper.x_url %} ·
-  <a class="underline" href="{{ paper.x_url }}" rel="noopener" data-x-link>Thread on X</a>{% endif %}
+  <a class="underline" href="{{ paper.x_url }}" rel="noopener" data-x-link>Thread on X</a>{% endif %}{% if paper.alphaxiv_url %} ·
+  <a class="underline" href="{{ paper.alphaxiv_url }}" rel="noopener">alphaXiv</a>{% endif %}
 </p>
 <div class="paper mt-6">{{ paper.body | safe }}</div>
 {% endblock %}
