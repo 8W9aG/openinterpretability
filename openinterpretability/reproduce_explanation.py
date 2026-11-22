@@ -108,22 +108,10 @@ def means_corpus(record: ExplanationRecord, corpora: dict[str, list[str]]) -> li
         return builtin[0]
     if inputs.means_corpus_source is None:
         raise ValueError(f"its means corpus (SHA-256 {sha}) is not given, and it has no source")
-    return read_corpus(_rebuilt(inputs.means_corpus_source))[0]
+    from openinterpretability.corpus_rebuild import cached
 
-
-def _rebuilt(source) -> Path:
-    """The corpus that ``source`` describes, built once into the corpus cache."""
-    from openinterpretability.core.cache_dirs import cache_root
-    from openinterpretability.corpus_rebuild import rebuild
-
-    root = cache_root("OPENINTERPRETABILITY_REBUILT_CORPORA", "rebuilt-corpora")
-    if root is None:
-        raise ValueError("the corpus cache is off, so its means corpus can't be built again")
-    out = root / f"{source.sha256}.jsonl"
-    if not out.exists():
-        out.parent.mkdir(parents=True, exist_ok=True)
-        rebuild(source, out)
-    return out
+    reason = "its means corpus can't be built again"
+    return read_corpus(cached(inputs.means_corpus_source, reason))[0]
 
 
 def reproduce_explanation(record: ExplanationRecord, runner, texts: list[str], tolerance,
