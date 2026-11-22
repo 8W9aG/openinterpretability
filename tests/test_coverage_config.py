@@ -9,7 +9,7 @@ ROOT = Path(__file__).parents[1]
 def test_changed_lines_must_all_be_covered():
     config = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]
     assert config["diff_cover"]["fail_under"] == 100
-    assert 90 <= config["coverage"]["report"]["fail_under"] <= 100
+    assert config["coverage"]["report"]["fail_under"] == 100
 
 
 def test_make_and_ci_read_the_threshold_from_pyproject():
