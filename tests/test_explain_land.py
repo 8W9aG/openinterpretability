@@ -15,7 +15,8 @@ WHEN = datetime(2026, 11, 17, tzinfo=UTC)
 def _landed():
     run = ExplainRun(share_before=0.1, share_after=0.4, stopped="the target was reached",
                      landed=["m/L1/N2-positive VERIFIED https://x/pull/1"],
-                     pending=["m/L1/N3-positive VERIFIED https://x/pull/2"])  # fmt: skip
+                     pending=["m/L1/N3-positive VERIFIED https://x/pull/2"],
+                     local=["m/L1/N4-positive REJECTED wiki/experiments/r.json"])  # fmt: skip
     return _record(WHEN).model_copy(update={"run": run})
 
 
@@ -25,6 +26,7 @@ def test_the_pr_body_gives_the_shares_and_the_landed_experiments():
     assert "from 10.0% to 40.0%" in body
     assert "landed: m/L1/N2-positive VERIFIED https://x/pull/1" in body
     assert "pending, counted before it merges: m/L1/N3-positive VERIFIED https://x/pull/2" in body
+    assert "shared from a local run: m/L1/N4-positive REJECTED wiki/experiments/r.json" in body
     name = branch_name(_landed(), WHEN)
     assert name.startswith("explanation/openai-community--gpt2-")
     assert name.endswith("20261117T000000Z")

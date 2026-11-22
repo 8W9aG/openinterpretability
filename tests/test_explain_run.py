@@ -29,7 +29,7 @@ def test_a_run_with_only_a_provider_takes_the_providers_model(toy_runner, tmp_pa
     monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
     seen = {}
 
-    def run_loop(proposer, reviewer, plan_next, out=None):
+    def run_loop(proposer, reviewer, plan_next, out=None, local=False):
         seen.update(proposer=proposer, reviewer=reviewer)
         return 0
 

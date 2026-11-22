@@ -130,7 +130,7 @@ def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, mon
     monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
     seen = {}
 
-    def run_loop(proposer, reviewer, plan_next, out=None):
+    def run_loop(proposer, reviewer, plan_next, out=None, local=False):
         seen.update(proposer=proposer, reviewer=reviewer, draws=plan_next)
         return 0
 
@@ -209,7 +209,7 @@ def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code
     opened = experiment_loop.Result("toy/L1/N3-positive", "VERIFIED", "https://x/pull/2", False)
     pending = PendingRecords({str(pending_record): b"{}"})
 
-    def run_loop(proposer, reviewer, plan_next, out=None):
+    def run_loop(proposer, reviewer, plan_next, out=None, local=False):
         out["loop"] = SimpleNamespace(results=[landed, opened], options=SimpleNamespace(
             pending=pending), finished=None if code else "reached")  # fmt: skip
         return code
@@ -246,7 +246,7 @@ def test_complete_runs_narrates_and_lands_in_one_command(toy_runner, tmp_path, m
     monkeypatch.setattr(experiment_loop, "reset", lambda: None)
     seen = {}
 
-    def run_loop(proposer, reviewer, plan_next, out=None):
+    def run_loop(proposer, reviewer, plan_next, out=None, local=False):
         seen["limit"] = plan_next.limit
         out["loop"] = SimpleNamespace(
             results=[], finished="no target left", options=SimpleNamespace(pending=PendingRecords())
@@ -404,3 +404,47 @@ def test_a_studied_superposition_gets_its_heaviest_follow_up(toy_runner, means, 
     # The heaviest follow-up on the record, not a new audit of the definition.
     assert planned.draw == "reevaluate"
     assert planned.commands == [f"open-interpretability reevaluate --record {path}"]
+
+
+def test_complete_local_runs_and_records_with_no_pr_and_no_gh(toy_runner, tmp_path, monkeypatch):
+    # #5827: --complete --local runs in this checkout, opens no PR and writes the record here.
+    from openinterpretability import cli_explain, explain_land
+    from openinterpretability.cli import cli
+    from openinterpretability.core.explanation_records import load_all
+    from openinterpretability.experiment_loop import Result
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    (tmp_path / "empty").mkdir()
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))  # no gh and no git to call
+    monkeypatch.setattr(cli_explain, "_load_runner", lambda *a, **k: toy_runner)
+    seen = {}
+
+    def run_loop(proposer, reviewer, plan_next, out=None, local=False):
+        seen["local"] = local
+        done = Result("toy/L1/N2-positive", "VERIFIED", record="wiki/experiments/r.json")
+        options = SimpleNamespace(pending=PendingRecords())
+        out["loop"] = SimpleNamespace(results=[done], finished="no target left", options=options)
+        return 0
+
+    def no_reset():
+        raise AssertionError("a local run never resets")
+
+    monkeypatch.setattr("openinterpretability.cli_loop.run_loop", run_loop)
+    monkeypatch.setattr("openinterpretability.experiment_loop.reset", no_reset)
+    monkeypatch.setattr(cli_explain, "_narrate", lambda *a: {})
+    monkeypatch.setattr(explain_land, "land_record", lambda r: pytest.fail("no PR"))
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    wiki = tmp_path / "wiki"
+    args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
+            "--wiki-dir", str(wiki), "--edges", "0", "--complete", "--local",
+            "--proposer", "anthropic/p", "--reviewer", "anthropic/r"]  # fmt: skip
+    out = CliRunner().invoke(cli, args)
+    assert out.exit_code == 0, out.output
+    assert seen["local"] is True
+    ((_, records),) = load_all(wiki).items()
+    (_, record), *_ = records
+    assert record.run.local == ["toy/L1/N2-positive VERIFIED wiki/experiments/r.json"]
+    assert record.run.landed == [] and record.run.pending == []
+    assert "Explanation → " in out.output and "pull" not in out.output

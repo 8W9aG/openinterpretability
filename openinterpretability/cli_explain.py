@@ -34,8 +34,11 @@ from openinterpretability.patches.session import patched
     "--edges", default=8, show_default=True, help="Top units whose incoming paths are traced."
 )
 @click.option(
-    "--corpus", default="corpus.jsonl", show_default=True, type=click.Path(path_type=Path)
-)
+    "--corpus", default=None, type=click.Path(path_type=Path),
+    help="The corpus of each unit's mean. Default: the registry's pile-10k corpus "
+    "(explain_corpus.EXPLAIN_CORPUS), ./corpus.jsonl if it holds it, else built once into "
+    "the cache (#5829).",
+)  # fmt: skip
 @click.option(
     "--mean-tokens",
     default=20_000,
@@ -73,6 +76,12 @@ from openinterpretability.patches.session import patched
     help="Write the explanation to wiki/explanations/, for its page on the site (#3744).",
 )  # fmt: skip
 @click.option(
+    "--local", is_flag=True,
+    help="--run, --complete: run in this checkout with no PR and no GitHub call. The records "
+    "stay in --wiki-dir, and the record is written there too. Share them later in one PR with "
+    "`open-interpretability explain-share` (#5827).",
+)  # fmt: skip
+@click.option(
     "--land/--no-land", "land", default=True, show_default=True,
     help="--record: land the record as its own PR, which auto-merge.yml merges on green "
     "(#4475, #5826). --no-land writes it to --wiki-dir only.",
@@ -88,8 +97,8 @@ from openinterpretability.patches.session import patched
 @with_model_options
 def explain_command(  # long-function: one argument per option, then one line per step
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
-    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, land, complete,
-    as_json, patch_ref, evidence_out,
+    narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, local, land,
+    complete, as_json, patch_ref, evidence_out,
     wiki_dir, device, dtype,
 ):  # fmt: skip
     """Explain the model's answer to PROMPT as fully as the registry allows.
@@ -113,22 +122,39 @@ def explain_command(  # long-function: one argument per option, then one line pe
         _explain(
             prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show,
             level, narrator_model, run, proposer, reviewer, provider, max_attempts,
-            write_record, land, complete, as_json or fix is not None, wiki_dir, device, dtype,
-            fix, evidence_out,
+            write_record, land and not local, complete, as_json or fix is not None, wiki_dir,
+            device, dtype, fix, evidence_out, local,
         )  # fmt: skip
+
+
+def _default_corpus() -> Path:
+    """The explain corpus (:func:`.explain_corpus.default_corpus`), as a click error if it fails.
+
+    Returns:
+        The corpus file.
+
+    Raises:
+        click.ClickException: The cache is off, or the build gives other bytes.
+    """
+    from openinterpretability.explain_corpus import default_corpus
+
+    try:
+        return default_corpus(lambda line: click.echo(line, err=True))
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 def _explain(  # long-function: the body of explain_command, one line per step
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
     narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, land, complete,
-    as_json, wiki_dir, device, dtype, fix=None, evidence_out=None,
+    as_json, wiki_dir, device, dtype, fix=None, evidence_out=None, local=False,
 ):  # fmt: skip
     """Run ``explain`` once, on the model as it stands (patched or not)."""
     from openinterpretability.evidence import read_corpus
     from openinterpretability.explain import unit_means
 
     if complete:  # run to the target, narrate in full, and land the record (#4476)
-        run, level, write_record, land = 0 if run is None else run, "long", True, True
+        run, level, write_record, land = 0 if run is None else run, "long", True, not local
     reuse = look_first(Path(wiki_dir), model_name, prompt, position, target, level,
                        write_record or run is not None)  # fmt: skip
     if reuse.action == "done" and fix is None:
@@ -136,7 +162,7 @@ def _explain(  # long-function: the body of explain_command, one line per step
     if reuse.action == "level":
         run = None  # an earlier explanation already reaches the target: only narrate (#4503)
     runner = _load_runner(model_name, device, dtype)
-    texts, _, corpus_sha, corpus_source = read_corpus(corpus)
+    texts, _, corpus_sha, corpus_source = read_corpus(corpus or _default_corpus())
     means = unit_means(runner, model_name + (fix.key if fix else ""), texts, mean_tokens)
     ask = Ask(model_name, prompt, _answer(runner, token), position, top, edges, target, show)
     found = _analyse(runner, means, ask, Path(wiki_dir))
@@ -145,7 +171,7 @@ def _explain(  # long-function: the body of explain_command, one line per step
     if run is not None:  # run, then explain the answer as the registry stands after it (#4474)
         agents = (proposer, reviewer, provider)
         ran, code, pending = run_plan(found, ask, agents, max_attempts, run, Path(wiki_dir),
-                                      measure=(runner, means))  # fmt: skip
+                                      measure=(runner, means), local=local)  # fmt: skip
         with pending.applied():  # its open PRs' records count, marked pending (#5826)
             found = _analyse(runner, means, ask, Path(wiki_dir))
         ran = ran.model_copy(update={"share_after": found.coverage.get("coverage") or 0.0})
@@ -448,3 +474,24 @@ def _explained_units(model: str, result) -> list:
             attribution=g.attribution, status=g.status, explanation=g.explanation,
         ))  # fmt: skip
     return units
+
+
+@cli.command(name="explain-share")
+@click.argument("record_file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def _explain_share(record_file):
+    """Share an `explain --local` run: one PR with RECORD_FILE and its local experiments.
+
+    It opens the PR ready, and leaves it for auto-merge.yml or a maintainer. It never waits
+    for CI. See docs/experiments.md and #5827.
+
+    \f
+    Args:
+        record_file: The explanation record that `explain --local` wrote.
+    """
+    from openinterpretability.explain_share import share
+
+    try:
+        url, merged = share(record_file.resolve())
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(f"Shared: {url} ({'merged' if merged else 'open'})")

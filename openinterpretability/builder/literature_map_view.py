@@ -3,8 +3,9 @@
 The map follows the design that issue #4577 cites, Alexander Coulton's map of cancer
 research. Every paper is a dot in the colour of its region. A soft glow makes each region
 a cloud. A numbered badge sits at each region's centre, and a numbered legend names
-the regions. Callout cards in the margins name the papers that the repo uses, with leader
-lines to their dots. Every other paper shows its card on hover or focus.
+the regions. Callout cards in the margins name the most-cited papers that the repo uses,
+with leader lines to their dots (:func:`callouts`, #5798). Every other paper shows its card
+on hover or focus.
 
 ``scripts/literature_map.py`` lays the papers out offline and writes ``map.json``. This
 module only places them. A review's status is its shape (circle, triangle, square), so
@@ -15,18 +16,31 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import textwrap
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from openinterpretability.builder.cluster_map import Badge, colour_slots, place_badges
-from openinterpretability.builder.literature_pages import MAP, credits, map_text, review_rows
+from openinterpretability.builder.cluster_map import Badge, place_badges, touching_slots
+from openinterpretability.builder.literature_pages import (
+    MAP,
+    credits,
+    map_text,
+    review_rows,
+    sections,
+)
 from openinterpretability.builder.pii import redact_text
 
 WIDTH, HEIGHT = 1000, 720  # the map's viewBox, in SVG units
 LEFT, RIGHT, TOP, BOTTOM = 230, 770, 40, 680  # where the dots go; the cards take the margins
 CARD_W, CARD_X = 196, 14  # a callout card's width, and its gap from the map's edge
 CARD_LINE, CARD_CHARS, CARD_LINES = 14, 30, 3  # its title's line height, wrap width and lines
+CARDS_PER_SIDE = 8  # the most callout cards on each side of the map (#5798)
+# Index sections of background: architectures, activations, optimisers and datasets. Their
+# reviews are cited often, as tools, but the cards are for the work the research builds on.
+BACKGROUND = ("Model architecture", "Data")
+EDGE, GAP = 8, 10  # a card's least distance from the map's top and bottom, and between cards
 
 
 @dataclass(frozen=True)
@@ -38,15 +52,12 @@ class Point:
     status: str
     cx: float
     cy: float
-    slot: int = 0  # the region's colour slot, 1–7, or 0 for grey
+    slot: int = 0  # the region's colour slot, 1 to cluster_map.SLOTS, or 0 for grey
     why: str = ""  # the one-line reason from the index, for the hover card
     credit: str = ""  # "Authors, year", from the index
     neighbours: tuple[str, ...] = ()
-
-    @property
-    def called_out(self) -> bool:
-        """Whether a callout card names the paper: only the reviews the repo uses."""
-        return self.status == "used"
+    cites: int = 0  # the pages in docs/ and papers/ that link to the review (:func:`citations`)
+    section: str = ""  # its section of the literature index
 
 
 @dataclass(frozen=True)
@@ -106,30 +117,162 @@ def _xy(x: float, y: float) -> tuple[float, float]:
 
 
 def slots(regions: list[dict]) -> dict[int, int]:
-    """Each region number's colour slot: named regions take 1–7 in order, the rest 0."""
-    named = [
-        r["number"] for r in sorted(regions, key=lambda r: r["number"]) if r.get("named", True)
-    ]
-    return {r["number"]: colour_slots(named).get(r["number"], 0) for r in regions}
+    """Each region's colour slot: its own, apart from its neighbours' (#5798).
+
+    Args:
+        regions: The regions of ``map.json``. Each region's ``touches`` gives the regions
+            next to it, by number, with the count of neighbour links to each.
+
+    Returns:
+        Each region number's slot (:func:`.cluster_map.touching_slots`).
+
+    Examples:
+        >>> slots([{"number": 2, "touches": {"1": 4}}, {"number": 1, "touches": {"2": 4}}])
+        {1: 1, 2: 2}
+    """
+    numbers = sorted(r["number"] for r in regions)
+    touches = {r["number"]: {int(n): w for n, w in r.get("touches", {}).items()} for r in regions}
+    return touching_slots(numbers, touches)
+
+
+def citations(folder: Path, names: set[str]) -> Counter:
+    """How many pages in ``docs/`` and ``papers/`` link to each review in ``names``.
+
+    A page counts once per review. The literature index and the review's own page don't
+    count. A page outside ``folder`` counts only a link through ``literature/``.
+
+    Args:
+        folder: The reviews' folder, ``docs/literature``.
+        names: The reviews' page names.
+
+    Returns:
+        The number of citing pages, by review name.
+    """
+    root = folder.parent.parent
+    inside = re.compile(r"\]\((?:\./)?([A-Za-z0-9_-]+)\.md[)#]")
+    outside = re.compile(r"literature/([A-Za-z0-9_-]+)\.md")
+    count: Counter = Counter()
+    for page in sorted([*(root / "docs").rglob("*.md"), *(root / "papers").rglob("*.md")]):
+        if page.parent == folder and page.stem == "README":
+            continue
+        pattern = inside if page.parent == folder else outside
+        cited = set(pattern.findall(page.read_text(encoding="utf-8"))) & names
+        count.update(cited - {page.stem if page.parent == folder else ""})
+    return count
+
+
+def crosses(a: Callout, b: Callout) -> bool:
+    """Whether the leader lines of two cards cross.
+
+    Args:
+        a: One card.
+        b: Another card.
+
+    Returns:
+        True when the two segments, dot to card, cross at a point inside both.
+    """
+    p, q = (a.point.cx, a.point.cy), a.anchor
+    r, t = (b.point.cx, b.point.cy), b.anchor
+
+    def side(o, u, v):
+        """Which side of the line from ``o`` to ``u`` the point ``v`` is on, by sign.
+
+        Args:
+            o: The line's start.
+            u: The line's end.
+            v: The point.
+
+        Returns:
+            Above 0 for the left, below 0 for the right, 0 on the line.
+        """
+        return (u[0] - o[0]) * (v[1] - o[1]) - (u[1] - o[1]) * (v[0] - o[0])
+
+    return side(p, q, r) * side(p, q, t) < 0 and side(r, t, p) * side(r, t, q) < 0
+
+
+def _stack(order: list[Point], x: float) -> list[Callout]:
+    """Cards for ``order``, top to bottom, each beside its dot or below the card above.
+
+    Cards that would end below the map move up, from the bottom card, as far as they must.
+    The top card can then end above the map, which :func:`_side` checks.
+
+    Args:
+        order: The papers, in the order of their cards from top to bottom.
+        x: The cards' left edge.
+
+    Returns:
+        One card for each paper.
+    """
+    cards, bottom = [], float(EDGE)
+    for p in order:
+        lines = tuple(textwrap.wrap(p.title, CARD_CHARS)[:CARD_LINES])
+        height = Callout(p, x, 0, lines).height
+        y = max(p.cy - height / 2, bottom)
+        cards.append(Callout(p, x, y, lines))
+        bottom = y + height + GAP
+    top = HEIGHT - EDGE + GAP
+    for i in reversed(range(len(cards))):
+        c = cards[i]
+        top = min(c.y, top - GAP - c.height)
+        cards[i] = Callout(c.point, x, round(top, 1), c.lines)
+    return cards
+
+
+def _side(chosen: list[Point], x: float) -> list[Callout]:
+    """The cards of one side: inside the map, and with no two leader lines crossing.
+
+    The cards follow their dots from top to bottom (:func:`_stack`). While they don't fit
+    in the map's height, the least-cited card is dropped. Two cards whose lines cross swap
+    places once, and after that the less-cited of them is dropped.
+
+    Args:
+        chosen: The side's candidates, most-cited first.
+        x: The left edge of the side's cards.
+
+    Returns:
+        The side's cards, or none when no card fits.
+    """
+    rank = {p.name: i for i, p in enumerate(chosen)}  # most-cited first
+    order, swapped = sorted(chosen, key=lambda p: p.cy), set()
+    while order:
+        cards = _stack(order, x)
+        if cards[0].y < EDGE:
+            order.remove(max(order, key=lambda p: rank[p.name]))
+            continue
+        pair = next(((a, b) for i, a in enumerate(cards) for b in cards[i + 1 :]
+                     if crosses(a, b)), None)  # fmt: skip
+        if pair is None:
+            return cards
+        key = frozenset((pair[0].point.name, pair[1].point.name))
+        i, j = order.index(pair[0].point), order.index(pair[1].point)
+        if key in swapped:
+            order.remove(max((pair[0].point, pair[1].point), key=lambda p: rank[p.name]))
+        else:
+            swapped.add(key)
+            order[i], order[j] = order[j], order[i]
+    return []
 
 
 def callouts(points: list[Point]) -> list[Callout]:
-    """A card for each called-out paper, in the margin on its side, stacked without overlap."""
+    """The callout cards: the most-cited reviews that the repo uses, at most 8 a side (#5798).
+
+    A review is a candidate when its status is ``used`` and its index section is not in
+    :data:`BACKGROUND`. Candidates rank by :attr:`Point.cites`, then by name. Each takes
+    the side of the map nearer its dot. The first :data:`CARDS_PER_SIDE` of a side are placed
+    by :func:`_side`, so no card is outside the map and no two leader lines cross.
+
+    Args:
+        points: The placed reviews.
+
+    Returns:
+        The cards of both sides.
+    """
+    ranked = sorted((p for p in points if p.status == "used" and p.section not in BACKGROUND),
+                    key=lambda p: (-p.cites, p.name))  # fmt: skip
     out: list[Callout] = []
     for left in (True, False):
-        side = sorted((p for p in points if p.called_out and (p.cx < WIDTH / 2) == left),
-                      key=lambda p: p.cy)  # fmt: skip
-        x = CARD_X if left else WIDTH - CARD_X - CARD_W
-        bottom = 8.0
-        cards = []
-        for p in side:
-            lines = tuple(textwrap.wrap(p.title, CARD_CHARS)[:CARD_LINES])
-            card = Callout(p, x, 0, lines)
-            y = max(p.cy - card.height / 2, bottom)
-            cards.append(Callout(p, x, round(y, 1), lines))
-            bottom = y + card.height + 10
-        overflow = bottom - 10 - (HEIGHT - 8)
-        out += [Callout(c.point, c.x, round(c.y - max(overflow, 0), 1), c.lines) for c in cards]
+        chosen = [p for p in ranked if (p.cx < WIDTH / 2) == left][:CARDS_PER_SIDE]
+        out += _side(chosen, CARD_X if left else WIDTH - CARD_X - CARD_W)
     return out
 
 
@@ -153,6 +296,7 @@ def literature_map(folder: Path, reviews: list) -> tuple[list[Point], list]:
     known = {row["name"]: row for row in data.get("reviews", [])}
     colour = slots(data.get("regions", []))
     rows, credit = review_rows(folder), credits(folder)
+    cites, section = citations(folder, {r.name for r in reviews}), sections(folder)
     points, missing = [], []
     for review in reviews:
         text = map_text(folder / f"{review.name}.md")
@@ -166,7 +310,9 @@ def literature_map(folder: Path, reviews: list) -> tuple[list[Point], list]:
         points.append(Point(review.name, review.title, status, *_xy(row["x"], row["y"]),
                             slot=colour.get(row.get("region"), 0), why=why,
                             credit=credit.get(review.name, ""),
-                            neighbours=tuple(row.get("neighbours", ()))))  # fmt: skip
+                            neighbours=tuple(row.get("neighbours", ())),
+                            cites=cites[review.name],
+                            section=section.get(review.name) or ""))  # fmt: skip
     return points, missing
 
 
@@ -179,4 +325,5 @@ def map_view(folder: Path, points: list[Point]) -> dict:
                      colour.get(q.get("region"), 0))
               for q in data.get("queued", [])]  # fmt: skip
     cards = callouts(points)
-    return {"queued": queued, "callouts": cards, "badges": badges(data.get("regions", []), cards)}
+    return {"queued": queued, "callouts": cards, "called": {c.point.name for c in cards},
+            "badges": badges(data.get("regions", []), cards)}  # fmt: skip

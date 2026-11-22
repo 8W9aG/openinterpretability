@@ -153,3 +153,35 @@ def test_the_record_lists_superpositions_and_circuits_after_the_units():
     (unit,) = cli_explain._explained_units("toy", result)
     assert (unit.unit, unit.kind, unit.share, unit.attribution) == ("C4", "circuit", 0.25, -2.0)
     assert unit.status == "VERIFIED" and unit.explanation == "a copy circuit"
+
+
+# The default corpus (#5829): built once into the cache, then reused.
+def test_explain_without_corpus_uses_the_default(explain_args, monkeypatch, tmp_path):
+    from tests.test_explain_corpus import CORPUS
+
+    hub = []
+
+    def rebuild(source, out):
+        hub.append(out)
+        out.write_text(CORPUS)
+        return source
+
+    monkeypatch.setenv("OPENINTERPRETABILITY_REBUILT_CORPORA", str(tmp_path / "cache"))
+    monkeypatch.setattr("openinterpretability.corpus_rebuild.rebuild", rebuild)
+    monkeypatch.chdir(tmp_path)  # no corpus.jsonl here
+    i = explain_args.index("--corpus")
+    args = explain_args[:i] + explain_args[i + 2 :]
+    result = CliRunner().invoke(cli, [*args, "--json"])
+    assert result.exit_code == 0, result.output
+    assert len(hub) == 1
+    again = CliRunner().invoke(cli, [*args, "--json"])
+    assert again.exit_code == 0 and len(hub) == 1  # the second run reuses the cache
+
+
+def test_explain_without_a_corpus_or_a_cache_fails_clearly(explain_args, monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("OPENINTERPRETABILITY_REBUILT_CORPORA", "off")
+    i = explain_args.index("--corpus")
+    result = CliRunner().invoke(cli, explain_args[:i] + explain_args[i + 2 :])
+    assert result.exit_code == 1
+    assert "the corpus cache is off" in result.output
