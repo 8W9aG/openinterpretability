@@ -1,0 +1,26 @@
+# The paper's X thread (openinterpretability/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    How many of a neuron's weights does its explanation need? We zeroed the smallest input
+    weights of Pythia-70m's 127 VERIFIED neurons and ran each explanation's own probes
+    again. {link}
+  media: [keep]
+- section: Does an explanation survive magnitude pruning?
+  text: >-
+    With 90% of a neuron's input weights zeroed by magnitude, 63 of 127 explanations still
+    pass. Zero the same number at random, and only 17 do.
+- section: Do the weights that matter have to be the large ones?
+  text: >-
+    Where the two methods disagree, magnitude pruning wins 30 to 9 at 50%, 37 to 6 at 75%
+    and 49 to 3 at 90%. An explanation rests on the neuron's largest weights.
+- section: Does the neuron's activity survive with its explanation?
+  text: >-
+    At 90%, the median pole correlates with its unpruned activations at only 0.54, yet half
+    the explanations hold. The correlation doesn't tell which: 0.546 for those that keep,
+    0.542 for those that fail.
+  media: [pearson]
+- section: Conclusion
+  text: >-
+    Most failures are on specificity: a pruned neuron starts to fire on the near-misses its
+    explanation excludes. {link}
