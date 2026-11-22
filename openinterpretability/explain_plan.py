@@ -238,12 +238,7 @@ def answer_step(wiki_dir, model: str, prompt: str, position: int, answer: str,
     if not coverage.get("minimal_units"):
         return out | {"reason": "no explained units yet: explain the units first"}
     if dependence is not None and not dependence["measurable"]:
-        largest = max((abs(c) for c in dependence["null_cuts"]), default=0.0)
-        why = (f"not planned: ablating every unit cuts the answer's log-probability by "
-               f"{dependence['all_cut']:.3f}, no more than a random set of the minimal set's "
-               f"size ({largest:.3f}). The units' effects cancel, so the gates necessity and "
-               "sufficiency have no baseline (#5967)")  # fmt: skip
-        return out | {"reason": why}
+        return out | {"reason": _cancel_reason(dependence)}
     folder = working_dir(pid).as_posix()
     out["commands"] = [
         f"open-interpretability answers propose-prompt {shlex.quote(prompt)} --model {model} "
@@ -255,6 +250,15 @@ def answer_step(wiki_dir, model: str, prompt: str, position: int, answer: str,
     why = (f"attempt {attempt} of at most {MAX_ATTEMPTS}: the answer-proposer and "
            "answer-reviewer agents write the claim and the probes")  # fmt: skip
     return out | {"reason": why}
+
+
+def _cancel_reason(dependence: dict) -> str:
+    """Why :func:`answer_step` plans no attempt when the units' effects cancel (#5967)."""
+    largest = max((abs(c) for c in dependence["null_cuts"]), default=0.0)
+    return (f"not planned: ablating every unit cuts the answer's log-probability by "
+            f"{dependence['all_cut']:.3f}, no more than a random set of the minimal set's "
+            f"size ({largest:.3f}). The units' effects cancel, so the gates necessity and "
+            "sufficiency have no baseline (#5967)")  # fmt: skip
 
 
 def answer_lines(step: dict) -> list[str]:
