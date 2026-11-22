@@ -18,13 +18,15 @@ offline, for ``make lint``.
     uv run python scripts/papers.py new <slug> --work "#N (what is left)"
     uv run python scripts/papers.py publish <slug>
 
-A published paper goes to the alphaXiv AI Track (#5259). alphaXiv has no upload API, so an
-agent prepares the upload and the maintainer makes it from the project account. ``submit``
+A published paper goes to the alphaXiv AI Track (#5259). alphaXiv has no upload API, so
+Muse (``docs/muse.md``) makes the upload from the project account. ``submit --issue`` opens
+the issue, labelled ``muse``, that asks it to. ``submit``
 writes the package: the PDF that ``make build`` prints, and ``submission.md`` with each field
 of the form. After the upload, ``alphaxiv`` records the paper's URL in its ``CITATION.cff``,
 outside the frozen hash.
 
     make build && uv run python scripts/papers.py submit <slug>
+    uv run python scripts/papers.py submit <slug> --issue   # the issue for Muse (label muse)
     uv run python scripts/papers.py alphaxiv <slug> https://www.alphaxiv.org/abs/<id>
 """
 
@@ -63,6 +65,8 @@ PUBLISHED = "1.0"
 DIST = ROOT / "dist"  # where make build writes the site, with each paper's PDF
 SUBMISSIONS = ROOT / "build" / "alphaxiv"  # the packages that submit writes
 LICENCE = "CC BY 4.0"  # the maintainer's choice on #5259 (decision 2)
+AI_TRACK = "https://www.alphaxiv.org/ai-track"
+MUSE_LABELS = ("muse", "area: housekeeping")  # Muse posts it; next_issue.py never takes it
 CATEGORIES = ("cs.LG", "cs.AI")
 DATASET = re.compile(r"https://huggingface\.co/datasets/[\w.\-]+/[\w.\-]+")
 DISCLOSURE = (
@@ -296,7 +300,7 @@ def submission(folder: Path) -> str:
     lines = [
         f"# alphaXiv AI Track submission: {folder.name}",
         "",
-        "The maintainer uploads this from the project account, after approving it (#5259).",
+        f"Upload `paper.pdf` with these fields from the project account, at {AI_TRACK}.",
         f"Then record the URL: `uv run python scripts/papers.py alphaxiv {folder.name} <url>`.",
         "",
         f"- **Title:** {paper.title}",
@@ -369,8 +373,68 @@ def record(slug: str, url: str, papers: Path = PAPERS) -> None:
     write_citation(folder, cff)
 
 
-def main() -> int:
-    """Run the command. Return the exit code."""
+def muse_issue(slug: str, papers: Path = PAPERS, run=None) -> str:
+    """Open the issue that asks Muse to post a published paper to alphaXiv.
+
+    Its label ``muse`` tells Muse to act on it, and ``scripts/next_issue.py`` never takes
+    it. Its body holds the steps and each field of the form. It isn't opened twice: an open
+    issue with the same title stands.
+
+    Args:
+        slug: The paper's folder name.
+        papers: The folder that holds the papers.
+        run: Runs a ``gh`` command and returns its standard output. The default calls
+            ``gh`` itself.
+
+    Returns:
+        The issue's URL, or the line that says it is open already.
+    """
+    import json
+    import subprocess
+
+    def gh(*args: str, stdin: str | None = None) -> str:
+        """Run ``gh`` with ``args``, and return its output.
+
+        Args:
+            *args: The arguments after ``gh``.
+            stdin: Text to send to the command.
+
+        Returns:
+            The standard output.
+        """
+        done = subprocess.run(["gh", *args], input=stdin, capture_output=True, text=True,
+                              check=True)  # fmt: skip
+        return done.stdout
+
+    run = run or gh
+    folder = _published(slug, papers)
+    text = (folder / "README.md").read_text(encoding="utf-8")
+    title = f"Post {slug} v{version(text)} to the alphaXiv AI Track"
+    listed = run("issue", "list", "--repo", REPO, "--state", "open", "--label", MUSE_LABELS[0],
+                 "--search", f"{title} in:title", "--json", "title")  # fmt: skip
+    if any(i["title"] == title for i in json.loads(listed or "[]")):
+        return f"open already: {title}"
+    steps = (
+        "For Muse (`docs/muse.md`). Post this published paper to the alphaXiv AI Track "
+        "(#5259).\n\n"
+        "1. Build the package: `make build`, then "
+        f"`uv run python scripts/papers.py submit {slug}`. "
+        f"It writes `build/alphaxiv/{slug}/paper.pdf` and `submission.md`.\n"
+        f"2. Upload `paper.pdf` with the fields below at {AI_TRACK}, from the project account.\n"
+        f"3. Record the URL in a PR whose body says `Closes` and this issue's number: "
+        f"`uv run python scripts/papers.py alphaxiv {slug} <url>`.\n\n"
+    )
+    labels = [arg for label in MUSE_LABELS for arg in ("--label", label)]
+    return run("issue", "create", "--repo", REPO, "--title", title, *labels, "--body-file", "-",
+               stdin=steps + submission(folder)).strip()  # fmt: skip
+
+
+def _parser() -> argparse.ArgumentParser:
+    """The command line: one subcommand for each action.
+
+    Returns:
+        The parser.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     check_cmd = sub.add_parser("check", help="Fail on a paper with no status, or a changed one.")
@@ -385,22 +449,33 @@ def main() -> int:
     one.add_argument("slug")
     one.add_argument("--work", required=True, help='The issues still open, e.g. "#12 (x)".')
     sub.add_parser("publish", help="Publish a paper with no work left.").add_argument("slug")
-    sub.add_parser("submit", help="Write a published paper's alphaXiv package.").add_argument(
-        "slug"
+    submit_cmd = sub.add_parser("submit", help="Write a published paper's alphaXiv package.")
+    submit_cmd.add_argument("slug")
+    submit_cmd.add_argument(
+        "--issue", action="store_true", help="Open the issue that asks Muse to post it."
     )
     url_cmd = sub.add_parser("alphaxiv", help="Record a published paper's alphaXiv URL.")
     url_cmd.add_argument("slug")
     url_cmd.add_argument("url")
+    return parser
+
+
+def main() -> int:
+    """Run the command. Return the exit code."""
+    parser = _parser()
     args = parser.parse_args()
     if args.command == "new":
         new(args.slug, args.work)
     elif args.command == "publish":
         publish(args.slug)
     elif args.command == "submit":
-        print(f"Wrote {submit(args.slug)}: send it to the maintainer for approval.")
+        if args.issue:  # Muse builds the package itself, so the issue needs no PDF here
+            print(muse_issue(args.slug))
+        else:
+            print(f"Wrote {submit(args.slug)}: upload it from the project account.")
     elif args.command == "alphaxiv":
         record(args.slug, args.url)
-    else:
+    else:  # check: offline in lint, with --closing in CI, with --online nightly (#5395)
         found = check()
         closing = {int(n.strip().lstrip("#")) for n in args.closing.split(",") if n.strip()}
         if args.online:

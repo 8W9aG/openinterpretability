@@ -121,4 +121,56 @@ def test_main_runs_both_commands(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["papers.py", "alphaxiv", "p", URL])
     assert papers.main() == 0
     out = capsys.readouterr().out
-    assert "send it to the maintainer for approval" in out and f"recorded p {URL}" in out
+    assert "upload it from the project account" in out and f"recorded p {URL}" in out
+    monkeypatch.setattr(papers, "muse_issue", lambda slug: f"issue for {slug}")
+    monkeypatch.setattr(sys, "argv", ["papers.py", "submit", "p", "--issue"])
+    assert papers.main() == 0
+    assert "issue for p" in capsys.readouterr().out
+
+
+def test_muse_issue_opens_one_labelled_issue_with_the_steps(tmp_path):
+    root = _published(tmp_path)
+    calls = []
+
+    def run(*args, stdin=None):
+        calls.append((args, stdin))
+        return "[]" if args[1] == "list" else "https://github.com/o/r/issues/9\n"
+
+    assert papers.muse_issue("p", root, run) == "https://github.com/o/r/issues/9"
+    (args, body) = calls[-1]
+    assert args[:2] == ("issue", "create")
+    assert "Post p v1 to the alphaXiv AI Track" in args
+    assert [args[i + 1] for i, a in enumerate(args) if a == "--label"] == list(papers.MUSE_LABELS)
+    assert "For Muse" in body and "papers.py submit p" in body and "papers.py alphaxiv p" in body
+    assert "- **Title:** A title" in body  # the form's fields follow the steps
+
+
+def test_muse_issue_is_not_opened_twice_or_for_a_preprint(tmp_path):
+    root = _published(tmp_path)
+    title = "Post p v1 to the alphaXiv AI Track"
+    calls = []
+
+    def run(*args, stdin=None):
+        calls.append(args)
+        return f'[{{"title": "{title}"}}]'
+
+    assert papers.muse_issue("p", root, run) == f"open already: {title}"
+    assert all(c[1] == "list" for c in calls)
+    with pytest.raises(SystemExit, match="not published"):
+        papers.muse_issue("p", _published(tmp_path / "second", publish=False), run)
+
+
+def test_muse_issue_calls_gh_by_default(tmp_path, monkeypatch):
+    import subprocess
+
+    root = _published(tmp_path)
+    seen = []
+
+    def fake(args, input=None, **kwargs):
+        seen.append(args)
+        out = "[]" if args[2] == "list" else "url\n"
+        return subprocess.CompletedProcess(args, 0, stdout=out)
+
+    monkeypatch.setattr(subprocess, "run", fake)
+    assert papers.muse_issue("p", root) == "url"
+    assert seen[0][:3] == ["gh", "issue", "list"] and seen[1][:3] == ["gh", "issue", "create"]

@@ -54,6 +54,9 @@ TRUSTED_BOTS = ("dependabot[bot]", "github-advanced-security[bot]")
 NIGHTLY_BOT = "github-actions[bot]"
 # The maintainer holds an issue back with this label.
 PROPOSED = "proposed"
+# An issue for Muse (docs/muse.md) to act on, such as posting a paper to alphaXiv (#5259).
+# The next-issue loop never takes one.
+MUSE = "muse"
 WORKFLOWS = Path(__file__).parents[1] / ".github/workflows"
 # Workflows that open an issue when they fail, each under the fixed titles in its TITLE envs.
 AUTOMATIC_WORKFLOWS = (WORKFLOWS / "reproduce-nightly.yml", WORKFLOWS / "deploy.yml")
