@@ -37,6 +37,8 @@ EXEMPT = (
     "papers/*/results*.jsonl",  # generated result rows of a paper
     "papers/*/README.md",  # a paper is one page, however long its argument
     "papers/*/media/*.svg",  # generated figures, one mark to a line (scripts/paper_figures.py)
+    "posts/*/media/*.svg",  # a post's generated figures (scripts/figures_explain_post.py)
+    "posts/*/media/data.json",  # a post's measured figure data (scripts/explain_post_data.py)
     "scripts/*_baseline.txt",  # generated ratchet lists, one function to a line, that only shrink
     "benchmark/*.jsonl",  # frozen benchmark data (open-interpretability benchmark freeze)
     "hf_models/*.jsonl",  # dictionary training logs
