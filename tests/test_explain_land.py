@@ -14,7 +14,8 @@ WHEN = datetime(2026, 11, 17, tzinfo=UTC)
 
 def _landed():
     run = ExplainRun(share_before=0.1, share_after=0.4, stopped="the target was reached",
-                     landed=["m/L1/N2-positive VERIFIED https://x/pull/1"])  # fmt: skip
+                     landed=["m/L1/N2-positive VERIFIED https://x/pull/1"],
+                     pending=["m/L1/N3-positive VERIFIED https://x/pull/2"])  # fmt: skip
     return _record(WHEN).model_copy(update={"run": run})
 
 
@@ -23,6 +24,7 @@ def test_the_pr_body_gives_the_shares_and_the_landed_experiments():
     assert "**Explained share:** 0.3%" in body and "against 0.0% for random units" in body
     assert "from 10.0% to 40.0%" in body
     assert "landed: m/L1/N2-positive VERIFIED https://x/pull/1" in body
+    assert "pending, counted before it merges: m/L1/N3-positive VERIFIED https://x/pull/2" in body
     name = branch_name(_landed(), WHEN)
     assert name.startswith("explanation/openai-community--gpt2-")
     assert name.endswith("20261117T000000Z")
@@ -36,14 +38,14 @@ def test_the_pr_body_leaves_out_the_coverage_and_the_run_when_the_record_has_nei
     assert body.endswith("Written by `open-interpretability explain --record` (#4475).")
 
 
-def test_the_record_lands_on_its_own_branch_and_merges(repo, monkeypatch):  # noqa: F811
+def test_the_record_lands_on_its_own_branch_without_waiting(repo, monkeypatch):  # noqa: F811
     checked = []
     monkeypatch.setattr(el, "openinterpretability", lambda args: checked.append(args))
     url, merged = land_record(_landed())
-    assert (url, merged) == (URL, True) and checked == [["check", "--base-ref", "origin/main"]]
+    assert (url, merged) == (URL, False) and checked == [["check", "--base-ref", "origin/main"]]
     gh = repo.gh_log.read_text()
     assert "pr create --title Explanation: openai-community/gpt2" in gh
-    assert f"pr merge {URL} --squash" in gh
+    assert "pr checks" not in gh and "pr merge" not in gh  # auto-merge.yml merges it (#5826)
     files = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"], capture_output=True,
                            text=True, check=True).stdout  # fmt: skip
     assert files.strip().startswith("wiki/explanations/openai-community--gpt2/")

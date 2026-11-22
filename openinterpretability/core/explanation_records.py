@@ -150,6 +150,9 @@ class ExplainRun(StrictModel):
     share_after: float  # and when it stopped
     landed: list[str] = Field(default_factory=list, description="<slug> <verdict> <PR URL>")
     left_open: list[str] = Field(default_factory=list, description="PRs that didn't merge")
+    # Experiments whose PRs were open when the run ended. The shares count their records,
+    # though main doesn't hold them yet (#5826). Older runs waited for CI and have none.
+    pending: list[str] = Field(default_factory=list, description="<slug> <verdict> <PR URL>")
     stopped: str  # why the run stopped
     shares: list[float] = Field(default_factory=list)  # the share before each draw (#4479)
 

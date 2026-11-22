@@ -180,7 +180,9 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
   - The output warns about any cited unit that the evidence doesn't hold. `--json` keeps the evidence, the narrative, the narrator model and its costs, so a reader can check each sentence.
   - `--narrator-model` takes a LiteLLM model, or `external/<name>` for an answer through `exchange/`. The `explanation-narrator` subagent answers that prompt from Claude Code.
 
-- **Run the plan.** `--run N` runs the top N unit experiments of the plan, by coverage gain, until each unit is VERIFIED (`openinterpretability/explanation_targets.py`). They go through the experiment loop, as `open-interpretability loop` runs draws. Each run is a normal experiment: claimed, audited, reviewed, verified, opened as a PR and landed.
+- **Run the plan.** `--run N` runs the top N unit experiments of the plan, by coverage gain, until each unit is VERIFIED (`openinterpretability/explanation_targets.py`). They go through the experiment loop, as `open-interpretability loop` runs draws. Each run is a normal experiment: claimed, audited, reviewed, verified and opened as a PR.
+  - **Landing doesn't wait for CI** (#5826). The PR is marked ready, and the run goes on at once. `auto-merge.yml` merges it once CI passes. That is the maintainer's PR, or one that only adds records that CI reproduces. A contributor's PR waits for a maintainer to approve CI.
+  - **The run counts its own open PRs.** The records that each PR added are put back while the next unit is chosen and while the coverage is measured. So a unit that an open PR made VERIFIED is not run again, and the coverage after the run includes it. The record lists those experiments under `run.pending`.
   - Each draw reloads the registry. An unstudied unit gets its attribution audit. A unit that ends NEEDS_REVISION or REJECTED gets the planner's next follow-up on a later draw. That is a revision, a new hypothesis or an independent review, so one unit can take several runs.
   - A unit leaves the list when it is VERIFIED, when a scan stops on it, or after `--max-attempts` runs (default 5). A unit that an open PR claims waits.
   - `--proposer`, `--reviewer` and `--provider` work as for `loop`, and an `external/` model is refused. The run ends with each unit's outcome.
@@ -222,7 +224,7 @@ It works in a separate worktree (`../<repo>-loop`) reset to `origin/main` before
 uv run open-interpretability loop --proposer anthropic/claude-opus-5-5 --reviewer openai/gpt-5 --max 10
 ```
 
-Each iteration resets the worktree (`../<repo>-loop` by default) to a detached `origin/main` and draws with `open-interpretability next`. It claims the draw with a branch, an empty commit and a draft PR. It runs the commands that `open-interpretability next --steps` prints for API models, in the same process, so a model loads once for the whole loop. Then it runs `open-interpretability wiki` and `open-interpretability check`, commits `wiki/` and marks the PR ready. It lands the PR as `land-experiment` does, and waits up to 45 minutes for green checks. It merges only a PR that touches nothing outside `wiki/`, with a token that has write access. Otherwise it leaves the PR open with a comment that says why. A failed experiment closes its PR with the reason.
+Each iteration resets the worktree (`../<repo>-loop` by default) to a detached `origin/main` and draws with `open-interpretability next`. It claims the draw with a branch, an empty commit and a draft PR. It runs the commands that `open-interpretability next --steps` prints for API models, in the same process, so a model loads once for the whole loop. Then it runs `open-interpretability wiki` and `open-interpretability check`, commits `wiki/` and marks the PR ready. Then it hands the PR over without waiting for CI (#5826). `auto-merge.yml` merges the PR once CI passes, if the PR qualifies: the maintainer's PR, or one that only adds records that CI reproduces. Otherwise the loop comments on the PR why it waits for a maintainer. For example, CI needs a maintainer's approval when the token can't write to the repository. A failed experiment closes its PR with the reason.
 
 - **Revisions.** A revise draw's proposer sees the record it supersedes: the old hypothesis, its verdict, its failed gates and the probes it got wrong (`openinterpretability/revision.py`). `open-interpretability audit --supersedes` gives the same brief.
 - **Independent reviews.** A review draw of the `--reviewer` model's own record is drawn again once.
@@ -292,7 +294,7 @@ Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id
 | --- | --- | --- |
 | `choose-next-experiment` | Pick the next experiment with `open-interpretability next`: randomised, explore vs exploit, herd-resistant | ε-greedy and Boltzmann sampling over follow-ups |
 | `write-paper` | Write a paper in `papers/` with checked references, and figures and animations tied to its results | |
-| `land-experiment` | Run experiments end to end and merge them: `choose-next-experiment`, then build, wait for green CI and merge (with write access), else move on | — |
+| `land-experiment` | Run experiments end to end and merge them: `choose-next-experiment`, then build, wait for green CI and merge (with write access), else move on. `explain --run` doesn't wait: `auto-merge.yml` merges its PRs | — |
 | `native-neuron-audit` | Avoid misreading a neuron (context, data, poles, SwiGLU regimes) | Goodfire, *Already Clean* (2026) |
 | `vocab-projection-lookahead` | Decide retrospective vs lookahead | Gurnee et al. 2026 (Jacobian lens), Geva et al. 2021/2022, logit lens, Voita et al. 2023 |
 | `neuron-family-triage` | Pre-classify neurons from weight statistics | Gurnee et al. 2024, Stolfo et al. 2024, Voita et al. 2023 |
@@ -314,7 +316,7 @@ Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id
 
 ## Models
 
-The models `open-interpretability next` explores (`[tool.openinterpretability] models` in `pyproject.toml`). What a pole means depends on the MLP's activation. Each model's terms are in `[tool.openinterpretability.licenses]`, and its site page shows them.
+The models `open-interpretability next` explores (`[tool.openinterpretability] models` in `pyproject.toml`). What a pole means depends on the MLP's activation. Each model's terms are in `[tool.openinterpretability.licenses]`, and its site page shows them. To add a model, follow [`adding-a-model.md`](adding-a-model.md) and its `open-interpretability model-check`.
 
 | Model | MLP | Negative pole | Scan |
 | --- | --- | --- | --- |

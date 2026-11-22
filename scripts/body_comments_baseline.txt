@@ -89,7 +89,6 @@ openinterpretability/evidence.py::scan_evidence
 openinterpretability/evidence.py::load_texts
 openinterpretability/evidence.py::run_scan
 openinterpretability/evidence.py::scan_provenance
-openinterpretability/experiment_loop.py::iteration
 openinterpretability/explain_land.py::land_record
 openinterpretability/explain_print.py::print_result
 openinterpretability/explanation_registry.py::registry_mismatches

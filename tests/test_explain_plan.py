@@ -9,6 +9,7 @@ from click.testing import CliRunner
 from openinterpretability import explain as ex
 from openinterpretability import explain_plan as ep
 from openinterpretability.explain_groups import HEAD, GroupDef
+from openinterpretability.loop_pending import PendingRecords
 from tests.test_explain import PROMPT, TEXTS, means  # noqa: F401  (a fixture)
 
 
@@ -196,11 +197,21 @@ def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code
     monkeypatch.setattr(experiment_loop, "reset", lambda: None)
     analyses = []
     real = cli_explain._analyse
-    monkeypatch.setattr(cli_explain, "_analyse", lambda *a: analyses.append(1) or real(*a))
+    # A stand-in for the open PR's files: the registry loader ignores a file at wiki/'s root.
+    pending_record = tmp_path / "wiki" / "pending.txt"
+
+    def analyse(*a):  # records whether the open PR's record was in place (#5826)
+        analyses.append(pending_record.exists())
+        return real(*a)
+
+    monkeypatch.setattr(cli_explain, "_analyse", analyse)
     landed = experiment_loop.Result("toy/L1/N2-positive", "VERIFIED", "https://x/pull/1", True)
+    opened = experiment_loop.Result("toy/L1/N3-positive", "VERIFIED", "https://x/pull/2", False)
+    pending = PendingRecords({str(pending_record): b"{}"})
 
     def run_loop(proposer, reviewer, plan_next, out=None):
-        out["loop"] = SimpleNamespace(results=[landed], finished=None if code else "reached")
+        out["loop"] = SimpleNamespace(results=[landed, opened], options=SimpleNamespace(
+            pending=pending), finished=None if code else "reached")  # fmt: skip
         return code
 
     monkeypatch.setattr("openinterpretability.cli_loop.run_loop", run_loop)
@@ -213,9 +224,11 @@ def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code
             "--reviewer", "anthropic/r"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == code, out.output
-    assert len(analyses) == 2  # before the run, to plan it, and after it
+    assert analyses == [False, True]  # before the run, then after it with the open PR's record
+    assert not pending_record.exists()  # removed again, so no later commit holds it
     (((_, record),),) = load_all(wiki).values()
     assert record.run.landed == ["toy/L1/N2-positive VERIFIED https://x/pull/1"]
+    assert record.run.pending == ["toy/L1/N3-positive VERIFIED https://x/pull/2"]
     assert record.run.share_after == record.explained_share
     failed = "the loop stopped with exit code 1: failures or a rate limit"
     assert record.run.stopped == (failed if code else "reached")
@@ -235,7 +248,9 @@ def test_complete_runs_narrates_and_lands_in_one_command(toy_runner, tmp_path, m
 
     def run_loop(proposer, reviewer, plan_next, out=None):
         seen["limit"] = plan_next.limit
-        out["loop"] = SimpleNamespace(results=[], finished="no target left")
+        out["loop"] = SimpleNamespace(
+            results=[], finished="no target left", options=SimpleNamespace(pending=PendingRecords())
+        )
         return 0
 
     narrative = {"sections": [{"title": "Step", "text": "Mostly unknown."}],

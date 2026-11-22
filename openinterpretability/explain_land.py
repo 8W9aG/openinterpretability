@@ -47,6 +47,7 @@ def pr_body(record: ExplanationRecord) -> str:
                      f"It stopped because {run.stopped}.")  # fmt: skip
         lines += [f"  - landed: {landed}" for landed in run.landed]
         lines += [f"  - left open: {url}" for url in run.left_open]
+        lines += [f"  - pending, counted before it merges: {p}" for p in run.pending]
     lines += ["", "Written by `open-interpretability explain --record` (#4475)."]
     return "\n".join(lines)
 
