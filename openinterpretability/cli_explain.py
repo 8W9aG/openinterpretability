@@ -329,8 +329,16 @@ def _analyse(  # long-function: one line per step of the analysis
     target = explain_plan.TARGET if ask.target is None else ask.target
     say("Planning the fewest experiments that reach the target")
     reach = coverage_plan(*args, planned, target)  # the target is causal coverage (#4476)
+    dependence = None
+    if coverage.get("minimal_units"):  # does the all-unit cut give the gates a baseline (#5967)
+        from openinterpretability.answer_review import dependence as measure_dependence
+
+        say("Checking that ablating every unit cuts the answer more than random sets do")
+        dependence = measure_dependence(
+            runner, means, ask.prompt, result.token_id, ask.position, coverage
+        )
     answer = explain_plan.answer_step(
-        wiki_dir, model, ask.prompt, ask.position, result.token, coverage
+        wiki_dir, model, ask.prompt, ask.position, result.token, coverage, dependence
     )  # how the units make the answer (#4778)
     return SimpleNamespace(result=result, planned=planned, coverage=coverage, groups=groups,
                            reach=reach, answer=answer, stopped=stopped)  # fmt: skip
