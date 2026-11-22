@@ -41,7 +41,7 @@ from openinterpretability.builder.parquet_export import export_draws, export_reg
 from openinterpretability.builder.pii import save_spans, scrub, scrub_experiments
 from openinterpretability.builder.recent import recent_experiments
 from openinterpretability.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
-from openinterpretability.builder.sections import render_reference_pages, with_explanations
+from openinterpretability.builder.sections import render_reference_pages, stats_for_pages
 from openinterpretability.builder.significance import P_USEFUL, evidence_strength
 from openinterpretability.builder.sister_graph import sister_graphs
 from openinterpretability.builder.slim import SlimArchive, full_records, hand_over
@@ -348,12 +348,12 @@ def compile_site(
     render = _Renderer(_environment(pieces.grid_scale(models)), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))
+    stats = stats_for_pages(render, stats_result(), explanations)  # the model pages use it
     for model in models:
         sisters = (sister_rows or {}, sister_lib.sister_tests(experiments))
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
     render_models(render, models, model_facts or {}, _render_model, (*draws, *stops))
     agents = _render_agents(render, experiments, output_dir, report)
-    stats = with_explanations(stats_result(), explanations)  # the home page's tile (#4574)
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
     _render_index(render, models, agents, stats, (*draws, *stops))
     report.parquet = parquet()
@@ -398,7 +398,7 @@ def _render_index(render, models, agents, stats, draws) -> None:
         agreement=reviewer_agreement(models),
         contested=contested_units(models),
     )
-    if stats["baseline"]:  # the home page links to it (#3272)
+    if stats["baseline"]:  # each model page with a baseline links to it (#3272, #5838)
         render("learned-baseline.html", "learned-baseline.html", stats=stats)
 
 
@@ -413,6 +413,7 @@ def _site_context(site_title: str, corpus_sources: dict | None, experiments, pen
         "pending": list(pending),  # open experiment PRs, for the home and model pages
         # From the data, not the clock, so an unchanged registry rebuilds byte for byte.
         "updated_at": max((e.record.verdict.timestamp for e in experiments), default=None),
+        "baselines": {},  # each model's learned-basis baseline, once the stats are in (#5838)
     }
 
 

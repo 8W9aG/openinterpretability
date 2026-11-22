@@ -389,13 +389,27 @@ def _narrate(result, coverage, planned, model: str | None, answer: dict | None =
 
 
 def _keep(record, home: Path, land: bool) -> None:
-    """Land ``record`` as its own PR, or with ``--no-land`` write it under ``home`` (#4475)."""
+    """Land ``record`` as its own PR, or with ``--no-land`` write it under ``home`` (#4475).
+
+    The record is written under ``home`` before it lands, so a landing that fails loses
+    nothing, the narration included (#5965). Once it lands, the copy goes, so a pull of the
+    merged PR meets no untracked file.
+    """
+    from openinterpretability.experiment_loop import LoopError
     from openinterpretability.explain_land import land_record, write_local
 
+    path = write_local(record, home)
     if not land:
-        click.echo(f"Explanation → {write_local(record, home)}")
+        click.echo(f"Explanation → {path}")
         return
-    url, merged = land_record(record)
+    try:
+        url, merged = land_record(record)
+    except (LoopError, click.ClickException) as exc:
+        raise click.ClickException(
+            f"the record didn't land ({exc}). It is kept at {path}: land it later with "
+            f"`open-interpretability explain-share {path}`."
+        ) from exc
+    path.unlink(missing_ok=True)
     click.echo(f"Explanation → {url} ({'merged' if merged else 'left open'})")
 
 
