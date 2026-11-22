@@ -38,7 +38,7 @@
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.prompt_coverage | pct_fine if e.prompt_coverage is not none else "—" }}{% if e.overshoot %}<div class="text-xs">overshoot: raw {{ e.raw_coverage | pct_fine }}</div>{% endif %}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.random_coverage | pct_fine if e.random_coverage is not none else "—" }}</td>
         <td class="px-3 py-2 text-right font-mono tabular-nums">{{ e.explained_share | pct_fine }}</td>
-        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.landed }}{% if v.pending %}<div class="text-xs">{{ v.pending }} pending</div>{% endif %}</td>
+        <td class="px-3 py-2 text-right font-mono tabular-nums">{{ v.landed }}{% if v.pending %}<div class="text-xs">{{ v.pending }} pending</div>{% endif %}{% if v.local %}<div class="text-xs">{{ v.local }} local, not in the registry</div>{% endif %}</td>
         <td class="px-3 py-2 text-xs">{{ e.level }}{% if e.reused %} (reused, no experiments){% endif %}</td>
         <td class="whitespace-nowrap px-3 py-2 font-mono text-xs">{% if v.previous %}<a class="underline" href="{{ root }}{{ v.previous.href }}">{{ v.previous.record.written.strftime("%Y-%m-%d %H:%M") }}</a>{% elif e.previous %}{{ e.previous }}{% else %}—{% endif %}</td>
         <td class="px-3 py-2 text-xs">{% if v.stale %}stale: {{ v.changed | length }} unit{{ 's' if v.changed | length != 1 }} changed{% else %}current{% endif %}</td>
