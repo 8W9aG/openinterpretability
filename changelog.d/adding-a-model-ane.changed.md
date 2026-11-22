@@ -1,0 +1,1 @@
+- Adding a model now includes a step that tries the ANE (`docs/adding-a-model.md`). Convert the model's architecture for Core ML, run `scripts/ane_qualify.py`, and record the result, also if it fails. A model that fails still joins, and its scans run on torch.
