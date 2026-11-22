@@ -1,0 +1,22 @@
+{
+ "source": "media/keep.svg",
+ "sha256": "5a075b10cb2301c10678f8748e2d70d50db8e1435d2e203311b6e1b0d059cdc5",
+ "files": [
+  "social.png"
+ ],
+ "figures": {
+  "keep": {
+   "sha256": "5a075b10cb2301c10678f8748e2d70d50db8e1435d2e203311b6e1b0d059cdc5",
+   "files": [
+    "social-keep.png"
+   ]
+  },
+  "pearson": {
+   "sha256": "f951713842fb111098f87f9bf34582a2125e67e7237eedf53c7dd0021f381048",
+   "files": [
+    "social-pearson.mp4",
+    "social-pearson.png"
+   ]
+  }
+ }
+}
