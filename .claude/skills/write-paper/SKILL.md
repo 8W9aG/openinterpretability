@@ -114,6 +114,12 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 - **Keep colours consistent.** One side or route has one colour through the paper. Check new colours with the `dataviz` skill.
 - **Look at each figure** in light and dark, and mid-animation, before you call it done.
 - **Draw the head figure for X.** The first figure is the paper's picture on X and in link cards. After each change to it, run `uv run --with playwright==1.65.2 python scripts/social_images.py`, and commit `media/social.*` (#5534). A test fails while the drawing is out of date.
+- **Write the paper's X thread** in `thread.yaml`, in the same PR (#5833). The thread posts when the paper is published, and no person reads it first, so the checks are the gate. Write 2 to 10 tweets, in the paper's order:
+  - `section`: the `##` heading the tweet is about, as written.
+  - `text`: one result, with numbers from the paper only, in 280 characters or fewer. Each link counts as 23. `{link}` is the paper's URL, and `{section_link}` the section's. The first tweet is the hook, the title's claim with `{link}`. The last tweet links to the paper again.
+  - `media` (optional): the ids of the section's figures, the stems of their SVGs (`trace` for `media/trace.svg`). Use at most 4 images, or one figure that animates, alone. Each figure needs its alt text in the README.
+
+  Then run `scripts/social_images.py` again, which draws each named figure as `media/social-<id>.png` (and `.mp4`). Commit those files too. `make build` and `make test` fail on a broken rule. `open-interpretability social post --preview 1` prints the thread with each tweet's length.
 
 ## Status: preprint or published
 

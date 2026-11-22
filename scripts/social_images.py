@@ -32,11 +32,15 @@ from openinterpretability.builder.social_media import (  # noqa: E402
     IMAGE,
     SIZE,
     VIDEO,
+    figure_files,
+    figure_names,
     head_figure,
     loop_seconds,
     stale,
+    write_figure,
     write_manifest,
 )
+from openinterpretability.social.thread import load_thread  # noqa: E402
 
 FPS = 10
 PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
@@ -59,26 +63,28 @@ def page(svg: str) -> str:
     return PAGE.format(w=w, h=h, iw=w - 64, ih=h - 64, svg=svg)
 
 
-def draw(browser, folder: Path, source: str) -> list[str]:
+def draw(browser, folder: Path, source: str, names: tuple[str, str] = (IMAGE, VIDEO)) -> list[str]:
     """Draw the image, and the video when the figure animates; return the files written.
 
     Args:
         browser: A Playwright browser.
         folder: The paper's or post's folder.
-        source: The head figure's path in the folder.
+        source: The figure's path in the folder.
+        names: The image's and the video's names in ``media/``.
 
     Returns:
         The names written in ``media/``.
     """
+    image, video = names
     svg = (folder / source).read_text(encoding="utf-8")
     media, (w, h) = folder / "media", SIZE
     still = browser.new_page(viewport={"width": w, "height": h}, reduced_motion="reduce")
     still.set_content(page(svg))
-    still.screenshot(path=str(media / IMAGE))
+    still.screenshot(path=str(media / image))
     still.close()
-    files, seconds = [IMAGE], loop_seconds(svg)
+    files, seconds = [image], loop_seconds(svg)
     if not seconds:
-        (media / VIDEO).unlink(missing_ok=True)
+        (media / video).unlink(missing_ok=True)
         return files
     moving = browser.new_page(viewport={"width": w, "height": h}, reduced_motion="no-preference")
     moving.set_content(page(svg))
@@ -90,9 +96,25 @@ def draw(browser, folder: Path, source: str) -> list[str]:
             moving.screenshot(path=f"{tmp}/f{i:04d}.png")
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS),
                         "-i", f"{tmp}/f%04d.png", "-c:v", "libx264", "-pix_fmt", "yuv420p",
-                        "-movflags", "+faststart", str(media / VIDEO)], check=True)  # fmt: skip
+                        "-movflags", "+faststart", str(media / video)], check=True)  # fmt: skip
     moving.close()
-    return [*files, VIDEO]
+    return [*files, video]
+
+
+def draw_thread(browser, folder: Path) -> None:
+    """Draw each figure that the folder's thread names and that isn't drawn or is stale (#5833).
+
+    Args:
+        browser: A Playwright browser.
+        folder: The paper's or post's folder.
+    """
+    current = figure_files(folder)
+    for fig in sorted({m for tweet in load_thread(folder) or [] for m in tweet.media}):
+        if current.get(fig) or not (folder / "media" / f"{fig}.svg").exists():
+            continue
+        files = draw(browser, folder, f"media/{fig}.svg", figure_names(fig))
+        write_figure(folder, fig, files)
+        print(f"{folder.relative_to(ROOT)}: {', '.join(files)}")
 
 
 def main() -> int:
@@ -109,11 +131,11 @@ def main() -> int:
         browser = p.chromium.launch()
         for folder in folders:
             head = head_figure(folder)
-            if head is None or not head[0].endswith(".svg") or stale(folder) is None:
-                continue
-            files = draw(browser, folder, head[0])
-            write_manifest(folder, head[0], files)
-            print(f"{folder.relative_to(ROOT)}: {', '.join(files)}")
+            if head is not None and head[0].endswith(".svg") and stale(folder) is not None:
+                files = draw(browser, folder, head[0])
+                write_manifest(folder, head[0], files)
+                print(f"{folder.relative_to(ROOT)}: {', '.join(files)}")
+            draw_thread(browser, folder)
         browser.close()
     return 0
 
