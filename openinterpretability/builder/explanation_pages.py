@@ -72,6 +72,12 @@ class ExplanationView:
         run = getattr(self.record, "run", None)
         return len(run.landed) if run is not None else 0
 
+    @property
+    def pending(self) -> int:
+        """The experiments of its run whose PRs were open when it measured (#5826)."""
+        run = getattr(self.record, "run", None)
+        return len(run.pending) if run is not None else 0
+
 
 @dataclass
 class AnswerView:
