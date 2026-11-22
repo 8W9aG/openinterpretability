@@ -58,6 +58,21 @@ def test_sample_windows_cuts_the_corpus_into_batches_of_whole_windows(tmp_path):
     assert [b.shape for b in batches] == [(4, keep.WINDOW), (1, keep.WINDOW)]
 
 
+def test_a_corpus_shorter_than_the_sample_gives_its_whole_windows(tmp_path):
+    # #5909: 519 tokens and a sample of 2,048 used to keep all 519 and fail the reshape.
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text(json.dumps({"text": "a" * (keep.WINDOW + 7)}) + "\n", encoding="utf-8")
+    batches = keep.sample_windows(FakeTokenizer(), tokens=keep.WINDOW * 4, corpus=corpus)
+    assert [b.shape for b in batches] == [(1, keep.WINDOW)]
+
+
+def test_a_corpus_shorter_than_one_window_is_refused(tmp_path):
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text(json.dumps({"text": "a" * 10}) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match=f"holds 10 tokens, less than one window of {keep.WINDOW}"):
+        keep.sample_windows(FakeTokenizer(), tokens=keep.WINDOW, corpus=corpus)
+
+
 def test_sample_stats_give_ratio_and_correlation_per_pole(record):
     records = [_pole(record, 3), _pole(record, 7, pole="negative")]
     torch.manual_seed(2)
