@@ -33,9 +33,10 @@ MAP_STATUSES = tuple(_CLASSES)
 STATUS_FILL = {s: fill for s, (fill, _) in _CLASSES.items()}
 STATUS_BADGE = {s: badge for s, (_, badge) in _CLASSES.items()}
 
-# A status grid's cell is CELL_HEIGHT px high (#5797). Its height says its status without
-# colour. Each step down MAP_STATUSES is 2 px less. So VERIFIED is the full 10 px, and
-# STOPPED is 2 px. A 2 px step is the smallest that a reader can see. A legend swatch has its
-# status's height, so it has the same shape as the cell.
+# A status grid's cell (#5797, #5836). On a layer page a cell is one neuron, CELL_HEIGHT px
+# high in its status's colour. On a model's grid a cell is a block of neurons. It stacks its
+# studied neurons by status, NEURON_PX px each, with SEGMENT_GAP px between two statuses. So
+# a cell's height is how many it holds.
 CELL_HEIGHT = 10
-STATUS_HEIGHT = {s: CELL_HEIGHT - 2 * i for i, s in enumerate(MAP_STATUSES)}
+NEURON_PX = 3
+SEGMENT_GAP = 1
