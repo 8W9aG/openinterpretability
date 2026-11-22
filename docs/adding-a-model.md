@@ -59,7 +59,22 @@ Make these changes in one PR:
 
 `tests/test_planner.py` checks that `models` and `ALLOWED_MODELS` agree, and that each model has a licence entry. Then run `model-check` again. Every line must pass.
 
-### 5. Set the reproduction floor
+### 5. Try the ANE
+
+Every new model must try to scan on Apple's Neural Engine (ANE). A failure is an acceptable result. A model that fails still joins, and its scans run on torch. But the attempt and its result must be recorded. Do this step on an Apple-silicon Mac.
+
+1. **Convert it.** The ANE pass is a forward pass written by hand. It runs only the architectures in `ARCHITECTURES` in `openinterpretability/harness/ane/forward.py`. If the model's `config.model_type` is not there, add its forward pass to that file, and its layout to `harness/ane/chunks.py`. If the architecture can't be converted, write down the reason, and go to item 4.
+2. **Qualify it.** Run `scripts/ane_qualify.py` on a middle layer and on the last layer:
+
+   ```bash
+   uv run python scripts/ane_qualify.py <hub name> --layers <middle>,<last> --corpus corpus.jsonl
+   ```
+
+   A layer passes when it passes all five checks of [`ane-qualification.md`](analyses/ane-qualification.md) (top 20, correlation, worst batch, placement and speed).
+3. **List it.** If both layers pass, add the model to `QUALIFIED` in `harness/ane/qualified.py`, with the layers and the date of the run. If only the middle layer passes, also add the deepest layer that passes to `DEEPEST`. If no layer passes, don't list the model.
+4. **Record it.** Add the result to [`ane-qualification.md`](analyses/ane-qualification.md) and its `.jsonl`, also if it failed. For a model that couldn't be converted, add one line that gives the reason.
+
+### 6. Set the reproduction floor
 
 After the first records exist, measure how far float32 moves the model's activations between machines:
 
@@ -71,6 +86,6 @@ Pass the new model's record files. With no files, the script measures its own fi
 
 Reproduction compares activations with a tolerance relative to each pole's scale. A small-scale pole can fail it from float32 noise alone. Pythia-70m's activations moved by up to 0.0049, and a GELU negative pole's scale is at most 0.17. In that case, set twice the largest move in `[tool.openinterpretability.reproduce_floor]` ([`neuron-float32-floor.md`](analyses/neuron-float32-floor.md)).
 
-### 6. Let the release refresh it
+### 7. Let the release refresh it
 
 The next release runs the slow analyses for every configured model (`.claude/skills/release/SKILL.md`). These are the sister search, the registry coverage, the circuit ids and the shared concept map. Nothing else is needed for the model to appear on the site.
