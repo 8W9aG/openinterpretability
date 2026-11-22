@@ -188,9 +188,8 @@ class _Stages:
             )
             job.match_series = [None] * len(self.texts)
             job.by_layer = {}
-            for i, ms in enumerate(job.matches):
-                if ms:
-                    job.by_layer.setdefault(ms[0].layer, []).append(i)
+            for i, ms in enumerate(job.matches):  # k >= 1, so every unit has a match
+                job.by_layer.setdefault(ms[0].layer, []).append(i)
             job.rotated = {layer: Correlations(len(i)) for layer, i in job.by_layer.items()}
         runner = self.load(*key)
         tokens = self.models[key].tokens
@@ -208,8 +207,6 @@ class _Stages:
             for layer in group
         }
         layers = set(group) | ({u[0] for j in jobs for u in j.match_units} if first else set())
-        if not layers:
-            return
         wanted = _union(tokens, [[r[1] for r in j.rows] for j in jobs])
         columns = dict.fromkeys(layers)
         for docs, rows in _passes(runner, tokens, wanted, columns, self.batch_tokens):

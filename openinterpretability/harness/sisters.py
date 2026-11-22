@@ -334,9 +334,8 @@ def _backward(pair: _Pair, units: Sequence[Unit], matches: list[list[Match]], na
     """
     found = list(dict.fromkeys((m.layer, m.neuron_idx, m.pole) for ms in matches for m in ms))
     by_layer: dict[int, list[int]] = {}
-    for i, ms in enumerate(matches):
-        if ms:
-            by_layer.setdefault(ms[0].layer, []).append(i)
+    for i, ms in enumerate(matches):  # k >= 1, so every unit has a match
+        by_layer.setdefault(ms[0].layer, []).append(i)
     widths = _Pair.widths(pair.other)
     device = pair.other.device
     turns = {layer: rotation(name, layer, widths[layer]).to(device) for layer in by_layer}
