@@ -6,3 +6,7 @@ openinterpretability/explain_share.py::share  pushes a branch and opens a PR wit
 openinterpretability/loop_local.py::local_iteration  runs a draw's audit and review, with a model and LLM agents
 openinterpretability/claude_sessions.py::Session.run  starts a claude session, which calls Anthropic's API
 openinterpretability/loop_sessions.py::session_iteration  draws, then runs the draw in a claude session
+openinterpretability/interference/fisher.py::neuron_weights  needs a model runner; tests/test_interference_fisher.py runs it on a tiny Qwen2 and GPT-2
+openinterpretability/interference/fisher.py::diagonal_fisher  needs a model runner and backward passes; tests/test_interference_fisher.py runs it on a tiny Qwen2
+openinterpretability/interference/fisher.py::activation_rms  needs a model runner; tests/test_interference_fisher.py runs it on a tiny Qwen2
+openinterpretability/interference/pruning.py::pruned  needs a model runner; tests/test_interference_pruning.py runs it on a tiny GPT-NeoX and Qwen2

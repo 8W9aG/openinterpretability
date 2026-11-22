@@ -14,3 +14,6 @@ identifiers:
 - type: other
   value: sha256:db419259d6a729ce5995b7f704297d0eab744473056228ed866a2cd4e4fd8898
   description: SHA-256 of the published text above its addenda, and of its results files
+- type: url
+  value: https://www.alphaxiv.org/abs/2611.syntax-positive-controls
+  description: alphaXiv AI Track
