@@ -19,11 +19,11 @@ from pathlib import Path
 from openinterpretability.core.paths import DEFAULT_WIKI_DIR, draws_dir, experiments_dir, stops_dir
 from openinterpretability.core.record_kinds import reproducible
 from openinterpretability.draw_steps import REVIEW_KINDS, VERBS, draw_slug, steps
+from openinterpretability.loop_pending import PendingRecords
 from openinterpretability.planner import claim_key
 from openinterpretability.until_verified import decide, keep_going, next_turn
 
 MERGE_PERMISSIONS = ("ADMIN", "MAINTAIN", "WRITE")
-CHECKS_TIMEOUT = 45 * 60  # seconds; the land-experiment skill gives up after 45 minutes
 OPENINTERPRETABILITY = ("uv", "run", "open-interpretability")
 
 
@@ -49,6 +49,13 @@ class Options:
     corpus: str | None = None  # None: each new scan builds a fresh corpus from its seed
     until_verified: bool | None = False  # None: a seeded chance per draw (until_verified.py)
     max_turns: int = 3  # an until-verified draw's turns, at most (until_verified.MAX_TURNS)
+    # The records of the loop's open PRs, which draws and measures count (#5826).
+    pending: PendingRecords = field(default_factory=PendingRecords)
+    # explain --local: run in the user's checkout, with no claim, push or PR (#5827).
+    local: bool = False
+    # explain --run with no LiteLLM model: a headless Claude Code session runs each draw
+    # (loop_sessions.SessionRun, #5831).
+    sessions: object = None
 
 
 @dataclass(frozen=True)
@@ -59,11 +66,17 @@ class Result:
     verdict: str
     url: str | None = None
     merged: bool = False
+    record: str | None = None  # a local run's record, relative to the checkout (#5827)
 
     def line(self) -> str:
-        """``RESULT: <slug> <verdict> <PR url> <merged|open>``, or ``RESULT: none <why>``."""
+        """``RESULT: <slug> <verdict> <PR url> <merged|open>``, or ``RESULT: none <why>``.
+
+        A local run's line is ``RESULT: <slug> <verdict> local <record>``.
+        """
         if self.slug is None:
             return f"RESULT: none {self.verdict}"
+        if self.record is not None:
+            return f"RESULT: {self.slug} {self.verdict} local {self.record}"
         return (
             f"RESULT: {self.slug} {self.verdict} {self.url} {'merged' if self.merged else 'open'}"
         )
@@ -107,13 +120,21 @@ def run_command(command: str) -> None:
 
 
 def reset() -> None:
-    """Detach the current worktree at a fresh ``origin/main`` and drop old experiment branches."""
+    """Detach the current worktree at a fresh ``origin/main`` and drop old experiment branches.
+
+    A branch that another worktree has checked out stays, since git refuses to delete it
+    (#6039). It belongs to another session, or to a stale worktree that its owner prunes.
+    """
     sh(["git", "fetch", "--quiet", "origin", "main"])
     sh(["git", "checkout", "--quiet", "--force", "--detach", "origin/main"])
     sh(["git", "clean", "-fdq"])
+    worktrees = sh(["git", "worktree", "list", "--porcelain"])
+    taken = {line.removeprefix("branch refs/heads/") for line in worktrees.splitlines()
+             if line.startswith("branch refs/heads/")}  # fmt: skip
     branches = sh(["git", "for-each-ref", "--format=%(refname:short)", "refs/heads/experiment/"])
     for branch in branches.split():
-        sh(["git", "branch", "-D", branch])
+        if branch not in taken:
+            sh(["git", "branch", "-D", branch])
 
 
 def proposer_of(record_path: str | None) -> str | None:
@@ -152,30 +173,32 @@ def new_files(prefix: Path) -> list[Path]:
     return [Path(line) for line in out.splitlines() if line]
 
 
-def verdict_of(kind: str, key: str) -> tuple[str, str]:
+def verdict_of(kind: str, key: str, new=None) -> tuple[str, str]:
     """The new record's verdict and the commit message that posts it.
 
     A scan that stopped on its unit writes a draw or stop record and no experiment, so
-    its verdict is STOPPED.
+    its verdict is STOPPED. ``new`` gives the new files under a folder: by default
+    :func:`new_files`, which asks git. A local run passes its own (#5827).
     """
+    files = new or new_files
     from openinterpretability.core.explanation_records import EXPLANATIONS_WIKI
     from openinterpretability.core.schemas import AuditRecord
 
     if kind == "circuit":  # a circuit draw writes a circuit record (core/circuit_records.py)
         from openinterpretability.core.circuit_records import CIRCUITS_WIKI, CircuitRecord
 
-        found = [p for p in new_files(DEFAULT_WIKI_DIR / CIRCUITS_WIKI) if p.suffix == ".json"]
+        found = [p for p in files(DEFAULT_WIKI_DIR / CIRCUITS_WIKI) if p.suffix == ".json"]
         if not found:
             raise LoopError("the draw's steps wrote no circuit record")
         status = CircuitRecord.model_validate_json(Path(found[0]).read_text()).verdict.status
         return status, f"{VERBS[kind]} {key} ({status})"
     if kind == "explanation":  # an explanation draw writes an explanation record, no verdict
-        if not new_files(DEFAULT_WIKI_DIR / EXPLANATIONS_WIKI):
+        if not files(DEFAULT_WIKI_DIR / EXPLANATIONS_WIKI):
             raise LoopError("the draw's steps wrote no explanation")
         return "EXPLAINED", f"{VERBS[kind]} {key}"
-    records = [p for p in new_files(experiments_dir(DEFAULT_WIKI_DIR)) if p.suffix == ".json"]
+    records = [p for p in files(experiments_dir(DEFAULT_WIKI_DIR)) if p.suffix == ".json"]
     if not records:
-        if new_files(draws_dir(DEFAULT_WIKI_DIR)) or new_files(stops_dir(DEFAULT_WIKI_DIR)):
+        if files(draws_dir(DEFAULT_WIKI_DIR)) or files(stops_dir(DEFAULT_WIKI_DIR)):
             return "STOPPED", f"{VERBS[kind]} {key} (STOPPED)"
         raise LoopError("the draw's steps wrote no record")
     verdict = AuditRecord.model_validate_json(records[0].read_text()).verdict
@@ -197,7 +220,12 @@ def post(kind: str, key: str) -> str:
 
 
 def merge_blockers(view: dict, permission: str) -> list[str]:
-    """Why the PR described by ``view`` (``gh pr view --json``) may not be merged, if at all."""
+    """Why the auto-merge workflow won't merge the PR described by ``view``, if at all.
+
+    ``view`` is ``gh pr view --json files``. The rules are ``auto-merge.yml``'s: the
+    maintainer's PR may change anything in ``wiki/``, and anyone else's only records that CI
+    reproduces. A token below ``WRITE`` means that CI waits for a maintainer's approval.
+    """
     files = [f["path"] for f in view.get("files", [])]
     wiki = f"{DEFAULT_WIKI_DIR}/"
     reasons = [f"it changes {p}, outside {wiki}" for p in files if not p.startswith(wiki)]
@@ -205,11 +233,8 @@ def merge_blockers(view: dict, permission: str) -> list[str]:
         reasons += [f"{p} is not a record that CI reproduces" for p in files
                     if p.startswith(wiki) and not reproducible(p)]  # fmt: skip
     if permission not in MERGE_PERMISSIONS:
-        reasons.append(f"the token's permission is {permission or 'unknown'}")
-    if view.get("isDraft"):
-        reasons.append("it is a draft")
-    if view.get("mergeable") != "MERGEABLE":
-        reasons.append(f"GitHub says it is {view.get('mergeable', 'not mergeable')}")
+        reasons.append(f"CI needs a maintainer's approval (the token's permission is "
+                       f"{permission or 'unknown'})")  # fmt: skip
     return reasons
 
 
@@ -231,31 +256,27 @@ def say(text: str) -> None:
 
 
 def land(url: str) -> bool:
-    """Wait for the checks, then merge the PR if every merge condition holds. True if merged."""
+    """Hand the PR over to whoever merges it, without waiting for CI (#5826). True if merged.
+
+    The loop never waits for the checks and never merges. ``auto-merge.yml`` merges a PR
+    that it qualifies once CI passes, and a maintainer takes any other. A PR that is still
+    a draft is marked ready, so the workflow sees it.
+    """
     import json
 
-    say(f"waiting for the checks on {url}")
-    try:
-        sh(
-            ["gh", "pr", "checks", url, "--watch", "--fail-fast", "--interval", "30"],
-            timeout=CHECKS_TIMEOUT,
-        )
-    except LoopError as exc:
-        sh(["gh", "pr", "comment", url, "--body", f"Left open: the checks didn't pass ({exc})."])
-        return False
-    fields = "state,isDraft,mergeable,files,headRefOid"
-    view = json.loads(sh(["gh", "pr", "view", url, "--json", fields]))
+    view = json.loads(sh(["gh", "pr", "view", url, "--json", "state,isDraft,files"]))
     if view.get("state") == "MERGED":  # the auto-merge workflow got there first
         return True
+    if view.get("isDraft"):
+        sh(["gh", "pr", "ready", url])
     permission = sh(["gh", "repo", "view", "--json", "viewerPermission", "-q", ".viewerPermission"])
     if reasons := merge_blockers(view, permission):
-        sh(["gh", "pr", "comment", url, "--body", "Left open: " + "; ".join(reasons) + "."])
-        say("left open: " + "; ".join(reasons))
-        return False
-    say("merging")
-    sh(["gh", "pr", "merge", url, "--squash", "--match-head-commit", view["headRefOid"]])
-    delete_branch()
-    return True
+        sh(["gh", "pr", "comment", url, "--body",
+            "Left for a maintainer: " + "; ".join(reasons) + "."])  # fmt: skip
+        say("left for a maintainer: " + "; ".join(reasons))
+    else:
+        say("left for auto-merge, once CI passes")
+    return False
 
 
 def delete_branch() -> None:
@@ -264,10 +285,33 @@ def delete_branch() -> None:
     sh(["git", "push", "--quiet", "origin", "--delete", branch], check=False)
 
 
+def _variant(options: Options):
+    """The iteration of a local run (#5827) or a run in sessions (#5831), or None.
+
+    Args:
+        options: The loop's options.
+
+    Returns:
+        The iteration function, or None for :func:`iteration`'s own steps.
+    """
+    if options.local:
+        from openinterpretability.loop_local import local_iteration
+
+        return local_iteration
+    if options.sessions is not None:
+        from openinterpretability.loop_sessions import session_iteration
+
+        return session_iteration
+    return None
+
+
 def iteration(options: Options, plan_next, claims) -> Result:
-    """Run one experiment end to end: reset, draw, claim, run, post and land."""
+    """Run one experiment: reset, draw, claim, run, post and land, or a local one (#5827)."""
+    if (variant := _variant(options)) is not None:
+        return variant(options, plan_next, claims)
     reset()
-    plan = draw(options, plan_next, claims)
+    with options.pending.applied():  # the open PRs' records count too (#5826)
+        plan = draw(options, plan_next, claims)
     slug = draw_slug(plan.choice)
     if slug is None:
         raise LoopError(f"the unit of a {plan.choice.kind} draw on {plan.choice.model} is unknown")
@@ -285,20 +329,13 @@ def iteration(options: Options, plan_next, claims) -> Result:
         if decide(plan.seed, options.until_verified):
             status = more_turns(options, plan.choice.kind, slug, status)
     except Exception as exc:
-        sh(
-            [
-                "gh",
-                "pr",
-                "close",
-                url,
-                "--comment",
-                f"Abandoned by `open-interpretability loop`: {exc}",
-            ],
-            check=False,
-        )
+        note = f"Abandoned by `open-interpretability loop`: {exc}"
+        sh(["gh", "pr", "close", url, "--comment", note], check=False)
         delete_branch()
         raise
-    return Result(slug, status, url, land(url))
+    merged = land(url)
+    options.pending.keep()
+    return Result(slug, status, url, merged)
 
 
 def more_turns(options: Options, kind: str, slug: str, status: str) -> str:
@@ -323,8 +360,12 @@ def more_turns(options: Options, kind: str, slug: str, status: str) -> str:
     return status
 
 
-def run_work(work, kind: str, key: str) -> str:
-    """Run every step after the claim, then post. A scan that stops on its unit posts at once."""
+def run_steps(work) -> None:
+    """Run every step after the claim. A scan that stops on its unit ends the steps there.
+
+    Args:
+        work: The draw's steps, from its first work step to its last.
+    """
     from openinterpretability.evidence import Unauditable
 
     try:
@@ -334,6 +375,11 @@ def run_work(work, kind: str, key: str) -> str:
                 run_command(command)
     except Unauditable as exc:
         sys.stdout.write(f"The scan stopped on the unit: {exc}\n")
+
+
+def run_work(work, kind: str, key: str) -> str:
+    """Run every step after the claim, then post. A scan that stops on its unit posts at once."""
+    run_steps(work)
     say("posting the result")
     return post(kind, key)
 

@@ -342,8 +342,6 @@ openinterpretability/builder/learned_baseline.py::learned_baseline
 openinterpretability/builder/learned_baseline.py::_comparison
 openinterpretability/builder/literature_map_view.py::short_credit
 openinterpretability/builder/literature_map_view.py::_xy
-openinterpretability/builder/literature_map_view.py::slots
-openinterpretability/builder/literature_map_view.py::callouts
 openinterpretability/builder/literature_map_view.py::badges
 openinterpretability/builder/literature_map_view.py::_read
 openinterpretability/builder/literature_map_view.py::literature_map
@@ -697,13 +695,13 @@ openinterpretability/cli_explain.py::explain_command
 openinterpretability/cli_explain.py::_explain
 openinterpretability/cli_explain.py::_analyse
 openinterpretability/cli_explain.py::_answer
-openinterpretability/cli_explain.py::_as_json
-openinterpretability/cli_explain.py::_print_plan
-openinterpretability/cli_explain.py::_milestones
-openinterpretability/cli_explain.py::reached
-openinterpretability/cli_explain.py::_print_coverage
+openinterpretability/explain_output.py::_as_json
+openinterpretability/explain_output.py::_print_plan
+openinterpretability/explain_output.py::_milestones
+openinterpretability/explain_output.py::reached
+openinterpretability/explain_output.py::_print_coverage
 openinterpretability/cli_explain.py::_narrate
-openinterpretability/cli_explain.py::_print_narrative
+openinterpretability/explain_output.py::_print_narrative
 openinterpretability/cli_explain.py::_keep
 openinterpretability/cli_explain.py::_record
 openinterpretability/cli_explain.py::_explained_units
@@ -2236,7 +2234,6 @@ openinterpretability/reproduce_explanation.py::ExplanationReport.number
 openinterpretability/reproduce_explanation.py::ExplanationReport.same
 openinterpretability/reproduce_explanation.py::not_reproducible
 openinterpretability/reproduce_explanation.py::means_corpus
-openinterpretability/reproduce_explanation.py::_rebuilt
 openinterpretability/reproduce_explanation.py::reproduce_explanation
 openinterpretability/reproduce_explanation.py::_with_explained
 openinterpretability/reproduce_explanation.py::_shares
@@ -2990,8 +2987,6 @@ scripts/linear_sync.py::apply_roadmap
 scripts/linear_sync.py::plan_relations
 scripts/linear_sync.py::sync_relations
 scripts/literature_map.py::layout
-scripts/literature_map.py::communities
-scripts/literature_map.py::regions
 scripts/literature_map.py::neighbours
 scripts/ln_offset.py::Offset.__init__
 scripts/ln_offset.py::Offset.forward

@@ -74,6 +74,41 @@ def test_an_external_narrator_writes_its_prompt(tmp_path):
     assert "Cite a unit for every claim" in prompt and "paragraph" in prompt
 
 
+def _answer_once(path, text):
+    """Write ``text`` to ``path`` once the narrator has asked, as a subagent would."""
+    import threading
+    import time
+
+    def write():
+        while not (path.parent / "Narrator.prompt.md").exists():
+            time.sleep(0.005)
+        path.write_text(text)
+
+    thread = threading.Thread(target=write, daemon=True)
+    thread.start()
+    return thread
+
+
+def test_an_external_narrator_is_recorded_as_the_model_it_reports(tmp_path):
+    # #5966: the record names the subagent that wrote the text, not external/claude-code.
+    story = _story("Nothing is explained.")
+    answer = {**story.model_dump(), "model": "Claude-Sonnet-5-5"}
+    narrator = Narrator("external/claude-code", exchange_dir=tmp_path, poll_interval=0.01)
+    _answer_once(tmp_path / "Narrator.response.json", json.dumps(answer))
+    assert narrator.narrate({"units": []}) == story
+    assert narrator.model == "external/claude-sonnet-5-5"
+    assert '"model"' in (tmp_path / "Narrator.prompt.md").read_text()
+
+
+def test_an_external_answer_without_its_model_is_refused(tmp_path):
+    narrator = Narrator("external/claude-code", exchange_dir=tmp_path, timeout=2.0,
+                        poll_interval=0.01)  # fmt: skip
+    _answer_once(tmp_path / "Narrator.response.json", _story("x").model_dump_json())
+    with pytest.raises(Exception, match="no response"):
+        narrator.narrate({"units": []})
+    assert "model" in (tmp_path / "Narrator.error.txt").read_text()
+
+
 def test_cli_narrates_a_paragraph(toy_runner, tmp_path, monkeypatch):
     from openinterpretability.cli import cli
 
@@ -84,13 +119,13 @@ def test_cli_narrates_a_paragraph(toy_runner, tmp_path, monkeypatch):
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
-            "--wiki-dir", str(tmp_path / "wiki"), "--edges", "0", "--level", "paragraph",
+            "--wiki-dir", str(tmp_path / "wiki"), "--edges", "0", "--level", "paragraph", "--yes",
             "--narrator-model", "anthropic/x"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == 0, out.output
     assert "Nothing is explained" in out.output and "Plan:" not in out.output
     assert "cites units that the evidence doesn't hold: C99" in out.output
-    as_json = json.loads(CliRunner().invoke(cli, [*args, "--json"]).output)
+    as_json = json.loads(CliRunner().invoke(cli, [*args, "--json"]).stdout)  # the warning is stderr
     assert as_json["narrator_model"] == "anthropic/x" and as_json["citations_not_in_evidence"] == [
         "C99"
     ]
@@ -116,10 +151,69 @@ def test_record_at_the_long_level_asks_the_narrator_once(toy_runner, tmp_path, m
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     wiki = tmp_path / "wiki"
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
-            "--wiki-dir", str(wiki), "--edges", "0", "--level", "long",
+            "--wiki-dir", str(wiki), "--edges", "0", "--level", "long", "--yes",
             "--narrator-model", "anthropic/x", "--record", "--no-land"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == 0, out.output
     assert len(asked) == 1
     (((_, record),),) = load_all(wiki).values()
     assert record.narration.paragraph == "Narration 1."
+
+
+def test_groups_and_path_ends_go_into_the_evidence_and_count_as_cited(toy_runner, means):  # noqa: F811
+    from dataclasses import replace
+
+    from openinterpretability.explain_groups import GroupAttribution
+
+    base = ex.explain(toy_runner, "toy", PROMPT, means, {}, top=2, edges=0)
+    group = GroupAttribution("circuit", "C4", 3, base.total / 2, "VERIFIED", "a copy circuit")
+    path = {"source": "L0/N1+", "target": "L2/N5−", "weight": 0.5}
+    result = replace(base, groups=[group], edges=[path])
+    ev = evidence(result, COVERAGE, ep.plan(result, {}, "toy"))
+    (row,) = ev["groups"]
+    assert row["unit"] == "C4" and row["kind"] == "circuit" and row["members"] == 3
+    assert row["share"] == pytest.approx(0.5) and "a copy circuit" in row["explanation"]
+    assert check_citations(_story("C4 feeds L0/N1+ then L2/N5- and L8/N8+."), ev) == ["L8/N8+"]
+
+
+def test_inside_claude_code_the_narrator_defaults_to_a_subagent(toy_runner, tmp_path,
+                                                               monkeypatch):  # fmt: skip
+    # #5831: no --narrator-model inside Claude Code means external/, answered by a subagent.
+    from openinterpretability.agents.narrator import Narrator
+    from openinterpretability.cli import cli
+
+    monkeypatch.setenv(ex.MEANS_ENV, str(tmp_path / "means"))
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("ANTHROPIC_MODEL", "claude-test-1")
+    models = []
+
+    def narrate(self, ev):
+        models.append(self.model)
+        return _story("Nothing is explained.")
+
+    monkeypatch.setattr(Narrator, "narrate", narrate)
+    corpus = tmp_path / "corpus.jsonl"
+    corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
+    args = [
+        "explain",
+        PROMPT,
+        "--model",
+        "toy",
+        "--corpus",
+        str(corpus),
+        "--mean-tokens",
+        "200",
+        "--wiki-dir",
+        str(tmp_path / "wiki"),
+        "--edges",
+        "0",
+        "--level",
+        "paragraph",
+        "--yes",
+    ]
+    out = CliRunner().invoke(cli, args)
+    assert out.exit_code == 0, out.output
+    assert models == ["external/claude-test-1"]
+    assert "with the explanation-narrator agent" in out.output

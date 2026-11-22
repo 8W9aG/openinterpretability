@@ -9,10 +9,14 @@ from openinterpretability.builder.compiler import compile_site
 from openinterpretability.builder.literature_pages import LITERATURE, load_reviews
 from openinterpretability.builder.research import load_papers
 from openinterpretability.builder.research_feeds import (
+    LITERATURE_FEED,
     NO_DATE,
+    PAPERS_FEED,
+    PUBLISHED_FEED,
     added_times,
     literature_feed,
     papers_feed,
+    write_research_feeds,
 )
 
 ATOM = "{http://www.w3.org/2005/Atom}"
@@ -91,3 +95,11 @@ def test_the_build_writes_both_feeds_identically_and_their_links_resolve(tmp_pat
             assert page.exists(), entry["href"]
     research = (out[0] / "research" / "index.html").read_text()
     assert "papers.xml" in research and "literature.xml" in research
+
+
+def test_with_no_reviews_the_build_writes_no_literature_feed(tmp_path):
+    common = {"site_url": SITE, "site_title": "OI"}
+    write_research_feeds(tmp_path, [], [], LITERATURE, common)
+    assert _entries((tmp_path / PAPERS_FEED).read_text(encoding="utf-8")) == []
+    assert _entries((tmp_path / PUBLISHED_FEED).read_text(encoding="utf-8")) == []
+    assert not (tmp_path / LITERATURE_FEED).exists()

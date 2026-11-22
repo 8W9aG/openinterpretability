@@ -244,3 +244,46 @@ def test_circuit_labels_read_each_circuits_newest_record(tmp_path):
     assert labels == {
         source.parent.name: (record["verdict"]["status"], record["hypothesis"]["explanation"])
     }
+
+
+def test_means_are_computed_but_not_kept_with_the_cache_off(toy_runner, tmp_path, monkeypatch):
+    monkeypatch.setenv(ex.MEANS_ENV, "off")
+    monkeypatch.setattr(ex, "WINDOW", 4)
+    first = ex.unit_means(toy_runner, "toy", TEXTS, 200)
+    again = ex.unit_means(toy_runner, "toy", TEXTS, 200)
+    assert sorted(first.neurons) == list(range(toy_runner.n_layers))
+    assert all(torch.equal(first.neurons[la], again.neurons[la]) for la in first.neurons)
+    assert not list(tmp_path.rglob("*.pt"))
+
+
+def test_registry_labels_keep_only_the_models_units(tmp_path, record):
+    from datetime import UTC, datetime
+
+    from openinterpretability.builder.wiki import write_experiment_page
+    from openinterpretability.core.draws import UnauditableDraw, write_draw
+    from tests.test_core_draws import PROVENANCE
+
+    wiki = tmp_path / "wiki"
+    write_experiment_page(record, wiki)  # a record of another model
+    for model in ("toy", "other/model"):
+        ident = NeuronIdentifier(model_name=model, layer=0, neuron_idx=2, pole="positive")
+        write_draw(UnauditableDraw(identifier=ident, outcome="dead", provenance=PROVENANCE,
+                                   timestamp=datetime(2026, 11, 1, tzinfo=UTC)), wiki)  # fmt: skip
+    toy = NeuronIdentifier(model_name="toy", layer=0, neuron_idx=2, pole="positive").slug
+    assert ex.registry_labels(wiki, "toy") == {toy: ("stopped", None, None)}
+    own = ex.registry_labels(wiki, record.submission.identifier.model_name)
+    assert own[record.submission.identifier.slug][0] == record.verdict.status
+
+
+def test_a_verified_superposition_is_labelled_and_checked_by_removing_it(gpt2, gpt2_means):
+    from openinterpretability.explain_groups import GroupDef, remove_direction
+
+    group = GroupDef("superposition", "L1/Sx", "tiny/L1/Sx", ((1, 3, 0.8), (1, 40, -0.5)))
+    labels = {"tiny/L1/Sx": ("VERIFIED", "reads b", None)}
+    result = ex.explain(gpt2, "tiny", PROMPT, gpt2_means, labels, top=5, groups=[group])
+    (found,) = result.groups
+    assert (found.kind, found.status, found.explanation) == ("superposition", "VERIFIED", "reads b")
+    base = ex.logits_with(gpt2, PROMPT, {}, -1)
+    removed = ex.logits_with(gpt2, PROMPT, remove_direction(group, gpt2_means), -1)
+    token = result.token_id
+    assert found.ablation_change == pytest.approx(float(removed[token] - base[token]))

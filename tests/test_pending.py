@@ -1,5 +1,10 @@
 """Pending experiments on the home and model pages (builder/pending.py, #3283)."""
 
+import json
+import subprocess
+
+import pytest
+
 from openinterpretability.builder import pending
 from openinterpretability.builder.compiler import compile_site
 
@@ -46,3 +51,37 @@ def test_the_home_and_model_pages_list_the_pending_experiments(tmp_path, record)
 def test_without_gh_nothing_is_fetched(monkeypatch):
     monkeypatch.setattr(pending.shutil, "which", lambda _: None)
     assert pending.open_experiments() == []
+
+
+@pytest.mark.parametrize(
+    "error",
+    [subprocess.TimeoutExpired("gh", 60), subprocess.CalledProcessError(1, "gh"), OSError("gh")],
+)
+def test_a_gh_call_that_fails_or_times_out_lists_nothing(monkeypatch, error):
+    def fail(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(pending.shutil, "which", lambda _: "/usr/bin/gh")
+    monkeypatch.setattr(pending.subprocess, "run", fail)
+    assert pending.open_experiments() == []
+
+
+def test_the_open_experiments_are_parsed_from_gh_newest_first(monkeypatch):
+    older = _pr("experiment/EleutherAI--pythia-70m-L2-N5-negative", number=3)
+    older["createdAt"] = "2026-11-10T08:00:00Z"
+    prs = [older, _pr("experiment/EleutherAI--pythia-70m-L1-N4-positive", number=9),
+           _pr("experiment/EleutherAI--pythia-70m-L3-N6-positive", number=11, fork=True),
+           _pr("site/pending-3283", number=12)]  # fmt: skip
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0, stdout=json.dumps(prs), stderr="")
+
+    monkeypatch.setattr(pending.shutil, "which", lambda _: "/usr/bin/gh")
+    monkeypatch.setattr(pending.subprocess, "run", fake_run)
+    found = pending.open_experiments()
+    assert [(p.number, p.unit, p.opened) for p in found] == [
+        (9, "N4", "2026-11-16"), (3, "N5", "2026-11-10"),
+    ]  # fmt: skip
+    assert calls[0][:4] == ["gh", "pr", "list", "--state"]

@@ -12,6 +12,7 @@ from click.testing import CliRunner
 from openinterpretability import cli_loop, providers
 from openinterpretability.cli import cli
 from openinterpretability.cli_costs import _session
+from openinterpretability.core.legacy_names import keychain_services
 
 SECRET = "sk-test-not-a-real-key"
 
@@ -123,3 +124,123 @@ def test_provider_list_says_whether_a_key_is_set_but_never_shows_it(monkeypatch)
     result = CliRunner().invoke(cli, ["provider", "list"])
     assert result.exit_code == 0 and "deepseek: deepseek-flash[1m]; key set" in result.output
     assert SECRET not in result.output
+
+
+def _provider(**fields):
+    return providers.Provider(name="test", model="m", key_env="TEST_PROVIDER_KEY", **fields)
+
+
+def test_a_missing_key_without_a_keychain_entry_names_only_the_variable(monkeypatch):
+    monkeypatch.delenv("TEST_PROVIDER_KEY", raising=False)
+    with pytest.raises(ValueError) as caught:
+        providers.claude_env(_provider(base_url="http://x"), base={})
+    assert str(caught.value) == "no API key for test: set $TEST_PROVIDER_KEY"
+
+
+def test_an_anthropic_provider_with_a_key_passes_it_as_the_api_key(monkeypatch):
+    monkeypatch.setenv("TEST_PROVIDER_KEY", SECRET)
+    env = providers.claude_env(_provider(), base={})
+    assert env["ANTHROPIC_API_KEY"] == SECRET and "ANTHROPIC_BASE_URL" not in env
+
+
+def test_litellm_env_sets_the_key_only_when_there_is_one(monkeypatch):
+    monkeypatch.setenv("TEST_PROVIDER_KEY", SECRET)
+    assert providers.litellm_env(_provider(), base={"A": "1"}) == {
+        "A": "1", "TEST_PROVIDER_KEY": SECRET,
+    }  # fmt: skip
+    monkeypatch.delenv("TEST_PROVIDER_KEY")
+    assert providers.litellm_env(_provider(), base={"A": "1"}) == {"A": "1"}
+
+
+def test_listening_tells_an_open_port_from_a_closed_one():
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
+        server.bind(("127.0.0.1", 0))
+        server.listen()
+        port = server.getsockname()[1]
+        assert providers._listening(port)
+    assert not providers._listening(port)
+
+
+def test_start_proxy_does_nothing_when_the_proxy_already_listens(monkeypatch, tmp_path):
+    monkeypatch.setattr(providers, "_listening", lambda port: True)
+    monkeypatch.setattr(providers.subprocess, "Popen", lambda *a, **k: pytest.fail("started"))
+    provider = _provider(proxy_config=str(tmp_path / "none.yaml"), proxy_port=4000)
+    providers.start_proxy(provider, {}, tmp_path / "proxy.log")
+    assert not (tmp_path / "proxy.log").exists()
+
+
+def test_start_proxy_needs_its_config_and_the_litellm_command(monkeypatch, tmp_path):
+    monkeypatch.setattr(providers, "_listening", lambda port: False)
+    config = tmp_path / "proxy.yaml"
+    provider = _provider(proxy_config=str(config), proxy_port=4000)
+    with pytest.raises(ValueError, match=f"test needs a LiteLLM proxy config at {config}"):
+        providers.start_proxy(provider, {}, tmp_path / "proxy.log")
+    config.write_text("model_list: []\n")
+    monkeypatch.setattr(providers.shutil, "which", lambda _: None)
+    needs = r"needs the LiteLLM proxy: pip install 'litellm\[proxy\]'"
+    with pytest.raises(ValueError, match=needs):
+        providers.start_proxy(provider, {}, tmp_path / "proxy.log")
+
+
+def test_start_proxy_starts_litellm_and_waits_until_it_listens(monkeypatch, tmp_path):
+    answers = iter([False, False, True])  # down, still starting, then up
+    monkeypatch.setattr(providers, "_listening", lambda port: next(answers))
+    monkeypatch.setattr(providers.shutil, "which", lambda _: "/usr/bin/litellm")
+    sleeps, started = [], []
+    monkeypatch.setattr(providers.time, "sleep", sleeps.append)
+    monkeypatch.setattr(
+        providers.subprocess, "Popen", lambda args, **kw: started.append((args, kw["env"]))
+    )
+    config = tmp_path / "proxy.yaml"
+    config.write_text("model_list: []\n")
+    log = tmp_path / "proxy.log"
+    providers.start_proxy(_provider(proxy_config=str(config), proxy_port=4001), {"K": "v"}, log)
+    assert started == [
+        (
+            ["litellm", "--config", str(config), "--host", "127.0.0.1", "--port", "4001"],
+            {"K": "v"},
+        )
+    ]
+    assert sleeps == [0.5] and log.exists()
+
+
+def test_start_proxy_raises_when_the_proxy_never_listens(monkeypatch, tmp_path):
+    monkeypatch.setattr(providers, "_listening", lambda port: False)
+    monkeypatch.setattr(providers.shutil, "which", lambda _: "/usr/bin/litellm")
+    monkeypatch.setattr(providers.subprocess, "Popen", lambda *a, **k: None)
+    config = tmp_path / "proxy.yaml"
+    config.write_text("model_list: []\n")
+    log = tmp_path / "proxy.log"
+    provider = _provider(proxy_config=str(config), proxy_port=4002)
+    with pytest.raises(ValueError, match=f"the test proxy did not start; see {log}"):
+        providers.start_proxy(provider, {}, log, wait_s=0.0)
+
+
+def test_annotate_leaves_unreadable_and_non_object_sessions_alone(tmp_path):
+    provider = providers.load("deepseek")
+    providers.annotate(tmp_path / "missing.json", provider)
+    assert not (tmp_path / "missing.json").exists()
+    for text in ("not json", "[1, 2]"):
+        session = tmp_path / "s.json"
+        session.write_text(text)
+        providers.annotate(session, provider)
+        assert session.read_text() == text
+
+
+def test_the_old_keychain_name_is_tried_and_none_when_neither_has_the_key(monkeypatch):
+    monkeypatch.delenv("MUSE_API_KEY", raising=False)
+    monkeypatch.setattr(providers.shutil, "which", lambda _: "/usr/bin/security")
+    services = []
+    new, old = keychain_services("openinterpretability-muse")
+
+    def fake_run(args, **_):
+        services.append(args[3])
+        if args[3] == old:  # found under the old name, but empty
+            return subprocess.CompletedProcess(args, 0, stdout="  \n", stderr="")
+        return subprocess.CompletedProcess(args, 44, stdout="", stderr="not found")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake_run)
+    assert providers.key(providers.load("muse")) is None
+    assert services == [new, old]

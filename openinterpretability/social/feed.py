@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ATOM = "{http://www.w3.org/2005/Atom}"
+THREAD = "{https://open-interpretability.com/ns/social}thread"  # research_feeds.THREAD_NS
 
 
 @dataclass(frozen=True)
@@ -19,14 +20,46 @@ class Media:
 
 
 @dataclass(frozen=True)
+class Tweet:
+    """One tweet of an entry's thread: its text and its media, at most 4 images (#5833)."""
+
+    text: str
+    media: tuple[Media, ...] = ()
+
+
+@dataclass(frozen=True)
 class Entry:
-    """One entry: its stable id (a URL), title, link, summary and drawn head figure."""
+    """One entry: its stable id (a URL), title, link, summary, head figure and thread."""
 
     id: str
     title: str
     link: str
     summary: str
     media: Media | None = None
+    thread: tuple[Tweet, ...] = ()  # empty: the entry posts as one post
+
+
+def _thread(element) -> tuple[Tweet, ...]:
+    """The thread that an entry's ``<oi:thread>`` holds as JSON, or () when it has none.
+
+    Args:
+        element: The ``<oi:thread>`` element, or None.
+
+    Returns:
+        The tweets, in order.
+
+    Examples:
+        >>> import xml.etree.ElementTree as ET
+        >>> found = ET.fromstring('<t>[{"text": "Hi", "media": []}]</t>')
+        >>> _thread(found), _thread(None)
+        ((Tweet(text='Hi', media=()),), ())
+    """
+    import json
+
+    if element is None or not (element.text or "").strip():
+        return ()
+    return tuple(Tweet(t["text"], tuple(Media(m["url"], m["type"], m["alt"]) for m in t["media"]))
+                 for t in json.loads(element.text))  # fmt: skip
 
 
 def read_feed(path: Path) -> list[Entry]:
@@ -46,7 +79,7 @@ def read_feed(path: Path) -> list[Entry]:
         ...     '<title>T</title><link href="https://x.org/a"/><summary>S</summary>'
         ...     '</entry></feed>')
         >>> read_feed(feed)
-        [Entry(id='u1', title='T', link='https://x.org/a', summary='S', media=None)]
+        [Entry(id='u1', title='T', link='https://x.org/a', summary='S', media=None, thread=())]
         >>> _ = feed.write_text(
         ...     '<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>u1</id><title>T</title>'
         ...     '<link href="https://x.org/a"/><link rel="enclosure" href="https://x.org/m.png" '
@@ -72,5 +105,5 @@ def read_feed(path: Path) -> list[Entry]:
                          title=(e.findtext(f"{ATOM}title") or "").strip(),
                          link=link.get("href", "") if link is not None else "",
                          summary=(e.findtext(f"{ATOM}summary") or "").strip(),
-                         media=media))  # fmt: skip
+                         media=media, thread=_thread(e.find(THREAD))))  # fmt: skip
     return out

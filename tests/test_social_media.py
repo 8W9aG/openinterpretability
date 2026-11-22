@@ -19,7 +19,13 @@ KEYS = {"X_API_KEY": "ck", "X_API_SECRET": "cs", "X_ACCESS_TOKEN": "at", "X_ACCE
 
 
 def test_every_drawn_head_figure_is_up_to_date():
-    folders = [*ROOT.glob("papers/*/README.md"), *ROOT.glob("posts/*/README.md")]
+    from openinterpretability.builder.research import _ENTRY, DRAFT
+
+    # A draft never posts, so it draws its head figure when it is published (#5851).
+    index = (ROOT / "posts" / "README.md").read_text(encoding="utf-8")
+    drafts = {slug for date, slug in _ENTRY.findall(index) if date == DRAFT}
+    posts = [f for f in ROOT.glob("posts/*/README.md") if f.parent.name not in drafts]
+    folders = [*ROOT.glob("papers/*/README.md"), *posts]
     problems = {str(f.parent.relative_to(ROOT)): stale(f.parent) for f in folders}
     assert not {k: v for k, v in problems.items() if v}, "run scripts/social_images.py"
 

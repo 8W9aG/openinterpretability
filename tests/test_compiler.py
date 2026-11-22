@@ -186,26 +186,30 @@ def test_old_records_get_a_width_in_the_build_only(tmp_path, records):
 
 def test_a_model_status_grid(tmp_path, record, records):
     from openinterpretability.builder.pieces import GRID_PITCH, status_grid, studied_poles
-    from openinterpretability.builder.statuses import STATUS_HEIGHT
+    from openinterpretability.builder.statuses import NEURON_PX, SEGMENT_GAP
     from openinterpretability.builder.stopped import StoppedNeuron
     from openinterpretability.builder.tree import build_tree
 
-    # N120 shares N117's 38-neuron block (114–151); the block shows the better status.
+    # N120 shares N117's 38-neuron block (114–151): the block stacks both (#5836).
     records = [*records, experiment(record, idx=120, status="REJECTED", counts=(3, 3, 1, 3))]
     (model,) = build_tree(records, [])
     grid = status_grid(model)
     assert grid["block"] == 38 and len(grid["rows"]) == 24  # 4,864 neurons in 128 cells
-    assert dict((s, n) for s, _, n in grid["legend"]) == {
+    assert dict(grid["legend"]) == {
         "VERIFIED": 1, "CONTESTED": 0, "NEEDS_REVISION": 0, "REJECTED": 2, "STOPPED": 0,
     }  # fmt: skip
     assert grid["unexplored"] == 116_736 - 3
     n9, n117 = grid["cells"]
     assert (n9["status"], n117["status"]) == ("REJECTED", "VERIFIED")
     assert n117["x"] - n9["x"] == 3 * GRID_PITCH and n117["href"] == n9["href"]  # the layer
-    assert n117["label"].startswith("L3 N114–151, 3 of 76 poles studied: N117 positive VERIFIED")
-    # Height gives the status without colour, from the bottom of the row.
-    assert (n117["height"], n9["height"]) == (STATUS_HEIGHT["VERIFIED"], STATUS_HEIGHT["REJECTED"])
-    assert n9["y"] + n9["height"] == n117["y"] + n117["height"] == grid["rows"][3]["y"] + 10
+    assert n117["label"].startswith("L3 N114–151: 2 studied: 1 VERIFIED, 1 REJECTED. 3 of 76 "
+                                    "poles studied: N117 positive VERIFIED")  # fmt: skip
+    # Height counts the studied neurons, VERIFIED at the bottom of the stack (#5836).
+    assert [(g["status"], g["height"]) for g in n117["segments"]] == [
+        ("VERIFIED", NEURON_PX), ("REJECTED", NEURON_PX)]  # fmt: skip
+    assert n117["height"] == 2 * NEURON_PX + SEGMENT_GAP and n9["height"] == NEURON_PX
+    bottom = grid["rows"][3]["y"] + grid["cell"]  # every stack stands on its row's bottom
+    assert n9["y"] + n9["height"] == n117["y"] + n117["height"] == bottom
     both = StoppedNeuron(1, 2, ["negative default-on", "positive dead"])
     assert studied_poles(both) == 2 and studied_poles(StoppedNeuron(1, 2, ["negative dead"])) == 1
 
@@ -228,6 +232,30 @@ def test_a_layer_status_grid(record, records):
     cell = next(c for c in grid["cells"] if c["href"].endswith("/N120.html"))
     assert cell["label"] == "N120 positive REJECTED, 1 of 2 poles studied"
     assert status_grid(ModelNode("m", "m", 2, "m/index.html")) is None  # no width, no grid
+
+
+def test_a_stack_counts_its_neurons_in_status_order_and_fits_its_row(record, records):
+    from openinterpretability.builder.pieces import grid_scale, status_grid
+    from openinterpretability.builder.statuses import MAP_STATUSES, NEURON_PX
+    from openinterpretability.builder.tree import build_tree
+
+    # One 38-neuron block of layer 3 (114–151) with neurons of three statuses.
+    kinds = ((118, "REJECTED"), (119, "NEEDS_REVISION"), (121, "REJECTED"))
+    more = [experiment(record, idx=i, status=s, counts=(3, 3, 1, 3)) for i, s in kinds]
+    (model,) = build_tree([*records, *more], [])
+    scale = grid_scale([model])
+    grid = status_grid(model, scale=scale + 2)  # another model's larger block sets the scale
+    cell = next(c for c in grid["cells"] if c["label"].startswith("L3 N114"))
+    statuses = [g["status"] for g in cell["segments"]]
+    assert statuses == sorted(statuses, key=MAP_STATUSES.index)  # VERIFIED at the bottom
+    count = int(cell["label"].split(": ")[1].split()[0])
+    assert sum(g["height"] for g in cell["segments"]) == count * NEURON_PX
+    for c in grid["cells"]:  # no cell leaves its row
+        row = next(r for r in grid["rows"] if r["y"] <= c["y"] < r["y"] + grid["cell"] + 2)
+        assert c["y"] >= row["y"] and c["y"] + c["height"] <= row["y"] + grid["cell"]
+    assert grid["cell"] > status_grid(model)["cell"]  # one scale, set by the largest block
+    layer = status_grid(model, model.layers[0])  # one neuron a cell: full height, any status
+    assert {c["height"] for c in layer["cells"]} == {layer["cell"]}
 
 
 def test_no_two_cells_of_a_status_grid_overlap(record, records):
@@ -262,7 +290,7 @@ def test_each_status_grid_legend_names_every_status_its_cells_use(tmp_path, reco
     assert "Neurons studied</dt>" in index and "Target</dt>" in index  # one layout per card
     layer = (tmp_path / "models" / MODEL / "L3" / "index.html").read_text()
     assert "layer 3: one row of 128 neurons, each cell one neuron. 2 studied neurons" in layer
-    assert '<a href="../../../models/Qwen--Qwen2.5-0.5B/L3/N117.html"><rect' in layer
+    assert '<a href="../../../models/Qwen--Qwen2.5-0.5B/L3/N117.html"><g><title>' in layer
 
 
 def test_pct_fine():
@@ -381,8 +409,13 @@ def test_footer_links_repo_and_contact(tmp_path):
     compile_site([], tmp_path)
     index = (tmp_path / "index.html").read_text()
     assert 'href="https://github.com/8W9aG/openinterpretability"' in index
-    email = project_links()["contact_email"]  # pyproject.toml's author email, the one source
-    assert "@" in email and f'href="mailto:{email}"' in index
+    email = project_links()["contact_email"]  # pyproject.toml's [project.urls], the one source
+    assert email == "contact@open-interpretability.com" and f'href="mailto:{email}"' in index
+    # Every email link on every page is the contact address, so the old one is gone (#5853).
+    linked = {
+        m for p in tmp_path.rglob("*.html") for m in re.findall(r'mailto:([^"]+)"', p.read_text())
+    }
+    assert linked == {email}
 
 
 def test_every_page_links_the_x_account(tmp_path):
@@ -1574,7 +1607,10 @@ def test_a_neuron_with_only_stopped_scans_counts_as_studied(tmp_path, record):
     default_on = _stop_on_model(studied, idx=9, pole="negative")
     compile_site([studied], tmp_path, stops=[dead, default_on])
     home = " ".join((tmp_path / "index.html").read_text().split())
-    assert 'Neurons studied</dt> <dd class="mt-1 font-mono text-2xl tabular-nums">2</dd>' in home
+    tile_value = '<dd class="mt-auto pt-1 font-mono text-2xl tabular-nums">2</dd>'
+    assert f"Neurons studied</dt> {tile_value}" in home
+    # Each tile is a flex column with its value at the bottom, so values share a baseline (#5832).
+    assert '<div class="flex flex-col bg-white p-4 dark:bg-slate-950"> <dt' in home
     assert card_stat("Neurons studied", "2 of 116,736") in home
     assert card_stat("Verified", "1 of 116,736") in home
     model_page = " ".join((tmp_path / "models" / MODEL / "index.html").read_text().split())

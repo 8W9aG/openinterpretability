@@ -16,6 +16,13 @@
   {% if model.superpositions %}{{ model.superpositions }} superpositions studied ({{ model.verified_superpositions }} verified) · {% endif %}
   {{ model.n_layers }} layers{% if model.mlp_width %} × {{ model.mlp_width | thousands }} neurons{% endif %}
 </p>
+{% set bl = baselines.get(model.name) %}
+{% if bl %}
+{# The learned-basis baseline of this model (#3272), moved here from the home page (#5838). #}
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400" data-learned-baseline>
+  <span class="font-semibold">Learned-basis baseline:</span> {{ bl.features.verified }} of {{ bl.features.units }} random latents of <span class="font-mono">{{ bl.dictionary }}</span> verified, against {{ bl.positive_poles.verified }} of {{ bl.positive_poles.units }} random positive poles. <a class="underline" href="{{ root }}learned-baseline.html">How they compare</a>.
+</p>
+{% endif %}
 
 {% set terms = model_licenses.get(model.name) %}
 <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
@@ -33,7 +40,7 @@
 <p class="mt-2 text-sm"><a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ circuits_page }}">{{ circuits | length }} circuit{{ "" if circuits | length == 1 else "s" }}{% if hubs %}, {{ hubs | length }} hub{{ "" if hubs | length == 1 else "s" }}{% endif %}</a> <span class="text-slate-500">· units in the registry joined by their wiring</span></p>
 {% endif %}
 
-{% set lm = pieces.status_grid(model) %}
+{% set lm = pieces.status_grid(model, scale=grid_scale) %}
 {% if lm %}
 <div class="mt-6">{{ status_grid(lm, root, "model", model.name) }}</div>
 {% call read_more() %}<p class="text-xs">Each cell is a block of neurons, and links to its layer's page, where each neuron has a cell. STOPPED: every scan of the neuron stopped because it was dead or default-on, so it has no experiment. Its page lists the scans that stopped. Such a neuron counts as studied. The home page also counts it as verified when the weights prove it dead.</p>{% endcall %}

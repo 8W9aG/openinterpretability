@@ -117,7 +117,7 @@
 {# A model's card: its statistics and its pieces bars (builder/pieces.py), on the home and
    Models pages (#3287). `idx` keeps each card's SVG pattern id unique on the page. #}
 {% macro model_card(m, explore, root, idx) -%}
-{% set pc = pieces.status_grid(m) %}
+{% set pc = pieces.status_grid(m, scale=grid_scale) %}
 <a href="{{ root }}{{ m.href }}" class="block rounded-lg border border-slate-200 p-4 hover:border-brand-500 dark:border-slate-800">
   {# One layout on every card (#5724): the name, then the same four statistics in a grid. #}
   <div class="flex flex-wrap items-center gap-2">
@@ -210,12 +210,12 @@
    and the cells stretch to the card's width while each row keeps its height in px. #}
 {% macro status_grid(g, root, key, name, stretch=false) -%}
 {%- set each = "one neuron" if g.block == 1 else g.block ~ " neurons" -%}
-{%- set label -%}Status grid of {{ name }}: one row {{ "per layer, L0 at the top" if g.block > 1 else "of " ~ g.per_row ~ " neurons" }}, each cell {{ each }}. {{ g.studied | thousands }} studied neurons ({% for s, h, n in g.legend %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). A cell's colour and height give the best status in it.{%- endset -%}
+{%- set label -%}Status grid of {{ name }}: one row {{ "per layer, L0 at the top" if g.block > 1 else "of " ~ g.per_row ~ " neurons" }}, each cell {{ each }}. {{ g.studied | thousands }} studied neurons ({% for s, n in g.legend %}{{ n }} {{ s | replace('_', ' ') }}{{ ', ' if not loop.last }}{% endfor %}). {{ "A cell's height is the number of studied neurons in its block, split by status, VERIFIED at the bottom." if g.block > 1 else "A cell's colour gives its status." }}{%- endset -%}
 {%- set body -%}
   <defs><pattern id="grid-{{ key }}" x="{{ g.left }}" width="{{ g.pitch }}" height="{{ g.cell + 2 }}" patternUnits="userSpaceOnUse"><rect width="{{ g.pitch - 1 }}" height="{{ g.cell }}" class="fill-slate-100 dark:fill-slate-800/60"/></pattern></defs>
   {% for r in g.rows %}<rect x="{{ g.left }}" y="{{ r.y }}" width="{{ r.width + 1 }}" height="{{ g.cell }}" fill="url(#grid-{{ key }})"/>{% if r.shown and not stretch %}<text x="{{ g.left - 6 }}" y="{{ r.y + g.cell - 1 }}" text-anchor="end" class="fill-slate-500 font-mono">{{ r.label }}</text>{% endif %}
   {% endfor %}
-  {% for c in g.cells %}{% if not stretch %}<a href="{{ root }}{{ c.href }}">{% endif %}<rect x="{{ c.x }}" y="{{ c.y }}" width="{{ g.pitch - 1 }}" height="{{ c.height }}" class="{{ map_fill[c.status] }}" data-status="{{ c.status }}"><title>{{ c.label }}</title></rect>{% if not stretch %}</a>{% endif %}
+  {% for c in g.cells %}{% if not stretch %}<a href="{{ root }}{{ c.href }}">{% endif %}<g><title>{{ c.label }}</title>{% for seg in c.segments %}<rect x="{{ c.x }}" y="{{ seg.y }}" width="{{ g.pitch - 1 }}" height="{{ seg.height }}" class="{{ map_fill[seg.status] }}" data-status="{{ seg.status }}"/>{% endfor %}</g>{% if not stretch %}</a>{% endif %}
   {% endfor %}
 {%- endset -%}
 <figure data-pagefind-ignore data-status-grid>
@@ -225,9 +225,9 @@
   {% call chart(g.width, g.height, "Status grid", label, role="group") %}{{ body }}{% endcall %}
 {%- endif %}
   <figcaption class="mt-2 flex flex-wrap items-end gap-x-3 gap-y-1 text-xs text-slate-500">
-    {% for s, h, n in g.legend %}<span class="inline-flex items-end gap-1" data-swatch="{{ s }}"><svg width="{{ g.pitch - 1 }}" height="{{ g.cell }}" aria-hidden="true"><rect y="{{ g.cell - h }}" width="{{ g.pitch - 1 }}" height="{{ h }}" class="{{ map_fill[s] }}"/></svg>{{ s | replace('_', ' ') }} {{ n | thousands }}</span>
-    {% endfor %}<span class="inline-flex items-end gap-1"><svg width="{{ g.pitch - 1 }}" height="{{ g.cell }}" aria-hidden="true"><rect width="{{ g.pitch - 1 }}" height="{{ g.cell }}" class="fill-slate-100 dark:fill-slate-800/60"/></svg>not studied {{ g.unexplored | thousands }}</span>
-    <span>{% if g.block > 1 %}One row per layer, L0 at the top. {% endif %}Each cell is {{ each }}; colour and height both give the best status in it.</span>
+    {% for s, n in g.legend %}<span class="inline-flex items-center gap-1" data-swatch="{{ s }}"><svg width="10" height="10" aria-hidden="true"><rect width="10" height="10" class="{{ map_fill[s] }}"/></svg>{{ s | replace('_', ' ') }} {{ n | thousands }}</span>
+    {% endfor %}<span class="inline-flex items-center gap-1"><svg width="10" height="10" aria-hidden="true"><rect width="10" height="10" class="fill-slate-100 dark:fill-slate-800/60"/></svg>not studied {{ g.unexplored | thousands }}</span>
+    <span class="basis-full">{% if g.block > 1 %}One row per layer, L0 at the top, each cell {{ each }}. Height is the number of studied neurons in the block. VERIFIED is at the bottom of each bar.{% else %}Each cell is one neuron, in the colour of its best status.{% endif %}</span>
   </figcaption>
 </figure>
 {%- endmacro %}

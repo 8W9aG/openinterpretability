@@ -306,3 +306,215 @@ def test_specificity_rendered(tmp_path, record):
     wiki = write_experiment_page(rec, tmp_path / "wiki").read_text()
     assert "- **body part:** eye 0.75, toe 0.12" in wiki
     assert "- **Siblings:** chunk 0.00" in wiki
+
+
+# -- the NLTK adapter and the edge cases of the prompt notes ------------------------------
+
+
+class FakeSynsetObject:
+    """The parts of an NLTK synset that :class:`wordnet.WordNet` reads."""
+
+    def __init__(self, name, pos="n", parents=(), children=(), counts=(2, 3)):
+        self._name, self._pos = name, pos
+        self.parents, self.children, self.counts = parents, children, counts
+
+    def name(self):
+        return self._name
+
+    def pos(self):
+        return self._pos
+
+    def hypernyms(self):
+        return [FakeSynsetObject(p) for p in self.parents]
+
+    def instance_hypernyms(self):
+        return [FakeSynsetObject("paris.n.01")]
+
+    def hyponyms(self):
+        return [FakeSynsetObject(c) for c in self.children]
+
+    def instance_hyponyms(self):
+        return []
+
+    def lemma_names(self):
+        return ["body_part", "part"]
+
+    def min_depth(self):
+        return 4
+
+    def definition(self):
+        return "a part of an organism"
+
+    def lemmas(self):
+        return [SimpleNamespace(count=lambda n=n: n) for n in self.counts]
+
+
+class FakeNltkWordnet:
+    """NLTK's ``wordnet`` corpus reader, over two synsets."""
+
+    NOUN = "n"
+
+    def synset(self, name):
+        from nltk.corpus.reader.wordnet import WordNetError
+
+        if "." not in name:
+            raise ValueError(f"malformed {name}")
+        if name == "run.v.01":
+            return FakeSynsetObject(name, pos="v")
+        if name != "body_part.n.01":
+            raise WordNetError(f"no {name}")
+        return FakeSynsetObject(name, parents=["part.n.01"], children=["limb.n.01"])
+
+    def synsets(self, word, pos):
+        assert pos == "n"
+        return [FakeSynsetObject(f"{word}.n.01"), FakeSynsetObject(f"{word}.n.02")]
+
+
+def test_wordnet_adapter_reads_nltk_synsets():
+    lex = wordnet.WordNet(FakeNltkWordnet())
+    assert lex.has("body_part.n.01")
+    assert not lex.has("run.v.01")  # a verb
+    assert not lex.has("nonsense")  # malformed
+    assert not lex.has("ghost.n.01")  # no such synset
+    assert lex.senses("arm") == ["arm.n.01", "arm.n.02"]
+    assert lex.hypernyms("body_part.n.01") == ["part.n.01", "paris.n.01"]
+    assert lex.hyponyms("body_part.n.01") == ["limb.n.01"]
+    assert lex.lemma("body_part.n.01") == "body part"
+    assert lex.depth("body_part.n.01") == 4
+    assert lex.gloss("body_part.n.01") == "a part of an organism"
+    assert lex.count("body_part.n.01") == 5
+
+
+# The real loader, read at import, before the autouse fixture in conftest.py hides it.
+REAL_LEXICON = wordnet.lexicon
+
+
+@pytest.fixture
+def fresh_lexicon(monkeypatch):
+    monkeypatch.setattr(wordnet, "lexicon", REAL_LEXICON)
+    REAL_LEXICON.cache_clear()
+    yield
+    REAL_LEXICON.cache_clear()
+
+
+class LoadingCorpus:
+    """A corpus reader whose ``ensure_loaded`` fails the first ``failures`` times."""
+
+    def __init__(self, failures):
+        self.failures = failures
+
+    def ensure_loaded(self):
+        if self.failures:
+            self.failures -= 1
+            raise LookupError("wordnet not found")
+
+
+def _patch_nltk(monkeypatch, corpus, downloaded):
+    import nltk
+    import nltk.corpus
+
+    calls = []
+    monkeypatch.setattr(nltk.corpus, "wordnet", corpus)
+    monkeypatch.setattr(nltk, "download", lambda *a, **k: calls.append(a) or downloaded)
+    return calls
+
+
+def test_lexicon_is_none_without_nltk(monkeypatch, fresh_lexicon):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "nltk", None)
+    assert wordnet.lexicon() is None
+
+
+def test_lexicon_uses_loaded_wordnet_without_downloading(monkeypatch, fresh_lexicon):
+    corpus = LoadingCorpus(failures=0)
+    calls = _patch_nltk(monkeypatch, corpus, downloaded=True)
+    lex = wordnet.lexicon()
+    assert isinstance(lex, wordnet.WordNet) and lex.wn is corpus
+    assert calls == []
+
+
+def test_lexicon_downloads_wordnet_on_first_use(monkeypatch, fresh_lexicon):
+    corpus = LoadingCorpus(failures=1)
+    calls = _patch_nltk(monkeypatch, corpus, downloaded=True)
+    assert wordnet.lexicon().wn is corpus
+    assert calls == [("wordnet",)]
+
+
+def test_lexicon_is_none_when_the_download_fails(monkeypatch, fresh_lexicon):
+    _patch_nltk(monkeypatch, LoadingCorpus(failures=1), downloaded=False)
+    assert wordnet.lexicon() is None
+
+
+def test_lexicon_is_none_when_wordnet_still_will_not_load(monkeypatch, fresh_lexicon):
+    _patch_nltk(monkeypatch, LoadingCorpus(failures=2), downloaded=True)
+    assert wordnet.lexicon() is None
+
+
+# A diamond: "mule" has two parents that share one grandparent.
+DIAMOND = {
+    "entity.n.01": ("entity", [], 0),
+    "thing.n.01": ("thing", ["entity.n.01"], 0),
+    "being.n.01": ("being", ["thing.n.01"], 0),
+    "animal.n.01": ("animal", ["being.n.01"], 0),
+    "horse.n.01": ("horse", ["animal.n.01"], 0),
+    "donkey.n.01": ("donkey", ["animal.n.01"], 0),
+    "mule.n.01": ("mule", ["horse.n.01", "donkey.n.01"], 0),
+}
+
+
+def test_ancestors_and_descendants_visit_a_shared_synset_once():
+    lex = FakeLexicon(DIAMOND)
+    assert wordnet.ancestors(lex, "mule.n.01") == {
+        "mule.n.01", "horse.n.01", "donkey.n.01", "animal.n.01", "being.n.01",
+        "thing.n.01", "entity.n.01",
+    }  # fmt: skip
+    found = wordnet.descendants(lex, "animal.n.01")
+    assert sorted(found) == ["donkey.n.01", "horse.n.01", "mule.n.01"]
+
+
+def test_no_shared_category_no_note():
+    few = [example(["my", w, "hurts"], 1) for w in ["arm", "eye"]]
+    assert wordnet.format_for_proposer(few, FakeLexicon()) == ""
+    assert wordnet.format_for_reviewer(few, FakeLexicon()) == ""
+
+
+def test_reviewer_note_lists_holdouts_siblings_and_other_senses():
+    exs = [example(["my", w, "hurts"], 1) for w in ["arm", "leg", "hand"]]
+    note = wordnet.format_for_reviewer(exs, FakeLexicon())
+    assert note.startswith("WordNet puts 3 of the 3 peak words found in it under 'body part'")
+    assert "- other 'body part' words, for positive holdouts: eye, toe, limb\n" in note
+    assert "- sibling categories, for hard negatives: piece, fragment\n" in note
+    assert (
+        "- other senses of the peak words, for same-word hard negatives: "
+        "leg (one of the supports for a piece of furniture); hand (a hired"
+    ) in note
+
+
+class OnlyChildLexicon(FakeLexicon):
+    """A category whose only hyponyms are the peak words, with no siblings."""
+
+    TREE = {
+        "entity.n.01": ("entity", [], 0),
+        "thing.n.01": ("thing", ["entity.n.01"], 0),
+        "object.n.01": ("object", ["thing.n.01"], 0),
+        "tool.n.01": ("tool", ["object.n.01"], 0),
+        "hammer.n.01": ("hammer", ["tool.n.01"], 1),
+        "saw.n.01": ("saw", ["tool.n.01"], 1),
+        "drill.n.01": ("drill", ["tool.n.01"], 1),
+    }
+
+    def __init__(self):
+        super().__init__(self.TREE)
+
+    def senses(self, word):
+        return [f"{word}.n.01"] if f"{word}.n.01" in self.tree else []
+
+
+def test_reviewer_note_is_one_line_when_wordnet_suggests_nothing_more():
+    exs = [example(["a", w, "here"], 1) for w in ["hammer", "saw", "drill"]]
+    note = wordnet.format_for_reviewer(exs, OnlyChildLexicon())
+    assert note == (
+        "WordNet puts 3 of the 3 peak words found in it under 'tool' (hammer, saw, drill). "
+        "If the hypothesis claims this category or one near it, WordNet suggests:\n"
+    )

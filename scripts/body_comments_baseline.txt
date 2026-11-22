@@ -89,7 +89,6 @@ openinterpretability/evidence.py::scan_evidence
 openinterpretability/evidence.py::load_texts
 openinterpretability/evidence.py::run_scan
 openinterpretability/evidence.py::scan_provenance
-openinterpretability/experiment_loop.py::iteration
 openinterpretability/explain_land.py::land_record
 openinterpretability/explain_print.py::print_result
 openinterpretability/explanation_registry.py::registry_mismatches
@@ -119,7 +118,6 @@ openinterpretability/harness/sister_passes.py::_Stages.source_series
 openinterpretability/harness/sister_passes.py::_Stages._match_pass
 openinterpretability/harness/sister_passes.py::_Stages._correlate
 openinterpretability/harness/sister_passes.py::_gather
-openinterpretability/harness/sisters.py::_backward
 openinterpretability/harness/sites.py::site_hooks
 openinterpretability/harness/specificity.py::specificity
 openinterpretability/harness/steering.py::steering_interventions

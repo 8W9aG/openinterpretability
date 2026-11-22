@@ -104,7 +104,7 @@ def test_callouts_and_badges_never_overlap():
     cards = callouts(near)
     boxes = [c.box for c in cards]
     assert not any(overlaps(a, b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])
-    regions = [{"number": n, "name": f"r{n}", "named": True, "x": 0.1, "y": 0.5, "size": 3}
+    regions = [{"number": n, "name": f"r{n}", "x": 0.1, "y": 0.5, "size": 3}
                for n in (1, 2, 3)]  # fmt: skip
     placed = badges(regions, cards)
     every = [b.box for b in placed]
@@ -133,9 +133,10 @@ def test_the_repo_map_has_regions_neighbours_and_the_queue():
     data = json.loads((LITERATURE / MAP).read_text())
     regions = data["regions"]
     assert [r["number"] for r in regions] == list(range(1, len(regions) + 1))
-    assert {"number", "name", "named", "x", "y", "size"} <= set(regions[0])
-    named = [r["name"] for r in regions if r["named"]]
-    assert len(named) == len(set(named)) and set(named) <= set(sections(LITERATURE).values())
+    assert {"number", "name", "x", "y", "size", "touches"} <= set(regions[0])
+    names = [r["name"] for r in regions]
+    parts = {part for name in names for part in name.split(" · ")}  # a tie names both (#5798)
+    assert len(names) == len(set(names)) and parts <= set(sections(LITERATURE).values())
     numbers = {r["number"] for r in regions}
     assert all(r["region"] in numbers and len(r["neighbours"]) == 3 for r in data["reviews"])
     assert data["queued"] and all({"number", "title", "x", "y", "region"} <= set(q)
@@ -161,3 +162,13 @@ def test_index_rows_credits_and_queued_titles_are_redacted(tmp_path):
     assert mail not in credits(folder)["a-paper"]
     title = map_view(folder, [])["queued"][0].title
     assert mail not in title and REMOVED_TEXT in title
+
+
+def test_a_review_without_a_level_1_title_takes_its_file_name(tmp_path):
+    folder = tmp_path / "literature"
+    folder.mkdir()
+    (folder / "README.md").write_text("# Literature review\n")
+    (folder / "untitled.md").write_text("## Notes\n\nNo top heading.\n")
+    _, review = load_reviews(REPO, folder)
+    assert review.title == "untitled"
+    assert "<h2>Notes</h2>" in review.body

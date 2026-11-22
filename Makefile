@@ -21,13 +21,13 @@ test:
 	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterpretability.core.heavy_lock pytest -n $(TEST_WORKERS) 2>&1 | tee logs/test-last.log'
 
 # The suite with branch coverage (#3166): it fails below [tool.coverage.report] fail_under.
-# Then diff-cover requires 90% of the lines this branch changes against origin/main, as CI
-# does on a pull request. About twice as slow as `make test`, so `make test` skips it.
+# Then diff-cover requires [tool.diff_cover] fail_under of the lines this branch changes
+# against origin/main, as CI does on a pull request (#5855). About twice as slow as `make test`, so `make test` skips it.
 COVERAGE_BASE ?= origin/main
 coverage:
 	@mkdir -p logs
 	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterpretability.core.heavy_lock pytest -n $(TEST_WORKERS) --cov --cov-report=xml --cov-report=term 2>&1 | tee logs/coverage-last.log'
-	uv run diff-cover coverage.xml --compare-branch=$(COVERAGE_BASE) --fail-under=90
+	uv run diff-cover coverage.xml -c pyproject.toml --compare-branch=$(COVERAGE_BASE)
 
 # Wall time, CPU time and peak memory of fixed workloads, checked against
 # docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.

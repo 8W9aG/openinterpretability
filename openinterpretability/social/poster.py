@@ -201,23 +201,30 @@ class XPoster:
             raise ValueError(f"X could not process the video: {info['processing_info']}")
         return media_id
 
-    def post(self, text: str, media=None) -> str:
-        """Publish ``text`` as a post, with its drawn figure when there is one; return its id.
+    def post(self, text: str, media=None, reply_to: str | None = None) -> str:
+        """Publish ``text`` as a post, with its figures when there are any; return its id.
 
-        A failed upload doesn't stop the post, which goes out as text alone. The failure is
-        printed, so the deploy's log shows it. A failed post raises.
+        A failed upload doesn't stop the post, which goes out without that figure. The
+        failure is printed, so the deploy's log shows it. A failed post raises.
 
         Args:
             text: The post.
-            media: The :class:`~openinterpretability.social.feed.Media` to attach, or None.
+            media: A :class:`~openinterpretability.social.feed.Media`, a sequence of them (a
+                thread's tweet, at most 4), or None.
+            reply_to: The id of the post that this one answers, for a thread (#5833).
 
         Returns:
             The id that X gives the new post.
         """
         body: dict = {"text": text}
-        if media is not None:
+        ids = []
+        for item in [media] if media is not None and hasattr(media, "url") else media or []:
             try:
-                body["media"] = {"media_ids": [self.upload(media.url, media.type, media.alt)]}
+                ids.append(self.upload(item.url, item.type, item.alt))
             except (OSError, KeyError, ValueError) as error:  # an upload's failure, not the post's
-                print(f"media upload failed, posting text alone: {error}", file=sys.stderr)
+                print(f"media upload failed, posting without it: {error}", file=sys.stderr)
+        if ids:
+            body["media"] = {"media_ids": ids}
+        if reply_to is not None:
+            body["reply"] = {"in_reply_to_tweet_id": reply_to}
         return self._call("POST", TWEETS, body)["data"]["id"]

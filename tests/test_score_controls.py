@@ -100,3 +100,71 @@ def test_units_scored_with_one_seed_draw_different_decoys(tmp_path):
         _write(wiki, f"toy/L0/N{i}-positive", f"claim {i}", "VERIFIED")
     drawn = {other_unit_explanation(f"toy/L1/N{j}-positive", 7, wiki)[0] for j in range(10)}
     assert len(drawn) > 1
+
+
+def _task(fuzzing=True, controls=None):
+    from openinterpretability.agents.judge import TaskWindow
+    from openinterpretability.core.schemas import NeuronIdentifier
+    from openinterpretability.score_controls import ControlTask
+
+    window = TaskWindow(text="ab", tokens=["a", "b"], highlighted=[1])
+    return ScoringTask(
+        identifier=NeuronIdentifier(model_name="toy", layer=1, neuron_idx=2, pole="positive"),
+        explanation="x", threshold=1.0, window_tokens=8, quantiles=1, quantile_edges=[],
+        seed=0, corpus="c", candidate_windows=2, active_windows=1,
+        detection=[window, window], fuzzing=[window] if fuzzing else [],
+        controls=controls or [ControlTask(kind="empty", explanation="")],
+    )  # fmt: skip
+
+
+def test_a_unit_alone_in_its_model_gets_only_the_empty_control(tmp_path):
+    from openinterpretability.score_controls import control_tasks
+
+    (control,) = control_tasks("toy/L1/N2-positive", 0, tmp_path / "wiki")
+    assert (control.kind, control.explanation, control.source_slug) == ("empty", "", None)
+
+
+def test_a_task_with_no_fuzzing_windows_writes_and_reads_only_detection(tmp_path):
+    from openinterpretability.score_controls import answer_path, read_answers, write_prompts
+
+    task, path = _task(fuzzing=False), tmp_path / "score.task.json"
+    write_prompts(task, path, "neuron")
+    assert [p.name for p in tmp_path.iterdir()] == ["score.control-empty.detection.prompt.md"]
+    (control,) = task.controls
+    answer_path(path, control, "detection").write_text(
+        DetectionAnswer(active=[2]).model_dump_json()
+    )
+    (score,) = read_answers(task, path)
+    assert score.detection_judged == [False, True] and score.fuzzing_judged == []
+
+
+class _Judge:
+    """An LLM judge that answers every question the same way, and records them."""
+
+    def __init__(self):
+        self.asked = []
+
+    def detect(self, explanation, windows, noun):
+        self.asked.append(("detect", explanation, len(windows), noun))
+        return DetectionAnswer(active=[1])
+
+    def fuzz(self, explanation, windows, noun):
+        self.asked.append(("fuzz", explanation, len(windows), noun))
+        return FuzzingAnswer(correct=[1])
+
+
+def test_judge_controls_asks_each_controls_questions():
+    from openinterpretability.score_controls import ControlTask, judge_controls
+
+    other = ControlTask(kind="other_unit", explanation="vowels", source_slug="toy/L0/N7")
+    controls = [ControlTask(kind="empty", explanation=""), other]
+    judge = _Judge()
+    scores = judge_controls(judge, _task(controls=controls), "neuron")
+    assert [(s.kind, s.source_slug) for s in scores] == [
+        ("empty", None),
+        ("other_unit", "toy/L0/N7"),
+    ]
+    assert all(s.detection_judged == [True, False] and s.fuzzing_judged == [True] for s in scores)
+    assert judge.asked[2:] == [("detect", "vowels", 2, "neuron"), ("fuzz", "vowels", 1, "neuron")]
+    (no_fuzz,) = judge_controls(_Judge(), _task(fuzzing=False), "neuron")
+    assert no_fuzz.fuzzing_judged == []

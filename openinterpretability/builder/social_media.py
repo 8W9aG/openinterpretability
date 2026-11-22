@@ -160,5 +160,116 @@ def write_manifest(folder: Path, source: str, files: list[str]) -> None:
         >>> json.loads((folder / "media" / "social.json").read_text())["files"]
         ['social.png']
     """
-    data = {"source": source, "sha256": digest(folder / source), "files": sorted(files)}
+    data = {**_manifest(folder), "source": source, "sha256": digest(folder / source),
+            "files": sorted(files)}  # fmt: skip
     (folder / "media" / MANIFEST).write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
+
+
+def figure_names(fig_id: str) -> tuple[str, str]:
+    """The drawn image and video of one thread figure (#5833), in ``media/``.
+
+    Args:
+        fig_id: The figure's id: its SVG's stem.
+
+    Returns:
+        ``(image, video)`` names.
+
+    Examples:
+        >>> figure_names("trace")
+        ('social-trace.png', 'social-trace.mp4')
+    """
+    return f"social-{fig_id}.png", f"social-{fig_id}.mp4"
+
+
+def _manifest(folder: Path) -> dict:
+    """``media/social.json`` of ``folder``, or an empty dict when there is none.
+
+    Args:
+        folder: A paper's or a post's folder.
+
+    Returns:
+        The manifest's data.
+    """
+    path = folder / "media" / MANIFEST
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def figure_files(folder: Path) -> dict[str, list[str]]:
+    """The files drawn for each thread figure that are current and present, by figure id.
+
+    A figure whose SVG changed since it was drawn has none, so the thread's check fails.
+
+    Args:
+        folder: A paper's or a post's folder.
+
+    Returns:
+        The names in ``media/`` of each figure's drawn files.
+
+    Examples:
+        >>> import tempfile
+        >>> folder = Path(tempfile.mkdtemp())
+        >>> (folder / "media").mkdir()
+        >>> _ = (folder / "media" / "c.svg").write_text("<svg/>")
+        >>> _ = (folder / "media" / "social-c.png").write_bytes(b"png")
+        >>> write_figure(folder, "c", ["social-c.png"])
+        >>> figure_files(folder)
+        {'c': ['social-c.png']}
+        >>> _ = (folder / "media" / "c.svg").write_text("<svg>changed</svg>")
+        >>> figure_files(folder)
+        {'c': []}
+    """
+    out = {}
+    for fig, entry in _manifest(folder).get("figures", {}).items():
+        source = folder / "media" / f"{fig}.svg"
+        current = source.exists() and entry.get("sha256") == digest(source)
+        out[fig] = [
+            f for f in entry.get("files", []) if current and (folder / "media" / f).exists()
+        ]
+    return out
+
+
+def write_figure(folder: Path, fig_id: str, files: list[str]) -> None:
+    """Record what was drawn from a thread figure, beside the head figure's record.
+
+    Args:
+        folder: A paper's or a post's folder.
+        fig_id: The figure's id.
+        files: The names of its drawn files in ``media/``.
+
+    Examples:
+        >>> import tempfile
+        >>> folder = Path(tempfile.mkdtemp())
+        >>> (folder / "media").mkdir()
+        >>> _ = (folder / "media" / "c.svg").write_text("<svg/>")
+        >>> write_figure(folder, "c", ["social-c.png"])
+        >>> json.loads((folder / "media" / MANIFEST).read_text())["figures"]["c"]["files"]
+        ['social-c.png']
+    """
+    data = _manifest(folder)
+    source = folder / "media" / f"{fig_id}.svg"
+    data.setdefault("figures", {})[fig_id] = {"sha256": digest(source), "files": sorted(files)}
+    data["figures"] = dict(sorted(data["figures"].items()))
+    (folder / "media" / MANIFEST).write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
+
+
+def x_url(folder: Path) -> str | None:
+    """The URL of the paper's or post's X post, from ``media/social.json`` (#5840).
+
+    Args:
+        folder: A paper's or a post's folder.
+
+    Returns:
+        The URL, or None before the paper or post is posted.
+
+    Examples:
+        >>> import tempfile
+        >>> folder = Path(tempfile.mkdtemp())
+        >>> x_url(folder) is None
+        True
+        >>> (folder / "media").mkdir()
+        >>> _ = (folder / "media" / MANIFEST).write_text('{"x_url": "https://x.com/i/status/9"}')
+        >>> x_url(folder)
+        'https://x.com/i/status/9'
+    """
+    found = _manifest(folder).get("x_url")
+    return found if isinstance(found, str) and found.startswith("https://x.com/") else None

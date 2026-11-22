@@ -8,9 +8,14 @@ that is new to the state seeds the same way, so adding a feed posts nothing old 
 
 - Each published paper and each site post gets its own post (#5533). VERIFIED units don't
   post.
-- At most :data:`PER_DAY` posts go out in any 24 hours. The X API's free tier allows 50 a
-  day by its current docs, and 17 by older ones. This stays under the lower figure. When
-  the budget is spent, the rest isn't recorded, and it posts on a later run.
+- An entry with a thread (``thread.yaml``, #5833) posts it as one unit: each tweet replies
+  to the one before. It starts only when today's budget has room for every tweet left.
+  The state keeps the ids of the tweets posted so far, so a run after a failure goes on
+  from the next tweet. It never posts a tweet twice, and the entry counts as posted only
+  when its thread is whole.
+- At most :data:`PER_DAY` posts go out in any 24 hours, each tweet of a thread counted. X's
+  free tier allows 500 posts a month by its access-level docs (1,500 by an older FAQ). 15 a
+  day stays under 500 a month. When the budget is spent, the rest posts on a later run.
 """
 
 from __future__ import annotations
@@ -38,6 +43,7 @@ class State:
     posted: set[str] = field(default_factory=set)
     times: list[float] = field(default_factory=list)
     feeds: set[str] = field(default_factory=lambda: set(LEGACY_FEEDS))
+    threads: dict[str, list[str]] = field(default_factory=dict)  # a thread's tweets so far
 
 
 def load_state(path: Path) -> State | None:
@@ -69,7 +75,8 @@ def load_state(path: Path) -> State | None:
         return None
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     feeds = set(data.get("feeds", LEGACY_FEEDS))
-    return State(set(data.get("posted", [])), list(data.get("times", [])), feeds)
+    posted, times = set(data.get("posted", [])), list(data.get("times", []))
+    return State(posted, times, feeds, dict(data.get("threads", {})))
 
 
 def save_state(path: Path, state: State) -> None:
@@ -99,31 +106,109 @@ def save_state(path: Path, state: State) -> None:
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     data = {"feeds": sorted(state.feeds), "posted": sorted(state.posted),
             "times": sorted(state.times)}  # fmt: skip
+    if state.threads:  # only while a thread is unfinished
+        data["threads"] = dict(sorted(state.threads.items()))
     Path(path).write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
 
 
-def planned(state: State, feeds: dict[str, list[Entry]]) -> list[tuple[str, str, Media | None]]:
-    r"""Each post to make, with the id it covers and its media: papers first, then site posts.
+def planned(state: State, feeds: dict[str, list[Entry]]) -> list[tuple[str, list[tuple]]]:
+    r"""Each entry to post, papers first, then site posts: its id and its tweets.
+
+    An entry with a thread gives each of its tweets (#5833). Any other gives one post, with
+    its head figure.
 
     Args:
         state: What was posted or seen already.
         feeds: Each feed's entries, by name (a key of :data:`MESSAGES`).
 
     Returns:
-        One ``(id, text, media)`` per post. ``media`` is the drawn head figure, or None.
+        One ``(id, [(text, media), ...])`` per entry. ``media`` is a post's head figure or
+        None, or a tweet's tuple of figures.
 
     Examples:
         >>> post = Entry("p1", "Hello", "https://x.org/p", "The first post.")
         >>> planned(State({"old"}), {"posts": [post]})
-        [('p1', 'Hello\n\nThe first post.\nhttps://x.org/p', None)]
+        [('p1', [('Hello\n\nThe first post.\nhttps://x.org/p', None)])]
     """
-    return [(e.id, MESSAGES[name](e), e.media) for name in MESSAGES for e in feeds.get(name, [])
-            if e.id not in state.posted]  # fmt: skip
+    out = []
+    for name in MESSAGES:
+        for e in feeds.get(name, []):
+            if e.id not in state.posted:
+                tweets = [(t.text, t.media) for t in e.thread] or [(MESSAGES[name](e), e.media)]
+                out.append((e.id, tweets))
+    return out
+
+
+def preview(tweets: list[tuple]) -> str:
+    r"""What a dry run prints for one entry: each tweet with its length and its media.
+
+    Args:
+        tweets: The entry's tweets, as :func:`planned` gives them.
+
+    Returns:
+        The text to print.
+
+    Examples:
+        >>> print(preview([("Hello https://x.org/p", None)]))
+        would post (29 of 280):
+        Hello https://x.org/p
+    """
+    from openinterpretability.social.message import LIMIT, length
+
+    if len(tweets) == 1:
+        text, media = tweets[0]
+        shown = f"\n[{media.type}: {media.alt}]" if media is not None else ""
+        return f"would post ({length(text)} of {LIMIT}):\n{text}{shown}"
+    out = [f"would post a thread of {len(tweets)}:"]
+    for n, (text, media) in enumerate(tweets, 1):
+        out.append(f"--- {n}/{len(tweets)} ({length(text)} of {LIMIT})\n{text}")
+        out += [f"[{m.type}: {m.alt}]" for m in media]
+    return "\n".join(out)
+
+
+def _post_entry(post: Callable, entry_id: str, tweets: list[tuple], state: State,
+                state_path: Path, now: float, posted: list | None = None) -> list[str]:  # fmt: skip
+    """Post an entry's tweets that are left, recording each one; return a line per tweet.
+
+    A thread's tweets reply each to the one before, and the state keeps their ids after
+    each one. So a failure loses nothing, and the next run goes on from the next tweet.
+
+    Args:
+        post: Posts a text with its media, and for a thread the id it replies to.
+        entry_id: The entry's id.
+        tweets: All the entry's tweets.
+        state: The state, saved after each tweet.
+        state_path: The state's JSON file.
+        now: The time in seconds.
+        posted: Gets ``(entry id, first post id)`` once the entry is whole (#5840).
+
+    Returns:
+        One ``posted <id>: <first line>`` line per tweet posted.
+    """
+    lines, done = [], state.threads.get(entry_id, [])
+    for text, media in tweets[len(done) :]:
+        if len(tweets) > 1:
+            found = post(text, media, done[-1] if done else None)
+            done.append(found)
+            state.threads[entry_id] = done
+        else:
+            found = post(text, media)
+        lines.append(f"posted {found}: {text.splitlines()[0]}")
+        state.times.append(now)
+        save_state(state_path, state)  # after each tweet, so a later failure loses nothing
+    first = (done or [found])[0]  # a thread's head, or the one post
+    state.posted.add(entry_id)
+    state.threads.pop(entry_id, None)
+    save_state(state_path, state)
+    if posted is not None:
+        posted.append((entry_id, first))
+    return lines
 
 
 def run(state_path: Path, feeds: dict[str, list[Entry]],
         post: Callable[[str, Media | None], str] | None,
-        now: float, repost: frozenset[str] = frozenset()) -> list[str]:  # fmt: skip
+        now: float, repost: frozenset[str] = frozenset(),
+        posted: list | None = None) -> list[str]:  # fmt: skip
     """Post what is new and record it; return a line per action.
 
     With ``post`` None (a dry run), print the posts and change no state. ``repost`` names
@@ -138,6 +223,7 @@ def run(state_path: Path, feeds: dict[str, list[Entry]],
             id, or None for a dry run.
         now: The time in seconds, for the daily limit.
         repost: The ids of entries to post although the state has them.
+        posted: Gets ``(entry id, first post id)`` for each entry posted whole (#5840).
 
     Returns:
         One line per action, such as ``posted <id>: <first line>``, or ``["nothing new"]``.
@@ -173,17 +259,15 @@ def run(state_path: Path, feeds: dict[str, list[Entry]],
     state.posted -= repost  # in memory only: the state saves an id again once it posts
     budget = PER_DAY - sum(1 for t in state.times if now - t < DAY)
     count = 0
-    for entry_id, text, media in planned(state, feeds):
-        if budget <= 0:
+    for entry_id, tweets in planned(state, feeds):
+        left = tweets[len(state.threads.get(entry_id, [])) :]
+        if len(left) > budget:  # a thread starts only when all of it fits today
             lines.append("daily limit reached; the rest posts on a later run")
             break
         count += 1
-        budget -= 1
+        budget -= len(left)
         if post is None:
-            lines.append(f"would post:\n{text}")
+            lines.append(preview(left))
             continue
-        lines.append(f"posted {post(text, media)}: {text.splitlines()[0]}")
-        state.posted.add(entry_id)
-        state.times.append(now)
-        save_state(state_path, state)  # after each post, so a later failure loses nothing
+        lines += _post_entry(post, entry_id, tweets, state, state_path, now, posted)
     return lines if count else [*lines, "nothing new"]

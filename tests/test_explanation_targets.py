@@ -160,3 +160,26 @@ def test_the_meter_counts_verified_units_and_units_in_verified_groups(tmp_path, 
     head_key = circuit.units[0]
     order[1] = (head_key, 1.0, "", False)
     assert meter() == pytest.approx(4.0 / 8.0)  # the VERIFIED pole, and the head in VERIFIED C4
+
+
+def test_a_target_already_done_is_skipped_on_later_draws(registry, tmp_path):
+    registry.stops = {A.slug}
+    draws = TargetedDraws([A, B], reviewer="rev/model")
+    assert draws(tmp_path, claims=[]).choice.slug == B.slug
+    assert draws.done == {A.slug: "stopped (dead or default-on)"}
+    registry.stops = set()  # A stays done: it is not looked at again
+    assert draws(tmp_path, claims=[]).choice.slug == B.slug
+    assert draws.attempts == {B.slug: 2}
+
+
+def test_the_meter_counts_the_poles_of_a_verified_superposition(tmp_path, monkeypatch):
+    from openinterpretability import explain, explain_groups
+    from openinterpretability.explain_groups import GroupDef
+    from openinterpretability.explanation_targets import ShareMeter
+
+    slug = "m--x/L2/S0123456789ab"
+    monkeypatch.setattr(explain, "registry_labels", lambda wiki, model: {slug: ("VERIFIED",)})
+    monkeypatch.setattr(explain_groups, "circuit_labels", lambda wiki, model: {})
+    sup = GroupDef("superposition", "L2/S0123456789ab", slug, ((2, 1, 1.0),))
+    order = [((2, 1, "positive"), 3.0, "", False), ((6, 7, "negative"), 1.0, "", False)]
+    assert ShareMeter("m/x", order, [sup], tmp_path)() == pytest.approx(3.0 / 4.0)

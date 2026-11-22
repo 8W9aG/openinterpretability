@@ -21,9 +21,10 @@
       ("Conclusive nulls", t.conclusive_nulls, none, none),
     ] %}
     {# Seven tiles: the last fills its row in the 2- and 4-column grids, so no cell is empty. #}
-    <div class="bg-white p-4 dark:bg-slate-950{{ ' col-span-2 lg:col-span-1' if loop.last }}"{% if title %} title="{{ title }}"{% endif %}>
+    {# A flex column with the value at mt-auto: every value in a row sits on one baseline, whatever the length of its label (#5832). #}
+    <div class="flex flex-col bg-white p-4 dark:bg-slate-950{{ ' col-span-2 lg:col-span-1' if loop.last }}"{% if title %} title="{{ title }}"{% endif %}>
       <dt class="text-xs uppercase tracking-wide text-slate-500">{% if href %}<a class="underline underline-offset-2" href="{{ root }}{{ href }}">{{ label }}</a>{% else %}{{ label }}{% endif %}</dt>
-      <dd class="mt-1 font-mono text-2xl tabular-nums">{{ value }}</dd>
+      <dd class="mt-auto pt-1 font-mono text-2xl tabular-nums">{{ value }}</dd>
     </div>
     {% endfor %}
   </dl>
@@ -50,12 +51,6 @@
 
 {% if dashboard %}{% include "_dashboard.html" %}{% endif %}
 
-{% if stats.baseline %}
-<p class="mb-10 text-sm text-slate-600 dark:text-slate-400">
-  {% for b in stats.baseline %}<span class="font-mono">{{ b.model_name }}</span>: {{ b.features.verified }} of {{ b.features.units }} random latents of <span class="font-mono">{{ b.dictionary }}</span> verified, against {{ b.positive_poles.verified }} of {{ b.positive_poles.units }} random positive poles. {% endfor %}
-  <a class="underline" href="{{ root }}learned-baseline.html">Learned-basis baseline</a>.
-</p>
-{% endif %}
 
 <section class="mb-10">
   <h2 class="mb-3 text-lg font-semibold">Models</h2>

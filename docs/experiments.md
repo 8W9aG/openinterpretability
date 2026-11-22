@@ -1,6 +1,21 @@
 # Running experiments
 
-The README's [Quickstart](../README.md#quickstart) is the shortest path to a first experiment. This page has the details. It covers which LLMs can propose and review, the scan corpus and caches, and running many experiments at once. It also covers the other unit types and how to contribute a result. How verdicts are decided is in [PROTOCOL.md](PROTOCOL.md).
+The README's [Run an experiment](../README.md#run-an-experiment) is the shortest path to a first experiment. This page has the details. It covers which LLMs can propose and review, the scan corpus and caches, and running many experiments at once. It also covers the other unit types and how to contribute a result. How verdicts are decided is in [PROTOCOL.md](PROTOCOL.md).
+
+## What you need
+
+| Tool | What it is for | Needed |
+| --- | --- | --- |
+| [Git](https://git-scm.com/) and a GitHub account | Fork the repo, and push your experiment as a pull request | Always |
+| [Python](https://www.python.org/) 3.11+ | Runs `open-interpretability` and the model | Always |
+| [uv](https://docs.astral.sh/uv/) | Installs the dependencies into `.venv` and runs the commands (`uv run …`) | Always |
+| [GitHub CLI](https://cli.github.com/) (`gh`) | Opens the draft PR that claims a neuron. The planner also reads open PRs with it, to skip neurons that others have claimed | To contribute. Without it, the planner can't see claims, and you open the PR on github.com |
+| [Claude Code](https://claude.com/claude-code) | Drives the experiment, and its subagents answer as proposer, reviewer and judge | To run the loop, or to run the steps yourself with no API keys |
+| An LLM API key (any [LiteLLM](https://docs.litellm.ai/) provider) | Proposer and reviewer through an API instead of Claude Code | Only to run it through an API |
+
+No step needs Node.js. Claude Code's native installer doesn't need it either, only its npm install does. [Vale](https://vale.sh) is needed only for `make lint` and `make vale` when you change code.
+
+A laptop CPU is enough. The default models are small: Qwen2.5-0.5B is about 1 GB, downloaded on first use. An 8 GB machine runs GPT-2 and Qwen2.5-0.5B, and Qwen2.5-1.5B needs 16 GB ([Memory](#memory)). The first scan also downloads about 1.5 GB of labelling models. A scan takes about 10–15 minutes on CPU.
 
 ## Choosing the LLMs
 
@@ -141,6 +156,10 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
 
 `open-interpretability explain "<prompt>"` explains the model's answer to one prompt as fully as the registry allows (`openinterpretability/explain.py`). It takes the logit of the answer, the model's top token unless you pass `--token`, at the last position unless you pass `--position`.
 
+`explain` says each stage as it starts, as `[3/6] Attributing the answer…`, and shows a progress bar for each long loop. Off a terminal, the bar is a line at intervals, so logs and agents see it too. `--quiet` turns both off, and `--json` implies it (#5830). Before it calls an LLM (`--run`, `--complete`, or `--level long|paragraph`), it says what will run and estimates the tokens and the cost. The estimate is the mean of the model's newest experiments that record their LLM calls. Then it asks. `-y`/`--yes` skips the question. With no terminal and no `--yes`, it refuses, so it never waits for an answer.
+
+The means come from the registry's scan corpus, unless you pass `--corpus` (`openinterpretability/explain_corpus.py`, #5829). Every explanation of a model needs the same corpus, or an earlier explanation can't be reused. `explain` uses `./corpus.jsonl` if its SHA-256 is `ded48cfc…`. Otherwise it builds the corpus from pile-10k once, into the rebuilt-corpora cache that `reproduce` uses, and later runs reuse it. `$OPENINTERPRETABILITY_REBUILT_CORPORA` moves the cache.
+
 - **Attribute.** Each neuron's contribution at each position is (a − mean) · ∂logit/∂a. A contribution goes to the pole that the sign of `a` names. Each attention head's contribution is (z − mean) · ∂logit/∂z, summed over its slice of the attention output's input. A head has no pole. The means are over the first `--mean-tokens` tokens of `--corpus`, cached in `~/.cache/openinterpretability/means/` (`$OPENINTERPRETABILITY_MEANS`). The first token is left out, because it is an attention sink.
 - **Explain.** The top `--top` units, poles and heads together, are listed with their share of the total |attribution|. Each also shows its peak on the prompt against its record's `max_activation`, and its registry status. Only a VERIFIED unit's explanation is shown. Other units show their status (*unstudied*, *stopped*, or the newest verdict) and no label.
 - **Superpositions and circuits.** It lists the model's superpositions (`data/superpositions/`) and circuits (`data/circuits/`) with the most |attribution|, with their status and a check. A superposition's attribution is the neuron offset along its direction, times the gradient along it, where the direction is positive. A circuit's attribution is the sum over its members, with both poles of each neuron. The check removes the direction, or mean-ablates every member. These overlap with the units, so they don't add to the total. Hubs are not listed.
@@ -165,7 +184,11 @@ A record says that its run streamed (`environment.streamed`), and it reproduces 
   - The output warns about any cited unit that the evidence doesn't hold. `--json` keeps the evidence, the narrative, the narrator model and its costs, so a reader can check each sentence.
   - `--narrator-model` takes a LiteLLM model, or `external/<name>` for an answer through `exchange/`. The `explanation-narrator` subagent answers that prompt from Claude Code.
 
-- **Run the plan.** `--run N` runs the top N unit experiments of the plan, by coverage gain, until each unit is VERIFIED (`openinterpretability/explanation_targets.py`). They go through the experiment loop, as `open-interpretability loop` runs draws. Each run is a normal experiment: claimed, audited, reviewed, verified, opened as a PR and landed.
+- **Run the plan.** `--run N` runs the top N unit experiments of the plan, by coverage gain, until each unit is VERIFIED (`openinterpretability/explanation_targets.py`). They go through the experiment loop, as `open-interpretability loop` runs draws. Each run is a normal experiment: claimed, audited, reviewed, verified and opened as a PR.
+  - **Landing doesn't wait for CI** (#5826). The PR is marked ready, and the run goes on at once. `auto-merge.yml` merges it once CI passes. That is the maintainer's PR, or one that only adds records that CI reproduces. A contributor's PR waits for a maintainer to approve CI.
+  - **With no LiteLLM model, Claude Code runs the experiments** (#5831). Give no `--proposer`, `--reviewer` or `--provider`, and have `claude` on `PATH` (or `$CLAUDE_BIN`). Then each experiment runs in its own headless `claude -p` session, whose subagents propose, review and judge. The run still chooses each draw and measures the coverage itself. `scripts/experiment-loop.sh` starts its sessions the same way (`open-interpretability claude-session`). Without `claude`, the run says what to do instead. Inside a Claude Code session, the `explain` skill runs the whole explanation in that session, and the narrator is a subagent by default.
+  - **`--local` runs with no PR at all** (#5827). Add it to `--run` or `--complete`. The run works in your own checkout and calls GitHub for nothing: no claim, branch, push or PR. Each experiment writes the same record, with the same inputs, into your `wiki/`, and the coverage counts it at once. The explanation record goes there too, and lists those experiments under `run.local`. Its page says how many are local, not in the registry. To share the run, `open-interpretability explain-share <record>` opens one PR with the record and its experiments. Like any landing, it doesn't wait for CI. A local run claims nothing, so the PR names any unit that gained a record on main since.
+  - **The run counts its own open PRs.** The records that each PR added are put back while the next unit is chosen and while the coverage is measured. So a unit that an open PR made VERIFIED is not run again, and the coverage after the run includes it. The record lists those experiments under `run.pending`.
   - Each draw reloads the registry. An unstudied unit gets its attribution audit. A unit that ends NEEDS_REVISION or REJECTED gets the planner's next follow-up on a later draw. That is a revision, a new hypothesis or an independent review, so one unit can take several runs.
   - A unit leaves the list when it is VERIFIED, when a scan stops on it, or after `--max-attempts` runs (default 5). A unit that an open PR claims waits.
   - `--proposer`, `--reviewer` and `--provider` work as for `loop`, and an `external/` model is refused. The run ends with each unit's outcome.
@@ -188,7 +211,9 @@ Besides neuron poles and heads, the planner draws superpositions. A `superpositi
 
 The planner also draws explanations (`openinterpretability/planner_explanations.py`). An `explanation` draw explains a model's answer to a prompt from `data/explanation-prompts.jsonl`, narrates it and records it (`explain --level long --record`). It also re-explains an answer whose explanation is stale. Each unstudied pole or head that a recorded explanation cites gets an `explore` draw, audited with `--selection attribution`. So the loop drives an explained answer's units toward VERIFIED, one normal experiment at a time.
 
-The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology. Review the PR before marking it ready. To use API-key models instead of the subagents, name them in the request, e.g. "Use openai/gpt-5 as the reviewer model", with that provider's key set in the same shell.
+The other skills (`native-neuron-audit`, `vocab-projection-lookahead`, `interpretability-illusions-review`, …) supply the methodology.
+
+`land-experiment` merges a green PR only when it changes `wiki/` alone and you have write access. From a fork, it leaves each PR for a maintainer and goes on to the next experiment. For one experiment and no merge, start `claude` and ask: "Run the next experiment and open a PR with the result." Review the PR before marking it ready. To use API-key models instead of the subagents, name them in the request, e.g. "Use openai/gpt-5 as the reviewer model", with that provider's key set in the same shell.
 
 **In a loop.** `scripts/experiment-loop.sh` runs experiments back to back, each in a fresh headless Claude Code session (`claude -p`). It stops when it reaches `--max` or `claude` exits with an error (for example at the usage limit). Claude drives the workflow, and you choose the LLMs that propose and review:
 
@@ -205,7 +230,7 @@ It works in a separate worktree (`../<repo>-loop`) reset to `origin/main` before
 uv run open-interpretability loop --proposer anthropic/claude-opus-5-5 --reviewer openai/gpt-5 --max 10
 ```
 
-Each iteration resets the worktree (`../<repo>-loop` by default) to a detached `origin/main` and draws with `open-interpretability next`. It claims the draw with a branch, an empty commit and a draft PR. It runs the commands that `open-interpretability next --steps` prints for API models, in the same process, so a model loads once for the whole loop. Then it runs `open-interpretability wiki` and `open-interpretability check`, commits `wiki/` and marks the PR ready. It lands the PR as `land-experiment` does, and waits up to 45 minutes for green checks. It merges only a PR that touches nothing outside `wiki/`, with a token that has write access. Otherwise it leaves the PR open with a comment that says why. A failed experiment closes its PR with the reason.
+Each iteration resets the worktree (`../<repo>-loop` by default) to a detached `origin/main` and draws with `open-interpretability next`. It claims the draw with a branch, an empty commit and a draft PR. It runs the commands that `open-interpretability next --steps` prints for API models, in the same process, so a model loads once for the whole loop. Then it runs `open-interpretability wiki` and `open-interpretability check`, commits `wiki/` and marks the PR ready. Then it hands the PR over without waiting for CI (#5826). `auto-merge.yml` merges the PR once CI passes, if the PR qualifies: the maintainer's PR, or one that only adds records that CI reproduces. Otherwise the loop comments on the PR why it waits for a maintainer. For example, CI needs a maintainer's approval when the token can't write to the repository. A failed experiment closes its PR with the reason.
 
 - **Revisions.** A revise draw's proposer sees the record it supersedes: the old hypothesis, its verdict, its failed gates and the probes it got wrong (`openinterpretability/revision.py`). `open-interpretability audit --supersedes` gives the same brief.
 - **Independent reviews.** A review draw of the `--reviewer` model's own record is drawn again once.
@@ -275,7 +300,8 @@ Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id
 | --- | --- | --- |
 | `choose-next-experiment` | Pick the next experiment with `open-interpretability next`: randomised, explore vs exploit, herd-resistant | ε-greedy and Boltzmann sampling over follow-ups |
 | `write-paper` | Write a paper in `papers/` with checked references, and figures and animations tied to its results | |
-| `land-experiment` | Run experiments end to end and merge them: `choose-next-experiment`, then build, wait for green CI and merge (with write access), else move on | — |
+| `explain` | Explain a prompt's answer from start to finish in Claude Code, with no API key. It runs the plan's experiments through the subagents, then narrates and records | — |
+| `land-experiment` | Run experiments end to end and merge them: `choose-next-experiment`, then build, wait for green CI and merge (with write access), else move on. `explain --run` doesn't wait: `auto-merge.yml` merges its PRs | — |
 | `native-neuron-audit` | Avoid misreading a neuron (context, data, poles, SwiGLU regimes) | Goodfire, *Already Clean* (2026) |
 | `vocab-projection-lookahead` | Decide retrospective vs lookahead | Gurnee et al. 2026 (Jacobian lens), Geva et al. 2021/2022, logit lens, Voita et al. 2023 |
 | `neuron-family-triage` | Pre-classify neurons from weight statistics | Gurnee et al. 2024, Stolfo et al. 2024, Voita et al. 2023 |
@@ -297,7 +323,7 @@ Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id
 
 ## Models
 
-The models `open-interpretability next` explores (`[tool.openinterpretability] models` in `pyproject.toml`). What a pole means depends on the MLP's activation. Each model's terms are in `[tool.openinterpretability.licenses]`, and its site page shows them.
+The models `open-interpretability next` explores (`[tool.openinterpretability] models` in `pyproject.toml`). What a pole means depends on the MLP's activation. Each model's terms are in `[tool.openinterpretability.licenses]`, and its site page shows them. To add a model, follow [`adding-a-model.md`](adding-a-model.md) and its `open-interpretability model-check`.
 
 | Model | MLP | Negative pole | Scan |
 | --- | --- | --- | --- |

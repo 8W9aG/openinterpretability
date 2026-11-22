@@ -12,18 +12,26 @@ from pathlib import Path
 
 import click
 
+from openinterpretability.loop_pending import PendingRecords
+
 
 def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit: int,
-         wiki_dir: Path, measure=(None, None)):  # fmt: skip
-    """Run the plan through the experiment loop, and return what it did and its exit code.
+         wiki_dir: Path, measure=(None, None), local: bool = False):  # fmt: skip
+    """Run the plan through the experiment loop, and return what it did.
+
+    It returns the run's summary, its exit code and the records of its open PRs
+    (:class:`~openinterpretability.loop_pending.PendingRecords`).
 
     Units and superpositions run by coverage gain until the causal coverage reaches the
     target (#4473, #4476). ``measure`` is the ``(runner, means)`` that the coverage meter
     runs, or ``(None, None)`` to count the share of |attribution| instead. Circuits wait
     for an agent to write their task (``explanation_targets.circuit_notes``). When the loop
-    ends, its worktree is reset to ``origin/main``, so the records it landed are there.
+    ends, its worktree is reset to ``origin/main``. Its PRs land without waiting for CI, so
+    the caller measures with the pending records in place (#5826). A ``local`` run works
+    in the user's checkout, opens no PR and never resets, so its records count at once
+    (#5827).
     """
-    from openinterpretability.cli_loop import _api_model, _models, run_loop
+    from openinterpretability.cli_loop import _api_model, run_loop
     from openinterpretability.explanation_targets import (
         CoverageMeter,
         ShareMeter,
@@ -37,7 +45,7 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
     for model_name in agents[:2]:
         if model_name:
             _api_model(None, None, model_name)  # an external model has nobody to answer it
-    proposer, reviewer = _models(*agents)
+    proposer, reviewer, sessions = _agents(agents, local)
     result, planned, model = found.result, found.planned, ask.model
     ordered = [*planned.experiments, *by_gain(planned.groups)]  # units in greedy order (#4558)
     chosen = targets(ordered, model, found.groups)
@@ -54,17 +62,57 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
     draws = TargetedDraws(chosen, reviewer, max_attempts, meter=meter, target=target,
                           limit=limit, window=window)  # fmt: skip
     out: dict = {}
-    code = run_loop(proposer, reviewer, draws, out=out)
-    ran = _ran(out.get("loop"), found.coverage.get("coverage") or 0.0, code)
-    return ran.model_copy(update={"shares": draws.shares}), code
+    code = run_loop(proposer, reviewer, draws, out=out, local=local, sessions=sessions)
+    loop = out.get("loop")
+    ran = _ran(loop, found.coverage.get("coverage") or 0.0, code, local)
+    pending = loop.options.pending if loop is not None else PendingRecords()
+    return ran.model_copy(update={"shares": draws.shares}), code, pending
 
 
-def _ran(loop, before: float, code: int):
-    """The run's summary for the record (#4474). Its share after is set once re-measured."""
+def _agents(agents: tuple[str, str, str], local: bool):
+    """The proposer, the reviewer and the sessions that run the draws (#5831).
+
+    With a LiteLLM model or a provider, the loop calls them, and there are no sessions.
+    With none, and ``claude`` on ``PATH``, a headless Claude Code session runs each draw,
+    and its subagents propose and review. Otherwise the reason is a usage error.
+
+    Args:
+        agents: ``--proposer``, ``--reviewer`` and ``--provider``.
+        local: ``--local``, which runs no session: it calls no GitHub at all.
+
+    Returns:
+        ``(proposer, reviewer, sessions)``; ``sessions`` is None for LiteLLM.
+
+    Raises:
+        click.UsageError: No backend can run the experiments.
+    """
+    from openinterpretability.cli_loop import _models, loop_worktree
+    from openinterpretability.explain_backend import SESSIONS, backend
+    from openinterpretability.loop_sessions import SUBAGENTS, Session, SessionRun
+
+    chosen = backend(*agents)
+    if chosen.kind is None:
+        raise click.UsageError(chosen.why)
+    if chosen.kind != SESSIONS:
+        return (*_models(*agents), None)
+    if local:
+        raise click.UsageError("--local needs a LiteLLM model or a --provider: Claude Code "
+                               "sessions land through PRs.")  # fmt: skip
+    click.echo(f"The run's experiments: {chosen.why}.")
+    logs = loop_worktree()[0] / "logs" / "explain"
+    return SUBAGENTS, SUBAGENTS, SessionRun(Session(), logs)
+
+
+def _ran(loop, before: float, code: int, local: bool = False):
+    """The run's summary for the record (#4474). Its share after is set once re-measured.
+
+    A local run's experiments are listed as ``local`` (#5827), and its checkout is left as
+    it is.
+    """
     from openinterpretability.core.explanation_records import ExplainRun
     from openinterpretability.experiment_loop import reset
 
-    if loop is not None:
+    if loop is not None and not local:
         reset()  # the loop's worktree, at origin/main: the merged records are there
     results = loop.results if loop is not None else []
     stopped = (loop.finished if loop is not None else None) or (
@@ -74,6 +122,8 @@ def _ran(loop, before: float, code: int):
         share_before=before, share_after=before, stopped=stopped,
         landed=[f"{r.slug} {r.verdict} {r.url}" for r in results if r.merged],
         left_open=[r.url for r in results if r.url and not r.merged],
+        pending=[f"{r.slug} {r.verdict} {r.url}" for r in results if r.url and not r.merged],
+        local=[f"{r.slug} {r.verdict} {r.record}" for r in results if r.record],
     )  # fmt: skip
 
 

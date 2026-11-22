@@ -77,6 +77,7 @@ jobs:
     outputs:  # for report-x: a failed post leaves the deploy green (#5528)
       x_outcome: ${{ steps.x.outcome }}
       x_error: ${{ steps.x_error.outputs.error }}
+      x_posted: ${{ steps.posted.outcome == 'success' }}  # for x-links (#5840)
     # A hung build or sync fails here, not at GitHub's 6-hour limit.
     timeout-minutes: 60
     environment: production
@@ -204,7 +205,16 @@ jobs:
           set -o pipefail  # the step fails when the command fails, not when tee succeeds
           args=()
           for id in $REPOST; do args+=(--repost "$id"); done
-          open-interpretability social post "${args[@]}" 2>&1 | tee x.log
+          # --record: what posted, outside .social, which the cache would bring back (#5840)
+          open-interpretability social post --record x-posted.json "${args[@]}" 2>&1 | tee x.log
+      - name: Keep the posts for the link PR
+        id: posted
+        if: ${{ always() && hashFiles('x-posted.json') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: x-posted
+          path: x-posted.json
+          retention-days: 7
       # A failed post leaves the deploy green, so report-x opens an issue for it. Only the
       # HTTP status goes on: a fixed field, not log text, since agents work that issue.
       - name: Read the post's HTTP status
@@ -222,6 +232,54 @@ jobs:
         with:
           path: .social
           key: social-x-${{ github.run_id }}
+
+  # Each new post's X link goes into its paper's or post's folder, through a PR (#5840). The
+  # page shows it once that PR merges. LEDGER_TOKEN opens the PR as the maintainer, as for
+  # the benchmark ledger (#4215), so its CI runs and auto-merge.yml merges it on green. A PR
+  # that github.token opens starts no CI. Only this job may write. Each run opens its own
+  # PR, so no link waits on another. The deploy after the merge posts nothing again: the
+  # social state holds each entry's id, its page's URL, which the link doesn't change.
+  x-links:
+    name: Link papers and posts to their X posts
+    needs: deploy
+    if: ${{ needs.deploy.outputs.x_posted == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write  # the link branch
+      pull-requests: write  # the link PR, when LEDGER_TOKEN is unset
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: main
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333  # v8.0.2
+        with:
+          name: x-posted
+      - name: Open the link PR
+        env:
+          GH_TOKEN: ${{ secrets.LEDGER_TOKEN || github.token }}
+          RUN: ${{ github.run_id }}
+        run: |
+          uv run --quiet open-interpretability social link x-posted.json
+          if [ -z "$(git status --porcelain -- papers posts)" ]; then
+            echo "No folder to link."
+            exit 0
+          fi
+          branch="social/x-links-$RUN"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add papers posts
+          git commit -m "X links: run $RUN"
+          git push origin "$branch"
+          names=$(git diff --name-only HEAD~1 | cut -d/ -f2 | sort -u | paste -sd, -)
+          body="Each paper's or post's X post, from deploy run $RUN (issue #5840)."
+          gh pr create --base main --head "$branch" --title "X links: $names" \
+            --body "$body It merges by itself once CI passes."
 
   # A failed deploy leaves the site stale, and nobody sees it unless they look at Actions
   # (#4625). So a failure opens an issue, or comments on the one already open. The fixed

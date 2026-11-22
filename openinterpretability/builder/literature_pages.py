@@ -136,7 +136,11 @@ def render_reviews(render, reviews: list[Review], folder: Path = LITERATURE) -> 
     )
 
     points, missing = literature_map(folder, reviews) if reviews else ([], [])
-    view = map_view(folder, points) if points else {"queued": [], "callouts": [], "badges": []}
+    view = (
+        map_view(folder, points)
+        if points
+        else {"queued": [], "callouts": [], "called": set(), "badges": []}
+    )
     for review in reviews:
         extra = {"points": points, "missing": missing, "map_size": (WIDTH, HEIGHT), **view}
         extra = extra if review.name == "README" else {}

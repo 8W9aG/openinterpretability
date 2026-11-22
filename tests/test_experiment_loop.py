@@ -35,8 +35,6 @@ elif args[:2] == ["pr", "view"]:
                       "files": [{{"path": p}} for p in files], "headRefOid": "abc"}}))
 elif args[:2] == ["repo", "view"]:
     print(os.environ.get("GH_PERMISSION", "WRITE"))
-elif args[:2] == ["pr", "checks"]:
-    sys.exit(int(os.environ.get("GH_CHECKS_EXIT", "0")))
 """
 
 
@@ -99,7 +97,9 @@ def fakes(monkeypatch):
     monkeypatch.setattr(el, "openinterpretability", openinterpretability)
     monkeypatch.setattr(el, "draw_slug", lambda choice: SLUG)
     monkeypatch.setattr(draw_steps, "draw_slug", lambda choice: SLUG)
-    monkeypatch.setattr(el, "verdict_of", lambda kind, key: ("VERIFIED", f"Explore {key}"))
+    monkeypatch.setattr(
+        el, "verdict_of", lambda kind, key, new=None: ("VERIFIED", f"Explore {key}")
+    )
     return ran
 
 
@@ -117,10 +117,13 @@ def _loop(plan=None, **kw):
 
 def test_one_iteration_claims_runs_posts_and_lands(repo, fakes, capsys):
     assert _loop(max_experiments=1).run() == 0
-    assert f"RESULT: {SLUG} VERIFIED {URL} merged" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert f"RESULT: {SLUG} VERIFIED {URL} open" in out
+    assert "loop: left for auto-merge, once CI passes" in out
     gh = repo.gh_log.read_text()
     assert "pr create --draft" in gh and "pr ready" in gh
-    assert "pr merge https://github.com/o/r/pull/7 --squash --match-head-commit abc" in gh
+    # #5826: the loop neither waits for CI nor merges. auto-merge.yml does, once CI passes.
+    assert "pr checks" not in gh and "pr merge" not in gh
     assert [a[0] for a in fakes] == ["audit", "verify", "wiki", "check"]
     assert "--agent-model" in fakes[0] and "api/reviewer" in fakes[1]
     log = subprocess.run(
@@ -133,15 +136,14 @@ def test_one_iteration_claims_runs_posts_and_lands(repo, fakes, capsys):
     branches = subprocess.run(
         ["git", "branch", "--list", "experiment/*"], capture_output=True, text=True, cwd=repo.origin
     ).stdout
-    assert branches == ""  # deleted after the merge, so a later draw can claim it again
+    assert "experiment/" in branches  # the PR's branch stays until its PR merges
 
 
 @pytest.mark.parametrize(
     ("env", "reason"),
     [
         ({"GH_FILES": '["wiki/x.json", "openinterpretability/cli.py"]'}, "outside wiki/"),
-        ({"GH_PERMISSION": "READ"}, "permission is READ"),
-        ({"GH_CHECKS_EXIT": "1"}, "checks didn't pass"),
+        ({"GH_PERMISSION": "READ"}, "CI needs a maintainer's approval"),
     ],
 )
 def test_a_pr_that_may_not_merge_is_left_open(repo, fakes, monkeypatch, capsys, env, reason):
@@ -150,7 +152,8 @@ def test_a_pr_that_may_not_merge_is_left_open(repo, fakes, monkeypatch, capsys, 
     assert _loop(max_experiments=1).run() == 0
     assert capsys.readouterr().out.strip().endswith(" open")
     gh = repo.gh_log.read_text()
-    assert "pr merge" not in gh and reason in gh
+    assert "pr merge" not in gh and "pr checks" not in gh
+    assert "Left for a maintainer: " in gh and reason in gh
 
 
 def test_a_failed_step_closes_the_pr_and_counts(repo, fakes, monkeypatch, capsys):
@@ -212,12 +215,25 @@ def test_the_stop_file_stops_before_any_draw(repo, monkeypatch, capsys):
     assert "Stopping" in capsys.readouterr().out
 
 
+def test_reset_keeps_a_branch_that_another_worktree_has(repo):
+    # #6039: git refuses to delete a branch that a worktree has checked out, even a stale one.
+    from openinterpretability.experiment_loop import reset
+
+    _git("branch", "experiment/old", cwd=repo.work)
+    _git("worktree", "add", "-b", "experiment/taken", str(repo.tmp / "other"), cwd=repo.work)
+    reset()
+    left = subprocess.run(["git", "branch", "--list", "experiment/*"], cwd=repo.work,
+                          capture_output=True, text=True, check=True).stdout  # fmt: skip
+    assert "experiment/taken" in left and "experiment/old" not in left
+
+
 def test_merge_blockers():
     record = "wiki/experiments/m/L1/N2-positive/1.json"
-    view = {"files": [{"path": record}], "isDraft": False, "mergeable": "MERGEABLE"}
+    view = {"files": [{"path": record}]}
     assert el.merge_blockers(view, "WRITE") == []
-    assert el.merge_blockers(view | {"isDraft": True}, "ADMIN") == ["it is a draft"]
-    assert len(el.merge_blockers(view | {"mergeable": "CONFLICTING"}, "")) == 2
+    assert el.merge_blockers(view, "") == [
+        "CI needs a maintainer's approval (the token's permission is unknown)"
+    ]
 
 
 def test_only_the_maintainer_merges_records_that_ci_cannot_reproduce():
@@ -294,7 +310,321 @@ def test_an_iteration_says_each_stage_in_order(repo, fakes, capsys):
     assert _loop(max_experiments=1).run() == 0
     out = capsys.readouterr().out
     stages = ["loop: drew explore", f"loop: claimed: {URL}", "loop: step 1/",
-              "loop: posting the result", f"loop: waiting for the checks on {URL}",
-              "loop: merging", f"RESULT: {SLUG} VERIFIED {URL} merged"]  # fmt: skip
+              "loop: posting the result", "loop: left for auto-merge, once CI passes",
+              f"RESULT: {SLUG} VERIFIED {URL} open"]  # fmt: skip
     found = [out.index(stage) for stage in stages]
     assert found == sorted(found)
+
+
+def test_a_command_that_runs_too_long_is_a_loop_error():
+    with pytest.raises(el.LoopError, match="timed out"):
+        el.sh([sys.executable, "-c", "import time; time.sleep(5)"], timeout=0.2)
+
+
+def test_a_command_that_fails_is_a_loop_error_with_its_last_line():
+    code = "import sys; print('first'); sys.exit('the last line')"
+    with pytest.raises(el.LoopError, match="failed: the last line"):
+        el.sh([sys.executable, "-c", code])
+
+
+def test_a_draft_pr_is_marked_ready_and_left_for_auto_merge(monkeypatch, capsys):
+    calls = []
+
+    def sh(args, check=True, timeout=None):
+        calls.append(args[:3])
+        if args[:3] == ["gh", "pr", "view"]:
+            return json.dumps({"state": "OPEN", "isDraft": True, "files": []})
+        return "ADMIN" if args[:3] == ["gh", "repo", "view"] else ""
+
+    monkeypatch.setattr(el, "sh", sh)
+    assert el.land(URL) is False
+    assert ["gh", "pr", "ready"] in calls and ["gh", "pr", "merge"] not in calls
+    assert "left for auto-merge" in capsys.readouterr().out
+
+
+@pytest.fixture
+def exit_command(monkeypatch):
+    """A temporary ``zz-exit <code>`` command: it exits with a code from 0 up, else returns."""
+    import click
+
+    from openinterpretability.cli import cli
+
+    @click.command(name="zz-exit")
+    @click.argument("code", type=int)
+    def zz_exit(code):
+        if code >= 0:
+            sys.exit(code)
+
+    monkeypatch.setitem(cli.commands, "zz-exit", zz_exit)
+
+
+def test_an_in_process_command_that_exits_non_zero_is_a_loop_error(exit_command, capsys):
+    with pytest.raises(el.LoopError, match="`openinterpretability zz-exit` exited 3"):
+        el.openinterpretability(["zz-exit", "3"])
+    assert "$ openinterpretability zz-exit 3\n" in capsys.readouterr().out
+
+
+def test_an_in_process_command_that_exits_zero_or_returns_is_fine(exit_command):
+    assert el.openinterpretability(["zz-exit", "0"]) is None
+    assert el.openinterpretability(["zz-exit", "--", "-1"]) is None
+
+
+def test_proposer_of_reads_the_record_when_it_exists(tmp_path, record):
+    path = tmp_path / "rec.json"
+    path.write_text(record.model_dump_json())
+    assert el.proposer_of(str(path)) == "openai/gpt-test"
+    assert el.proposer_of(str(tmp_path / "missing.json")) is None
+    assert el.proposer_of(None) is None
+
+
+def _write(path, text):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+
+
+def test_the_verdict_of_a_new_experiment_record(repo, record):
+    from openinterpretability.core.schemas import ReviewMetrics
+
+    _write(Path("wiki/experiments/m/a.json"), record.model_dump_json())
+    assert el.new_files(Path("wiki/experiments")) == [Path("wiki/experiments/m/a.json")]
+    assert el.verdict_of("explore", "k") == ("VERIFIED", "Explore k (VERIFIED, n/a)")
+    metrics = ReviewMetrics(specificity=1.0, sensitivity=1.0, balanced_accuracy=0.875,
+                            counterfactual_reproduction=1.0, lookahead_consistent=True,
+                            independent_review=True, gates={})  # fmt: skip
+    scored = record.model_copy(update={"verdict": record.verdict.model_copy(
+        update={"metrics": metrics})})  # fmt: skip
+    _write(Path("wiki/experiments/m/a.json"), scored.model_dump_json())
+    assert el.verdict_of("explore", "k") == ("VERIFIED", "Explore k (VERIFIED, 0.88)")
+
+
+def test_a_scan_that_stopped_has_a_stopped_verdict_and_no_record_is_an_error(repo):
+    from openinterpretability.core.paths import draws_dir
+
+    with pytest.raises(el.LoopError, match="wrote no record"):
+        el.verdict_of("explore", "k")
+    _write(draws_dir(Path("wiki")) / "d.json", "{}")
+    assert el.verdict_of("explore", "k") == ("STOPPED", "Explore k (STOPPED)")
+
+
+def test_say_also_writes_to_the_console_of_the_loop(capsys):
+    import io
+
+    console = io.StringIO()
+    el._CONSOLE[:] = [sys.stdout, console]
+    try:
+        el.say("hello")
+    finally:
+        el._CONSOLE.clear()
+    assert console.getvalue() == "loop: hello\n"
+    assert capsys.readouterr().out == "loop: hello\n"
+
+
+def test_a_pr_that_auto_merge_already_merged_counts_as_merged(monkeypatch):
+    calls = []
+
+    def sh(args, check=True, timeout=None):
+        calls.append(args)
+        return json.dumps({"state": "MERGED"}) if args[:2] == ["gh", "pr"] else ""
+
+    monkeypatch.setattr(el, "sh", sh)
+    assert el.land(URL) is True
+    assert [c[:3] for c in calls] == [["gh", "pr", "view"]]  # no wait for the checks (#5826)
+
+
+def test_a_draw_whose_unit_is_unknown_is_a_loop_error(repo, fakes, monkeypatch):
+    monkeypatch.setattr(el, "draw_slug", lambda choice: None)
+    with pytest.raises(el.LoopError, match="the unit of a explore draw on toy/model is unknown"):
+        el.iteration(_loop().options, lambda *a, **k: _plan(), lambda: [])
+    assert fakes == []
+
+
+def test_an_until_verified_draw_ends_after_a_verified_first_turn(repo, fakes, capsys):
+    options = el.Options("api/proposer", "api/reviewer", corpus="c.jsonl", until_verified=True)
+    result = el.iteration(options, lambda *a, **k: _plan(), lambda: [])
+    assert (result.slug, result.verdict, result.merged) == (SLUG, "VERIFIED", False)
+    assert [a[0] for a in fakes] == ["audit", "verify", "wiki", "check"]
+
+
+def test_a_scan_that_stops_on_its_unit_is_posted_at_once(monkeypatch, capsys):
+    from openinterpretability.evidence import Unauditable
+
+    ran, posted = [], []
+
+    def run_command(command):
+        ran.append(command)
+        raise Unauditable("dead neuron", draw=None)
+
+    monkeypatch.setattr(el, "run_command", run_command)
+    monkeypatch.setattr(el, "post", lambda kind, key: posted.append((kind, key)) or "STOPPED")
+    work = [SimpleNamespace(title="scan", commands=["a", "b"])]
+    assert el.run_work(work, "explore", "k") == "STOPPED"
+    assert ran == ["a"] and posted == [("explore", "k")]
+    assert "The scan stopped on the unit: dead neuron\n" in capsys.readouterr().out
+
+
+def test_the_loop_waits_while_paused_and_says_so_once(repo, monkeypatch, capsys):
+    from openinterpretability.core import pause
+
+    held = pause.Pause("maintenance", "me", "2026-11-21T00:00:00+00:00",
+                       "2026-11-21T02:00:00+00:00")  # fmt: skip
+    reads = iter([held, held, None])
+    monkeypatch.setattr(pause, "read", lambda: next(reads))
+    loop = _loop()
+    waits = []
+    loop.sleep = waits.append
+    loop._wait_while_paused()
+    assert waits == [60, 60]
+    assert capsys.readouterr().out.count("New experiments are paused until") == 1
+
+
+def test_the_next_draw_counts_the_open_prs_records_but_no_commit_holds_them(repo, fakes):
+    # #5826: a landed PR's records are back in place while the next draw is chosen.
+    # They are gone while the next experiment runs, so no PR commits another PR's records.
+    record = Path("wiki/experiments") / SLUG.replace("/", "--", 1) / "rec.json"
+    seen = []
+
+    def plan_next(*a, **k):
+        seen.append(record.exists())
+        return _plan()
+
+    options = el.Options("api/proposer", "api/reviewer", corpus="c.jsonl")
+    el.iteration(options, plan_next, lambda: [])
+    assert options.pending.files == {str(record): b"{}"}  # what the first PR added
+    # The fake draws one slug. A real run's claims never redraw an open PR's unit, so this
+    # frees the branch name instead.
+    _git("push", "--quiet", "origin", "--delete", f"experiment/{SLUG.replace('/', '-')}")
+    el.iteration(options, plan_next, lambda: [])
+    assert seen == [False, True]  # the second draw saw the first PR's record
+    committed = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"],
+                               capture_output=True, text=True, check=True).stdout  # fmt: skip
+    assert committed.strip() == str(record)  # the second experiment's own record only
+
+
+# #5827: explain --local runs in the user's checkout, with no claim, push, PR or gh call.
+
+
+def _local_loop(**kw):
+    options = el.Options("api/proposer", "api/reviewer", corpus="c.jsonl", local=True)
+    return el.Loop(options, Path("logs"), plan_next=lambda *a, **k: _plan(), claims=lambda: [],
+                   sleep=lambda s: None, **kw)  # fmt: skip
+
+
+def test_a_local_run_writes_each_record_with_no_git_or_gh(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "empty").mkdir()
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))  # no gh and no git to call
+    monkeypatch.setenv("OPENINTERPRETABILITY_STOP_FILE", str(tmp_path / "stop"))
+    monkeypatch.setattr(el, "draw_slug", lambda choice: SLUG)
+    ran, seen = [], []
+
+    def openinterpretability(args):  # each verify writes its own record
+        ran.append(args[0])
+        if args[0] == "verify":
+            out = Path("wiki/experiments") / SLUG.replace("/", "--", 1) / f"r{len(ran)}.json"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text("{}")
+
+    def verdict_of(kind, key, new=None):
+        seen.append(new(Path("wiki/experiments")))
+        return "VERIFIED", f"Explore {key}"
+
+    monkeypatch.setattr(el, "openinterpretability", openinterpretability)
+    monkeypatch.setattr(el, "verdict_of", verdict_of)
+    loop = _local_loop(max_experiments=2)
+    assert loop.run() == 0
+    records = [r.record for r in loop.results]
+    assert len(set(records)) == 2 and all(r.endswith(".json") for r in records)
+    assert [len(s) for s in seen] == [1, 1]  # each finds only the record its steps wrote
+    assert "wiki" not in ran and "check" not in ran  # no post step
+    assert f"RESULT: {SLUG} VERIFIED local {records[0]}" in capsys.readouterr().out
+
+
+def test_a_local_draw_with_an_unknown_unit_is_a_loop_error(monkeypatch):
+    monkeypatch.setattr(el, "draw_slug", lambda choice: None)
+    options = el.Options("p", "r", local=True)
+    with pytest.raises(el.LoopError, match="is unknown"):
+        el.iteration(options, lambda *a, **k: _plan(), lambda: [])
+
+
+def test_a_local_loop_makes_no_worktree_and_reads_no_claims(monkeypatch, tmp_path):
+    from openinterpretability import cli_loop
+
+    def no_worktree(*a):
+        raise AssertionError("a local run makes no worktree")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli_loop, "loop_worktree", no_worktree)
+    monkeypatch.setattr(el.Loop, "run", lambda self: 0)
+    out = {}
+    assert cli_loop.run_loop("p", "r", lambda *a, **k: None, out=out, local=True) == 0
+    loop = out["loop"]
+    assert loop.options.local and loop.claims() == [] and loop.log_dir == tmp_path / "logs/loop"
+
+
+# #5831: with no LiteLLM model, a headless Claude Code session runs each draw.
+
+CLAUDE = """#!{python}
+import json, os, sys
+prompt = sys.stdin.read()
+with open(os.environ["CLAUDE_LOG"], "a") as log:
+    ledger = os.environ.get("OPENINTERPRETABILITY_COSTS_LOG", "")
+    log.write(" ".join(sys.argv[1:]) + " | " + ledger + "\\n")
+    log.write(prompt.replace("\\n", " ") + "\\n")
+reply = os.environ.get("CLAUDE_REPLY", "done\\nRESULT: {slug} VERIFIED {url} open")
+print(json.dumps({{"result": reply}}))
+sys.exit(int(os.environ.get("CLAUDE_EXIT", "0")))
+"""
+
+
+@pytest.fixture
+def claude(repo, monkeypatch):
+    """A fake ``claude`` on PATH that logs its arguments and prompt, and replies RESULT."""
+    path = repo.tmp / "bin" / "claude"
+    path.write_text(CLAUDE.format(python=sys.executable, slug=SLUG, url=URL))
+    path.chmod(0o755)
+    monkeypatch.setenv("CLAUDE_LOG", str(repo.tmp / "claude.log"))
+    monkeypatch.delenv("CLAUDE_BIN", raising=False)
+    return repo.tmp / "claude.log"
+
+
+def _session_loop(tmp, **kw):
+    from openinterpretability.claude_sessions import Session
+    from openinterpretability.loop_sessions import SUBAGENTS, SessionRun
+
+    run = SessionRun(Session("claude-haiku-5-5", 7), tmp / "sessions")
+    options = el.Options(SUBAGENTS, SUBAGENTS, corpus="c.jsonl", sessions=run)
+    return el.Loop(options, Path("../logs"), plan_next=lambda *a, **k: _plan(), claims=lambda: [],
+                   sleep=lambda s: None, **kw)  # fmt: skip
+
+
+def test_each_draw_runs_in_its_own_headless_claude_session(repo, fakes, claude):
+    loop = _session_loop(repo.tmp, max_experiments=2)
+    assert loop.run() == 0
+    assert [(r.slug, r.verdict, r.url, r.merged) for r in loop.results] == [
+        (SLUG, "VERIFIED", URL, False)] * 2  # fmt: skip
+    calls = claude.read_text().splitlines()
+    args, prompt = calls[0], calls[1]
+    assert len(calls) == 4  # two sessions, each its arguments and its prompt
+    assert "-p --output-format json" in args and "--max-turns 7 --model claude-haiku-5-5" in args
+    assert "--allowedTools" in args and ".costs.jsonl" in args  # the session's own ledger
+    assert "Don't run `open-interpretability next`" in prompt and "Don't wait for CI" in prompt
+    assert len(list((repo.tmp / "sessions").glob("*.json"))) == 2
+
+
+@pytest.mark.parametrize(
+    ("reply", "code", "error"),
+    [("RESULT: none paused", "0", "ran no experiment"), ("no line", "0", "no RESULT line"),
+     ("x", "3", "claude exited 3")],
+)  # fmt: skip
+def test_a_session_that_runs_nothing_or_fails_is_a_loop_error(repo, fakes, claude, monkeypatch,
+                                                              reply, code, error):  # fmt: skip
+    monkeypatch.setenv("CLAUDE_REPLY", reply)
+    monkeypatch.setenv("CLAUDE_EXIT", code)
+    with pytest.raises(el.LoopError, match=error):
+        el.iteration(_session_loop(repo.tmp).options, lambda *a, **k: _plan(), lambda: [])
+
+
+def test_a_session_draw_with_an_unknown_unit_is_a_loop_error(repo, fakes, monkeypatch):
+    monkeypatch.setattr(el, "draw_slug", lambda choice: None)
+    with pytest.raises(el.LoopError, match="is unknown"):
+        el.iteration(_session_loop(repo.tmp).options, lambda *a, **k: _plan(), lambda: [])

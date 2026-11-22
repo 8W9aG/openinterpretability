@@ -29,7 +29,14 @@ from openinterpretability.core.answer_records import (
     parse_unit,
 )
 from openinterpretability.explain import mean_ablation
-from openinterpretability.explain_coverage import _log_prob, _share, keep_hooks, matched_draw
+from openinterpretability.explain_coverage import (
+    DRAWS,
+    SEED,
+    _log_prob,
+    _share,
+    keep_hooks,
+    matched_draw,
+)
 from openinterpretability.explain_groups import HEAD
 
 
@@ -153,6 +160,60 @@ def _came_out(runner, token: int, prompts, tops: dict[str, str]) -> dict[str, bo
 def draw_seed() -> int:
     """A seed for the matched random sets, drawn at review time (rule 1.1, #4892)."""
     return secrets.randbelow(2**31)
+
+
+def dependence(runner, means, prompt: str, token: int, position: int, coverage: dict,
+               *, draws: int = DRAWS, seed: int = SEED) -> dict:  # fmt: skip
+    """Whether the gates ``necessity`` and ``sufficiency`` have a baseline on a prompt (#5967).
+
+    Both gates divide by the all-unit cut. That is the answer's clean log-probability minus
+    its log-probability with every unit mean-ablated. The units' effects can cancel. Then
+    that cut is near 0 or negative, and no route can pass the two gates. ``explain`` then
+    plans no answer experiment (:func:`~openinterpretability.explain_plan.answer_step`).
+
+    The scale for "near 0" comes from ``draws`` random sets, matched by kind and layer to the
+    coverage's minimal set. That set is the likeliest route before a claim exists. Each set
+    is mean-ablated alone, and its cut is measured as the review measures a route's cut
+    (:func:`measure`).
+
+    Args:
+        runner: The model.
+        means: Each unit's corpus mean.
+        prompt: The prompt.
+        token: The answer's token id.
+        position: The answer's position.
+        coverage: The output of :func:`~openinterpretability.explain_coverage.prompt_coverage`.
+            Its ``clean``, ``ablated`` and ``minimal_units`` are used.
+        draws: The number of random sets.
+        seed: The seed of the random sets.
+
+    Returns:
+        ``all_cut``, ``null_cuts`` and ``measurable`` (:func:`measurable`).
+    """
+    rng, units = random.Random(seed), every_unit(runner, means)
+    nulls = [matched_draw(rng, units, coverage["minimal_units"]) for _ in range(draws)]
+    clean = coverage["clean"]
+    cuts = [clean - _log_prob(runner, prompt, token, position, mean_ablation(n, means, runner))
+            for n in nulls]  # fmt: skip
+    all_cut = clean - coverage["ablated"]
+    return {"all_cut": all_cut, "null_cuts": cuts, "measurable": measurable(all_cut, cuts)}
+
+
+def measurable(all_cut: float, null_cuts: list[float]) -> bool:
+    """Whether ``all_cut`` is greater than the largest absolute cut of the random sets (#5967).
+
+    Then ablating every unit does more than ablating any random set of the route's size.
+    So the route's share of the all-unit cut means something.
+
+    Args:
+        all_cut: The clean log-probability minus the log-probability with every unit
+            mean-ablated.
+        null_cuts: The cut of each random set. With none, ``all_cut`` must be positive.
+
+    Returns:
+        True when the gates ``necessity`` and ``sufficiency`` have a baseline.
+    """
+    return all_cut > max((abs(c) for c in null_cuts), default=0.0)
 
 
 def measure(runner, means, claim: AnswerClaim, probes: AnswerProbes, policy: AnswerPolicy,

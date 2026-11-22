@@ -57,6 +57,7 @@ dependencies = [
 Homepage = "https://open-interpretability.com/"  # the site; builder and deploy read it
 Repository = "https://github.com/8W9aG/openinterpretability"
 X = "https://x.com/openinterpret"  # the footer and twitter:site (#5389)
+Contact = "mailto:contact@open-interpretability.com"  # the footer and the about page (#5853)
 
 [project.scripts]
 open-interpretability = "openinterpretability.cli:main"
@@ -118,8 +119,8 @@ include = ["/openinterpretability", "/README.md", "/LICENSE", "/CHANGELOG.md", "
 # below `coverage_target` verified (default 80%), the rest to the others (`others_share`, default 0.2;
 # openinterpretability/planner_models.py). Keep in
 # sync with ALLOWED_MODELS in .github/workflows/ci.yml (tests/test_planner.py checks), so
-# CI can reproduce every record the planner asks for. A new model also needs the checks
-# under "Models" in TODO.md first.
+# CI can reproduce every record the planner asks for. A new model follows
+# docs/adding-a-model.md first, with `open-interpretability model-check`.
 # LINT.IfChange
 models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2", "EleutherAI/pythia-70m"]
 # LINT.ThenChange(.github/workflows/ci.yml)
@@ -201,11 +202,18 @@ source = ["openinterpretability"]
 branch = true
 
 [tool.coverage.report]
-# Just below the measured total (91% on 2026-11-21). Raise it as coverage rises, never lower
-# it. CI also requires 90% of the lines that a pull request changes (diff-cover).
-fail_under = 90
+# The whole package is covered (#5855). A line that no test can reach in CI is marked
+# `# pragma: no cover` (or `no branch`) with a comment that gives the reason. Never lower
+# this. The lines that a pull request changes are held to [tool.diff_cover] fail_under.
+fail_under = 100
 skip_covered = true
 show_missing = true
+
+[tool.diff_cover]
+# The lines that a pull request changes must all be covered, or marked `# pragma: no cover`
+# with a reason (#5855). `make coverage` and CI's diff-cover step read this with
+# `-c pyproject.toml`, so the number is set only here.
+fail_under = 100
 
 [tool.mypy]
 # Type checks, ratcheted in package by package (#3162). Only the paths in `files` are

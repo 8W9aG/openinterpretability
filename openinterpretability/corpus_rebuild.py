@@ -53,6 +53,63 @@ def rebuild(source: CorpusSource, out: Path) -> CorpusSource:
     return built
 
 
+def cache_path(source: CorpusSource) -> Path | None:
+    """Where the rebuilt-corpora cache keeps ``source``'s corpus, or None when it is off.
+
+    Args:
+        source: The corpus.
+
+    Returns:
+        ``<cache>/<sha256>.jsonl``. The cache is ``$OPENINTERPRETABILITY_REBUILT_CORPORA``,
+        else ``rebuilt-corpora`` in the cache folder.
+
+    Examples:
+        >>> import os
+        >>> os.environ["OPENINTERPRETABILITY_REBUILT_CORPORA"] = "/cache"
+        >>> from openinterpretability.explain_corpus import EXPLAIN_CORPUS
+        >>> cache_path(EXPLAIN_CORPUS).name[:8], str(cache_path(EXPLAIN_CORPUS).parent)
+        ('ded48cfc', '/cache')
+        >>> del os.environ["OPENINTERPRETABILITY_REBUILT_CORPORA"]
+    """
+    from openinterpretability.core.cache_dirs import cache_root
+
+    root = cache_root("OPENINTERPRETABILITY_REBUILT_CORPORA", "rebuilt-corpora")
+    return root / f"{source.sha256}.jsonl" if root else None
+
+
+def cached(source: CorpusSource, reason: str = "it can't be built") -> Path:
+    """The corpus that ``source`` describes, built once into the cache (:func:`cache_path`).
+
+    The corpus's source sidecar is written beside it.
+
+    Args:
+        source: The corpus to build or find.
+        reason: What fails without the cache, for the error.
+
+    Returns:
+        The corpus file's path.
+
+    Raises:
+        ValueError: The cache is off, or the build gives other bytes (:func:`rebuild`).
+
+    Examples:
+        >>> import os
+        >>> os.environ["OPENINTERPRETABILITY_REBUILT_CORPORA"] = "off"
+        >>> from openinterpretability.explain_corpus import EXPLAIN_CORPUS
+        >>> cached(EXPLAIN_CORPUS, "the example needs it")
+        Traceback (most recent call last):
+        ValueError: the corpus cache is off, so the example needs it
+        >>> del os.environ["OPENINTERPRETABILITY_REBUILT_CORPORA"]
+    """
+    out = cache_path(source)
+    if out is None:
+        raise ValueError(f"the corpus cache is off, so {reason}")
+    if not out.exists():
+        out.parent.mkdir(parents=True, exist_ok=True)
+        rebuild(source, out)
+    return out
+
+
 def _build(source: CorpusSource, out: Path) -> CorpusSource:
     if source.blend:
         return build_blend(

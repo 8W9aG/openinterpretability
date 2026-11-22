@@ -202,8 +202,6 @@ openinterpretability/builder/learned_baseline.py::wilson
 openinterpretability/builder/learned_baseline.py::fisher_exact
 openinterpretability/builder/learned_baseline.py::learned_baseline
 openinterpretability/builder/literature_map_view.py::short_credit
-openinterpretability/builder/literature_map_view.py::slots
-openinterpretability/builder/literature_map_view.py::callouts
 openinterpretability/builder/literature_map_view.py::badges
 openinterpretability/builder/literature_map_view.py::literature_map
 openinterpretability/builder/literature_map_view.py::map_view
@@ -370,7 +368,7 @@ openinterpretability/cli_evidence.py::ask_proposer
 openinterpretability/cli_evidence_store.py::publish
 openinterpretability/cli_evidence_store.py::verify
 openinterpretability/cli_explain.py::explain_command
-openinterpretability/cli_explain.py::reached
+openinterpretability/explain_output.py::reached
 openinterpretability/cli_interference.py::interference_command
 openinterpretability/cli_loop.py::loop_command
 openinterpretability/cli_loop.py::run_loop

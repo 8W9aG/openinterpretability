@@ -49,6 +49,65 @@ def colour_slots(numbers: list[int]) -> dict[int, int]:
     return {n: i for i, n in enumerate(numbers[:SLOTS], 1)}
 
 
+# The hue family of each palette slot (_map_theme.html). The two greens are one family. The
+# orange and the red are another. Two touching regions never share a family (#5798).
+FAMILY = {1: "blue", 2: "warm", 3: "green", 4: "amber", 5: "pink", 6: "green", 7: "violet",
+          8: "warm"}  # fmt: skip
+# The pairs of slots that the dataviz validator can't tell apart, in light or dark mode. Such
+# a pair has a colour-vision-deficiency ΔE under 8, or a normal-vision ΔE under 15. Measured
+# on 2026-11-22. No assignment of 8 slots avoids every clash on the literature map. So
+# :func:`touching_slots` puts the clashes on the lightest borders it can.
+CLASH = frozenset(
+    frozenset(pair)
+    for pair in ((1, 7), (2, 4), (2, 5), (2, 6), (2, 8), (3, 5), (3, 6), (3, 8), (4, 6), (4, 8),
+                 (5, 8), (6, 8))
+)  # fmt: skip
+
+
+def touching_slots(numbers: list[int], touches: dict[int, dict[int, int]]) -> dict[int, int]:
+    """A distinct slot for each cluster: touching clusters differ in hue family, and clash least.
+
+    Every assignment of slots is tried, in order. One where two touching clusters share a
+    :data:`FAMILY` is never kept. Of the rest, the one with the least weight on
+    :data:`CLASH` pairs wins. A border's weight is the count of its neighbour links. This
+    falls back to :func:`colour_slots` when there are more clusters than :data:`SLOTS`. It
+    also does when no assignment keeps the families apart.
+
+    Args:
+        numbers: The clusters, in the order that takes the first slots.
+        touches: For each cluster, the clusters next to it and the weight of each border.
+
+    Returns:
+        Each cluster's slot, 1 to :data:`SLOTS`.
+
+    Examples:
+        Clusters 1 and 2 touch. Slots 1 and 2 are blue and orange, which don't clash:
+
+        >>> touching_slots([1, 2], {1: {2: 5}, 2: {1: 5}})
+        {1: 1, 2: 2}
+
+        Cluster 3 touches cluster 6, so they can't take slots 3 and 6, both green:
+
+        >>> found = touching_slots(list(range(1, 7)), {3: {6: 1}, 6: {3: 1}})
+        >>> FAMILY[found[3]] != FAMILY[found[6]]
+        True
+    """
+    from itertools import permutations
+
+    if len(numbers) > SLOTS:
+        return colour_slots(numbers)
+    borders = [(numbers.index(a), numbers.index(b), w) for a, near in touches.items()
+               for b, w in near.items() if a in numbers and b in numbers and a < b]  # fmt: skip
+    best, cost = None, None
+    for slots in permutations(range(1, SLOTS + 1), len(numbers)):
+        if any(FAMILY[slots[i]] == FAMILY[slots[j]] for i, j, _ in borders):
+            continue
+        weight = sum(w for i, j, w in borders if frozenset((slots[i], slots[j])) in CLASH)
+        if cost is None or weight < cost:
+            best, cost = slots, weight
+    return dict(zip(numbers, best, strict=True)) if best else colour_slots(numbers)
+
+
 def overlaps(a, b) -> bool:
     """Whether two boxes (left, top, right, bottom) overlap."""
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
