@@ -118,8 +118,8 @@ include = ["/openinterpretability", "/README.md", "/LICENSE", "/CHANGELOG.md", "
 # below `coverage_target` verified (default 80%), the rest to the others (`others_share`, default 0.2;
 # openinterpretability/planner_models.py). Keep in
 # sync with ALLOWED_MODELS in .github/workflows/ci.yml (tests/test_planner.py checks), so
-# CI can reproduce every record the planner asks for. A new model also needs the checks
-# under "Models" in TODO.md first.
+# CI can reproduce every record the planner asks for. A new model follows
+# docs/adding-a-model.md first, with `open-interpretability model-check`.
 # LINT.IfChange
 models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2", "EleutherAI/pythia-70m"]
 # LINT.ThenChange(.github/workflows/ci.yml)
