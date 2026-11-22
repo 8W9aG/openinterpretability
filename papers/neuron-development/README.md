@@ -1,8 +1,8 @@
 # When Pythia-70m's VERIFIED neurons form
 
-Explanations of single neurons are usually written for a finished model, but it is not known whether they describe the model for most of its training. We followed 86 neurons of Pythia-70m back through 20 public training checkpoints. Each one's explanation had passed an adversarial review. The training loss reaches within 1% of its final value by step 16,000. At that step, the neurons' activations correlate with their final form at a median of only 0.62, and they keep changing until the end of training. Between adjacent checkpoints after step 16,000, the median correlation is 0.78 to 0.82, so the late change is real movement and not only an effect of comparing with the end. 38 of the 86 explanations hold without a break from step 16,000 or earlier, and 38 only from step 64,000 or later. A first version of this paper studied 9 of these neurons. Its main results hold on the 86. Its claim that the two measures of formation order the neurons in reverse does not hold: they are only weakly related. A neuron's explanation describes one checkpoint, and the loss curve does not show when it becomes true.
+Explanations of single neurons are usually written for a finished model, but it is not known whether they describe the model for most of its training. We followed 86 neurons of Pythia-70m back through 20 public training checkpoints. Each one's explanation had passed an adversarial review. The training loss reaches within 1% of its final value by step 16,000. At that step, the neurons' activations correlate with their final form at a median of only 0.62, and they keep changing until the end of training. Between adjacent checkpoints after step 16,000, the median correlation is 0.78 to 0.82, so the late change is real movement and not only an effect of comparing with the end. 38 of the 86 explanations hold without a break from step 16,000 or earlier, and 38 only from step 64,000 or later. Of the 13 explanations that hold at step 16,000 and fail later, 9 pass again before the final step, and 18 of their 23 failures are within two probes of a gate. A first version of this paper studied 9 of these neurons. Its main results hold on the 86. Its claim that the two measures of formation order the neurons in reverse does not hold: they are only weakly related. A neuron's explanation describes one checkpoint, and the loss curve does not show when it becomes true.
 
-**Status:** Preprint. Work left: #4156 (more checkpoints between steps 64,000 and 143,000, OLMo and the local learning coefficient).
+**Status:** Preprint. Work left: #4156 (more checkpoints between steps 64,000 and 143,000, OLMo and the local learning coefficient), #6156 (a second probe set for the 13 explanations that fail after step 16,000).
 
 ## Introduction
 
@@ -108,6 +108,40 @@ The 86 poles cover all six layers, where the first 9 covered four. Table 2 gives
 
 **Table 2.** Formation by layer, over the 85 positive poles. A median of two middle values is their mean. Layer 3's negative pole, left out here, holds from step 128,000.
 
+## Do explanations that fail come back?
+
+51 of the 86 explanations hold at step 16,000, and 13 of those fail at one or more later checkpoints. Such a failure can mean two things. The explanation can be lost, so that the pole no longer does what it says. Or the pass rates can sit near a gate, so that one or two probes cross it by chance. French (1999) reviews a test from the study of forgetting: a network that seems to have forgotten a task can often relearn it quickly, which the literature calls savings. As an analogue, which is our own step, we ask whether a failed explanation passes again at a later checkpoint.
+
+The last checkpoint cannot answer this question. Every explanation holds at step 143,000 by selection, because the registry wrote and VERIFIED each one for the final model. So only a pass at an intermediate checkpoint, 32,000, 64,000 or 128,000, counts as a return. For each failure, we also count the probes by which it fell short. That is the number of hard negatives that would have had to stay quiet, or of holdouts that would have had to fire, for both gates to hold. Each record has 20 hard negatives and 10 holdouts, so one probe moves specificity by 0.05 and sensitivity by 0.10.
+
+Most of the 13 come back. 9 pass again at an intermediate checkpoint: six at step 64,000 and three at step 128,000 (Figure 3, Table 3). One of them, L1/N1124+, fails again at 128,000 by one probe. The other four fail at every intermediate checkpoint after their first failure, and hold again only at the final step. The 13 fail at 23 checkpoints in all. 13 of these failures are one probe short of a gate, 5 are two short, and 5 are three or more short. For comparison, 18 of the 130 passing checkpoints of the 51 explanations between steps 32,000 and 128,000 sit exactly at a gate, one probe from failing. So most failures are the same kind of event as those passes, seen from the other side of the gate.
+
+Only two poles lose their explanation by a wide margin, and both move back towards it. L5/N659+ falls to a specificity of 0.10 at step 32,000, 14 probes short. It misses by one probe at 64,000 and holds from 128,000. L4/N216+ falls to 0.05 at steps 32,000 and 64,000, 15 probes short each time, and is one probe short at 128,000. Both lose specificity, not sensitivity. At those steps their poles fire on most of their hard negatives, so they respond to more than their explanations say. L3/N1795+, 4 probes short at 64,000, and L2/N184+, 3 short at 128,000, sit between the two kinds.
+
+![A grid of the 13 poles against the checkpoints from step 16,000 to 143,000. Most failures are one or two probes short, and most poles pass again before the final step.](media/savings.svg)
+
+**Figure 3.** The 13 poles whose explanations hold at step 16,000 and fail at a later checkpoint. A circle holds, and a triangle fails, with the number of probes by which it fell short of the nearer gate. The rows above the line pass again at an intermediate checkpoint. The final checkpoint holds for every pole by selection.
+
+| Pole | Short at 32,000 | Short at 64,000 | Short at 128,000 | First intermediate pass after a failure |
+| --- | --- | --- | --- | --- |
+| L1/N1124+ | 1 | holds | 1 | 64,000 |
+| L1/N1770+ | 1 | holds | holds | 64,000 |
+| L2/N78+ | 2 | holds | holds | 64,000 |
+| L3/N1361+ | 1 | holds | holds | 64,000 |
+| L4/N579+ | 1 | holds | holds | 64,000 |
+| L4/N639+ | 2 | holds | holds | 64,000 |
+| L1/N1480+ | 2 | 1 | holds | 128,000 |
+| L2/N1181+ | holds | 1 | holds | 128,000 |
+| L5/N659+ | 14 | 1 | holds | 128,000 |
+| L2/N184+ | 1 | 1 | 3 | none |
+| L3/N1795+ | 2 | 4 | 2 | none |
+| L4/N1916+ | holds | 1 | 1 | none |
+| L4/N216+ | 15 | 15 | 1 | none |
+
+**Table 3.** The probes by which each of the 13 explanations fell short of the nearer gate at each checkpoint after step 16,000. "Holds" means that both gates hold. The last column gives the first intermediate checkpoint at which the explanation holds again after its first failure.
+
+So the 13 do not show that explanations are commonly lost once the loss settles. Most fail by one or two probes and pass again at the next checkpoint, which is what probe noise would produce. The two deep failures show something else. L5/N659+ drifts from its explanation for a stretch of training and then passes again before the final step. L4/N216+ comes back to within one probe by step 128,000, but it passes only at the final step, which the selection guarantees. That return resembles savings more than forgetting, although training here never left the same data.
+
 ## Discussion
 
 The first version found that the two measures of formation order its 9 poles in reverse (Table 1). The poles whose activations take their final shape early, L4/N812+, L4/N216+ and L4/N566+, were the ones whose explanations settled last. The poles whose explanations held early, L5/N655+ and L5/N674+, took their final shape late. Over the 9, the Spearman correlation between the step from which an explanation holds and the first step with $r \geq 0.8$ is −0.73.
@@ -123,7 +157,7 @@ For a registry of explanations, the result means that an explanation describes t
 - **One model and one run.** We read only the original training run. PolyPythias offers nine more runs of the same model with other seeds (van der Wal et al., 2025). Its neurons are not the same units, though, so a second run needs its own audited poles.
 - **Not a random sample.** The 86 poles are the ones that the registry has VERIFIED, and many were drawn by follow-ups and targeted draws. Layers 2 and 5 have fewer poles than the others.
 - **One negative pole, and it saturates.** The only negative pole sits at GELU's dip at every checkpoint, so it gives no correlation. The result says nothing about negative poles in general.
-- **Probe noise.** Each explanation is tested with a few dozen probes. So a pass rate near a gate can change from one checkpoint to the next by chance alone (see the review of Yan, Oikarinen and Weng in [`faithful-stable-explanations.md`](../../docs/literature/faithful-stable-explanations.md)). A single failed checkpoint therefore resets the step from which an explanation holds. 13 explanations pass at step 16,000 and fail later, which may be noise.
+- **Probe noise.** Each explanation is tested with a few dozen probes. So a pass rate near a gate can change from one checkpoint to the next by chance alone (see the review of Yan, Oikarinen and Weng in [`faithful-stable-explanations.md`](../../docs/literature/faithful-stable-explanations.md)). A single failed checkpoint therefore resets the step from which an explanation holds. Of the 23 failures of the 13 explanations that pass at step 16,000 and fail later, 18 are within two probes of a gate (Table 3). We did not resample the probes, so we cannot give an interval for any one pass rate.
 - **The explanations were written for the last checkpoint.** An earlier form of a pole may have a different good explanation. So the failure of the recorded one does not mean that the pole had no clean function.
 - **The scale is borrowed.** The activation line at each step scales the recorded maximum by the change in the window maximum. A pole whose top activations lie outside the 300 windows gets a less exact line.
 - **Few late checkpoints.** Between steps 64,000 and 143,000 we read only one checkpoint, so the timing of late changes is coarse. The adjacent correlations double their gap at each step, so they compare unequal intervals.
@@ -141,6 +175,7 @@ The 86 reviewed neurons of Pythia-70m keep changing for most of training, long a
 - Bau, D., Zhou, B., Khosla, A., Oliva, A., & Torralba, A. (2017). *Network dissection: Quantifying interpretability of deep visual representations*. CVPR 2017. [arXiv:1704.05796](https://arxiv.org/abs/1704.05796).
 - Biderman, S., Schoelkopf, H., Anthony, Q., Bradley, H., O'Brien, K., Hallahan, E., Khan, M. A., Purohit, S., Prashanth, U. S. S., Raff, E., Skowron, A., Sutawika, L., & van der Wal, O. (2023). *Pythia: A suite for analyzing large language models across training and scaling*. In Proceedings of the 40th International Conference on Machine Learning (PMLR 202, pp. 2397–2430). [PMLR](https://proceedings.mlr.press/v202/biderman23a.html).
 - Cammarata, N. (2026). *Neural networks are already clean*. Goodfire research essay. [already-clean.goodfire.com](https://already-clean.goodfire.com/).
+- French, R. M. (1999). *Catastrophic forgetting in connectionist networks*. Trends in Cognitive Sciences, 3(4), 128–135. [doi:10.1016/S1364-6613(99)01294-2](https://doi.org/10.1016/S1364-6613(99)01294-2).
 - Groeneveld, D., Beltagy, I., Walsh, P., Bhagia, A., Kinney, R., Tafjord, O., Jha, A. H., Ivison, H., Magnusson, I., Wang, Y., Arora, S., Atkinson, D., Authur, R., Chandu, K. R., Cohan, A., Dumas, J., Elazar, Y., Gu, Y., Hessel, J., . . . Hajishirzi, H. (2024). *OLMo: Accelerating the science of language models*. ACL 2024. [ACL Anthology](https://aclanthology.org/2024.acl-long.841/).
 - Hoogland, J., Wang, G., Farrugia-Roberts, M., Carroll, L., Wei, S., & Murfet, D. (2025). *Loss landscape degeneracy and stagewise development in transformers*. Transactions on Machine Learning Research. [OpenReview](https://openreview.net/forum?id=45qJyBG8Oj).
 - Lau, E., Furman, Z., Wang, G., Murfet, D., & Wei, S. (2023). *The local learning coefficient: A singularity-aware complexity measure*. Preprint. [arXiv:2308.12108](https://arxiv.org/abs/2308.12108).
