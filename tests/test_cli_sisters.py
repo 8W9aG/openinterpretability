@@ -110,3 +110,23 @@ def test_no_model_pair_is_a_usage_error(registry, loads, tmp_path):
     assert result.exit_code == 2
     assert "no model pairs to match; pass --model and --other" in result.output
     assert loads == [] and not out.exists()
+
+
+def test_k_below_one_is_refused(registry, loads, tmp_path):
+    # #5890: k = 0 gave units no match and crashed the backward pass.
+    out = tmp_path / "sisters.jsonl"
+    args = _args(registry, out, "--model", "tiny")
+    args[args.index("-k") + 1] = "0"
+    result = CliRunner().invoke(cli, args)
+    assert result.exit_code == 2 and "Invalid value for '-k'" in result.output
+    assert loads == [] and not out.exists()
+
+
+def test_other_without_a_first_model_is_refused(registry, loads, tmp_path):
+    # #5890: with no configured models and no --model, the pair was (None, other).
+    (registry[0].parent / "pyproject.toml").write_text("[tool.openinterpretability]\nmodels = []\n")
+    out = tmp_path / "sisters.jsonl"
+    result = CliRunner().invoke(cli, _args(registry, out, "--other", "tiny"))
+    assert result.exit_code == 2
+    assert "no model pairs to match; pass --model and --other" in result.output
+    assert loads == [] and not out.exists()

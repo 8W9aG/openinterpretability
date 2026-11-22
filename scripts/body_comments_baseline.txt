@@ -119,7 +119,6 @@ openinterpretability/harness/sister_passes.py::_Stages.source_series
 openinterpretability/harness/sister_passes.py::_Stages._match_pass
 openinterpretability/harness/sister_passes.py::_Stages._correlate
 openinterpretability/harness/sister_passes.py::_gather
-openinterpretability/harness/sisters.py::_backward
 openinterpretability/harness/sites.py::site_hooks
 openinterpretability/harness/specificity.py::specificity
 openinterpretability/harness/steering.py::steering_interventions
