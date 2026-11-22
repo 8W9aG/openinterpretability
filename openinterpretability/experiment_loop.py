@@ -51,6 +51,11 @@ class Options:
     max_turns: int = 3  # an until-verified draw's turns, at most (until_verified.MAX_TURNS)
     # The records of the loop's open PRs, which draws and measures count (#5826).
     pending: PendingRecords = field(default_factory=PendingRecords)
+    # explain --local: run in the user's checkout, with no claim, push or PR (#5827).
+    local: bool = False
+    # explain --run with no LiteLLM model: a headless Claude Code session runs each draw
+    # (loop_sessions.SessionRun, #5831).
+    sessions: object = None
 
 
 @dataclass(frozen=True)
@@ -61,11 +66,17 @@ class Result:
     verdict: str
     url: str | None = None
     merged: bool = False
+    record: str | None = None  # a local run's record, relative to the checkout (#5827)
 
     def line(self) -> str:
-        """``RESULT: <slug> <verdict> <PR url> <merged|open>``, or ``RESULT: none <why>``."""
+        """``RESULT: <slug> <verdict> <PR url> <merged|open>``, or ``RESULT: none <why>``.
+
+        A local run's line is ``RESULT: <slug> <verdict> local <record>``.
+        """
         if self.slug is None:
             return f"RESULT: none {self.verdict}"
+        if self.record is not None:
+            return f"RESULT: {self.slug} {self.verdict} local {self.record}"
         return (
             f"RESULT: {self.slug} {self.verdict} {self.url} {'merged' if self.merged else 'open'}"
         )
@@ -154,30 +165,32 @@ def new_files(prefix: Path) -> list[Path]:
     return [Path(line) for line in out.splitlines() if line]
 
 
-def verdict_of(kind: str, key: str) -> tuple[str, str]:
+def verdict_of(kind: str, key: str, new=None) -> tuple[str, str]:
     """The new record's verdict and the commit message that posts it.
 
     A scan that stopped on its unit writes a draw or stop record and no experiment, so
-    its verdict is STOPPED.
+    its verdict is STOPPED. ``new`` gives the new files under a folder: by default
+    :func:`new_files`, which asks git. A local run passes its own (#5827).
     """
+    files = new or new_files
     from openinterpretability.core.explanation_records import EXPLANATIONS_WIKI
     from openinterpretability.core.schemas import AuditRecord
 
     if kind == "circuit":  # a circuit draw writes a circuit record (core/circuit_records.py)
         from openinterpretability.core.circuit_records import CIRCUITS_WIKI, CircuitRecord
 
-        found = [p for p in new_files(DEFAULT_WIKI_DIR / CIRCUITS_WIKI) if p.suffix == ".json"]
+        found = [p for p in files(DEFAULT_WIKI_DIR / CIRCUITS_WIKI) if p.suffix == ".json"]
         if not found:
             raise LoopError("the draw's steps wrote no circuit record")
         status = CircuitRecord.model_validate_json(Path(found[0]).read_text()).verdict.status
         return status, f"{VERBS[kind]} {key} ({status})"
     if kind == "explanation":  # an explanation draw writes an explanation record, no verdict
-        if not new_files(DEFAULT_WIKI_DIR / EXPLANATIONS_WIKI):
+        if not files(DEFAULT_WIKI_DIR / EXPLANATIONS_WIKI):
             raise LoopError("the draw's steps wrote no explanation")
         return "EXPLAINED", f"{VERBS[kind]} {key}"
-    records = [p for p in new_files(experiments_dir(DEFAULT_WIKI_DIR)) if p.suffix == ".json"]
+    records = [p for p in files(experiments_dir(DEFAULT_WIKI_DIR)) if p.suffix == ".json"]
     if not records:
-        if new_files(draws_dir(DEFAULT_WIKI_DIR)) or new_files(stops_dir(DEFAULT_WIKI_DIR)):
+        if files(draws_dir(DEFAULT_WIKI_DIR)) or files(stops_dir(DEFAULT_WIKI_DIR)):
             return "STOPPED", f"{VERBS[kind]} {key} (STOPPED)"
         raise LoopError("the draw's steps wrote no record")
     verdict = AuditRecord.model_validate_json(records[0].read_text()).verdict
@@ -264,8 +277,30 @@ def delete_branch() -> None:
     sh(["git", "push", "--quiet", "origin", "--delete", branch], check=False)
 
 
+def _variant(options: Options):
+    """The iteration of a local run (#5827) or a run in sessions (#5831), or None.
+
+    Args:
+        options: The loop's options.
+
+    Returns:
+        The iteration function, or None for :func:`iteration`'s own steps.
+    """
+    if options.local:
+        from openinterpretability.loop_local import local_iteration
+
+        return local_iteration
+    if options.sessions is not None:
+        from openinterpretability.loop_sessions import session_iteration
+
+        return session_iteration
+    return None
+
+
 def iteration(options: Options, plan_next, claims) -> Result:
-    """Run one experiment end to end: reset, draw, claim, run, post and land."""
+    """Run one experiment: reset, draw, claim, run, post and land, or a local one (#5827)."""
+    if (variant := _variant(options)) is not None:
+        return variant(options, plan_next, claims)
     reset()
     with options.pending.applied():  # the open PRs' records count too (#5826)
         plan = draw(options, plan_next, claims)
@@ -286,17 +321,8 @@ def iteration(options: Options, plan_next, claims) -> Result:
         if decide(plan.seed, options.until_verified):
             status = more_turns(options, plan.choice.kind, slug, status)
     except Exception as exc:
-        sh(
-            [
-                "gh",
-                "pr",
-                "close",
-                url,
-                "--comment",
-                f"Abandoned by `open-interpretability loop`: {exc}",
-            ],
-            check=False,
-        )
+        note = f"Abandoned by `open-interpretability loop`: {exc}"
+        sh(["gh", "pr", "close", url, "--comment", note], check=False)
         delete_branch()
         raise
     merged = land(url)
@@ -326,8 +352,12 @@ def more_turns(options: Options, kind: str, slug: str, status: str) -> str:
     return status
 
 
-def run_work(work, kind: str, key: str) -> str:
-    """Run every step after the claim, then post. A scan that stops on its unit posts at once."""
+def run_steps(work) -> None:
+    """Run every step after the claim. A scan that stops on its unit ends the steps there.
+
+    Args:
+        work: The draw's steps, from its first work step to its last.
+    """
     from openinterpretability.evidence import Unauditable
 
     try:
@@ -337,6 +367,11 @@ def run_work(work, kind: str, key: str) -> str:
                 run_command(command)
     except Unauditable as exc:
         sys.stdout.write(f"The scan stopped on the unit: {exc}\n")
+
+
+def run_work(work, kind: str, key: str) -> str:
+    """Run every step after the claim, then post. A scan that stops on its unit posts at once."""
+    run_steps(work)
     say("posting the result")
     return post(kind, key)
 

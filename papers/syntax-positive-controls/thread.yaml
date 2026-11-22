@@ -1,0 +1,47 @@
+# The paper's X thread (openinterpretability/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    A bracket neuron in GPT-2, and the label that hid it. A parser label that counted all
+    brackets together found nothing convincing. Counted for round brackets alone, one neuron
+    pole, L2 N676+, stands out across all 12 layers. {link}
+  media: [trace]
+- section: Does a parser label find a bracket-depth pole?
+  text: >-
+    We swept all 73,728 poles of GPT-2 small over parser labels on source code. Counting
+    round brackets alone, L2 N676+ is the best pole, with a held-out R² of 0.277. Counting
+    all brackets together had hidden it.
+  media: [labels]
+- section: Does a parser label find a bracket-depth pole?
+  text: >-
+    On written text, the same token reads 4.19 to 11.02 under one to five open brackets, and
+    near zero once they close. It is a short-range, imperfect counter of bracket characters.
+  media: [probes, reach]
+- section: Does the model use the pole to close brackets?
+  text: >-
+    Does the model use it? At one open bracket, ablating L2 N676+ lowers the chance of a
+    closing bracket from 0.457 to 0.199. Twenty random poles of the layer barely change it.
+  media: [ablation]
+- section: Does the model use the pole to close brackets?
+  text: >-
+    It sets how many brackets close. The model's predicted closer closes 1.0 bracket at depth
+    1 and 1.95 at depth 5. With L2 N676+ ablated, it closes about 1.0 at every depth.
+  media: [joint]
+- section: Do the explanations survive adversarial review?
+  text: >-
+    In adversarial review, a claim of round brackets alone earns NEEDS_REVISION: the pole
+    also fires under square and curly brackets (specificity 0.58). A claim of round and
+    square brackets, with curly ones weak, is VERIFIED.
+- section: Where does the model read the pole?
+  text: >-
+    Later layers read it through attention head L3H5, which carries 27% to 63% of the effect,
+    and then L8 N689+, which carries 34% to 59% of what L3H5 sends to the MLP of L8.
+- section: Do the Qwen2.5 models hold such a pole?
+  text: >-
+    Qwen2.5-0.5B and 1.5B hold no such pole. The same sweep finds none above an R² of 0.175
+    for round depth, against 0.277 for L2 N676+.
+  media: [models]
+- section: Conclusion
+  text: >-
+    The sweep, the ablations, the reviews and the path from the pole to the closing bracket
+    are in the paper: {link}

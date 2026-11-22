@@ -2,3 +2,7 @@
 # (tests/test_doctests.py, #5356). One per line: path::Qualified.name  reason
 openinterpretability/social/poster.py::XPoster.post  sends a request to X's API
 openinterpretability/social/poster.py::XPoster.upload  downloads a figure and sends it to X's API
+openinterpretability/explain_share.py::share  pushes a branch and opens a PR with gh
+openinterpretability/loop_local.py::local_iteration  runs a draw's audit and review, with a model and LLM agents
+openinterpretability/claude_sessions.py::Session.run  starts a claude session, which calls Anthropic's API
+openinterpretability/loop_sessions.py::session_iteration  draws, then runs the draw in a claude session

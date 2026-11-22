@@ -4,5 +4,50 @@
  "files": [
   "social.mp4",
   "social.png"
- ]
+ ],
+ "figures": {
+  "ablation": {
+   "sha256": "f221363f12b725e78f62114c5f81533d215bffbed077c2dff5fc2b8f91c296d5",
+   "files": [
+    "social-ablation.png"
+   ]
+  },
+  "joint": {
+   "sha256": "62986800c3e0c17e31afcd4d053d4d8a217fd281f0d75574f6bed455e0166923",
+   "files": [
+    "social-joint.png"
+   ]
+  },
+  "labels": {
+   "sha256": "a2011539d3a00ebd36ce31e4ace6f10efcb0c0cefde4a49015f48791a78f6841",
+   "files": [
+    "social-labels.png"
+   ]
+  },
+  "models": {
+   "sha256": "6b8a8f0f7568c94070e96a00bc2ae569ab855ff7a83f8bbac9820c1aaefbb3f4",
+   "files": [
+    "social-models.png"
+   ]
+  },
+  "probes": {
+   "sha256": "2e8bf2dc0f023152da23b26a04494a52cd070a921751ee87246b3b9c76517a23",
+   "files": [
+    "social-probes.png"
+   ]
+  },
+  "reach": {
+   "sha256": "a59cc197e39bd9010703128375dd321e22234f12f4dc93ead4ba75bd61ff7e92",
+   "files": [
+    "social-reach.png"
+   ]
+  },
+  "trace": {
+   "sha256": "aee2d2071b70fed3ac99fdb7fd505d12b36acec491bc1f247c7b8e746332ef9a",
+   "files": [
+    "social-trace.mp4",
+    "social-trace.png"
+   ]
+  }
+ }
 }

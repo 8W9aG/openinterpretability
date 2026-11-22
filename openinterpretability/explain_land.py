@@ -48,6 +48,7 @@ def pr_body(record: ExplanationRecord) -> str:
         lines += [f"  - landed: {landed}" for landed in run.landed]
         lines += [f"  - left open: {url}" for url in run.left_open]
         lines += [f"  - pending, counted before it merges: {p}" for p in run.pending]
+        lines += [f"  - shared from a local run: {x}" for x in run.local]
     lines += ["", "Written by `open-interpretability explain --record` (#4475)."]
     return "\n".join(lines)
 

@@ -21,9 +21,10 @@
       ("Conclusive nulls", t.conclusive_nulls, none, none),
     ] %}
     {# Seven tiles: the last fills its row in the 2- and 4-column grids, so no cell is empty. #}
-    <div class="bg-white p-4 dark:bg-slate-950{{ ' col-span-2 lg:col-span-1' if loop.last }}"{% if title %} title="{{ title }}"{% endif %}>
+    {# A flex column with the value at mt-auto: every value in a row sits on one baseline, whatever the length of its label (#5832). #}
+    <div class="flex flex-col bg-white p-4 dark:bg-slate-950{{ ' col-span-2 lg:col-span-1' if loop.last }}"{% if title %} title="{{ title }}"{% endif %}>
       <dt class="text-xs uppercase tracking-wide text-slate-500">{% if href %}<a class="underline underline-offset-2" href="{{ root }}{{ href }}">{{ label }}</a>{% else %}{{ label }}{% endif %}</dt>
-      <dd class="mt-1 font-mono text-2xl tabular-nums">{{ value }}</dd>
+      <dd class="mt-auto pt-1 font-mono text-2xl tabular-nums">{{ value }}</dd>
     </div>
     {% endfor %}
   </dl>

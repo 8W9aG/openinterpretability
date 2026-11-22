@@ -26,6 +26,7 @@ PUBLISHED_FEED = "research/published.xml"  # published papers only, for posts (#
 POSTS_FEED = "posts/posts.xml"  # the Posts section (#4650)
 NO_DATE = "1970-01-01T00:00:00Z"  # a date the repository can't give
 NOT_REVIEWS = ("README", "queue")  # pages of docs/literature/ that review no source
+THREAD_NS = "https://open-interpretability.com/ns/social"  # an entry's X thread (#5833)
 
 
 def _feed(
@@ -49,11 +50,12 @@ def _feed(
     """
     entries = sorted(entries, key=lambda e: (e[0], e[2]), reverse=True)
     body = []
-    for updated, name, href, summary, *media in entries:
+    for updated, name, href, summary, *extra in entries:
+        media, thread = (*extra, None, None)[:2]
         url = escape(site_url + href)
         enclosure = ""
-        if media and media[0]:  # (path, type, alt) of the drawn head figure (#5534)
-            path, kind, alt = media[0]
+        if media:  # (path, type, alt) of the drawn head figure (#5534)
+            path, kind, alt = media
             title = escape(alt, {'"': "&quot;"})
             enclosure = (f'    <link rel="enclosure" href="{escape(site_url + path)}" '
                          f'type="{kind}" title="{title}"/>\n')  # fmt: skip
@@ -62,7 +64,12 @@ def _feed(
             f'    <link href="{url}"/>\n{enclosure}    <id>{url}</id>\n'
             f"    <updated>{updated}</updated>\n"
             f"    <summary>{escape(summary)}</summary>\n"
-            "  </entry>\n"
+            + (
+                f'    <oi:thread xmlns:oi="{THREAD_NS}">{escape(thread)}</oi:thread>\n'
+                if thread
+                else ""
+            )
+            + "  </entry>\n"
         )
     feed_url = escape(site_url + path)
     return (
@@ -104,6 +111,43 @@ def media(section: str, item) -> tuple[str, str, str] | None:
     return None
 
 
+def thread_json(section: str, item, site_url: str) -> str | None:
+    """A paper's or post's X thread for its feed entry, as JSON, or None with none (#5833).
+
+    Each tweet has its text, with ``{link}`` and ``{section_link}`` filled in. Each of its
+    figures has its URL on the site, its type and its alt text.
+
+    Args:
+        section: The site folder: ``research`` or ``posts``.
+        item: The :class:`~openinterpretability.builder.research.Paper`.
+        site_url: The site's URL, with a trailing slash.
+
+    Returns:
+        The thread's JSON, or None.
+
+    Examples:
+        >>> from types import SimpleNamespace as Paper
+        >>> from openinterpretability.social.thread import Prepared
+        >>> tweet = Prepared("See {section_link}", "m", (("social-c.png", "image/png", "A"),))
+        >>> item = Paper(href="p/index.html", thread=(tweet,))
+        >>> thread_json("research", item, "https://x.org/")[:63]
+        '[{"text": "See https://x.org/research/p/index.html#m", "media":'
+    """
+    import json
+
+    from openinterpretability.social.thread import resolve
+
+    if not getattr(item, "thread", ()):
+        return None
+    page = f"{site_url}{section}/{item.href}"
+    folder = f"{site_url}{section}/{posixpath.dirname(item.href)}/media/"
+    return json.dumps([
+        {"text": resolve(t.text, page, t.anchor),
+         "media": [{"url": folder + name, "type": kind, "alt": alt} for name, kind, alt in t.media]}
+        for t in item.thread
+    ])  # fmt: skip
+
+
 def papers_feed(papers: Sequence, site_url: str, site_title: str) -> str:
     """The feed of the papers (:class:`~openinterpretability.builder.research.Paper`)."""
     entries = [
@@ -121,7 +165,7 @@ def published_feed(papers: Sequence, site_url: str, site_title: str) -> str:
     """
     entries = [
         (f"{p.status.published}T00:00:00Z", p.title, f"research/{p.href}", p.summary,
-         media("research", p))
+         media("research", p), thread_json("research", p, site_url))
         for p in papers if p.status is not None and not p.status.preprint
     ]  # fmt: skip
     return _feed(f"{site_title}: published papers", PUBLISHED_FEED, site_url, entries)
@@ -147,7 +191,7 @@ def posts_feed(posts: Sequence, site_url: str, site_title: str) -> str:
     """
     entries = [
         (f"{p.published}T00:00:00Z" if p.published else NO_DATE, p.title,
-         f"posts/{p.href}", p.summary, media("posts", p))
+         f"posts/{p.href}", p.summary, media("posts", p), thread_json("posts", p, site_url))
         for p in posts
     ]  # fmt: skip
     return _feed(f"{site_title}: posts", POSTS_FEED, site_url, entries, "posts/index.html")

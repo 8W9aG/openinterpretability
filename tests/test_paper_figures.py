@@ -38,8 +38,9 @@ def test_each_media_file_is_built():
     from openinterpretability.builder.social_media import IMAGE, MANIFEST, VIDEO
 
     drawn = {IMAGE, VIDEO, MANIFEST}  # scripts/social_images.py draws these, not this script
+    # and each thread figure's social-<id>.png and .mp4 (#5833)
     on_disk = {str(path.relative_to(PAPERS)) for path in PAPERS.glob("*/media/*")
-               if path.name not in drawn}  # fmt: skip
+               if path.name not in drawn and not path.name.startswith("social-")}  # fmt: skip
     assert on_disk == set(BUILT)
 
 

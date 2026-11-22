@@ -118,6 +118,7 @@ def loop_command(
 def run_loop(
     proposer, reviewer, plan_next, max_experiments=0, epsilon=0.7, corpus=None, worktree=None,
     one_heavy_job=False, max_failures=3, out=None, until_verified=False, max_turns=3,
+    local=False, sessions=None,
 ) -> int:  # fmt: skip
     """Set up the loop's worktree, lock and runner cache, run it with ``plan_next``, and return.
 
@@ -125,6 +126,10 @@ def run_loop(
     The return value is the loop's exit code. ``out``, a dict, gets the loop as ``"loop"``,
     for its results and the reason it finished (#4474). ``until_verified`` is False by
     default, so a targeted run takes one turn per draw. ``loop`` passes its own (#4485).
+    A ``local`` loop runs in the current checkout, and reads no PR claims: it makes no
+    worktree, fetch, push or ``gh`` call (``explain --local``, #5827). ``sessions``
+    (:class:`~openinterpretability.loop_sessions.SessionRun`) runs each draw in a headless
+    Claude Code session (#5831).
     """
     import time
 
@@ -132,7 +137,7 @@ def run_loop(
     from openinterpretability.experiment_loop import Loop, Options
     from openinterpretability.planner import open_pr_claims
 
-    repo, worktree = loop_worktree(worktree)
+    repo, worktree = (Path.cwd(), Path.cwd()) if local else loop_worktree(worktree)
     corpus = corpus and str(Path(corpus).resolve())
     if reviewer == proposer:
         click.echo(
@@ -146,9 +151,11 @@ def run_loop(
         os.environ[ENABLE_ENV] = "1"
     runner_cache.keep()
     os.chdir(worktree)
-    options = Options(proposer, reviewer, epsilon, corpus, until_verified, max_turns)
+    options = Options(proposer, reviewer, epsilon, corpus, until_verified, max_turns,
+                      local=local, sessions=sessions)  # fmt: skip
+    claims = (lambda: []) if local else open_pr_claims
     loop = Loop(options, repo / "logs" / "loop", max_experiments, max_failures, plan_next,
-                open_pr_claims, time.sleep)  # fmt: skip
+                claims, time.sleep)  # fmt: skip
     if out is not None:
         out["loop"] = loop
     return loop.run()

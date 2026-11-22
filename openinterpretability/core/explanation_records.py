@@ -153,6 +153,11 @@ class ExplainRun(StrictModel):
     # Experiments whose PRs were open when the run ended. The shares count their records,
     # though main doesn't hold them yet (#5826). Older runs waited for CI and have none.
     pending: list[str] = Field(default_factory=list, description="<slug> <verdict> <PR URL>")
+    # Experiments of an `explain --local` run: only in the user's wiki/, not in the registry,
+    # until `explain-share` opens their PR (#5827). Older runs have none.
+    local: list[str] = Field(
+        default_factory=list, description="<slug> <verdict> <record path, from the checkout>"
+    )
     stopped: str  # why the run stopped
     shares: list[float] = Field(default_factory=list)  # the share before each draw (#4479)
 
