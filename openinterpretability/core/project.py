@@ -1,13 +1,12 @@
 """The project's public links, read from ``pyproject.toml``'s metadata.
 
-``[project.urls]`` holds the site's URL (``Homepage``), the repo's (``Repository``) and the X
-account's (``X``).
+``[project.urls]`` holds the site's URL (``Homepage``), the repo's (``Repository``), the X
+account's (``X``) and the contact email (``Contact``, a ``mailto:`` link).
 The builder and ``open-interpretability deploy`` read them here, so each URL is written down once.
 """
 
 from __future__ import annotations
 
-from email.utils import parseaddr
 from importlib.metadata import metadata
 
 from openinterpretability import DISTRIBUTION
@@ -20,11 +19,26 @@ def project_links() -> dict[str, str]:
     return {
         "site_url": urls["Homepage"],
         "repo_url": urls["Repository"],
-        "contact_email": parseaddr(meta["Author-email"])[1],
+        "contact_email": contact_email(urls["Contact"]),
         "description": meta["Summary"].split(": ", 1)[-1],  # for social cards (#3289)
         "x_url": urls["X"],
         "x_handle": x_handle(urls["X"]),  # twitter:site (#5389)
     }
+
+
+def contact_email(url: str) -> str:
+    """The address in a ``mailto:`` link, so that the address is written down once (#5853).
+
+    Args:
+        url: The ``mailto:`` link.
+
+    Returns:
+        The address.
+
+    >>> contact_email("mailto:contact@example.com")
+    'contact@example.com'
+    """
+    return url.removeprefix("mailto:")
 
 
 def x_handle(url: str) -> str:

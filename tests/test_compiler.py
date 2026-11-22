@@ -409,8 +409,10 @@ def test_footer_links_repo_and_contact(tmp_path):
     compile_site([], tmp_path)
     index = (tmp_path / "index.html").read_text()
     assert 'href="https://github.com/8W9aG/openinterpretability"' in index
-    email = project_links()["contact_email"]  # pyproject.toml's author email, the one source
-    assert "@" in email and f'href="mailto:{email}"' in index
+    email = project_links()["contact_email"]  # pyproject.toml's [project.urls], the one source
+    assert email == "contact@open-interpretability.com" and f'href="mailto:{email}"' in index
+    pages = [p.read_text() for p in tmp_path.rglob("*.html")]
+    assert not any("gmail.com" in page for page in pages)  # the old address is gone (#5853)
 
 
 def test_every_page_links_the_x_account(tmp_path):
