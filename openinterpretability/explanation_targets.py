@@ -211,8 +211,20 @@ class TargetedDraws:
                 continue
             self.attempts[t.slug] = self.attempts.get(t.slug, 0) + 1
             self.started += 1
+            self._say_start(t)
             return Plan(seed=0, choice=choice, explored=False, candidates=[choice])
         raise Finished(self.summary())
+
+    def _say_start(self, t: Target) -> None:
+        """Say which experiment starts: its count of the run's, its unit and its attempt (#5830).
+
+        Args:
+            t: The target that the experiment is for.
+        """
+        from openinterpretability.experiment_loop import say
+
+        of = self.limit or len(self.targets)
+        say(f"experiment {self.started}/{of}: {t.label}, attempt {self.attempts[t.slug]}")
 
     def _stop_if_done(self) -> None:
         """Say the explained share, and end the run at the target or the limit (#4473).

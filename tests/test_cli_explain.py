@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 from click.testing import CliRunner
 
-from openinterpretability import cli_explain
+from openinterpretability import cli_explain, explain_output
 from openinterpretability import explain as ex
 from openinterpretability.cli import cli
 from openinterpretability.explain_plan import CAVEAT, Plan, PlannedExperiment
@@ -69,7 +69,7 @@ def test_an_explanation_at_the_target_only_gains_the_new_level(explain_args, tmp
     monkeypatch.setattr(cli_explain, "run_plan", lambda *a, **k: ran.append(a))
     story = Narrative(sections=[{"title": "Step", "text": "Not known."}], paragraph="Not known.")
     monkeypatch.setattr(Narrator, "narrate", lambda self, ev: story)
-    result = _invoke(*explain_args, "--target", "0.4", "--run", "--level", "paragraph",
+    result = _invoke(*explain_args, "--target", "0.4", "--run", "--level", "paragraph", "--yes",
                      "--narrator-model", "anthropic/x", "--record", "--no-land")  # fmt: skip
     assert result.exit_code == 0, result.output
     assert "No experiments run; this only adds the paragraph level." in result.output
@@ -105,7 +105,7 @@ def test_the_plan_names_an_overshoot_and_the_blocked_share(capsys):
         [_experiment("L0/N1+", 0.3, gain=0.05, covered_by=["C4"])],
         blocked=0.2, blocked_units=[{"target": "L1/N2+", "share": 0.2, "reason": "stopped"}],
     )  # fmt: skip
-    cli_explain._print_plan(plan, 5, REACH | {"overshoot": True})
+    explain_output._print_plan(plan, 5, REACH | {"overshoot": True})
     out = capsys.readouterr().out
     assert "with every planned unit kept, the answer overshoots the clean model" in out
     assert "Greedy picks" not in out  # no greedy picks were made
@@ -117,8 +117,8 @@ def test_the_plan_names_an_overshoot_and_the_blocked_share(capsys):
 
 def test_the_plan_lists_no_milestones_when_the_experiments_fall_short(capsys):
     plan = _plan([_experiment("L0/N1+", 0.1)], explained=0.0, target=1.0)
-    assert cli_explain._milestones(plan) == []  # 10% never reaches the 50% mark
-    cli_explain._print_plan(plan, 5, REACH)
+    assert explain_output._milestones(plan) == []  # 10% never reaches the 50% mark
+    explain_output._print_plan(plan, 5, REACH)
     out = capsys.readouterr().out
     assert "Of the |attribution|" not in out and "gain not measured" in out
     assert "Blocked:" not in out
@@ -126,18 +126,18 @@ def test_the_plan_lists_no_milestones_when_the_experiments_fall_short(capsys):
 
 def test_milestones_count_the_experiments_that_reach_each_mark():
     plan = _plan([_experiment("a", 0.3), _experiment("b", 0.3), _experiment("c", 0.35)])
-    assert cli_explain._milestones(plan) == [(0.5, 2), (0.8, 3), (0.9, 3)]
+    assert explain_output._milestones(plan) == [(0.5, 2), (0.8, 3), (0.9, 3)]
 
 
 def test_coverage_says_when_ablating_every_unit_changes_nothing(capsys):
-    cli_explain._print_coverage({"coverage": None, "random": None, "units": 0})
+    explain_output._print_coverage({"coverage": None, "random": None, "units": 0})
     assert capsys.readouterr().out == (
         "Prompt coverage: ablating every unit doesn't change the answer.\n"
     )
 
 
 def test_coverage_names_an_overshoot_and_its_raw_value(capsys):
-    cli_explain._print_coverage(
+    explain_output._print_coverage(
         {"coverage": 1.0, "random": None, "units": 3, "overshoot": True, "raw": 1.25}
     )
     out = capsys.readouterr().out
@@ -185,3 +185,35 @@ def test_explain_without_a_corpus_or_a_cache_fails_clearly(explain_args, monkeyp
     result = CliRunner().invoke(cli, explain_args[:i] + explain_args[i + 2 :])
     assert result.exit_code == 1
     assert "the corpus cache is off" in result.output
+
+
+# Asking before spending tokens, and the stage lines (#5830).
+def test_a_run_without_yes_refuses_before_any_llm_call(explain_args, monkeypatch):
+    def run_loop(*a, **k):
+        pytest.fail("the run started")
+
+    monkeypatch.setattr("openinterpretability.cli_loop.run_loop", run_loop)
+    result = CliRunner().invoke(cli, [*explain_args, "--run", "1", "--proposer", "anthropic/p",
+                                      "--reviewer", "anthropic/r"])  # fmt: skip
+    assert result.exit_code == 2
+    assert "This calls LLMs: up to" in result.output and "Add --yes (-y)" in result.output
+
+
+def test_a_plain_explain_never_asks_and_says_its_stages(explain_args):
+    result = CliRunner().invoke(cli, explain_args)
+    assert result.exit_code == 0, result.output
+    assert "This calls LLMs" not in result.output
+    stages = [line for line in result.output.splitlines() if line.startswith("[")]
+    assert stages[0] == "[1/6] Reading the corpus"
+    assert stages[-1] == "[6/6] Planning the fewest experiments that reach the target"
+
+
+def test_quiet_drops_the_stage_lines_and_restores_the_setting(explain_args, monkeypatch):
+    from openinterpretability.harness.progress import QUIET_ENV
+
+    monkeypatch.setenv(QUIET_ENV, "0")
+    result = CliRunner().invoke(cli, [*explain_args, "--quiet"])
+    assert result.exit_code == 0 and "[1/6]" not in result.output
+    import os
+
+    assert os.environ[QUIET_ENV] == "0"
