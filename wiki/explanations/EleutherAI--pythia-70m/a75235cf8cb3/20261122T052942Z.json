@@ -1,0 +1,1307 @@
+{
+ "model_name": "EleutherAI/pythia-70m",
+ "prompt": "The Eiffel Tower is in the city of",
+ "position": -1,
+ "answer": " the",
+ "explained_share": 0.061579151587851974,
+ "blocked_share": 0.007550052479257915,
+ "prompt_coverage": 1.0,
+ "raw_coverage": 5.579754704381789,
+ "random_coverage": 0.7980234470455794,
+ "coverage_detail": {
+  "random_matched": true,
+  "random_spread": 0.3498336516546824,
+  "heads_only": 1.0,
+  "poles_only": -2.0771388903567978,
+  "heads_kept": {
+   "0": 6,
+   "1": 4,
+   "2": 6,
+   "3": 5,
+   "4": 5,
+   "5": 4
+  },
+  "n_heads": 8,
+  "minimal_units": [
+   "L0/H5",
+   "L2/H1",
+   "L1/H3"
+  ],
+  "minimal_coverage": 1.0
+ },
+ "units": [
+  {
+   "unit": "L0/H5",
+   "slug": "EleutherAI--pythia-70m/L0/H5",
+   "kind": "head",
+   "share": 0.010909782661152825,
+   "attribution": -4.355564594268799,
+   "status": "VERIFIED",
+   "explanation": "Broad layer-0 previous-token head that is weakly to moderately active on most ordinary prose (typical sentence peaks 0.8-1.8, above the ~0.75 active line) and peaks maximally narrowly at 'of' completing 'one of' (~3.0; other quantifier/nominal-plus-'of' such as 'two of' peak 1.6-2.4 and modifier-noun pairs such as 'closed doors' peak ~1.8), and it falls back to its floor only when every measured token is drawn from a closed bleached-sink set -- 'of', 'to', the be-forms is/are/was/were/be/being/been, and the core prepositions in/on/at/for/with/by -- whether as homogeneous runs ('of'x8 peaks 0.0, 'was'x8 peaks 0.0, 'be'x8 peaks 0.05) or as mixed cycles inside that set ('of to is in' peaks 0.0, 'is are was were be being been' peaks 0.0, 'in on at for with by' peaks 0.0, 'is was of' repeats peak 0.0, all with a terminal '.' still <=0.03), with the same peak token collapsing from 3.0 to 0.58 when its predecessor changes from 'one' to the sink copula 'was'. Crucially, any token outside that set breaks the floor: heterogeneous copula chains ('is seem seemed remain become became' peaks 1.83), heterogeneous preposition chains ('from over under...' peaks 0.97, 'pending barring...' peaks 2.15), determiner mixes ('a an the this...' peaks 1.2), and homogeneous runs of non-sink tokens ('and'x8 peaks 1.76, 'the'x8 peaks 1.13, 'one'x8 peaks 2.93, '.'x8 peaks 1.98) all ride above the line.",
+   "hub": null
+  },
+  {
+   "unit": "L3/H4",
+   "slug": "EleutherAI--pythia-70m/L3/H4",
+   "kind": "head",
+   "share": 0.007582186325644335,
+   "attribution": -3.0270724296569824,
+   "status": "VERIFIED",
+   "explanation": "Broad, mostly previous-token head: predict ordinary prose active-weak (most sentences of a dozen or more tokens have one or two tokens just over the line, roughly 10% of tokens, peaks near 0.3-0.45 of max), and it is strong (above ~0.6 of max) on a content word, or a later sub-word piece of a name or term, whose attention falls almost wholly (weight ~0.9) on the specifier opening its phrase: 'which' ('regardless of which system'), numerals ('the two Kivu'), 'every', 'any', possessives 'its'/'their', 'a' after a preposition ('At a global'), 'of' in 'some of / one of' before a name, 'are' in 'There are further', or the head noun before a name ('regional capital Białystok'); it is weak after 'the', 'this', 'that'. Comma lists of plain numbers and strings of one-word exclamations ('Stop. Yes! Okay?') are inactive.",
+   "hub": null
+  },
+  {
+   "unit": "L1/H7",
+   "slug": "EleutherAI--pythia-70m/L1/H7",
+   "kind": "head",
+   "share": 0.004405384072096339,
+   "attribution": -1.7587825059890747,
+   "status": "CONTESTED",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L2/H3",
+   "slug": "EleutherAI--pythia-70m/L2/H3",
+   "kind": "head",
+   "share": 0.004040459545160832,
+   "attribution": -1.6130919456481934,
+   "status": "VERIFIED",
+   "explanation": "Broad nearest-noun copier: each token attends back to the most recent noun-like token that comes after the text's first token (or to itself if it is one) and writes it, so most prose of 8+ tokens containing a 'the/a/our + noun' crosses the line weakly, and the head is strong (0.9-2.6) on a determiner- or adjective-introduced common-noun subject and the verb/auxiliary and 1-3 predicate words after it ('the rumors| are| false', 'further studies| are| needed', 'the problem still| remains'), on the random characters of a URL ID after '/' (t.co/aB3dE5xQ), and on the later subword pieces of a name split into several tokens (Sus|an, E|lla, Jenn|ifer); object nouns ('opened a door', 'summarize the findings', 'many reasons for the delay') and non-initial pronouns, especially 'it', give 0.2-1.5 depending on the noun and cross about half the time. It stays below when nothing after the first word is a noun, a non-initial pronoun or a multi-piece name: a clause opened by a pronoun, a single-token name or a bare noun ('Rain', 'Results') followed only by verbs, adverbs and adjectives ('He was very tired and quite sad.', 'Peter always runs fast.', 'Results are very clear.'), texts of one to four words, and runs of numbers, single letters, a repeated word or symbols; 'and' or a comma inside such clauses reaches 0.3-0.7 and only occasionally crosses.",
+   "hub": null
+  },
+  {
+   "unit": "L5/N1842+",
+   "slug": "EleutherAI--pythia-70m/L5/N1842-positive",
+   "kind": "pole",
+   "share": 0.003985591619510267,
+   "attribution": -1.591186761856079,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L0/H4",
+   "slug": "EleutherAI--pythia-70m/L0/H4",
+   "kind": "head",
+   "share": 0.003760209538247802,
+   "attribution": -1.501206398010254,
+   "status": "VERIFIED",
+   "explanation": "Broad previous-token head: predict ordinary prose, code and number lists active-weak (about 0.25-0.55 of max), but predict inactive a two-token text made of one lowercase common word that is a single token followed only by '.', '!' or '?' (e.g. 'cat.', 'road!', 'tree?'; capitalised words like 'Okay.' and words split into pieces like 'gar|den.' do not count). It is strong (above about 0.6 of max) on the second piece of a word split into sub-word tokens after a short, usually capitalised or all-caps, word-start fragment it attends to (GRE|ATER, PR|OT, PL|URAL, Cle|aring, Hod|ges, De Kal|b, CM|ake, url|pattern), and on fixed pairs such as Highway + route number, UPDATE ... SET and 'Story highlights'.",
+   "hub": null
+  },
+  {
+   "unit": "L2/H4",
+   "slug": "EleutherAI--pythia-70m/L2/H4",
+   "kind": "head",
+   "share": 0.0035440576088063055,
+   "attribution": -1.4149110317230225,
+   "status": "VERIFIED",
+   "explanation": "Broad previous-token head: predict ordinary prose active-weak (most sentences cross the line somewhere), with activity on the words that open the object of a verb or preposition (the 'the'/'a'/'their'/'me'/name right after 'told', 'reminded', 'gave', 'on', 'in', 'of', 'to', 'from'), attending to that governing word and fading over the noun phrase, and strongest (up to max) on such a determiner after a speech verb deep in a long passage (', told the Providence Journal'). Predict whole texts inactive only when they are entirely one of these: a bare noun phrase with no preposition ('The tall building.', 'My brother and his friends.'); interjections, discourse words and punctuation ('Yes. No. Maybe.', 'Well, then, and so.'); a two- or three-word intransitive clause ('She smiled.', 'The bell rang.'); or a copular clause 'The N is/was ADJ.' — any verb or preposition followed by its object (e.g. 'Then he told them,') makes a text active.",
+   "hub": null
+  },
+  {
+   "unit": "L2/N855+",
+   "slug": "EleutherAI--pythia-70m/L2/N855-positive",
+   "kind": "pole",
+   "share": 0.003195264050162212,
+   "attribution": -1.275660514831543,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L1/H0",
+   "slug": "EleutherAI--pythia-70m/L1/H0",
+   "kind": "head",
+   "share": 0.0031793507572291536,
+   "attribution": 1.2693073749542236,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L0/H2",
+   "slug": "EleutherAI--pythia-70m/L0/H2",
+   "kind": "head",
+   "share": 0.0030101772907242716,
+   "attribution": 1.2017674446105957,
+   "status": "REJECTED",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L2/H5",
+   "slug": "EleutherAI--pythia-70m/L2/H5",
+   "kind": "head",
+   "share": 0.0029748774541470554,
+   "attribution": -1.1876745223999023,
+   "status": "VERIFIED",
+   "explanation": "Broad early head, measured on every token including the first. Predict plain English prose active-weak about one text in four, at 0.25-0.37 of max. Those peaks fall on the first to fourth token, for example on first tokens such as 'She', 'We', 'Our', 'My', 'Many', 'After', 'So', 'Yes' or 'Let', which alone reach 1.1-1.8. Predict non-English Latin-script prose (Turkish, Polish, Portuguese, German, Spanish) active on nearly every token. It is strongest (0.5-0.75 of max) on and after diacritic or byte-fragment tokens such as ' ç', 'ż', ' iç', 'ö' or 'ð', even when only one such word sits in an English sentence. The head is also strong (0.4-1.0) on the newline that ends a code or block-comment line when earlier lines began with the same indentation or ' *' token (it attends back to those tokens), and on chained ' -'/' +' operators in 'Let d(j) = 0 - j - 2*j - 9 + ...' arithmetic. The only class predicted inactive is a numbered English list item: a whole text made of one digit 1-9, a period, a space and one plain all-English sentence, 7-15 tokens in total (e.g. '4. The bridge was closed for repairs last summer.'). 27/27 such texts measured below the line, with a highest peak of 0.86 (0.19 of max). Short texts that lack this prefix (one-word sentences, word lists, integer lists) are NOT predicted inactive, and the prefix does not quiet non-English sentences.",
+   "hub": null
+  },
+  {
+   "unit": "L4/N1907+",
+   "slug": "EleutherAI--pythia-70m/L4/N1907-positive",
+   "kind": "pole",
+   "share": 0.002916195581511202,
+   "attribution": 1.164246678352356,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L0/H6",
+   "slug": "EleutherAI--pythia-70m/L0/H6",
+   "kind": "head",
+   "share": 0.002785969880051341,
+   "attribution": 1.1122560501098633,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L0/N960+",
+   "slug": "EleutherAI--pythia-70m/L0/N960-positive",
+   "kind": "pole",
+   "share": 0.0026246772170211885,
+   "attribution": 1.0478624105453491,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L2/H1",
+   "slug": "EleutherAI--pythia-70m/L2/H1",
+   "kind": "head",
+   "share": 0.0023067604152789745,
+   "attribution": -0.9209389686584473,
+   "status": "VERIFIED",
+   "explanation": "L2/H1 is a pure previous-token head: on random sequences it puts 0.91 of its attention on t-1 (duplicate 0.00, induction 0.00) and writes that token's layer-2 value into the residual stream, so its strength |W_O(z - mean z)| at a position measures the token BEFORE it, not the token it sits on - in 'The map shows Yuri in the corner.' the piece 'ĠY' scores 0.00 and the next piece 'uri' 1.22, in 'methylglyoxal' 'Ġmethyl' scores 0.00, 'gly' 1.86, 'ox' 0.85, 'al' 0.60. Predict active (peak 1.2-3.3, well above the 0.83 line) when the token before the peak is an unusual, non-whole-word piece: any non-Latin-script byte piece (Arabic, Greek, Cyrillic, Devanagari, Bengali, Thai: 1.2-2.1), a fragment of a multi-piece word or name that is not itself a common English word ('ĠSal' 1.16, 'ĠBr' 1.86, 'Ġmethyl' 1.86, 'ost' 1.99, 'ĠSh'/'ĠY'/'ĠZ' 1.2-1.9), or a piece of an all-caps identifier ('IN' 1.58, 'JA' 1.84, '_' 0.39); predict weak, near or just over the line (0.4-1.4), after a whole ordinary English word, including whole proper names ('John Smith met Mary Jones at the inn on the hill.' peaks at 0.65) and common content words ('short' 1.41, 'light' 1.12, 'cat' 1.05, 'composer' 0.12); predict inactive (0.0-0.15) only for text built entirely from the ~200 most frequent English tokens with no content noun, adjective, digit or foreign piece ('It is not that I do not want to, it is that I cannot.' 0.00; six such sentences 0.00-0.14), for space-separated digits ('100 200 300 400 500 600 700' 0.00) and for comma-separated lists of single common words ('Trees, rivers, mountains.' 0.00).",
+   "hub": null
+  },
+  {
+   "unit": "L3/N1528+",
+   "slug": "EleutherAI--pythia-70m/L3/N1528-positive",
+   "kind": "pole",
+   "share": 0.0020859236881215397,
+   "attribution": -0.8327732682228088,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L1/H3",
+   "slug": "EleutherAI--pythia-70m/L1/H3",
+   "kind": "head",
+   "share": 0.00202867253082116,
+   "attribution": -0.809916615486145,
+   "status": "VERIFIED",
+   "explanation": "Broad early-position, previous-token-mixing head: its write deviates from the mean mostly at the 2nd-3rd token of a text, strongly (about 0.5-1.0 of max) when the first token is an opening bracket or punctuation ('[', '(', '{%', '1)', ').'), a given name ('Doug', 'Sarah', 'William'), the article 'A'/'An', or a capital-letter fragment of a word ('B'+'ETH', 'H'+'ur'); mid-text it is active-weak (about 0.25-0.4 of max) on surnames right after a given name (Jamie Spencer, Richard Palmer, Doug Mc-), on pieces of rare names or code right after '(' or '{%', and on code tokens. Predict inactive any whole text of 1-3 plain English sentences (2-45 tokens) that opens with 'The' followed by a lowercase common word and contains only common lowercase English words and ordinary punctuation, with no names or other capitalised words besides sentence-initial 'The'/common words, no digits or number words, no parentheses, quotes or code, and no rare words that split into several word pieces; ordinary prose that opens with a pronoun or other common word is borderline (peaks 0.7-1.2 at the 2nd token, often just below the line).",
+   "hub": null
+  },
+  {
+   "unit": "L1/H4",
+   "slug": "EleutherAI--pythia-70m/L1/H4",
+   "kind": "head",
+   "share": 0.0020232809600280923,
+   "attribution": -0.8077641129493713,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L5/N1230+",
+   "slug": "EleutherAI--pythia-70m/L5/N1230-positive",
+   "kind": "pole",
+   "share": 0.001927018437063584,
+   "attribution": 0.769332766532898,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  },
+  {
+   "unit": "L3/N1608+",
+   "slug": "EleutherAI--pythia-70m/L3/N1608-positive",
+   "kind": "pole",
+   "share": 0.0018804105298467486,
+   "attribution": -0.750725269317627,
+   "status": "unstudied",
+   "explanation": null,
+   "hub": null
+  }
+ ],
+ "narration": {
+  "sections": [
+   {
+    "title": "The answer and how much is explained",
+    "text": "The model answered \" the\" to \"The Eiffel Tower is in the city of\". Only 0.0616 of the first-order attribution on this prompt is explained by the listed units, so 0.9384 is unexplained (0.0076 is blocked). This answer is mostly not understood yet. The answer_experiment, the claim about how the answer is produced, has status unstudied with 0 attempts, so how the model produces \" the\" is not known."
+   },
+   {
+    "title": "Coverage, and why it does not mean understanding",
+    "text": "Prompt coverage is 1.0 against 0.798 for random units matched by kind and layer. coverage_caution is true, so this must not be read as the answer being explained. Keeping the units brings the answer back, which shows they are sufficient on this prompt, not how they produce it. Keeping only heads gives 1.0 (heads_only), while keeping only poles gives -2.077 (poles_only). So the heads matter here and the neuron poles alone do not. The minimal set is L0/H5, L2/H1 and L1/H3. Ablating the 8 verified poles together changed the logit by 6.95 and the top token stayed \" the\", so the verified poles are not needed to produce the answer."
+   },
+   {
+    "title": "Units with verified descriptions",
+    "text": "These units are VERIFIED, so their descriptions are facts, but each describes the unit on a scan corpus and may not cover this prompt. L0/H5 is a broad layer-0 previous-token head that goes quiet on a closed set of function words such as 'of', 'to' and the be-forms. It has the largest share, 0.0109 (attribution -4.36, ablation change 3.42). L3/H4 is a mostly previous-token head that is strong on content words attending to the specifier opening their phrase (share 0.0076, attribution -3.03, ablation change 3.46). L2/H3 is a nearest-noun copier (share 0.004, ablation change 1.64). L0/H4 and L2/H4 are previous-token heads (shares 0.0038 and 0.0035; ablation changes 0.88 and 1.53). L2/H5, L2/H1 and L1/H3 are early-position or previous-token heads (shares 0.003, 0.0023 and 0.002). L2/H1 and L1/H3 have no ablation change recorded. The evidence does not say what any of these heads does on this prompt or how they lead to \" the\". Their attributions are negative, so they push against the answer, and the evidence does not explain why they matter."
+   },
+   {
+    "title": "Unverified units and wiring",
+    "text": "The unit L1/H7 is CONTESTED (share 0.0044, ablation change 2.36) and L0/H2 is REJECTED, so their roles are not known. L5/N1842+, L2/N855+, L1/H0, L4/N1907+, L0/H6, L0/N960+, L3/N1528+, L1/H4, L5/N1230+ and L3/N1608+ are unstudied, so their roles are not known either. The listed paths show connections between units, for example L0/H6 to L1/H7 (0.66), L2/H4 to L3/H4 (-0.63), L1/H7 to L2/N855+ (-0.51) and L3/H4 to L5/N1842+ (-0.46). These are wiring weights only. They do not make a verified route to the answer, and several ends of them are unverified."
+   },
+   {
+    "title": "What is not known yet",
+    "text": "Not known: how the model produces \" the\", what the 0.9384 unexplained share consists of, and what the unstudied units do. The next experiments listed are an independent_review of L1/H7 (CONTESTED) and of L0/H2 (REJECTED), and explore runs on L5/N1842+, L2/N855+, L1/H0, L4/N1907+, L0/H6, L0/N960+, L3/N1528+ and L1/H4. Each shows a coverage_gain of 0.0, so the evidence does not say they would raise coverage. An answer_experiment on this prompt has not yet been tried."
+   }
+  ],
+  "paragraph": "The answer \" the\" is mostly not understood. The units listed explain 0.0616 of first-order attribution, leaving 0.9384 unexplained, and the answer_experiment is unstudied (0 attempts). Prompt coverage is 1.0 against 0.798 for random units, but coverage_caution is true: keeping the units (heads_only 1.0, poles_only -2.077, minimal set L0/H5, L2/H1, L1/H3) shows sufficiency on this prompt, not how they produce it. Ablating 8 verified poles together left the top token \" the\". Verified heads such as L0/H5, L3/H4, L2/H3, L0/H4, L2/H4, L2/H5, L2/H1 and L1/H3 are described on a scan corpus, not on this prompt, and their role in this answer is not known. L1/H7 (CONTESTED), L0/H2 (REJECTED) and several unstudied units such as L5/N1842+ and L2/N855+ are unverified. Next: independent reviews of L1/H7 and L0/H2, and explore runs on the unstudied units.",
+  "narrator_model": "external/claude-code",
+  "citations_not_in_evidence": []
+ },
+ "planned_experiments": 19367,
+ "run": null,
+ "figures": {
+  "tokens": [
+   "The",
+   " E",
+   "iff",
+   "el",
+   " Tower",
+   " is",
+   " in",
+   " the",
+   " city",
+   " of"
+  ],
+  "logit": 1075.0762,
+  "units": [
+   {
+    "label": "L0/H5",
+    "layer": 0,
+    "kind": "head",
+    "attribution": -4.3556,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L3/H4",
+    "layer": 3,
+    "kind": "head",
+    "attribution": -3.0271,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L1/H7",
+    "layer": 1,
+    "kind": "head",
+    "attribution": -1.7588,
+    "status": "CONTESTED",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L2/H3",
+    "layer": 2,
+    "kind": "head",
+    "attribution": -1.6131,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L5/N1842+",
+    "layer": 5,
+    "kind": "pole",
+    "attribution": -1.5912,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L0/H4",
+    "layer": 0,
+    "kind": "head",
+    "attribution": -1.5012,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L2/H4",
+    "layer": 2,
+    "kind": "head",
+    "attribution": -1.4149,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L2/N855+",
+    "layer": 2,
+    "kind": "pole",
+    "attribution": -1.2757,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L1/H0",
+    "layer": 1,
+    "kind": "head",
+    "attribution": 1.2693,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L0/H2",
+    "layer": 0,
+    "kind": "head",
+    "attribution": 1.2018,
+    "status": "REJECTED",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L2/H5",
+    "layer": 2,
+    "kind": "head",
+    "attribution": -1.1877,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L4/N1907+",
+    "layer": 4,
+    "kind": "pole",
+    "attribution": 1.1642,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L0/H6",
+    "layer": 0,
+    "kind": "head",
+    "attribution": 1.1123,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L0/N960+",
+    "layer": 0,
+    "kind": "pole",
+    "attribution": 1.0479,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L2/H1",
+    "layer": 2,
+    "kind": "head",
+    "attribution": -0.9209,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L3/N1528+",
+    "layer": 3,
+    "kind": "pole",
+    "attribution": -0.8328,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L1/H3",
+    "layer": 1,
+    "kind": "head",
+    "attribution": -0.8099,
+    "status": "VERIFIED",
+    "explained": true,
+    "blocked": false
+   },
+   {
+    "label": "L1/H4",
+    "layer": 1,
+    "kind": "head",
+    "attribution": -0.8078,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L5/N1230+",
+    "layer": 5,
+    "kind": "pole",
+    "attribution": 0.7693,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   },
+   {
+    "label": "L3/N1608+",
+    "layer": 3,
+    "kind": "pole",
+    "attribution": -0.7507,
+    "status": "unstudied",
+    "explained": false,
+    "blocked": false
+   }
+  ],
+  "net": -27.0022,
+  "edges": [
+   {
+    "source": "L0/H6",
+    "target": "L1/H7",
+    "weight": 0.6609
+   },
+   {
+    "source": "L2/H4",
+    "target": "L3/H4",
+    "weight": -0.6336
+   },
+   {
+    "source": "L1/H7",
+    "target": "L2/N855+",
+    "weight": -0.5128
+   },
+   {
+    "source": "L3/H4",
+    "target": "L5/N1842+",
+    "weight": -0.4606
+   },
+   {
+    "source": "L1/H3",
+    "target": "L2/H3",
+    "weight": 0.4337
+   },
+   {
+    "source": "L0/H5",
+    "target": "L2/H3",
+    "weight": -0.4286
+   },
+   {
+    "source": "L0/N960+",
+    "target": "L1/H7",
+    "weight": -0.4118
+   },
+   {
+    "source": "L0/H2",
+    "target": "L3/H4",
+    "weight": 0.3834
+   },
+   {
+    "source": "L0/H4",
+    "target": "L2/H3",
+    "weight": -0.3643
+   },
+   {
+    "source": "L1/H0",
+    "target": "L2/H3",
+    "weight": 0.3618
+   },
+   {
+    "source": "L0/H2",
+    "target": "L2/H4",
+    "weight": 0.3512
+   },
+   {
+    "source": "L0/N960+",
+    "target": "L5/N1842+",
+    "weight": 0.3246
+   },
+   {
+    "source": "L2/H1",
+    "target": "L3/H4",
+    "weight": 0.322
+   },
+   {
+    "source": "L0/H5",
+    "target": "L2/H4",
+    "weight": -0.3197
+   },
+   {
+    "source": "L0/H6",
+    "target": "L2/H4",
+    "weight": 0.2984
+   },
+   {
+    "source": "L0/H5",
+    "target": "L3/H4",
+    "weight": -0.2879
+   },
+   {
+    "source": "L2/H3",
+    "target": "L3/H4",
+    "weight": -0.2871
+   },
+   {
+    "source": "L0/N960+",
+    "target": "L2/H4",
+    "weight": 0.2838
+   },
+   {
+    "source": "L0/H6",
+    "target": "L3/H4",
+    "weight": 0.2684
+   },
+   {
+    "source": "L2/H4",
+    "target": "L5/N1842+",
+    "weight": -0.2679
+   },
+   {
+    "source": "L0/H4",
+    "target": "L3/H4",
+    "weight": -0.2522
+   },
+   {
+    "source": "L0/H5",
+    "target": "L5/N1842+",
+    "weight": -0.2317
+   },
+   {
+    "source": "L0/H6",
+    "target": "L2/N855+",
+    "weight": 0.223
+   },
+   {
+    "source": "L0/H2",
+    "target": "L1/H7",
+    "weight": 0.216
+   },
+   {
+    "source": "L2/H3",
+    "target": "L5/N1842+",
+    "weight": -0.2004
+   },
+   {
+    "source": "L1/H3",
+    "target": "L3/H4",
+    "weight": 0.1992
+   },
+   {
+    "source": "L0/H2",
+    "target": "L5/N1842+",
+    "weight": 0.1903
+   },
+   {
+    "source": "L0/H4",
+    "target": "L1/H7",
+    "weight": 0.1802
+   },
+   {
+    "source": "L2/H1",
+    "target": "L5/N1842+",
+    "weight": 0.178
+   },
+   {
+    "source": "L0/N960+",
+    "target": "L2/H3",
+    "weight": -0.1526
+   },
+   {
+    "source": "L0/N960+",
+    "target": "L2/N855+",
+    "weight": -0.1481
+   },
+   {
+    "source": "L0/H2",
+    "target": "L2/H3",
+    "weight": -0.1471
+   },
+   {
+    "source": "L1/H0",
+    "target": "L2/N855+",
+    "weight": -0.1251
+   },
+   {
+    "source": "L0/H6",
+    "target": "L5/N1842+",
+    "weight": 0.1216
+   },
+   {
+    "source": "L1/H7",
+    "target": "L2/H4",
+    "weight": 0.1178
+   },
+   {
+    "source": "L1/H0",
+    "target": "L3/H4",
+    "weight": 0.1158
+   },
+   {
+    "source": "L1/H3",
+    "target": "L2/N855+",
+    "weight": -0.1152
+   },
+   {
+    "source": "L2/N855+",
+    "target": "L3/H4",
+    "weight": -0.1077
+   },
+   {
+    "source": "L0/H4",
+    "target": "L2/H4",
+    "weight": 0.1033
+   },
+   {
+    "source": "L0/H2",
+    "target": "L2/N855+",
+    "weight": 0.102
+   },
+   {
+    "source": "L1/H4",
+    "target": "L2/N855+",
+    "weight": -0.1017
+   },
+   {
+    "source": "L1/H0",
+    "target": "L5/N1842+",
+    "weight": 0.0947
+   },
+   {
+    "source": "L1/H3",
+    "target": "L2/H4",
+    "weight": 0.0797
+   },
+   {
+    "source": "L0/H5",
+    "target": "L1/H7",
+    "weight": 0.0698
+   },
+   {
+    "source": "L1/H4",
+    "target": "L2/H3",
+    "weight": -0.0693
+   },
+   {
+    "source": "L2/H5",
+    "target": "L5/N1842+",
+    "weight": -0.0676
+   },
+   {
+    "source": "L1/H7",
+    "target": "L2/H3",
+    "weight": -0.0627
+   },
+   {
+    "source": "L2/H5",
+    "target": "L3/H4",
+    "weight": 0.0619
+   },
+   {
+    "source": "L3/N1608+",
+    "target": "L5/N1842+",
+    "weight": 0.0491
+   },
+   {
+    "source": "L2/N855+",
+    "target": "L5/N1842+",
+    "weight": 0.0456
+   },
+   {
+    "source": "L0/N960+",
+    "target": "L3/H4",
+    "weight": 0.0441
+   },
+   {
+    "source": "L1/H0",
+    "target": "L2/H4",
+    "weight": -0.0422
+   },
+   {
+    "source": "L0/H6",
+    "target": "L2/H3",
+    "weight": 0.0416
+   },
+   {
+    "source": "L0/H4",
+    "target": "L5/N1842+",
+    "weight": -0.0365
+   },
+   {
+    "source": "L0/H4",
+    "target": "L2/N855+",
+    "weight": 0.0347
+   },
+   {
+    "source": "L1/H3",
+    "target": "L5/N1842+",
+    "weight": 0.0334
+   },
+   {
+    "source": "L1/H4",
+    "target": "L2/H4",
+    "weight": 0.0297
+   },
+   {
+    "source": "L3/N1528+",
+    "target": "L5/N1842+",
+    "weight": -0.0263
+   },
+   {
+    "source": "L1/H4",
+    "target": "L3/H4",
+    "weight": 0.0252
+   },
+   {
+    "source": "L1/H7",
+    "target": "L5/N1842+",
+    "weight": -0.021
+   },
+   {
+    "source": "L1/H7",
+    "target": "L3/H4",
+    "weight": 0.0193
+   },
+   {
+    "source": "L1/H4",
+    "target": "L5/N1842+",
+    "weight": -0.0163
+   },
+   {
+    "source": "L0/H5",
+    "target": "L2/N855+",
+    "weight": -0.0161
+   },
+   {
+    "source": "L4/N1907+",
+    "target": "L5/N1842+",
+    "weight": -0.0065
+   }
+  ],
+  "coverage": 1.0,
+  "random_draws": [
+   0.1921,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "reading": {
+   "L0/H5": [
+    3.3963,
+    5.4147,
+    3.1822,
+    2.8204,
+    2.7046,
+    2.3794,
+    0.9126,
+    1.3416,
+    1.5338,
+    4.3374
+   ],
+   "L3/H4": [
+    1.6281,
+    1.6346,
+    1.8417,
+    1.9768,
+    2.4108,
+    2.4971,
+    3.2669,
+    4.1697,
+    3.7801,
+    3.3999
+   ],
+   "L1/H7": [
+    1.5405,
+    1.77,
+    1.5158,
+    2.6246,
+    1.4877,
+    1.4288,
+    1.5084,
+    1.0958,
+    1.0745,
+    4.2535
+   ],
+   "L2/H3": [
+    2.2697,
+    1.9967,
+    2.3684,
+    2.1328,
+    3.7805,
+    3.923,
+    3.4806,
+    2.6681,
+    2.5961,
+    2.772
+   ],
+   "L5/N1842+": [
+    0.6516,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0685,
+    1.9305,
+    0.0109,
+    0.0122,
+    2.8227
+   ],
+   "L0/H4": [
+    3.3301,
+    3.2407,
+    3.1922,
+    4.0891,
+    2.843,
+    2.8928,
+    1.9193,
+    1.3938,
+    3.0198,
+    1.9852
+   ],
+   "L2/H4": [
+    2.2869,
+    2.2801,
+    2.265,
+    2.2565,
+    2.2817,
+    2.0519,
+    2.5997,
+    3.432,
+    3.1966,
+    2.5387
+   ],
+   "L2/N855+": [
+    0.1854,
+    0.0,
+    0.0,
+    0.0408,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    1.9509
+   ]
+  },
+  "ablation": [
+   {
+    "token": " the",
+    "before": 0.0321,
+    "after": 0.3026
+   },
+   {
+    "token": " New",
+    "before": 0.0261,
+    "after": 0.0005
+   },
+   {
+    "token": " London",
+    "before": 0.0167,
+    "after": 0.0001
+   },
+   {
+    "token": " L",
+    "before": 0.0139,
+    "after": 0.0009
+   },
+   {
+    "token": " B",
+    "before": 0.0137,
+    "after": 0.0007
+   }
+  ],
+  "groups": []
+ },
+ "target": 1.0,
+ "previous": null,
+ "reused": false,
+ "inputs": {
+  "environment": {
+   "device": "mps:0",
+   "dtype": "float32",
+   "model_revision": "a39f36b100fe8a5377810d56c3f4789b9c53ac42",
+   "openinterp_version": "0.4.0",
+   "torch_version": "2.15.0",
+   "transformers_version": "5.23.0",
+   "streamed": null,
+   "experts_implementation": null,
+   "scan_backend": null,
+   "device_name": "Apple M1 Max",
+   "os": "macOS-15.6",
+   "device_choice": "auto: mps, because the GPU is free",
+   "coremltools_version": null,
+   "host": null,
+   "agent_product": "claude-code",
+   "cpu_threads": null
+  },
+  "token_id": 253,
+  "means_corpus_sha256": "ded48cfc4898c00bd663c4e26dd02baddc48f54f53469988097030686dd2a2ad",
+  "means_corpus_source": {
+   "dataset": "NeelNanda/pile-10k",
+   "revision": "127bfedcd5047750df5ccf3a12979a47bfa0bafa",
+   "files": "data/*.parquet",
+   "text_column": "text",
+   "documents": 500,
+   "seed": 0,
+   "max_chars": 3000,
+   "docs_per_row_group": 20,
+   "layout": null,
+   "first": true,
+   "ascii": true,
+   "lang_pattern": null,
+   "lang_detector": null,
+   "code_language_column": null,
+   "code_detector": null,
+   "chat_template": null,
+   "chat_template_revision": null,
+   "license": "bigscience-bloom-rail-1.0",
+   "sha256": "ded48cfc4898c00bd663c4e26dd02baddc48f54f53469988097030686dd2a2ad",
+   "blend": null,
+   "components": null
+  },
+  "means_tokens": 20000,
+  "means_window": 128,
+  "means_version": 3,
+  "top": 20,
+  "edges": 8,
+  "explained": [
+   "L0/H5",
+   "L3/H4",
+   "L2/H3",
+   "L0/H4",
+   "L2/H4",
+   "L2/H5",
+   "L2/H1",
+   "L1/H3",
+   "L2/H0",
+   "L4/N494+",
+   "L3/H3",
+   "L0/H0",
+   "L5/H7",
+   "L0/H3",
+   "L1/H2",
+   "L3/N371+",
+   "L3/H2",
+   "L1/H6",
+   "L1/N5+",
+   "L0/N1518+",
+   "L1/H1",
+   "L0/H1",
+   "L0/N195+",
+   "L0/N354+",
+   "L1/N440+",
+   "L3/N1511+",
+   "L3/H1",
+   "L3/N1621+",
+   "L5/H0",
+   "L5/H4",
+   "L5/H1",
+   "L0/N1105+",
+   "L0/N697+",
+   "L2/H7",
+   "L4/H4",
+   "L1/N1651+",
+   "L0/N298+",
+   "L1/N609+",
+   "L5/N1603+",
+   "L1/N1757+",
+   "L3/N168+",
+   "L2/N184+",
+   "L4/N1524+",
+   "L3/H0",
+   "L5/N655+",
+   "L0/H7",
+   "L0/N1433−",
+   "L4/H3",
+   "L4/H7",
+   "L1/N1770+",
+   "L1/N506+",
+   "L0/N117−",
+   "L1/N390+",
+   "L3/N1026+",
+   "L1/N687+",
+   "L1/N937+",
+   "L4/H0",
+   "L5/N1718+",
+   "L2/N1624+",
+   "L4/N941+",
+   "L0/N792−",
+   "L5/N504+",
+   "L1/N1177−",
+   "L0/N1625−",
+   "L0/N1877+",
+   "L0/N447+",
+   "L5/N767+",
+   "L4/H1",
+   "L4/N422+",
+   "L1/N244+",
+   "L4/N639+",
+   "L0/N1101+",
+   "L4/N579+",
+   "L4/N766+",
+   "L1/N681+",
+   "L2/N78+",
+   "L2/N514+",
+   "L5/N1252+",
+   "L4/N1916+",
+   "L0/N686+",
+   "L3/N1864+",
+   "L2/N656+",
+   "L1/N394+",
+   "L2/N142+",
+   "L2/N1755+",
+   "L0/N1435+",
+   "L3/N1542−",
+   "L4/N1507+",
+   "L1/N1365+",
+   "L3/N395+",
+   "L5/N907−",
+   "L4/N619+",
+   "L3/N304+",
+   "L1/N1124+",
+   "L1/N108+",
+   "L2/N1240+",
+   "L1/N1480+",
+   "L4/N812+",
+   "L3/N866−",
+   "L0/N912+",
+   "L0/N1335+",
+   "L4/N536+",
+   "L3/N184+",
+   "L1/N1942+",
+   "L1/N1129−",
+   "L3/N1831+",
+   "L2/N1143+",
+   "L4/N883+",
+   "L5/N659+",
+   "L5/N674+",
+   "L5/N731+",
+   "L5/N1072+",
+   "L5/N1102+"
+  ],
+  "blocked": [
+   "L0/N787−",
+   "L2/N1661−",
+   "L5/N1278−",
+   "L3/N746−",
+   "L2/N1615−",
+   "L3/N845−",
+   "L2/N1084−",
+   "L3/N1326−",
+   "L3/N1696−",
+   "L0/N804−",
+   "L0/N1229−",
+   "L1/N1133−",
+   "L2/N1194−",
+   "L3/N453−",
+   "L0/N1392−",
+   "L0/N1250−",
+   "L2/N1322−",
+   "L5/N388−",
+   "L0/N266−",
+   "L2/N1826−",
+   "L2/N1151−",
+   "L0/N1632−",
+   "L3/N1270−",
+   "L2/N1037−",
+   "L1/N1938−",
+   "L4/N1764−",
+   "L1/N807−",
+   "L5/N253−",
+   "L5/N888−",
+   "L0/N1156−",
+   "L1/N828−",
+   "L1/N2043−",
+   "L1/N1437−",
+   "L0/N1363−",
+   "L1/N1843−",
+   "L4/N1239−",
+   "L1/N965−",
+   "L5/N792−",
+   "L2/N1206−",
+   "L2/N439−",
+   "L3/N176−",
+   "L0/N1726−",
+   "L1/N1266−",
+   "L0/N1693−",
+   "L2/N208−",
+   "L4/N1287−",
+   "L1/N758−",
+   "L3/N1299−",
+   "L3/N161−",
+   "L1/N830−",
+   "L2/N966−",
+   "L4/N518−",
+   "L0/N589−",
+   "L3/N1690−",
+   "L0/N607−",
+   "L2/N1352−",
+   "L0/N1943−",
+   "L0/N681−",
+   "L1/N739−",
+   "L5/N1061−",
+   "L0/N1916−",
+   "L1/N1145−",
+   "L3/N935−",
+   "L1/N339−",
+   "L2/N1651−",
+   "L4/N1347−",
+   "L4/N1768−",
+   "L1/N420−",
+   "L1/N1761−",
+   "L1/N74−",
+   "L5/N776−",
+   "L1/N547−",
+   "L4/N2013−",
+   "L2/N1126−",
+   "L4/N506−",
+   "L0/N137−",
+   "L4/N50−",
+   "L5/N1133−",
+   "L1/N1467−",
+   "L1/N494−",
+   "L3/N344−",
+   "L3/N516−",
+   "L4/N1273−",
+   "L1/N1597−",
+   "L0/N1978−",
+   "L5/N1714−",
+   "L1/N445−",
+   "L0/N1557−",
+   "L1/N934−",
+   "L3/N1466−",
+   "L5/N1791−",
+   "L2/N343−",
+   "L0/N540−",
+   "L2/N1664−",
+   "L1/N1652−",
+   "L1/N182−",
+   "L3/N1572−",
+   "L1/N1197−",
+   "L4/N1761−",
+   "L1/N587−",
+   "L5/N593−",
+   "L1/N790−",
+   "L1/N843−",
+   "L2/N2011−",
+   "L5/N2−",
+   "L5/N588−",
+   "L4/N859−",
+   "L3/N1116−",
+   "L5/N1343−",
+   "L3/N303−",
+   "L2/N980−",
+   "L2/N1637−",
+   "L3/N1584−",
+   "L5/N1572−",
+   "L5/N441−",
+   "L2/N820−",
+   "L4/N914−",
+   "L4/N868−",
+   "L3/N1267−",
+   "L1/N1979−",
+   "L4/N727−",
+   "L1/N1892−",
+   "L1/N680−",
+   "L0/N425−",
+   "L5/N1030−",
+   "L5/N843−",
+   "L4/N1800−",
+   "L3/N426−",
+   "L4/N1859−",
+   "L1/N1677−",
+   "L5/N590−",
+   "L2/N483−",
+   "L1/N25−",
+   "L2/N131−",
+   "L1/N698−",
+   "L1/N1811−",
+   "L1/N477−",
+   "L4/N346−",
+   "L4/N255−",
+   "L2/N1725−",
+   "L1/N1306−",
+   "L3/N856−",
+   "L2/N1070−",
+   "L3/N1478−",
+   "L1/N1167−",
+   "L5/N980−",
+   "L0/N1475−",
+   "L0/N2031−",
+   "L5/N1339−",
+   "L3/N559−",
+   "L5/N112−",
+   "L4/N277−",
+   "L3/N327−",
+   "L2/N1911−",
+   "L1/N1527−",
+   "L1/N1870−",
+   "L0/N68−",
+   "L4/N184−",
+   "L2/N1300−",
+   "L5/N1333−",
+   "L2/N1625−",
+   "L4/N1473−",
+   "L1/N1451−",
+   "L5/N897−",
+   "L1/N1616−",
+   "L4/N87−",
+   "L5/N192−",
+   "L1/N738−",
+   "L4/N361−",
+   "L0/N911−",
+   "L0/N1338−",
+   "L5/N1200−",
+   "L3/N186−",
+   "L0/N1188−",
+   "L0/N692−",
+   "L2/N473−",
+   "L4/N1225−",
+   "L4/N2001−",
+   "L1/N568−",
+   "L3/N477−",
+   "L3/N1797−",
+   "L5/N1766−",
+   "L3/N493−",
+   "L4/N1862−",
+   "L4/N46−",
+   "L3/N1234−",
+   "L0/N424−",
+   "L3/N1221−",
+   "L3/N233−",
+   "L3/N482−",
+   "L2/N1285−",
+   "L4/N1669−",
+   "L2/N781−",
+   "L2/N528−",
+   "L5/N894−",
+   "L1/N1699−",
+   "L3/N271−",
+   "L5/N1022−",
+   "L3/N1568−",
+   "L5/N720−",
+   "L3/N434−",
+   "L1/N819−",
+   "L1/N23−",
+   "L0/N1668−",
+   "L5/N779−",
+   "L4/N324−",
+   "L4/N189−",
+   "L0/N1781−",
+   "L3/N367−",
+   "L5/N1882−",
+   "L3/N2016−",
+   "L5/N116−",
+   "L3/N402−",
+   "L5/N1134−",
+   "L3/N1−",
+   "L4/N1720−",
+   "L5/N296−"
+  ],
+  "random_seed": 0,
+  "random_draws": 4
+ },
+ "package_version": "0.4.0",
+ "written": "2026-11-22T05:29:42.266597Z"
+}

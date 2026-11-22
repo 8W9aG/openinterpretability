@@ -31,7 +31,7 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
     in the user's checkout, opens no PR and never resets, so its records count at once
     (#5827).
     """
-    from openinterpretability.cli_loop import _api_model, _models, run_loop
+    from openinterpretability.cli_loop import _api_model, run_loop
     from openinterpretability.explanation_targets import (
         CoverageMeter,
         ShareMeter,
@@ -45,7 +45,7 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
     for model_name in agents[:2]:
         if model_name:
             _api_model(None, None, model_name)  # an external model has nobody to answer it
-    proposer, reviewer = _models(*agents)
+    proposer, reviewer, sessions = _agents(agents, local)
     result, planned, model = found.result, found.planned, ask.model
     ordered = [*planned.experiments, *by_gain(planned.groups)]  # units in greedy order (#4558)
     chosen = targets(ordered, model, found.groups)
@@ -62,11 +62,45 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
     draws = TargetedDraws(chosen, reviewer, max_attempts, meter=meter, target=target,
                           limit=limit, window=window)  # fmt: skip
     out: dict = {}
-    code = run_loop(proposer, reviewer, draws, out=out, local=local)
+    code = run_loop(proposer, reviewer, draws, out=out, local=local, sessions=sessions)
     loop = out.get("loop")
     ran = _ran(loop, found.coverage.get("coverage") or 0.0, code, local)
     pending = loop.options.pending if loop is not None else PendingRecords()
     return ran.model_copy(update={"shares": draws.shares}), code, pending
+
+
+def _agents(agents: tuple[str, str, str], local: bool):
+    """The proposer, the reviewer and the sessions that run the draws (#5831).
+
+    With a LiteLLM model or a provider, the loop calls them, and there are no sessions.
+    With none, and ``claude`` on ``PATH``, a headless Claude Code session runs each draw,
+    and its subagents propose and review. Otherwise the reason is a usage error.
+
+    Args:
+        agents: ``--proposer``, ``--reviewer`` and ``--provider``.
+        local: ``--local``, which runs no session: it calls no GitHub at all.
+
+    Returns:
+        ``(proposer, reviewer, sessions)``; ``sessions`` is None for LiteLLM.
+
+    Raises:
+        click.UsageError: No backend can run the experiments.
+    """
+    from openinterpretability.cli_loop import _models, loop_worktree
+    from openinterpretability.explain_backend import SESSIONS, backend
+    from openinterpretability.loop_sessions import SUBAGENTS, Session, SessionRun
+
+    chosen = backend(*agents)
+    if chosen.kind is None:
+        raise click.UsageError(chosen.why)
+    if chosen.kind != SESSIONS:
+        return (*_models(*agents), None)
+    if local:
+        raise click.UsageError("--local needs a LiteLLM model or a --provider: Claude Code "
+                               "sessions land through PRs.")  # fmt: skip
+    click.echo(f"The run's experiments: {chosen.why}.")
+    logs = loop_worktree()[0] / "logs" / "explain"
+    return SUBAGENTS, SUBAGENTS, SessionRun(Session(), logs)
 
 
 def _ran(loop, before: float, code: int, local: bool = False):
