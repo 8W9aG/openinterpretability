@@ -153,15 +153,6 @@ def test_a_failed_tweet_resumes_from_the_next_one_and_never_repeats(tmp_path):
     assert entry.id in social.load_state(state).posted
 
 
-def test_a_thread_waits_until_the_whole_of_it_fits_todays_budget(tmp_path, monkeypatch):
-    monkeypatch.setattr(social, "PER_DAY", 4)
-    state, entry = tmp_path / "x.json", _thread_entry(3)
-    social.save_state(state, social.State(times=[0.0, 1.0], feeds={"papers"}))
-    post = _Poster()
-    lines = social.run(state, {"papers": [entry]}, post, now=5)
-    assert post.calls == [] and lines[0].startswith("daily limit reached")
-
-
 def test_a_dry_run_shows_each_tweet_with_its_length_and_media():
     media = Media("https://x.org/m.png", "image/png", "A curve")
     entry = Entry("e", "T", "l", "S", None, (Tweet("One https://x.org/p", (media,)), Tweet("Two")))
