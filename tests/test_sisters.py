@@ -24,8 +24,12 @@ from openinterpretability.sisters import (
     SisterRow,
     format_sisters,
     load_rows,
+    load_sister_source,
     pairs,
+    pole_findings,
+    sister_tests,
     sisters,
+    sort_rows,
 )
 from tests.conftest import FakeTokenizer
 from tests.site_pages import unit_pages
@@ -437,3 +441,84 @@ def test_the_sister_graphs_are_no_wider_than_the_text_above_them():
     from openinterpretability.builder.sister_graph import WIDTH
 
     assert WIDTH <= COLUMN_REM * 16
+
+
+def test_sort_rows_orders_rows_by_pole_then_model_and_drops_blank_lines(tmp_path):
+    path = tmp_path / "rows.jsonl"
+    b_y = _sister_row("b/L0/N1-positive", "y", [])
+    a_z = _sister_row("a/L0/N1-positive", "z", [])
+    a_x = _sister_row("a/L0/N1-positive", "x", [])
+    path.write_text("\n".join(r.model_dump_json() for r in (b_y, a_z, a_x)) + "\n\n")
+    assert {slug: len(rows) for slug, rows in load_rows(path).items()} == {
+        "b/L0/N1-positive": 1, "a/L0/N1-positive": 2,
+    }  # fmt: skip
+    sort_rows(path)
+    assert path.read_text() == "".join(r.model_dump_json() + "\n" for r in (a_x, a_z, b_y))
+
+
+def test_a_weak_link_from_another_poles_matches_is_not_shown():
+    slug = "a/L1/N5-positive"
+    rows = {
+        # d's best match is a's pole, but weakly and not mutually.
+        "d/L0/N2-positive": [
+            _sister_row("d/L0/N2-positive", "a", [(1, 5, "positive", 0.3, "a/L9/N9-positive", 0.7)])
+        ],
+    }
+    findings = {"d/L0/N2-positive": ("VERIFIED", "speech verbs")}
+    assert format_sisters(slug, rows, findings, "reviewer") == ""
+
+
+def test_pole_findings_give_each_neuron_poles_standing_and_skip_heads(record):
+    from openinterpretability.core.identifiers import HeadIdentifier
+
+    head = HeadIdentifier(model_name="Qwen/Qwen2.5-0.5B", layer=2, head_idx=1)
+    head_record = record.model_copy(
+        update={"submission": record.submission.model_copy(update={"identifier": head})}
+    )
+    found = pole_findings([record, head_record], [])
+    assert found == {
+        record.submission.identifier.slug: (
+            "VERIFIED", "Fires on the closing quote of reported speech.",
+        )
+    }  # fmt: skip
+
+
+def test_a_sister_source_must_be_a_verified_neuron_pole_of_another_model(tmp_path, record):
+    from openinterpretability.core.identifiers import HeadIdentifier
+
+    path = tmp_path / "source.json"
+    other = NeuronIdentifier(model_name="o/m", layer=2, neuron_idx=9, pole="negative")
+    path.write_text(record.model_dump_json())
+    assert load_sister_source(path, other) == record
+    with pytest.raises(ValueError, match="sister studies are between neuron poles"):
+        load_sister_source(path, HeadIdentifier(model_name="o/m", layer=2, head_idx=1))
+    same = other.model_copy(update={"model_name": "Qwen/Qwen2.5-0.5B"})
+    with pytest.raises(ValueError, match="a sister is in another model"):
+        load_sister_source(path, same)
+    path.write_text(_record(record, "Qwen/Qwen2.5-0.5B", 3, 117, "positive", "REJECTED")
+                    .model_dump_json())  # fmt: skip
+    with pytest.raises(ValueError, match="is not a VERIFIED experiment"):
+        load_sister_source(path, other)
+
+
+def test_sister_tests_keep_the_newest_verdict_of_each_study(record):
+    from types import SimpleNamespace
+
+    study = _record(record, "o/m", 2, 9, "negative")
+    ref = f"{record.submission.identifier.slug}/20261001T120000Z"
+    study = study.model_copy(
+        update={"submission": study.submission.model_copy(update={"sister_of": ref})}
+    )
+    newer = study.model_copy(
+        update={
+            "verdict": study.verdict.model_copy(
+                update={"status": "REJECTED", "timestamp": study.verdict.timestamp.replace(day=2)}
+            )
+        }
+    )
+    unrelated = record  # not a sister study
+    # The newer verdict comes first, so the older one must not replace it.
+    experiments = [SimpleNamespace(record=r) for r in (unrelated, newer, study)]
+    assert sister_tests(experiments) == {
+        ("o--m/L2/N9-negative", record.submission.identifier.slug): "REJECTED"
+    }

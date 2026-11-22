@@ -1,5 +1,7 @@
 """Prior art: published explanations found after the proposer answers."""
 
+import pytest
+
 from openinterpretability.agents.reviewer import ReviewerAgent
 from openinterpretability.builder.compiler import compile_site
 from openinterpretability.core.identifiers import FeatureIdentifier
@@ -71,3 +73,86 @@ def test_the_reviewer_sees_prior_art_and_the_page_shows_it(record, monkeypatch, 
     compile_site([record.model_copy(update={"submission": sub})], site)
     page = unit_pages(site / "models/openai-community--gpt2/L8/gpt2-small-transcoders/F5.html")
     assert "Prior art" in page and "closing quotes" in page and art[0].url in page
+
+
+def test_a_head_has_no_prior_art(record, monkeypatch):
+    from openinterpretability.core.identifiers import HeadIdentifier
+
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "1")
+    sub = _sub(record, HeadIdentifier(model_name=GPT2, layer=8, head_idx=1))
+    assert find_prior_art(sub, runner=None, fetch=_fetch([])) is None
+
+
+def test_a_latent_neuronpedia_does_not_host_or_has_no_explanation_gets_none(record, monkeypatch):
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "1")
+    qwen = FeatureIdentifier(model_name="Qwen/Qwen2.5-0.5B", layer=3,
+                             dictionary="qwen2.5-0.5b-transcoders", feature_idx=5)  # fmt: skip
+    asked = []
+    assert find_prior_art(_sub(record, qwen), runner=None, fetch=_fetch(asked)) == []
+    assert asked == []  # no page to look up
+    gpt2 = FeatureIdentifier(model_name=GPT2, layer=8, dictionary=TC, feature_idx=5)
+    assert find_prior_art(_sub(record, gpt2), runner=None, fetch=lambda *a: None) == []
+
+
+def test_a_pole_skips_dictionaries_neuronpedia_does_not_host(record, monkeypatch):
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "1")
+    ident = NeuronIdentifier(model_name="Qwen/Qwen2.5-0.5B", layer=3, neuron_idx=7,
+                             pole="positive")  # fmt: skip
+    align = "openinterpretability.harness.crossref.align_layer"
+    monkeypatch.setattr(align, lambda *a: pytest.fail("aligned"))
+    assert find_prior_art(_sub(record, ident), runner=None, rows={}, fetch=_fetch([])) == []
+
+
+def _matches(*pairs):
+    from types import SimpleNamespace
+
+    return [SimpleNamespace(feature_idx=i, cosine=c) for i, c in pairs]
+
+
+def test_a_pole_without_a_stored_row_is_aligned_now_on_both_sides(record, monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "1")
+    ident = NeuronIdentifier(model_name=GPT2, layer=8, neuron_idx=7, pole="positive")
+    write = SimpleNamespace(matches=_matches((1, 0.9), (2, 0.1)), chance=0.2)
+    read = SimpleNamespace(matches=_matches((3, -0.6), (4, 0.5)), chance=0.2)
+    seen = []
+
+    def align_layer(runner, spec, layer, poles):
+        seen.append((runner, spec, layer, poles))
+        return {(7, "positive"): (write, read)}
+
+    monkeypatch.setattr("openinterpretability.harness.crossref.align_layer", align_layer)
+
+    def fetch(dictionary, layer, idx):
+        return [] if idx == 4 else FOUND  # latent 4 has no explanation, so it is left out
+
+    found = find_prior_art(_sub(record, ident), runner="runner", rows={}, fetch=fetch)
+    from openinterpretability.harness.dictionaries import DICTIONARIES
+
+    assert seen == [("runner", DICTIONARIES[TC], 8, [(7, "positive")])]
+    assert [(a.relation, a.feature_idx, a.cosine) for a in found] == [
+        ("writes", 1, 0.9), ("reads", 3, -0.6)]  # fmt: skip
+
+
+def test_a_pole_whose_alignment_fails_gets_no_prior_art(record, monkeypatch):
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "1")
+    ident = NeuronIdentifier(model_name=GPT2, layer=8, neuron_idx=7, pole="negative")
+
+    def align_layer(*args):
+        raise OSError("no weights offline")
+
+    monkeypatch.setattr("openinterpretability.harness.crossref.align_layer", align_layer)
+    assert find_prior_art(_sub(record, ident), runner=None, rows={}, fetch=_fetch([])) == []
+
+
+def test_a_write_only_alignment_has_no_reads_side(record, monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("OPENINTERPRETABILITY_PRIOR_ART", "1")
+    ident = NeuronIdentifier(model_name=GPT2, layer=8, neuron_idx=7, pole="positive")
+    write = SimpleNamespace(matches=_matches((1, 0.9)), chance=0.2)
+    monkeypatch.setattr("openinterpretability.harness.crossref.align_layer",
+                        lambda *a: {(7, "positive"): (write, None)})  # fmt: skip
+    found = find_prior_art(_sub(record, ident), runner=None, rows={}, fetch=_fetch([]))
+    assert [a.relation for a in found] == ["writes"]
