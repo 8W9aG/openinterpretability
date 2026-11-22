@@ -46,6 +46,9 @@ class Finding:
     def line(self) -> str:
         """The finding as one line of the report.
 
+        Returns:
+            The status in capitals, the item and the detail.
+
         Examples:
             >>> Finding("final norm", "fail", "none found").line()
             'FAIL  final norm: none found'
@@ -54,7 +57,15 @@ class Finding:
 
 
 def _probe(item: str, read: Callable[[], str]) -> Finding:
-    """Pass with what ``read`` gives, or fail with the error it raises."""
+    """Pass with what ``read`` gives, or fail with the error it raises.
+
+    Args:
+        item: The name of the check.
+        read: Gives the detail, or raises when the model lacks what it reads.
+
+    Returns:
+        A ``pass`` finding with the detail, or a ``fail`` finding with the error.
+    """
     try:
         return Finding(item, "pass", read())
     except (ArchitectureNotSupportedError, AttributeError, IndexError) as exc:
@@ -66,6 +77,12 @@ def mlp_family(runner: NeuronHookRunner) -> str:
 
     A gated neuron is ``act(gate(x)) * up(x)``, so its negative pole can be large. A plain
     neuron is ``act(fc(x))``, so with GELU its negative pole is at most about 0.17.
+
+    Args:
+        runner: The loaded model.
+
+    Returns:
+        ``gated`` or ``plain``, a comma, and the activation's name.
 
     Examples:
         >>> from transformers import GPT2Config, GPT2LMHeadModel
@@ -81,6 +98,17 @@ def mlp_family(runner: NeuronHookRunner) -> str:
 
 
 def _final_norm(runner: NeuronHookRunner) -> str:
+    """The final norm's class name.
+
+    Args:
+        runner: The loaded model.
+
+    Returns:
+        The class name of the norm before the unembedding.
+
+    Raises:
+        ArchitectureNotSupportedError: No path in ``FINAL_NORM_PATHS`` resolves.
+    """
     norm = runner.final_norm()
     if norm is None:
         raise ArchitectureNotSupportedError("no final norm found (FINAL_NORM_PATHS)")
@@ -88,11 +116,27 @@ def _final_norm(runner: NeuronHookRunner) -> str:
 
 
 def _attention(runner: NeuronHookRunner) -> str:
+    """The number of heads and their width.
+
+    Args:
+        runner: The loaded model.
+
+    Returns:
+        ``<n> heads of width <d>``.
+    """
     runner.attn_out(0)  # first, so that a missing projection names its paths
     return f"{runner.n_heads} heads of width {runner.head_dim(0)}"
 
 
 def _residual(runner: NeuronHookRunner) -> str:
+    """Whether the block is parallel or sequential.
+
+    Args:
+        runner: The loaded model.
+
+    Returns:
+        The block's shape, and what it means for the MLP's input.
+    """
     from openinterpretability.harness.wiring import parallel_residual
 
     if parallel_residual(runner):
@@ -102,6 +146,12 @@ def _residual(runner: NeuronHookRunner) -> str:
 
 def layout(runner: NeuronHookRunner) -> list[Finding]:
     """Where the hooks attach, the MLP's family and the block's shape.
+
+    Args:
+        runner: The loaded model.
+
+    Returns:
+        Seven findings: layers, MLP, MLP family, attention, both norms and the block.
 
     Examples:
         >>> from transformers import GPT2Config, GPT2LMHeadModel
@@ -124,7 +174,15 @@ def layout(runner: NeuronHookRunner) -> list[Finding]:
 
 
 def _ablation(runner: NeuronHookRunner, inputs) -> Finding:
-    """Ablate the last layer's strongest pole, and check that the logits move."""
+    """Ablate the last layer's strongest pole, and check that the logits move.
+
+    Args:
+        runner: The loaded model.
+        inputs: Text or token ids.
+
+    Returns:
+        The ``ablation`` finding, or a failed ``neurons`` finding for values not finite.
+    """
     last = runner.n_layers - 1
     acts = runner.layer_activations(inputs, [last])[last]
     if not torch.isfinite(acts).all():
@@ -139,7 +197,15 @@ def _ablation(runner: NeuronHookRunner, inputs) -> Finding:
 
 
 def _final_read(runner: NeuronHookRunner, inputs) -> Finding:
-    """Read the final norm's input once, and check its width against the residual stream."""
+    """Read the final norm's input once, and check its width against the residual stream.
+
+    Args:
+        runner: The loaded model.
+        inputs: Text or token ids.
+
+    Returns:
+        The ``final read`` finding.
+    """
     norm = runner.final_norm()
     if norm is None:
         return Finding("final read", "fail", "no final norm to read")
@@ -158,7 +224,12 @@ def _final_read(runner: NeuronHookRunner, inputs) -> Finding:
 def smoke(runner: NeuronHookRunner, inputs=SMOKE_TEXT) -> list[Finding]:
     """One small run: the neurons record, an ablation moves the logits, the final norm reads.
 
-    ``inputs`` is text for a model with a tokenizer, or token ids.
+    Args:
+        runner: The loaded model.
+        inputs: Text, for a model with a tokenizer, or token ids.
+
+    Returns:
+        The ``ablation`` (or ``neurons``) finding, then the ``final read`` finding.
 
     Examples:
         >>> from transformers import GPT2Config, GPT2LMHeadModel
@@ -172,7 +243,14 @@ def smoke(runner: NeuronHookRunner, inputs=SMOKE_TEXT) -> list[Finding]:
 
 
 def _ci_models(ci: Path) -> list[str] | None:
-    """The ``ALLOWED_MODELS`` of CI's workflow, or None outside a clone."""
+    """The ``ALLOWED_MODELS`` of CI's workflow, or None outside a clone.
+
+    Args:
+        ci: The path of CI's workflow file.
+
+    Returns:
+        The model names, an empty list if the file names none, or None with no file.
+    """
     if not ci.is_file():
         return None
     found = re.search(r"^\s*ALLOWED_MODELS:\s*(.+?)\s*$", ci.read_text(), re.M)
@@ -185,6 +263,14 @@ def config_findings(
     """Whether ``name`` is configured, has a licence entry and is in CI's allow list.
 
     A gap fails for a configured model and warns for a model that isn't configured yet.
+
+    Args:
+        name: The model's Hub name.
+        pyproject: The file whose ``[tool.openinterpretability]`` table is read.
+        ci: CI's workflow file, which holds ``ALLOWED_MODELS``.
+
+    Returns:
+        The ``models``, ``licence`` and ``CI`` findings.
 
     Examples:
         >>> import tempfile
@@ -212,6 +298,14 @@ def check(runner: NeuronHookRunner, name: str, inputs=SMOKE_TEXT) -> list[Findin
     """Every finding for the model that ``runner`` holds, under its Hub ``name``.
 
     The smoke run is skipped when the layout fails, since its hooks would not attach.
+
+    Args:
+        runner: The loaded model.
+        name: The model's Hub name, for the config checks.
+        inputs: Text or token ids for the smoke run.
+
+    Returns:
+        The layout findings, then the smoke findings if the layout passed, then the config's.
 
     Examples:
         >>> from transformers import GPT2Config, GPT2LMHeadModel
