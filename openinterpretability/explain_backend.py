@@ -106,7 +106,8 @@ def default_narrator(env: Mapping[str, str] | None = None) -> str | None:
     """The narrator when ``--narrator-model`` isn't given: ``external/`` inside Claude Code.
 
     The name is the session's model when ``$ANTHROPIC_MODEL`` gives it, else
-    ``claude-code``. The subagent that answers reports its own model ID, which is recorded.
+    ``claude-code``. The subagent that answers reports its own model ID in its answer, and
+    the record names that model (#5966).
 
     Args:
         env: The environment; the process's by default.
