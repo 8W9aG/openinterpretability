@@ -38,6 +38,7 @@ from collections.abc import Iterable
 import torch
 
 from openinterpretability.explain_groups import HEAD
+from openinterpretability.harness.progress import Progress
 
 DRAWS = 4  # random sets for the baseline
 SEED = 0  # their seed, which a record stores (#4793)
@@ -121,7 +122,10 @@ def prompt_coverage(runner, prompt, means, token, position, order, *, draws=DRAW
 
     kept = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, keep))
     rng, units = random.Random(seed), [unit for unit, *_ in order]
-    randoms = [share(matched_draw(rng, units, keep)) for _ in range(draws if keep else 0)]
+    progress, randoms = Progress("random sets measured", draws if keep else 0), []
+    for _ in range(draws if keep else 0):
+        randoms.append(share(matched_draw(rng, units, keep)))
+        progress.step()
     baseline = [r for r in randoms if r is not None]
     raw = _raw(clean, ablated, kept)
     heads = [u for u in keep if u[2] == HEAD]
@@ -177,16 +181,18 @@ def minimal_set(share, keep: list, full: float | None, keep_share: float = MINIM
     if full is None or full <= 0:
         return list(keep)
     floor = keep_share * full
-    drops = []
+    drops, progress = [], Progress("units tried for the minimal set", 2 * len(keep))
     for i, unit in enumerate(keep):
         rest = share(keep[:i] + keep[i + 1 :])
         drops.append(((full - rest) if rest is not None else float("inf"), i, unit))
+        progress.step()
     current = list(keep)
     for _, _, unit in sorted(drops, key=lambda d: (d[0], d[1])):
         trial = [u for u in current if u != unit]
         value = share(trial) if trial else None
         if value is not None and value >= floor:
             current = trial
+        progress.step()
     return current
 
 
@@ -214,8 +220,6 @@ def add_gains(runner, prompt, means, token, position, order, planned, *, pool=PO
                                            keep_hooks(runner, means, keep)))  # fmt: skip
     if now is None:
         return
-    from openinterpretability.harness.progress import Progress
-
     measured = [*planned.experiments[:pool], *planned.groups]
     progress = Progress("experiments measured for their gain", len(measured))
     for e in measured:
@@ -261,6 +265,7 @@ def coverage_plan(runner, prompt, means, token, position, order, planned, target
     now = min(raw(explained), 1.0)
     chosen, units, cur = [], list(explained), now
     candidates = list(planned.experiments[:pool])
+    progress = Progress("experiments picked for the plan, at most", min(steps, len(candidates)))
     while cur < target and candidates and len(chosen) < steps:
         scored = [(min(raw(units + e.units), 1.0), e) for e in candidates]
         best, pick = max(scored, key=lambda s: s[0])
@@ -270,6 +275,7 @@ def coverage_plan(runner, prompt, means, token, position, order, planned, target
         chosen.append(pick)
         candidates.remove(pick)
         units += pick.units
+        progress.step()
     rest = [e for e in planned.experiments if e not in chosen]
     planned.experiments[:] = chosen + rest
     reach = max(cur, min(every, 1.0))

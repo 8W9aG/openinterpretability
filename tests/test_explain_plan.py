@@ -138,7 +138,7 @@ def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, mon
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
-            "--wiki-dir", str(tmp_path / "wiki"), "--edges", "0", "--run", "2",
+            "--wiki-dir", str(tmp_path / "wiki"), "--edges", "0", "--run", "2", "--yes",
             "--proposer", "anthropic/p", "--reviewer", "anthropic/r",
             "--max-attempts", "3"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
@@ -219,7 +219,7 @@ def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     wiki = tmp_path / "wiki"
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
-            "--wiki-dir", str(wiki), "--edges", "0", "--run", "--record", "--no-land",
+            "--wiki-dir", str(wiki), "--edges", "0", "--run", "--record", "--no-land", "--yes",
             "--level", "mechanism", "--proposer", "anthropic/p",
             "--reviewer", "anthropic/r"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
@@ -270,7 +270,7 @@ def test_complete_runs_narrates_and_lands_in_one_command(toy_runner, tmp_path, m
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
             "--wiki-dir", str(tmp_path / "wiki"), "--edges", "0", "--complete", "--target", "0.8",
-            "--proposer", "anthropic/p", "--reviewer", "anthropic/r"]  # fmt: skip
+            "--proposer", "anthropic/p", "--reviewer", "anthropic/r", "--yes"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == 0, out.output
     assert seen["limit"] == 0  # to the target, with no cap
@@ -282,7 +282,7 @@ def test_complete_runs_narrates_and_lands_in_one_command(toy_runner, tmp_path, m
 
 
 def test_the_reached_line():
-    from openinterpretability.cli_explain import reached
+    from openinterpretability.explain_output import reached
 
     ran = SimpleNamespace(share_before=0.1)
     line = reached(0.42, 0.8, {"coverage": 0.3, "random": 0.05}, ran)
@@ -438,7 +438,7 @@ def test_complete_local_runs_and_records_with_no_pr_and_no_gh(toy_runner, tmp_pa
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     wiki = tmp_path / "wiki"
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
-            "--wiki-dir", str(wiki), "--edges", "0", "--complete", "--local",
+            "--wiki-dir", str(wiki), "--edges", "0", "--complete", "--local", "--yes",
             "--proposer", "anthropic/p", "--reviewer", "anthropic/r"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == 0, out.output

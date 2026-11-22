@@ -37,7 +37,7 @@ def test_a_run_with_only_a_provider_takes_the_providers_model(toy_runner, tmp_pa
     corpus = tmp_path / "corpus.jsonl"
     corpus.write_text("".join(json.dumps({"text": t}) + "\n" for t in TEXTS))
     args = ["explain", PROMPT, "--model", "toy", "--corpus", str(corpus), "--mean-tokens", "200",
-            "--wiki-dir", str(tmp_path / "wiki"), "--edges", "0", "--run", "1",
+            "--wiki-dir", str(tmp_path / "wiki"), "--edges", "0", "--run", "1", "--yes",
             "--provider", "anthropic"]  # fmt: skip
     out = CliRunner().invoke(cli, args)
     assert out.exit_code == 0, out.output
