@@ -90,7 +90,13 @@ def load_records(audits_dir: Path) -> list[AuditRecord]:
     return records
 
 
-def _environment() -> Environment:
+def _environment(grid_scale: int = 1) -> Environment:
+    """The templates' environment: their filters and globals.
+
+    Args:
+        grid_scale: The most studied neurons in any block of any status grid, the one scale
+            of every model's grid (#5836).
+    """
     env = Environment(
         loader=PackageLoader("openinterpretability.builder", "templates"),
         autoescape=select_autoescape(["html"]),
@@ -107,6 +113,7 @@ def _environment() -> Environment:
     env.globals["roles"] = ROLES
     env.globals["charts"] = charts  # page-level charts: the layer map
     env.globals["pieces"] = pieces  # the pieces bars of a model and of a layer
+    env.globals["grid_scale"] = grid_scale  # the most studied neurons in any grid block
     env.globals["statuses"] = statuses  # unit statuses, their order and colours
     env.globals["is_broad"] = is_broad  # a VERIFIED unit active on most held-out text (#4545)
     env.globals["palette"] = palette  # the status and pole colours
@@ -338,7 +345,7 @@ def compile_site(
 
     common = _site_context(site_title, corpus_sources, experiments, pending)
     common |= model_page_extras(coverage_rows or {}, explanations, circuits or {}, concept_map)
-    render = _Renderer(_environment(), output_dir, common, report, jobs)
+    render = _Renderer(_environment(pieces.grid_scale(models)), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))
     for model in models:
