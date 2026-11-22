@@ -167,7 +167,7 @@ def preview(tweets: list[tuple]) -> str:
 
 
 def _post_entry(post: Callable, entry_id: str, tweets: list[tuple], state: State,
-                state_path: Path, now: float) -> list[str]:  # fmt: skip
+                state_path: Path, now: float, posted: list | None = None) -> list[str]:  # fmt: skip
     """Post an entry's tweets that are left, recording each one; return a line per tweet.
 
     A thread's tweets reply each to the one before, and the state keeps their ids after
@@ -180,6 +180,7 @@ def _post_entry(post: Callable, entry_id: str, tweets: list[tuple], state: State
         state: The state, saved after each tweet.
         state_path: The state's JSON file.
         now: The time in seconds.
+        posted: Gets ``(entry id, first post id)`` once the entry is whole (#5840).
 
     Returns:
         One ``posted <id>: <first line>`` line per tweet posted.
@@ -195,15 +196,19 @@ def _post_entry(post: Callable, entry_id: str, tweets: list[tuple], state: State
         lines.append(f"posted {found}: {text.splitlines()[0]}")
         state.times.append(now)
         save_state(state_path, state)  # after each tweet, so a later failure loses nothing
+    first = (done or [found])[0]  # a thread's head, or the one post
     state.posted.add(entry_id)
     state.threads.pop(entry_id, None)
     save_state(state_path, state)
+    if posted is not None:
+        posted.append((entry_id, first))
     return lines
 
 
 def run(state_path: Path, feeds: dict[str, list[Entry]],
         post: Callable[[str, Media | None], str] | None,
-        now: float, repost: frozenset[str] = frozenset()) -> list[str]:  # fmt: skip
+        now: float, repost: frozenset[str] = frozenset(),
+        posted: list | None = None) -> list[str]:  # fmt: skip
     """Post what is new and record it; return a line per action.
 
     With ``post`` None (a dry run), print the posts and change no state. ``repost`` names
@@ -218,6 +223,7 @@ def run(state_path: Path, feeds: dict[str, list[Entry]],
             id, or None for a dry run.
         now: The time in seconds, for the daily limit.
         repost: The ids of entries to post although the state has them.
+        posted: Gets ``(entry id, first post id)`` for each entry posted whole (#5840).
 
     Returns:
         One line per action, such as ``posted <id>: <first line>``, or ``["nothing new"]``.
@@ -263,5 +269,5 @@ def run(state_path: Path, feeds: dict[str, list[Entry]],
         if post is None:
             lines.append(preview(left))
             continue
-        lines += _post_entry(post, entry_id, tweets, state, state_path, now)
+        lines += _post_entry(post, entry_id, tweets, state, state_path, now, posted)
     return lines if count else [*lines, "nothing new"]

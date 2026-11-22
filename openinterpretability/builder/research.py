@@ -23,7 +23,7 @@ from markdown_it.token import Token
 from openinterpretability.builder.contents import anchor as section_anchor
 from openinterpretability.builder.maths import MathsError, enable_maths
 from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
-from openinterpretability.builder.social_media import drawn
+from openinterpretability.builder.social_media import drawn, x_url
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
 # An entry of papers/README.md: "- 2026-11-16: [Title](slug/README.md)". The date is optional.
@@ -157,6 +157,7 @@ class Paper:
     social_video: str | None = None  # media/social.mp4, when that figure animates
     authors: tuple[str, ...] = ()  # from the folder's CITATION.cff, in order (#5260)
     thread: tuple = ()  # its X thread (social.thread.Prepared), from thread.yaml (#5833)
+    x_url: str | None = None  # its post on X, once posted (media/social.json, #5840)
 
     @property
     def href(self) -> str:
@@ -279,6 +280,7 @@ def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
         status=paper_status(text),
         authors=cff_authors(folder),
         thread=_thread(folder, sections),
+        x_url=x_url(folder),
     )
 
 

@@ -18,4 +18,4 @@ You are the **narrator** of an Open Interpretability explanation. A model gave o
 
 Write exactly one JSON object matching the schema in the prompt to the path the prompt names (`Narrator.response.json`). No comments and no trailing text.
 
-Reply with the answer's path and your exact model ID (for example `claude-sonnet-5-5`). The caller records the narrator model it was given, so name the model that actually answered in that string (`external/<model ID>`).
+Put your exact model ID in the answer's `model` field, for example `claude-sonnet-5-5`. The record names that model as the narrator (#5966). Reply with the answer's path and the same model ID.
