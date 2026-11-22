@@ -29,13 +29,27 @@ TOLERANCE = 1e-3  # the largest coverage difference from the record that the scr
 
 
 def _windows(runner, texts, tokens: int, window: int) -> list[list[int]]:
-    """The windows of corpus tokens that ``unit_means`` reads, in its order."""
+    """The windows of corpus tokens that ``unit_means`` reads, in its order.
+
+    Args:
+        runner: The model runner, with its tokenizer.
+        texts: The corpus texts.
+        tokens: The number of corpus tokens to read.
+        window: The number of tokens in one window.
+    """
     ids = [i for t in texts for i in runner.tokenizer.encode(t)][:tokens]
     return [ids[i : i + window] for i in range(0, len(ids) - window + 1, window)]
 
 
 def baseline(runner, texts, inputs, prompt: str) -> dict:
-    """Each neuron's mean in each window, past the window's first token, and on the prompt."""
+    """Each neuron's mean in each window, past the window's first token, and on the prompt.
+
+    Args:
+        runner: The model runner.
+        texts: The corpus texts.
+        inputs: The record's pinned inputs, with the token count and the window size.
+        prompt: The text of the prompt.
+    """
     import torch
 
     windows = _windows(runner, texts, inputs.means_tokens, inputs.means_window)
@@ -44,7 +58,18 @@ def baseline(runner, texts, inputs, prompt: str) -> dict:
     store: dict[int, torch.Tensor] = {}
 
     def keep(layer):
+        """A hook that stores the activations of one layer.
+
+        Args:
+            layer: The layer whose activations the hook stores.
+        """
+
         def hook(act):
+            """Store the activations of the layer.
+
+            Args:
+                act: The activations of the layer.
+            """
             store[layer] = act
 
         return hook
@@ -52,6 +77,7 @@ def baseline(runner, texts, inputs, prompt: str) -> dict:
     with torch.no_grad(), runner.hooks({la: keep(la) for la in layers}, None, None):
         for window in windows:
             runner.forward(runner.encode(torch.tensor([window])))
+            # Leave each window's first token out, an attention sink, as explain's means do.
             for la, n in NEURONS:
                 found[f"L{la}/N{n}"].append(round(float(store[la][0, 1:, n].float().mean()), 5))
         runner.forward(runner.encode(prompt))
@@ -67,6 +93,12 @@ def pruning(share, keep: list, full: float, floor_share: float) -> list[dict]:
 
     It makes the same choices as ``minimal_set``. Each item is one unit that it tried to
     remove: the unit, the coverage without it, and whether it stayed out.
+
+    Args:
+        share: A function that gives the coverage of a list of kept units, or None.
+        keep: The explained units, in the record's order.
+        full: The coverage with all the explained units kept.
+        floor_share: The share of ``full`` that the coverage must keep after a removal.
     """
     floor = floor_share * full
     drops = []
@@ -85,7 +117,7 @@ def pruning(share, keep: list, full: float, floor_share: float) -> list[dict]:
     return steps
 
 
-def main() -> int:
+def main() -> int:  # long-function: one measurement run, in the order that the post reads
     """Measure the post's data, check it against the record and write it."""
     from openinterpretability import explain_groups
     from openinterpretability.cli import _load_runner
@@ -122,6 +154,11 @@ def main() -> int:
     clean, ablated = coverage["clean"], coverage["ablated"]
 
     def share(units):
+        """The coverage with only ``units`` kept at their values.
+
+        Args:
+            units: The units to keep. The other units are set to their baseline.
+        """
         hooks = keep_hooks(runner, means, units)
         return _share(clean, ablated, _log_prob(runner, record.prompt, inputs.token_id,
                                                 record.position, hooks))  # fmt: skip

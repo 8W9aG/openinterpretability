@@ -48,7 +48,7 @@ uv run --with playwright==1.65.2 playwright install chromium
 uv run --with playwright==1.65.2 python scripts/social_images.py
 ```
 
-It writes `social.png` (the final frame), `social.mp4` (one loop, when the figure animates) and `social.json` (the hash that a test checks). It needs ffmpeg. Commit the three files. The post on X carries the figure, and the page's link card shows `social.png`.
+It writes `social.png` (the final frame), `social.mp4` (one loop, when the figure animates) and `social.json` (the hash that a test checks). It needs ffmpeg. Commit the three files. A draft needs none until it is published, since a draft never posts (#5851). The post on X carries the figure, and the page's link card shows `social.png`.
 
 ## The thread on X
 
