@@ -665,7 +665,6 @@ openinterpretability/evidence.py::check_default_on
 openinterpretability/evidence.py::check_context
 openinterpretability/evidence_branch.py::record_refs
 openinterpretability/evidence_branch.py::blob_commit
-openinterpretability/evidence_branch.py::push
 openinterpretability/evidence_branch.py::load_branch
 openinterpretability/evidence_branch.py::upload
 openinterpretability/evidence_branch.py::publish_missing

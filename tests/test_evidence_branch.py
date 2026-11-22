@@ -274,3 +274,65 @@ def test_publish_with_no_dataset_reads_every_blob_from_the_first_branch_that_has
         subprocess.run(["git", "update-ref", f"{eb.LOCAL_REFS}{branch}", commit], check=True)
     assert eb.publish_missing([path], fresh) == (len(shas), [])
     assert _HubApi.uploads == [shas]
+
+
+def _bare_remote(tmp_path):
+    remote = tmp_path / "remote.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+    subprocess.run(["git", "remote", "add", "origin", str(remote)], check=True)
+    return remote
+
+
+def _names(remote, branch="evidence/experiment/x"):
+    listing = ["git", "ls-tree", "-r", "--name-only", branch]
+    out = subprocess.run(listing, cwd=remote, capture_output=True, text=True, check=True).stdout
+    return sorted(out.split())
+
+
+def test_a_second_push_to_a_reused_branch_keeps_the_first_pushs_blobs(repo, tmp_path, monkeypatch):
+    # #6166: a second revision of one neuron reused the branch. A push that replaced the
+    # branch then lost a merged record's blob, before the deploy uploaded it.
+    monkeypatch.setenv(evidence.DIR_ENV, str(tmp_path / "store"))
+    first = evidence.put(b'{"first": 1}')
+    second = evidence.put(b'{"second": 2}')
+    remote = _bare_remote(tmp_path)
+    eb.push("experiment/x", [first])
+    (tmp_path / "store" / evidence.blob_name(first)).unlink()  # another machine pushes next
+    eb.push("experiment/x", [second])
+    assert _names(remote) == sorted(evidence.blob_name(s) for s in (first, second))
+
+
+def test_a_push_reads_the_branch_again_when_another_push_lands_first(repo, tmp_path, monkeypatch):
+    monkeypatch.setenv(evidence.DIR_ENV, str(tmp_path / "store"))
+    first = evidence.put(b'{"first": 1}')
+    second = evidence.put(b'{"second": 2}')
+    remote = _bare_remote(tmp_path)
+    reads = []
+    real = eb.remote_head
+
+    def stale_once(target, remote="origin"):
+        reads.append(target)
+        if len(reads) == 1:
+            subprocess.run(
+                ["git", "push", "-q", "origin", f"{eb.blob_commit([first])}:refs/heads/{target}"],
+                check=True,
+            )
+            return None  # what the push read before the other push landed
+        return real(target, remote)
+
+    monkeypatch.setattr(eb, "remote_head", stale_once)
+    eb.push("experiment/x", [second])
+    assert len(reads) == 2  # the lease failed once, then the push read the branch again
+    assert _names(remote) == sorted(evidence.blob_name(s) for s in (first, second))
+
+
+def test_a_push_gives_up_when_other_pushes_keep_landing_first(repo, tmp_path, monkeypatch):
+    monkeypatch.setenv(evidence.DIR_ENV, str(tmp_path / "store"))
+    sha = evidence.put(b'{"x": 1}')
+    other = evidence.put(b'{"y": 2}')
+    _bare_remote(tmp_path)
+    eb.push("experiment/x", [other])  # the branch's real head
+    stale = eb.blob_commit([sha])  # a real commit, but never the branch's head
+    monkeypatch.setattr(eb, "remote_head", lambda target, remote="origin": stale)
+    with pytest.raises(RuntimeError, match="other pushes kept landing first"):
+        eb.push("experiment/x", [sha])

@@ -60,12 +60,61 @@ def blob_commit(shas: Iterable[str], root: Path | None = None) -> str:
     return _git("commit-tree", tree, "-m", "Evidence blobs (issue #3254)").decode().strip()
 
 
+PUSH_TRIES = 5  # how often push reads the branch again when another push lands first
+
+
+def remote_head(target: str, remote: str = "origin") -> str | None:
+    """The commit that branch ``target`` points to on ``remote``.
+
+    Args:
+        target: The branch's name, such as ``evidence/experiment/x``.
+        remote: The remote.
+
+    Returns:
+        The commit's hash, or None when the remote has no such branch.
+    """
+    out = _git("ls-remote", "--heads", remote, f"refs/heads/{target}").decode().split()
+    return out[0] if out else None
+
+
 def push(branch: str, shas: Iterable[str], remote: str = "origin") -> str:
-    """Push the blobs to ``evidence/<branch>`` on ``remote``; return the branch's name."""
+    """Add the blobs to ``evidence/<branch>`` on ``remote``.
+
+    The push only adds blobs, and never drops one. A branch name can come back: a second
+    revision of one neuron gets the same experiment branch as the first. The first PR's
+    blobs then wait on this branch until the deploy uploads them. A push that replaced the
+    branch would lose them, and #6166 lost the blob of a merged record that way. So
+    the new commit holds the blobs that the branch already has, as well as ``shas``. The
+    push is leased on the commit that was read. If another push lands in between, the push
+    reads the branch again, up to :data:`PUSH_TRIES` times.
+
+    Args:
+        branch: The PR's branch. The blobs go to ``evidence/<branch>``.
+        shas: The hashes of the blobs to add. Each one is in the local store.
+        remote: The remote.
+
+    Returns:
+        The evidence branch's name.
+
+    Raises:
+        RuntimeError: Other pushes kept landing first, :data:`PUSH_TRIES` times.
+    """
     target = BRANCH_PREFIX + branch
-    commit = blob_commit(shas)
-    _git("push", "--force", remote, f"{commit}:refs/heads/{target}")
-    return target
+    wanted = set(shas)
+    for _ in range(PUSH_TRIES):
+        old = remote_head(target, remote)
+        kept: set[str] = set()
+        if old:
+            _git("fetch", "--quiet", remote, f"refs/heads/{target}")
+            kept = set(load_branch(old))  # into the local store, so blob_commit can read them
+        commit = blob_commit(wanted | kept)
+        lease = f"--force-with-lease=refs/heads/{target}:{old or ''}"
+        try:
+            _git("push", lease, remote, f"{commit}:refs/heads/{target}")
+        except subprocess.CalledProcessError:
+            continue  # the branch moved after it was read: read it again
+        return target
+    raise RuntimeError(f"{target}: other pushes kept landing first ({PUSH_TRIES} tries)")
 
 
 def load_branch(ref: str, root: Path | None = None, only: set[str] | None = None) -> list[str]:
