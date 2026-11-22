@@ -16,6 +16,13 @@
   {% if model.superpositions %}{{ model.superpositions }} superpositions studied ({{ model.verified_superpositions }} verified) · {% endif %}
   {{ model.n_layers }} layers{% if model.mlp_width %} × {{ model.mlp_width | thousands }} neurons{% endif %}
 </p>
+{% set bl = baselines.get(model.name) %}
+{% if bl %}
+{# The learned-basis baseline of this model (#3272), moved here from the home page (#5838). #}
+<p class="mt-2 text-sm text-slate-600 dark:text-slate-400" data-learned-baseline>
+  <span class="font-semibold">Learned-basis baseline:</span> {{ bl.features.verified }} of {{ bl.features.units }} random latents of <span class="font-mono">{{ bl.dictionary }}</span> verified, against {{ bl.positive_poles.verified }} of {{ bl.positive_poles.units }} random positive poles. <a class="underline" href="{{ root }}learned-baseline.html">How they compare</a>.
+</p>
+{% endif %}
 
 {% set terms = model_licenses.get(model.name) %}
 <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">

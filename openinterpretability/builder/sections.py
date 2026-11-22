@@ -29,6 +29,31 @@ def with_explanations(stats: dict, explanations) -> dict:
     return stats
 
 
+def stats_for_pages(render, stats: dict, explanations) -> dict:
+    """``stats`` for the pages: the explanations' tile, and each model's baseline (#5838).
+
+    A model's page shows its own learned-basis baseline, so ``render.common`` gets the
+    baselines by model name.
+
+    Args:
+        render: The site's renderer, whose ``common`` context every page gets.
+        stats: The registry's stats (``registry_stats``).
+        explanations: The explanations' prompt views.
+
+    Returns:
+        ``stats``, with the explanation count.
+
+    Examples:
+        >>> from types import SimpleNamespace
+        >>> render = SimpleNamespace(common={})
+        >>> found = stats_for_pages(render, {"totals": {}, "baseline": []}, [1, 2])
+        >>> found["totals"]["explanations"], render.common["baselines"]
+        (2, {})
+    """
+    render.common["baselines"] = {b.model_name: b for b in stats["baseline"]}
+    return with_explanations(stats, explanations)
+
+
 def render_reference_pages(
     render,
     papers_dir: Path | None,
