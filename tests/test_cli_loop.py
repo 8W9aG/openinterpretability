@@ -80,8 +80,31 @@ def test_a_missing_worktree_is_added_at_origin_main_beside_the_repo(loop_env):
     assert cli_loop.loop_worktree(missing) == (loop_env.repo, missing.resolve())
     assert loop_env.git.calls[1:] == [
         ("fetch", "--quiet", "origin", "main"),
-        ("worktree", "add", "--detach", str(missing.resolve()), "origin/main"),
+        ("worktree", "add", "-f", "--detach", str(missing.resolve()), "origin/main"),
     ]
+
+
+def test_a_deleted_but_registered_worktree_is_added_again(tmp_path, monkeypatch):
+    # #5965: git still lists a worktree whose folder was deleted, and refuses a plain add.
+    import shutil
+    import subprocess
+
+    def git(*args, cwd):
+        subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
+
+    origin, repo = tmp_path / "origin.git", tmp_path / "repo"
+    git("init", "--bare", "-b", "main", str(origin), cwd=tmp_path)
+    git("clone", str(origin), str(repo), cwd=tmp_path)
+    for key, value in (("user.name", "t"), ("user.email", "t@example.com")):
+        git("config", key, value, cwd=repo)
+    git("commit", "--allow-empty", "-m", "init", cwd=repo)
+    git("push", "origin", "HEAD:main", cwd=repo)
+    loop = tmp_path / "repo-loop"
+    git("worktree", "add", "--detach", str(loop), "origin/main", cwd=repo)
+    shutil.rmtree(loop)  # deleted, but still registered
+    monkeypatch.chdir(repo)
+    assert cli_loop.loop_worktree() == (repo.resolve(), loop.resolve())
+    assert (loop / ".git").exists()
 
 
 def test_a_failed_git_command_stops_with_its_error(monkeypatch, tmp_path):
