@@ -130,7 +130,7 @@ def test_cli_run_hands_the_top_experiments_to_the_loop(toy_runner, tmp_path, mon
     monkeypatch.setattr("openinterpretability.cli_explain._load_runner", lambda *a, **k: toy_runner)
     seen = {}
 
-    def run_loop(proposer, reviewer, plan_next, out=None, local=False):
+    def run_loop(proposer, reviewer, plan_next, out=None, local=False, sessions=None):
         seen.update(proposer=proposer, reviewer=reviewer, draws=plan_next)
         return 0
 
@@ -209,7 +209,7 @@ def test_run_then_record_the_final_state(toy_runner, tmp_path, monkeypatch, code
     opened = experiment_loop.Result("toy/L1/N3-positive", "VERIFIED", "https://x/pull/2", False)
     pending = PendingRecords({str(pending_record): b"{}"})
 
-    def run_loop(proposer, reviewer, plan_next, out=None, local=False):
+    def run_loop(proposer, reviewer, plan_next, out=None, local=False, sessions=None):
         out["loop"] = SimpleNamespace(results=[landed, opened], options=SimpleNamespace(
             pending=pending), finished=None if code else "reached")  # fmt: skip
         return code
@@ -246,7 +246,7 @@ def test_complete_runs_narrates_and_lands_in_one_command(toy_runner, tmp_path, m
     monkeypatch.setattr(experiment_loop, "reset", lambda: None)
     seen = {}
 
-    def run_loop(proposer, reviewer, plan_next, out=None, local=False):
+    def run_loop(proposer, reviewer, plan_next, out=None, local=False, sessions=None):
         seen["limit"] = plan_next.limit
         out["loop"] = SimpleNamespace(
             results=[], finished="no target left", options=SimpleNamespace(pending=PendingRecords())
@@ -420,7 +420,7 @@ def test_complete_local_runs_and_records_with_no_pr_and_no_gh(toy_runner, tmp_pa
     monkeypatch.setattr(cli_explain, "_load_runner", lambda *a, **k: toy_runner)
     seen = {}
 
-    def run_loop(proposer, reviewer, plan_next, out=None, local=False):
+    def run_loop(proposer, reviewer, plan_next, out=None, local=False, sessions=None):
         seen["local"] = local
         done = Result("toy/L1/N2-positive", "VERIFIED", record="wiki/experiments/r.json")
         options = SimpleNamespace(pending=PendingRecords())
