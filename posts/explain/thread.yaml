@@ -1,0 +1,41 @@
+# The post's X thread (openinterpretability/social/thread.py, #5833). Each blurb gives
+# numbers from the post only. {link} is the post's URL.
+- section: What explain does
+  text: >-
+    Why did the model say that? open-interpretability explain takes a prompt and explains
+    how the model formed its next token. We follow pythia-70m from "The sun rises in the" to
+    " sky". {link}
+  media: [coverage]
+- section: What explain does
+  text: >-
+    The units we already understand hold just 10.1% of the attribution for " sky". But set
+    every other unit to its baseline, and those 86 units bring back 81.9% of the answer.
+    Random sets bring back 13% on average. Most of the pushing cancels out.
+- section: What explain does
+  text: >-
+    Pruned down, 21 units still bring back 75.7%. Heads alone bring back 23.4%, neurons
+    alone 1.9%. They only work together, as a circuit.
+  media: [core]
+- section: Testing the claim
+  text: >-
+    An agent proposes the route from " sun" to " sky". Taking it away does 73% of the damage
+    of taking everything away. Copying it in from "The price rises in the" moves the answer
+    86% of the way, against 8.3% for random units.
+  media: [route]
+- section: Testing the claim
+  text: >-
+    A second agent sees the claim but never the measurements, and writes prompts to break
+    it: "The comet streaks across the", "The kitchen rises in the"... All 20 came out as the
+    claim predicts.
+- section: How a model makes mistakes
+  text: >-
+    The fun part: "A week has seven days and a year has twelve" gives " days", not
+    " months". The model isn't recalling a fact, it's completing a pattern. A copy head
+    grabs the word after the last count word and carries it to the end.
+  media: [days-copy]
+- section: How a model makes mistakes
+  text: >-
+    Swap the noun and the answer follows it, however farfetched: "A tricycle has three
+    wheels and a year has twelve" gives " wheels". A hallucination, explained, and now we
+    know where to look to fix it. {link}
+  media: [days-mistake]
