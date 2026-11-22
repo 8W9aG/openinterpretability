@@ -281,3 +281,37 @@ def test_a_refit_with_no_old_pole_starts_from_scratch():
                      place=_fit, group=_group)  # fmt: skip
     assert _fit.init is None and found["version"] == 2
     assert [p["slug"] for p in found["points"]] == [_pole(i).slug for i in (4, 5, 6)]
+
+
+def test_clusters_take_the_first_resolution_nearest_the_target(monkeypatch):
+    import sys
+    import types
+
+    graphs, tried = [], []
+
+    class Graph:  # igraph and leidenalg come with the map extra, so fakes stand in
+        def __init__(self, n, edges):
+            graphs.append((n, edges))
+
+    class Partition:
+        def __init__(self, count, resolution):
+            self.count, self.membership = count, [resolution] * 4
+
+        def __len__(self):
+            return self.count
+
+    counts = {0.4: 1, 0.5: 3}  # both one from the target of 2, so the first wins
+
+    def find_partition(graph, kind, resolution_parameter, seed):
+        tried.append((kind, resolution_parameter, seed))
+        return Partition(counts.get(resolution_parameter, 6), resolution_parameter)
+
+    monkeypatch.setitem(sys.modules, "igraph", types.SimpleNamespace(Graph=Graph))
+    leiden = types.SimpleNamespace(find_partition=find_partition,
+                                   RBConfigurationVertexPartition="rb")  # fmt: skip
+    monkeypatch.setitem(sys.modules, "leidenalg", leiden)
+    vectors = np.array([[1.0, 0.0], [0.99, 0.14], [0.0, 1.0], [0.14, 0.99]])
+    assert cm.clusters(vectors, k=1, target=2) == [0.4] * 4
+    assert graphs == [(4, [(0, 1), (2, 3)])]
+    assert [r for _, r, _ in tried] == cm.RESOLUTIONS
+    assert {(kind, seed) for kind, _, seed in tried} == {("rb", 0)}

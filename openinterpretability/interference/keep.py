@@ -45,14 +45,23 @@ def verified_records(wiki_dir: Path, model: str) -> list:
 
 def sample_windows(tokenizer, tokens: int = SAMPLE_TOKENS,
                    corpus: Path | str = "corpus.jsonl") -> list[torch.Tensor]:  # fmt: skip
-    """``tokens`` tokens of ``corpus`` as rows of :data:`WINDOW` tokens, in batches."""
+    """``tokens`` tokens of ``corpus`` as rows of :data:`WINDOW` tokens, in batches.
+
+    A corpus shorter than ``tokens`` gives the whole windows that it holds (#5909).
+
+    Raises:
+        ValueError: The corpus holds less than one window.
+    """
     ids: list[int] = []
     with open(corpus, encoding="utf-8") as f:
         for line in f:
             ids += tokenizer(json.loads(line)["text"])["input_ids"]
             if len(ids) >= tokens:
                 break
-    rows = torch.tensor(ids[: tokens // WINDOW * WINDOW]).view(-1, WINDOW)
+    whole = min(len(ids), tokens) // WINDOW * WINDOW
+    if not whole:
+        raise ValueError(f"{corpus} holds {len(ids)} tokens, less than one window of {WINDOW}")
+    rows = torch.tensor(ids[:whole]).view(-1, WINDOW)
     return [rows[i : i + BATCH] for i in range(0, len(rows), BATCH)]
 
 

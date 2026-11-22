@@ -88,3 +88,57 @@ def test_without_the_cache_a_chunk_far_from_fp32_is_rejected(tiny_qwen2, fake_co
         ane._get({}, net, x, ref)
     ane.close()
     assert ane._scratch == []
+
+
+@pytest.fixture
+def torch_core_ml(monkeypatch):
+    """Core ML replaced by the torch chunk itself: a build saves ``net``, a load gets it back.
+
+    A prediction runs the chunk with its other inputs given by position, as the traced
+    model gets them. Each build is counted in the returned list.
+    """
+    nets, built = {}, []
+
+    def compile_to(net, sample, dest):
+        dest.mkdir(parents=True)
+        (dest / "net").write_text(str(len(nets)))
+        nets[str(len(nets))] = net
+        built.append(net)
+
+    def predict(model, x, extra):
+        with torch.no_grad():
+            return model(x, *extra.values())
+
+    monkeypatch.setattr(backend.convert, "compile_to", compile_to)
+    monkeypatch.setattr(backend.convert, "load", lambda path: nets[(path / "net").read_text()])
+    monkeypatch.setattr(backend.convert, "feed", lambda extra: extra)
+    monkeypatch.setattr(backend.convert, "predict", predict)
+    return built
+
+
+def test_a_chain_of_chunks_is_built_into_the_cache_and_matches_torch(
+    tiny_qwen2, small_shapes, torch_core_ml, monkeypatch, tmp_path
+):
+    from openinterpretability.harness.ane import chunks
+    from openinterpretability.harness.hooks import NeuronHookRunner
+    from openinterpretability.harness.scan import cut_pieces, layer_chunks
+    from tests.conftest import FakeTokenizer
+    from tests.test_agents import TEXTS
+
+    monkeypatch.setattr(chunks, "CHUNK_BYTES", 1)  # every layer its own chunk
+    runner = NeuronHookRunner(tiny_qwen2, FakeTokenizer())
+    pieces = list(cut_pieces(runner.tokenizer, TEXTS, None, None))
+    want = list(layer_chunks(runner, pieces, 1, 64))
+    ane = backend.AneScan(tiny_qwen2, "tiny-qwen2", None, cache.ConversionCache(tmp_path))
+    got = list(ane.chunks(runner, pieces, 1, 64))
+    assert [c.lengths for c in got] == [c.lengths for c in want]
+    assert all(torch.equal(g.ids, w.ids) for g, w in zip(got, want, strict=True))
+    acts, ref = torch.cat([c.acts for c in got]), torch.cat([c.acts for c in want])
+    assert float((acts - ref).norm() / ref.norm()) < 1e-4
+    assert [net.resid_out for net in torch_core_ml] == [True, False]  # one build per chunk
+    assert all(len(paths) == 2 for paths in ane.paths.values())
+    assert all(path.parent.joinpath(cache.META).exists() for path in ane.paths[(1, 4, 16)])
+
+    again = backend.AneScan(tiny_qwen2, "tiny-qwen2", None, cache.ConversionCache(tmp_path))
+    assert again.compiled(1, 4, 16) and len(torch_core_ml) == 2  # read from the cache
+    assert again.paths[(1, 4, 16)] == ane.paths[(1, 4, 16)]

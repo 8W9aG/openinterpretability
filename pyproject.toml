@@ -201,10 +201,10 @@ source = ["openinterpretability"]
 branch = true
 
 [tool.coverage.report]
-# Just below the measured total (99.98% on 2026-11-21). Raise it as coverage rises, never
-# lower it, up to 100 (#5855). The lines that a pull request changes are held to
-# [tool.diff_cover] fail_under.
-fail_under = 99
+# The whole package is covered (#5855). A line that no test can reach in CI is marked
+# `# pragma: no cover` (or `no branch`) with a comment that gives the reason. Never lower
+# this. The lines that a pull request changes are held to [tool.diff_cover] fail_under.
+fail_under = 100
 skip_covered = true
 show_missing = true
 
