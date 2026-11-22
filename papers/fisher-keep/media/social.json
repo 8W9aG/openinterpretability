@@ -1,0 +1,28 @@
+{
+ "source": "media/keep.svg",
+ "sha256": "e42df695ed7cebee0718e155f4a201f8a9c98867ae450c809d7ed2922bb15127",
+ "files": [
+  "social.png"
+ ],
+ "figures": {
+  "keep": {
+   "sha256": "e42df695ed7cebee0718e155f4a201f8a9c98867ae450c809d7ed2922bb15127",
+   "files": [
+    "social-keep.png"
+   ]
+  },
+  "move": {
+   "sha256": "8a0eafbdd7daf83fd58b0d7e9e7ef75281238776226fb4ccaea9d3c535f01174",
+   "files": [
+    "social-move.png"
+   ]
+  },
+  "shuffles": {
+   "sha256": "7bdf454f6f311cdf751fd5ac3d1b785d32ade5162743b589ad47cf1ec98391df",
+   "files": [
+    "social-shuffles.mp4",
+    "social-shuffles.png"
+   ]
+  }
+ }
+}
