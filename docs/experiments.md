@@ -316,7 +316,7 @@ Commit `wiki/`. Each experiment adds its own record (`<id>.json`) and page (`<id
 
 ## Models
 
-The models `open-interpretability next` explores (`[tool.openinterpretability] models` in `pyproject.toml`). What a pole means depends on the MLP's activation. Each model's terms are in `[tool.openinterpretability.licenses]`, and its site page shows them.
+The models `open-interpretability next` explores (`[tool.openinterpretability] models` in `pyproject.toml`). What a pole means depends on the MLP's activation. Each model's terms are in `[tool.openinterpretability.licenses]`, and its site page shows them. To add a model, follow [`adding-a-model.md`](adding-a-model.md) and its `open-interpretability model-check`.
 
 | Model | MLP | Negative pole | Scan |
 | --- | --- | --- | --- |
