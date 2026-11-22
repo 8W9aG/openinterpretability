@@ -1,4 +1,4 @@
-"""Which entries to post, within the limits, and the state that remembers them (issue #4463).
+"""Which entries to post, and the state that remembers them (issue #4463).
 
 The state is a small JSON file. It holds the id of every entry that is posted or seen, the
 time of each post, and the feeds it has seen. An entry is *new* when its id isn't in the
@@ -9,13 +9,11 @@ that is new to the state seeds the same way, so adding a feed posts nothing old 
 - Each published paper and each site post gets its own post (#5533). VERIFIED units don't
   post.
 - An entry with a thread (``thread.yaml``, #5833) posts it as one unit: each tweet replies
-  to the one before. It starts only when today's budget has room for every tweet left.
-  The state keeps the ids of the tweets posted so far, so a run after a failure goes on
-  from the next tweet. It never posts a tweet twice, and the entry counts as posted only
-  when its thread is whole.
-- At most :data:`PER_DAY` posts go out in any 24 hours, each tweet of a thread counted. X's
-  free tier allows 500 posts a month by its access-level docs (1,500 by an older FAQ). 15 a
-  day stays under 500 a month. When the budget is spent, the rest posts on a later run.
+  to the one before. The state keeps the ids of the tweets posted so far, so a run after a
+  failure goes on from the next tweet. It never posts a tweet twice, and the entry counts
+  as posted only when its thread is whole.
+- Every new entry posts on the run that finds it. This module sets no daily limit (#6081).
+  X's own limits apply: a post that X refuses fails the run, and the deploy reports it.
 """
 
 from __future__ import annotations
@@ -28,8 +26,6 @@ from pathlib import Path
 from openinterpretability.social.feed import Entry, Media
 from openinterpretability.social.message import paper_post, site_post
 
-PER_DAY = 15
-DAY = 24 * 60 * 60
 # Each feed that posts, by name, and how its entries become posts. Papers go first.
 MESSAGES: dict[str, Callable[[Entry], str]] = {"papers": paper_post, "posts": site_post}
 # The feeds that a state saved before #5533 had seen: it has no "feeds" key.
@@ -213,15 +209,15 @@ def run(state_path: Path, feeds: dict[str, list[Entry]],
 
     With ``post`` None (a dry run), print the posts and change no state. ``repost`` names
     entries to post again although the state has them, for example the ones that the first
-    run recorded as seen (#5527). They post within the same limits, and the state keeps them
-    as posted only after the post succeeds.
+    run recorded as seen (#5527). The state keeps them as posted only after the post
+    succeeds.
 
     Args:
         state_path: The state's JSON file. With none yet, every entry is recorded as seen.
         feeds: Each feed's entries, by name: ``papers`` and ``posts``.
         post: A function that posts a text with its media (or None) and returns the post's
             id, or None for a dry run.
-        now: The time in seconds, for the daily limit.
+        now: The time in seconds, which the state records for each post.
         repost: The ids of entries to post although the state has them.
         posted: Gets ``(entry id, first post id)`` for each entry posted whole (#5840).
 
@@ -257,15 +253,10 @@ def run(state_path: Path, feeds: dict[str, list[Entry]],
         lines.append(f"seeded {len(feeds[name])} entries of the new feed {name}; posted nothing")
     lines += [f"not in the feeds: {i}" for i in sorted(repost - {e.id for e in entries})]
     state.posted -= repost  # in memory only: the state saves an id again once it posts
-    budget = PER_DAY - sum(1 for t in state.times if now - t < DAY)
     count = 0
     for entry_id, tweets in planned(state, feeds):
         left = tweets[len(state.threads.get(entry_id, [])) :]
-        if len(left) > budget:  # a thread starts only when all of it fits today
-            lines.append("daily limit reached; the rest posts on a later run")
-            break
         count += 1
-        budget -= len(left)
         if post is None:
             lines.append(preview(left))
             continue
