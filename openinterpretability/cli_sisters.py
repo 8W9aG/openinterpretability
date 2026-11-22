@@ -44,7 +44,8 @@ from openinterpretability.sisters import DEFAULT_PATH
     type=click.Path(dir_okay=False, path_type=Path),
     help="JSONL of sister rows, one per pole and other model.",
 )
-@click.option("-k", "k", default=5, show_default=True, help="Poles kept per pole and model.")
+@click.option("-k", "k", default=5, show_default=True, type=click.IntRange(1),
+              help="Poles kept per pole and model.")  # fmt: skip
 @click.option("--device", default="auto", show_default=True, help="cpu, cuda, mps or auto.")
 def sisters_command(wiki_dir, model_name, others, corpus, path, k, device):
     """Find each VERIFIED pole's best-correlated poles in other models.
@@ -65,7 +66,8 @@ def sisters_command(wiki_dir, model_name, others, corpus, path, k, device):
     if model_name:
         todo = [p for p in todo if p[0] == model_name] or pairs([model_name])
     if others:
-        todo = [(a, b) for a in {a for a, _ in todo} or {model_name} for b in others if a != b]
+        firsts = {a for a, _ in todo} or ({model_name} if model_name else set())
+        todo = [(a, b) for a in firsts for b in others if a != b]
     if not todo:
         raise click.UsageError("no model pairs to match; pass --model and --other")
     texts, corpus_name, corpus_sha, _ = read_corpus(corpus)
@@ -82,5 +84,4 @@ def sisters_command(wiki_dir, model_name, others, corpus, path, k, device):
     )  # fmt: skip
     for (source, other), n in wrote.items():
         click.echo(f"Matched {n} poles of {source} against {other} → {path}")
-    if path.exists():
-        sort_rows(path)
+    sort_rows(path)  # sisters() always opens --out, so it exists
