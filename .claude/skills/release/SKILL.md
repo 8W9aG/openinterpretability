@@ -22,7 +22,7 @@ If less than 24 hours have passed, stop and say when the next release may go out
 
 ## Before the release
 
-Do these six steps first, in order. Each fix goes in its own PR, which merges before the release branch is cut.
+Do these seven steps first, in order. Each fix goes in its own PR, which merges before the release branch is cut.
 
 1. **Resolve every open Dependabot alert.**
    ```bash
@@ -70,7 +70,16 @@ Do these six steps first, in order. Each fix goes in its own PR, which merges be
    - **A finding that only the maintainer can fix**, such as a repository setting or a secret, goes to the maintainer as a question. The release waits for the answer.
    - Say in the release PR when the sweep ran, the skill's commit and its scope. Say how many findings it proved and how many PRs fixed them, with no details.
 5. **Propose new work.** Read the *Use in this repo* section of each page in `docs/literature/`. Also read the *Limits* and *What this means* sections of the analyses and papers that changed since the last tag (`git diff --stat v<previous> -- docs papers`). Then do a short web search for new papers and posts on native-neuron interpretability, explanation scoring and automated interpretability. Before opening anything, search the open issues and `docs/literature/` for it. Open each new idea as an issue with an `area:` label and a priority label, and give no milestone. Open each new paper as an issue titled `Review <title>`, with the label `area: literature`. List them all in the release PR. Then list the works that the papers cite with no review page yet: `uv run python scripts/cited_works.py`. Check that each one's issue is still open. Open an issue for any that has none, in the form of #5312 (#5346).
-6. **Release the version**, with the procedure below.
+6. **Open an alphaXiv issue for Muse.** The maintainer decided on 2026-11-19 that each published paper goes to the alphaXiv AI Track (#5259). On 2026-11-22 the maintainer gave the upload to Muse (`docs/muse.md`). Find the papers published since the last tag, and the published papers that got a new addendum:
+   ```bash
+   git diff --name-only v<previous> -- 'papers/*/README.md'
+   ```
+   For each changed paper whose status line says *Published*, open its issue:
+   ```bash
+   uv run python scripts/papers.py submit <slug> --issue
+   ```
+   The issue has the label `muse`, which tells Muse to act on it. Its body gives the steps and each field of alphaXiv's form. An addendum is a new alphaXiv version, so it gets a new issue. The command doesn't open an issue twice. Never upload a paper yourself, and never work a `muse` issue: `next-issue` skips them. List the issues in the release PR.
+7. **Release the version**, with the procedure below.
 
 ## Procedure
 

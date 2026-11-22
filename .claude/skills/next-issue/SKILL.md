@@ -86,4 +86,5 @@ The maintainer decided on 2026-11-15: zero tolerance for flaky tests. Every flak
 
 - **An empty pick means nothing is eligible.** The script then exits with "No eligible issue". Say so, and propose new work as the `release` skill's step 3 does. Don't work on an ineligible issue.
 - **Linear's states are the record of who is working on what.** An issue In Progress belongs to whoever started it. Never take it, even if it looks stalled. Ask instead. The one exception is an answered issue (step 2): an agent stopped to ask, the maintainer replied, so any agent resumes it.
+- **Issues labelled `muse` are Muse's** (`docs/muse.md`), such as posting a paper to alphaXiv. The script never picks, resumes or lists them, and you never work one. The maintainer decided this on 2026-11-22.
 - **The script only reads, except with `--pull` and `--prioritise`.** `--pull` sets one milestone and one label. `--prioritise` sets one label and Linear's priority. `work-an-issue` sets the states.
