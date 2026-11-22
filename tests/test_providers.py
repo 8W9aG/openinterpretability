@@ -226,3 +226,19 @@ def test_annotate_leaves_unreadable_and_non_object_sessions_alone(tmp_path):
         session.write_text(text)
         providers.annotate(session, provider)
         assert session.read_text() == text
+
+
+def test_the_old_keychain_name_is_tried_and_none_when_neither_has_the_key(monkeypatch):
+    monkeypatch.delenv("MUSE_API_KEY", raising=False)
+    monkeypatch.setattr(providers.shutil, "which", lambda _: "/usr/bin/security")
+    services = []
+
+    def fake_run(args, **_):
+        services.append(args[3])
+        if args[3] == "openinterp-muse":  # found under the old name, but empty
+            return subprocess.CompletedProcess(args, 0, stdout="  \n", stderr="")
+        return subprocess.CompletedProcess(args, 44, stdout="", stderr="not found")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake_run)
+    assert providers.key(providers.load("muse")) is None
+    assert services == ["openinterpretability-muse", "openinterp-muse"]

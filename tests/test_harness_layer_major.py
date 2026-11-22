@@ -62,3 +62,15 @@ def test_a_forward_hook_runs_only_in_the_thread_that_registered_it():
         assert calls == ["hook"]
     handle.remove()
     assert nn.Module.register_forward_hook is register
+
+
+def test_a_pass_that_enters_the_loaded_layer_again_does_not_reload_it():
+    scheduler = LayerScheduler([nn.Linear(2, 2), nn.Linear(2, 2)])
+    scheduler.start()
+    scheduler.enter(0)
+    scheduler.leave(0)
+    scheduler.enter(0)  # layer 0 is still loaded, so this pass goes straight in
+    assert (scheduler.loaded, scheduler.loads, scheduler.inside) == (0, 1, 1)
+    scheduler.leave(0)
+    scheduler.finish()
+    assert scheduler.waiting == {} and scheduler.running == 0

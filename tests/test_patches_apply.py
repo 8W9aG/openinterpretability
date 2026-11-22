@@ -134,3 +134,11 @@ def test_the_zero_start_check_fails_a_patch_that_moves_the_logits(neox):
     assert zero_start_check(neox, replayed, IDS) == 0.0
     with pytest.raises(ZeroStartError, match="patch at strength 1.0 moves a logit by"):
         zero_start_check(neox, replayed, IDS, strength=1.0)
+
+
+def test_a_dense_add_op_gives_the_added_weights_logits(neox):
+    delta = torch.randn(D, MLP)
+    op = Op(op_id="d", type="dense_add", targets=["blocks.1.mlp.W_out"],
+            params={"delta": put_tensor(delta)})  # fmt: skip
+    expected = _edited(neox, lambda m: m.gpt_neox.layers[1].mlp.dense_4h_to_h.weight.add_(delta))
+    assert torch.allclose(_run_ops(neox, op), expected, atol=1e-5)
