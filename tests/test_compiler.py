@@ -1574,7 +1574,10 @@ def test_a_neuron_with_only_stopped_scans_counts_as_studied(tmp_path, record):
     default_on = _stop_on_model(studied, idx=9, pole="negative")
     compile_site([studied], tmp_path, stops=[dead, default_on])
     home = " ".join((tmp_path / "index.html").read_text().split())
-    assert 'Neurons studied</dt> <dd class="mt-1 font-mono text-2xl tabular-nums">2</dd>' in home
+    tile_value = '<dd class="mt-auto pt-1 font-mono text-2xl tabular-nums">2</dd>'
+    assert f"Neurons studied</dt> {tile_value}" in home
+    # Each tile is a flex column with its value at the bottom, so values share a baseline (#5832).
+    assert '<div class="flex flex-col bg-white p-4 dark:bg-slate-950"> <dt' in home
     assert card_stat("Neurons studied", "2 of 116,736") in home
     assert card_stat("Verified", "1 of 116,736") in home
     model_page = " ".join((tmp_path / "models" / MODEL / "index.html").read_text().split())
