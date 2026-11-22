@@ -57,6 +57,7 @@ dependencies = [
 Homepage = "https://open-interpretability.com/"  # the site; builder and deploy read it
 Repository = "https://github.com/8W9aG/openinterpretability"
 X = "https://x.com/openinterpret"  # the footer and twitter:site (#5389)
+Contact = "mailto:contact@open-interpretability.com"  # the footer and the about page (#5853)
 
 [project.scripts]
 open-interpretability = "openinterpretability.cli:main"
