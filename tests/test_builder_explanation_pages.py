@@ -31,8 +31,8 @@ def test_the_view_counts_the_landed_and_the_pending_experiments_of_its_run():
     record = _record(datetime(2026, 11, 17, tzinfo=UTC))
     pending = ["b VERIFIED u2", "c REJECTED u3"]
     run = ExplainRun(share_before=0.1, share_after=0.4, stopped="x", landed=["a VERIFIED u1"],
-                     pending=pending)  # fmt: skip
+                     pending=pending, local=["d VERIFIED wiki/r.json"])  # fmt: skip
     view = ExplanationView(record=record.model_copy(update={"run": run}), source="x.json")
-    assert (view.landed, view.pending) == (1, 2)
+    assert (view.landed, view.pending, view.local) == (1, 2, 1)
     bare = ExplanationView(record=record, source="x.json")
-    assert (bare.landed, bare.pending) == (0, 0)
+    assert (bare.landed, bare.pending, bare.local) == (0, 0, 0)

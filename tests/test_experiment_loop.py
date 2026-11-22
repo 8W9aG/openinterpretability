@@ -97,7 +97,9 @@ def fakes(monkeypatch):
     monkeypatch.setattr(el, "openinterpretability", openinterpretability)
     monkeypatch.setattr(el, "draw_slug", lambda choice: SLUG)
     monkeypatch.setattr(draw_steps, "draw_slug", lambda choice: SLUG)
-    monkeypatch.setattr(el, "verdict_of", lambda kind, key: ("VERIFIED", f"Explore {key}"))
+    monkeypatch.setattr(
+        el, "verdict_of", lambda kind, key, new=None: ("VERIFIED", f"Explore {key}")
+    )
     return ran
 
 
@@ -484,3 +486,64 @@ def test_the_next_draw_counts_the_open_prs_records_but_no_commit_holds_them(repo
     committed = subprocess.run(["git", "show", "--name-only", "--format=", "HEAD"],
                                capture_output=True, text=True, check=True).stdout  # fmt: skip
     assert committed.strip() == str(record)  # the second experiment's own record only
+
+
+# #5827: explain --local runs in the user's checkout, with no claim, push, PR or gh call.
+
+
+def _local_loop(**kw):
+    options = el.Options("api/proposer", "api/reviewer", corpus="c.jsonl", local=True)
+    return el.Loop(options, Path("logs"), plan_next=lambda *a, **k: _plan(), claims=lambda: [],
+                   sleep=lambda s: None, **kw)  # fmt: skip
+
+
+def test_a_local_run_writes_each_record_with_no_git_or_gh(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "empty").mkdir()
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))  # no gh and no git to call
+    monkeypatch.setenv("OPENINTERPRETABILITY_STOP_FILE", str(tmp_path / "stop"))
+    monkeypatch.setattr(el, "draw_slug", lambda choice: SLUG)
+    ran, seen = [], []
+
+    def openinterpretability(args):  # each verify writes its own record
+        ran.append(args[0])
+        if args[0] == "verify":
+            out = Path("wiki/experiments") / SLUG.replace("/", "--", 1) / f"r{len(ran)}.json"
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text("{}")
+
+    def verdict_of(kind, key, new=None):
+        seen.append(new(Path("wiki/experiments")))
+        return "VERIFIED", f"Explore {key}"
+
+    monkeypatch.setattr(el, "openinterpretability", openinterpretability)
+    monkeypatch.setattr(el, "verdict_of", verdict_of)
+    loop = _local_loop(max_experiments=2)
+    assert loop.run() == 0
+    records = [r.record for r in loop.results]
+    assert len(set(records)) == 2 and all(r.endswith(".json") for r in records)
+    assert [len(s) for s in seen] == [1, 1]  # each finds only the record its steps wrote
+    assert "wiki" not in ran and "check" not in ran  # no post step
+    assert f"RESULT: {SLUG} VERIFIED local {records[0]}" in capsys.readouterr().out
+
+
+def test_a_local_draw_with_an_unknown_unit_is_a_loop_error(monkeypatch):
+    monkeypatch.setattr(el, "draw_slug", lambda choice: None)
+    options = el.Options("p", "r", local=True)
+    with pytest.raises(el.LoopError, match="is unknown"):
+        el.iteration(options, lambda *a, **k: _plan(), lambda: [])
+
+
+def test_a_local_loop_makes_no_worktree_and_reads_no_claims(monkeypatch, tmp_path):
+    from openinterpretability import cli_loop
+
+    def no_worktree(*a):
+        raise AssertionError("a local run makes no worktree")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli_loop, "loop_worktree", no_worktree)
+    monkeypatch.setattr(el.Loop, "run", lambda self: 0)
+    out = {}
+    assert cli_loop.run_loop("p", "r", lambda *a, **k: None, out=out, local=True) == 0
+    loop = out["loop"]
+    assert loop.options.local and loop.claims() == [] and loop.log_dir == tmp_path / "logs/loop"
