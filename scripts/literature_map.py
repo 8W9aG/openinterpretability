@@ -246,9 +246,8 @@ def smooth(points, labels: list[int]) -> list[int]:
 def absorb_small(points, labels: list[int], reviewed: int) -> list[int]:
     """Merge each region that :func:`smooth` left with fewer than :data:`MIN_REVIEWS` reviews.
 
-    Smoothing can move every review out of a community that :func:`merge_small` kept. A
-    region of queued papers only then has no name (#5810). Each point of the smallest such
-    region joins the region of its nearest point on the map outside it.
+    Smoothing can empty a community of reviews, which leaves it with no name (#5810). Its
+    points join the region of their nearest point outside it (:func:`merge_region`).
 
     Args:
         points: The 2-D layout.
@@ -268,9 +267,47 @@ def absorb_small(points, labels: list[int], reviewed: int) -> list[int]:
                        key=lambda k: (labels.count(k), k))  # fmt: skip
         if not small or len(set(labels)) == 1:
             return labels
-        k = small[0]
-        labels = [next(labels[j] for j in order[i] if labels[j] != k) if lab == k else lab
-                  for i, lab in enumerate(labels)]  # fmt: skip
+        labels = merge_region(order, labels, small[0])
+
+
+def merge_region(order, labels: list[int], k: int) -> list[int]:
+    """Move each point of region ``k`` to the region of its nearest point outside ``k``.
+
+    Args:
+        order: Each point's other points, nearest first (an argsort of the distances).
+        labels: Each point's region.
+        k: The region to merge away.
+
+    Returns:
+        The labels with no point left in ``k``.
+    """
+    return [next(labels[j] for j in order[i] if labels[j] != k) if lab == k else lab
+            for i, lab in enumerate(labels)]  # fmt: skip
+
+
+def named_regions(points, labels: list[int], names: list[str], reviewed: int):
+    """:func:`regions`, after merging each region that no free section can name (#6030).
+
+    A small region whose sections bigger regions took has no name, so it merges too.
+
+    Args:
+        points: The 2-D layout.
+        labels: Each point's region.
+        names: The reviews' names, in the order of the points.
+        reviewed: The number of reviews, which come first.
+
+    Returns:
+        :func:`regions` of the merged labels.
+    """
+    import numpy as np
+
+    order = np.argsort(((points[:, None] - points[None]) ** 2).sum(-1), axis=1)
+    while True:
+        region_of, rows = regions(points, labels, names, reviewed)
+        unnamed = [r["number"] for r in rows if r["name"] == f"Region {r['number']}"]
+        if not unnamed or len(rows) == 1:
+            return region_of, rows
+        labels = merge_region(order, region_of, unnamed[0])
 
 
 def compactness(points, labels: list[int]) -> float:
@@ -354,8 +391,7 @@ def regions(points, labels: list[int], names: list[str], reviewed: int):
 
     Regions are numbered from 1, biggest first. The first ``reviewed`` points are reviews,
     with ``names``. A region is named by the README section that most of its reviews are
-    under (:func:`region_name`), and the biggest region chooses first. :func:`merge_small`
-    gave each region at least :data:`MIN_REVIEWS` reviews, so each has a name (#5798).
+    under (:func:`region_name`), and the biggest region chooses first (#5798).
 
     Args:
         points: The 2-D layout.
@@ -418,7 +454,7 @@ def main() -> None:
     names = [p.stem for p in reviews]
     labels = smooth(points, communities(np.asarray(vectors), len(reviews)))
     labels = absorb_small(points, labels, len(reviews))  # smoothing can empty a region
-    region_of, region_rows = regions(points, labels, names, len(reviews))
+    region_of, region_rows = named_regions(points, labels, names, len(reviews))
     near = neighbours(np.asarray(vectors[: len(reviews)]), names)
     rows = [
         {"name": name, "x": round(float(x), 4), "y": round(float(y), 4),

@@ -57,6 +57,27 @@ def test_a_region_that_smoothing_left_without_reviews_joins_its_nearest():
     assert lm.absorb_small(points, [0] * 8, reviewed=1) == [0] * 8
 
 
+def test_a_region_no_section_can_name_joins_its_nearest(monkeypatch):
+    # #6030: a small region whose sections bigger regions took is merged, not named "Region n".
+    import numpy as np
+
+    points = np.array([[0.0, 0], [0.1, 0], [5, 0], [5.1, 0], [0.2, 0]])
+    seen = []
+
+    def regions(points, labels, names, reviewed):
+        seen.append(list(labels))
+        rows = [
+            {"number": n, "name": "A" if n == 1 else f"Region {n}"} for n in sorted(set(labels))
+        ]
+        return list(labels), rows
+
+    monkeypatch.setattr(lm, "regions", regions)
+    region_of, rows = lm.named_regions(points, [1, 1, 1, 1, 2], [], reviewed=4)
+    assert region_of == [1, 1, 1, 1, 1] and seen == [[1, 1, 1, 1, 2], [1, 1, 1, 1, 1]]
+    order = np.array([[0, 1, 2], [1, 0, 2], [2, 1, 0]])  # each point's points, nearest first
+    assert lm.merge_region(order, [1, 2, 2], 2) == [1, 1, 1]
+
+
 def test_smoothing_gives_a_stray_point_its_neighbours_region():
     rng = np.random.default_rng(0)
     left, right = rng.normal(0, 0.05, (10, 2)), rng.normal(1, 0.05, (10, 2))
