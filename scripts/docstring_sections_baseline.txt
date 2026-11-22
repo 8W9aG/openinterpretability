@@ -368,7 +368,7 @@ openinterpretability/cli_evidence.py::ask_proposer
 openinterpretability/cli_evidence_store.py::publish
 openinterpretability/cli_evidence_store.py::verify
 openinterpretability/cli_explain.py::explain_command
-openinterpretability/cli_explain.py::reached
+openinterpretability/explain_output.py::reached
 openinterpretability/cli_interference.py::interference_command
 openinterpretability/cli_loop.py::loop_command
 openinterpretability/cli_loop.py::run_loop
