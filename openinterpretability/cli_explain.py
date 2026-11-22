@@ -34,8 +34,11 @@ from openinterpretability.patches.session import patched
     "--edges", default=8, show_default=True, help="Top units whose incoming paths are traced."
 )
 @click.option(
-    "--corpus", default="corpus.jsonl", show_default=True, type=click.Path(path_type=Path)
-)
+    "--corpus", default=None, type=click.Path(path_type=Path),
+    help="The corpus of each unit's mean. Default: the registry's pile-10k corpus "
+    "(explain_corpus.EXPLAIN_CORPUS), ./corpus.jsonl if it holds it, else built once into "
+    "the cache (#5829).",
+)  # fmt: skip
 @click.option(
     "--mean-tokens",
     default=20_000,
@@ -118,6 +121,23 @@ def explain_command(  # long-function: one argument per option, then one line pe
         )  # fmt: skip
 
 
+def _default_corpus() -> Path:
+    """The explain corpus (:func:`.explain_corpus.default_corpus`), as a click error if it fails.
+
+    Returns:
+        The corpus file.
+
+    Raises:
+        click.ClickException: The cache is off, or the build gives other bytes.
+    """
+    from openinterpretability.explain_corpus import default_corpus
+
+    try:
+        return default_corpus(lambda line: click.echo(line, err=True))
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
 def _explain(  # long-function: the body of explain_command, one line per step
     prompt, model_name, token, position, top, edges, corpus, mean_tokens, target, show, level,
     narrator_model, run, proposer, reviewer, provider, max_attempts, write_record, land, complete,
@@ -136,7 +156,7 @@ def _explain(  # long-function: the body of explain_command, one line per step
     if reuse.action == "level":
         run = None  # an earlier explanation already reaches the target: only narrate (#4503)
     runner = _load_runner(model_name, device, dtype)
-    texts, _, corpus_sha, corpus_source = read_corpus(corpus)
+    texts, _, corpus_sha, corpus_source = read_corpus(corpus or _default_corpus())
     means = unit_means(runner, model_name + (fix.key if fix else ""), texts, mean_tokens)
     ask = Ask(model_name, prompt, _answer(runner, token), position, top, edges, target, show)
     found = _analyse(runner, means, ask, Path(wiki_dir))
