@@ -2234,7 +2234,6 @@ openinterpretability/reproduce_explanation.py::ExplanationReport.number
 openinterpretability/reproduce_explanation.py::ExplanationReport.same
 openinterpretability/reproduce_explanation.py::not_reproducible
 openinterpretability/reproduce_explanation.py::means_corpus
-openinterpretability/reproduce_explanation.py::_rebuilt
 openinterpretability/reproduce_explanation.py::reproduce_explanation
 openinterpretability/reproduce_explanation.py::_with_explained
 openinterpretability/reproduce_explanation.py::_shares
