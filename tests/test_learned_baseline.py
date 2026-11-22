@@ -11,7 +11,7 @@ from openinterpretability.core.schemas import (
     ExperimentProvenance,
     FeatureIdentifier,
 )
-from tests.test_compiler import experiment
+from tests.test_compiler import MODEL, experiment
 
 
 def _provenance(selection, window):
@@ -99,8 +99,10 @@ def test_random_latents_against_random_poles_of_the_same_layers(tmp_path, baseli
     assert b.p_positive == pytest.approx(fisher_exact(1, 3, 1, 2))
 
     home = (tmp_path / "index.html").read_text()
-    assert 'href="learned-baseline.html"' in home and 'id="learned-baseline"' not in home
-    assert "1 of 3 random latents" in home and "1 of 2 random positive poles" in home
+    assert "random latents" not in home  # the baseline line moved to its model's page (#5838)
+    model = (tmp_path / "models" / MODEL / "index.html").read_text()  # its model's page has it
+    assert 'href="../../learned-baseline.html"' in model and "data-learned-baseline" in model
+    assert "1 of 3 random latents" in model and "1 of 2 random positive poles" in model
     page = (tmp_path / "learned-baseline.html").read_text()
     assert 'id="learned-baseline"' in page and "dead latents 25%" in page
     assert "33% (6%–79%)" in page  # 1 of 3, Wilson interval
@@ -118,6 +120,7 @@ def test_no_baseline_without_random_latents(tmp_path, baseline_records):
     report = compile_site(natives, tmp_path)
     assert registry_stats(report.parquet)["baseline"] == []
     assert "learned-baseline" not in (tmp_path / "index.html").read_text()
+    assert "data-learned-baseline" not in (tmp_path / "models" / MODEL / "index.html").read_text()
     assert not (tmp_path / "learned-baseline.html").exists()
 
 
