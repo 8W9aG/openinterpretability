@@ -45,6 +45,18 @@ def test_one_community_is_left_as_it_is():
     assert lm.merge_small([0, 0, 0], {}, reviewed=1) == [0, 0, 0]
 
 
+def test_a_region_that_smoothing_left_without_reviews_joins_its_nearest():
+    # #5810: smoothing moved every review out of a community, which left it with no name.
+    import numpy as np
+
+    points = np.array(
+        [[0.0, 0], [0.1, 0], [0.2, 0], [5, 0], [5.1, 0], [5.2, 0], [0.3, 0], [5.3, 0]]
+    )
+    labels = [0, 0, 0, 1, 1, 1, 2, 2]  # region 2 holds only the two queued papers
+    assert lm.absorb_small(points, labels, reviewed=6) == [0, 0, 0, 1, 1, 1, 0, 1]
+    assert lm.absorb_small(points, [0] * 8, reviewed=1) == [0] * 8
+
+
 def test_smoothing_gives_a_stray_point_its_neighbours_region():
     rng = np.random.default_rng(0)
     left, right = rng.normal(0, 0.05, (10, 2)), rng.normal(1, 0.05, (10, 2))
