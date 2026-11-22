@@ -120,13 +120,21 @@ def run_command(command: str) -> None:
 
 
 def reset() -> None:
-    """Detach the current worktree at a fresh ``origin/main`` and drop old experiment branches."""
+    """Detach the current worktree at a fresh ``origin/main`` and drop old experiment branches.
+
+    A branch that another worktree has checked out stays, since git refuses to delete it
+    (#6039). It belongs to another session, or to a stale worktree that its owner prunes.
+    """
     sh(["git", "fetch", "--quiet", "origin", "main"])
     sh(["git", "checkout", "--quiet", "--force", "--detach", "origin/main"])
     sh(["git", "clean", "-fdq"])
+    worktrees = sh(["git", "worktree", "list", "--porcelain"])
+    taken = {line.removeprefix("branch refs/heads/") for line in worktrees.splitlines()
+             if line.startswith("branch refs/heads/")}  # fmt: skip
     branches = sh(["git", "for-each-ref", "--format=%(refname:short)", "refs/heads/experiment/"])
     for branch in branches.split():
-        sh(["git", "branch", "-D", branch])
+        if branch not in taken:
+            sh(["git", "branch", "-D", branch])
 
 
 def proposer_of(record_path: str | None) -> str | None:

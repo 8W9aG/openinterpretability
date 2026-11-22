@@ -194,6 +194,56 @@ def test_the_plan_lists_the_next_attempt_until_the_cap(tmp_path):
     assert answer_lines(step)[0].startswith("Answer experiment: REJECTED, 5 claims")
 
 
+@pytest.mark.parametrize(
+    ("all_cut", "null_cuts", "expected"),
+    [
+        (7.443, [0.753, 1.928, -0.4], True),  # "The sun rises in the" -> " sky", VERIFIED
+        (9.122, [0.05, -0.414], True),  # "... twelve" -> " days", VERIFIED
+        (-0.149, [0.0, 0.024, -0.01], False),  # Eiffel -> " the": the effects cancel
+        (0.02, [0.01, -0.03], False),  # positive, but a random set cuts more
+        (0.5, [], True),  # no random sets: the cut only has to be positive
+    ],
+)
+def test_the_all_unit_cut_must_beat_every_random_set(all_cut, null_cuts, expected):
+    from openinterpretability.answer_review import measurable
+
+    assert measurable(all_cut, null_cuts) is expected
+
+
+def test_the_plan_skips_the_answer_experiment_when_the_effects_cancel(tmp_path):
+    from openinterpretability.explain_plan import answer_lines, answer_step
+
+    args = (tmp_path, "EleutherAI/pythia-70m", "abcd", -1, "e", {"minimal_units": [(0, 1, "head")]})
+    cancel = {"all_cut": -0.149, "null_cuts": [0.0, -0.024], "measurable": False}
+    step = answer_step(*args, cancel)
+    assert step["commands"] == [] and step["dependence"] == cancel
+    assert step["reason"].startswith("not planned: ablating every unit cuts")
+    assert "by -0.149" in step["reason"] and "(0.024)" in step["reason"]
+    assert "effects cancel" in answer_lines(step)[0]
+    fine = {"all_cut": 7.4, "null_cuts": [1.9], "measurable": True}
+    assert "attempt 1 of at most 5" in answer_step(*args, fine)["reason"]
+
+
+def test_dependence_measures_the_random_sets_as_the_review_measures_a_route(gpt2, means):
+    from openinterpretability.answer_review import dependence, every_unit, measurable
+    from openinterpretability.explain import mean_ablation
+    from openinterpretability.explain_coverage import _log_prob, keep_hooks, matched_draw
+
+    clean = _log_prob(gpt2, "abcd", 5, -1)
+    ablated = _log_prob(gpt2, "abcd", 5, -1, keep_hooks(gpt2, means, []))
+    route = [(0, 1, "head"), (1, 3, "positive")]
+    coverage = {"clean": clean, "ablated": ablated, "minimal_units": route}
+    found = dependence(gpt2, means, "abcd", 5, -1, coverage, draws=3, seed=11)
+    assert found["all_cut"] == pytest.approx(clean - ablated) and len(found["null_cuts"]) == 3
+    assert found["measurable"] is measurable(found["all_cut"], found["null_cuts"])
+    import random
+
+    first = matched_draw(random.Random(11), every_unit(gpt2, means), coverage["minimal_units"])
+    cut = clean - _log_prob(gpt2, "abcd", 5, -1, mean_ablation(first, means, gpt2))
+    assert found["null_cuts"][0] == pytest.approx(cut)
+    assert dependence(gpt2, means, "abcd", 5, -1, coverage, draws=3, seed=11) == found
+
+
 def test_the_prompts_show_earlier_claims_to_the_proposer_and_no_measure_to_the_reviewer():
     from openinterpretability.answer_prompts import proposer_prompt, reviewer_prompt
 
