@@ -8,5 +8,5 @@ draft, a literature review or a VERIFIED unit is never posted.
 - :mod:`.feed`: read an Atom feed.
 - :mod:`.message`: the text of a post, cut to fit and screened as the site is.
 - :mod:`.poster`: the :class:`~.poster.Poster` interface, and the X client.
-- :mod:`.run`: which entries are new, the daily limit, and the state file.
+- :mod:`.run`: which entries are new, and the state file.
 """
