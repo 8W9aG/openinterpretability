@@ -7,6 +7,9 @@ is a candidate instead. The exception is `area: models`: no new model until ever
 configured model reaches its coverage target. Candidates rank by priority, then by the workstream
 that the release has served least, then oldest first.
 
+An issue labelled ``muse`` is for Muse (``docs/muse.md``), not for this loop. It is never a
+candidate, never answered, and never listed as unprioritised.
+
 A candidate that another open issue blocks is skipped until that issue closes (#3842). The
 relation is GitHub's native "blocked by" dependency, which ``scripts/linear_sync.py`` keeps
 the same as Linear's.
@@ -210,18 +213,35 @@ def answered(states: dict) -> list[dict]:
         issue = gh_json("issue", "view", number, "--repo", issue_state.REPO, "--json",
                         "number,title,labels,createdAt,milestone,state,comments")  # fmt: skip
         reply = waiting_answer(issue.pop("comments")) if issue["state"] == "OPEN" else None
-        if reply is not None:
+        if reply is not None and not for_muse(issue):
             out.append(issue | {"answer": reply})
     return out
 
 
+def for_muse(issue: dict) -> bool:
+    """Whether the issue is Muse's (label ``muse``), which this loop never takes or ranks.
+
+    Args:
+        issue: The issue, with its ``labels``.
+
+    Returns:
+        True when the issue has the label ``muse``.
+
+    Examples:
+        >>> for_muse({"labels": [{"name": "muse"}]}), for_muse({"labels": []})
+        (True, False)
+    """
+    return issue_state.MUSE in labels(issue)
+
+
 def unstarted(issues: list[dict], states: dict) -> list[dict]:
-    """Issues whose Linear state isn't In Progress or In Review, and not held back."""
+    """Issues whose Linear state isn't In Progress or In Review, not held back, not Muse's."""
     return [
         i
         for i in issues
         if states.get(str(i["number"]), {}).get("state") not in STARTED
         and issue_state.PROPOSED not in labels(i)
+        and not for_muse(i)
     ]
 
 
@@ -293,8 +313,15 @@ def choose() -> dict:
 
 
 def unprioritised(issues: list[dict], states: dict) -> list[dict]:
-    """Open issues that neither Linear nor a `priority:` label gives a priority."""
-    return [i for i in issues if priority(i, states.get(str(i["number"]), {})) == NO_PRIORITY]
+    """Open issues that neither Linear nor a `priority:` label gives a priority.
+
+    Muse's issues (:func:`for_muse`) are left out.
+    """
+    return [
+        i
+        for i in issues
+        if priority(i, states.get(str(i["number"]), {})) == NO_PRIORITY and not for_muse(i)
+    ]
 
 
 def set_priority(number: str, level: str) -> str:
