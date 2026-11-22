@@ -243,6 +243,36 @@ def smooth(points, labels: list[int]) -> list[int]:
     return labels
 
 
+def absorb_small(points, labels: list[int], reviewed: int) -> list[int]:
+    """Merge each region that :func:`smooth` left with fewer than :data:`MIN_REVIEWS` reviews.
+
+    Smoothing can move every review out of a community that :func:`merge_small` kept. A
+    region of queued papers only then has no name (#5810). Each point of the smallest such
+    region joins the region of its nearest point on the map outside it.
+
+    Args:
+        points: The 2-D layout.
+        labels: Each point's region, after smoothing.
+        reviewed: The number of reviews, which come first in ``labels``.
+
+    Returns:
+        The labels after merging.
+    """
+    import numpy as np
+
+    order = np.argsort(((points[:, None] - points[None]) ** 2).sum(-1), axis=1)
+    labels = list(labels)
+    while True:
+        reviews = Counter(labels[:reviewed])
+        small = sorted((k for k in set(labels) if reviews[k] < MIN_REVIEWS),
+                       key=lambda k: (labels.count(k), k))  # fmt: skip
+        if not small or len(set(labels)) == 1:
+            return labels
+        k = small[0]
+        labels = [next(labels[j] for j in order[i] if labels[j] != k) if lab == k else lab
+                  for i, lab in enumerate(labels)]  # fmt: skip
+
+
 def compactness(points, labels: list[int]) -> float:
     """The share of points whose nearest region centre is their own region's (#5798).
 
@@ -387,6 +417,7 @@ def main() -> None:
     points = layout(vectors)
     names = [p.stem for p in reviews]
     labels = smooth(points, communities(np.asarray(vectors), len(reviews)))
+    labels = absorb_small(points, labels, len(reviews))  # smoothing can empty a region
     region_of, region_rows = regions(points, labels, names, len(reviews))
     near = neighbours(np.asarray(vectors[: len(reviews)]), names)
     rows = [
