@@ -17,7 +17,8 @@
       "Bash(jq:*)",
       "Agent",
       "Skill",
-      "Bash(gh pr merge:*)"
+      "Bash(gh pr merge:*)",
+      "Bash(gh pr create:*)"
     ]
   }
 }
