@@ -204,12 +204,16 @@ def _circuit(g, status, states, model, window, slugs, now):  # noqa: ARG001
 
 
 def answer_step(wiki_dir, model: str, prompt: str, position: int, answer: str,
-                coverage: dict) -> dict:  # fmt: skip
+                coverage: dict, dependence: dict | None = None) -> dict:  # fmt: skip
     """The answer experiment that the plan lists last (#4778, ``core/answer_records.py``).
 
     Units say what each part of the model does. An answer claim says how they make this
     answer. So it is planned once some units are explained, which gives a minimal set. The
     attempts go on until one claim is VERIFIED, or ``MAX_ATTEMPTS`` claims are on record.
+
+    ``dependence`` is :func:`~openinterpretability.answer_review.dependence`. When it says
+    that the all-unit cut is not measurable, no attempt is planned, because no route can
+    pass ``necessity`` and ``sufficiency`` (#5967).
     """
     from openinterpretability.core.answer_records import (
         MAX_ATTEMPTS,
@@ -224,7 +228,8 @@ def answer_step(wiki_dir, model: str, prompt: str, position: int, answer: str,
     records = load(wiki_dir, model, pid)
     newest = records[-1].verdict.status if records else "unstudied"
     out = {"prompt_id": pid, "status": newest, "attempts": len(records), "commands": [],
-           "newest": summary(records[-1]) if records else None}  # fmt: skip
+           "newest": summary(records[-1]) if records else None,
+           "dependence": dependence}  # fmt: skip
     attempt = next_attempt(records)
     if newest == "VERIFIED":
         return out | {"reason": "a claim is VERIFIED"}
@@ -232,6 +237,13 @@ def answer_step(wiki_dir, model: str, prompt: str, position: int, answer: str,
         return out | {"reason": f"blocked: {MAX_ATTEMPTS} claims, none VERIFIED"}
     if not coverage.get("minimal_units"):
         return out | {"reason": "no explained units yet: explain the units first"}
+    if dependence is not None and not dependence["measurable"]:
+        largest = max((abs(c) for c in dependence["null_cuts"]), default=0.0)
+        why = (f"not planned: ablating every unit cuts the answer's log-probability by "
+               f"{dependence['all_cut']:.3f}, no more than a random set of the minimal set's "
+               f"size ({largest:.3f}). The units' effects cancel, so the gates necessity and "
+               "sufficiency have no baseline (#5967)")  # fmt: skip
+        return out | {"reason": why}
     folder = working_dir(pid).as_posix()
     out["commands"] = [
         f"open-interpretability answers propose-prompt {shlex.quote(prompt)} --model {model} "
