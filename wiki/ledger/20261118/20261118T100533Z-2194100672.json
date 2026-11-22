@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-18T10:05:33Z","seed":2194100672,"kind":"explore","model":"openai-community/gpt2","slug":"openai-community--gpt2/L7/N1970-positive","record":null,"audit":"--model openai-community/gpt2 --layer 7 --neuron 1970 --pole positive --selection attribution --window-tokens 128","pole_forced":null,"harness_version":"0.1.0"}

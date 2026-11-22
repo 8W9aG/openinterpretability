@@ -9,3 +9,4 @@ openinterpretability/loop_sessions.py::session_iteration  draws, then runs the d
 openinterpretability/interference/fisher.py::neuron_weights  needs a model runner; tests/test_interference_fisher.py runs it on a tiny Qwen2 and GPT-2
 openinterpretability/interference/fisher.py::diagonal_fisher  needs a model runner and backward passes; tests/test_interference_fisher.py runs it on a tiny Qwen2
 openinterpretability/interference/fisher.py::activation_rms  needs a model runner; tests/test_interference_fisher.py runs it on a tiny Qwen2
+openinterpretability/interference/pruning.py::pruned  needs a model runner; tests/test_interference_pruning.py runs it on a tiny GPT-NeoX and Qwen2
