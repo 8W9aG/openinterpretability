@@ -18,7 +18,8 @@
 <h1 class="text-2xl font-semibold">{{ post.title }}</h1>
 <p class="mt-2 text-xs text-slate-500">
   {% if post.published %}<time datetime="{{ post.published }}">{{ post.published }}</time> ·{% endif %}
-  <a class="underline" href="{{ repo_url }}/blob/main/posts/{{ post.slug }}/README.md">Source</a>
+  <a class="underline" href="{{ repo_url }}/blob/main/posts/{{ post.slug }}/README.md">Source</a>{% if post.x_url %} ·
+  <a class="underline" href="{{ post.x_url }}" rel="noopener" data-x-link>Thread on X</a>{% endif %}
 </p>
 <div class="paper mt-6">{{ post.body | safe }}</div>
 {% endblock %}

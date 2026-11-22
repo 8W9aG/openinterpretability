@@ -121,6 +121,8 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
 
   Then run `scripts/social_images.py` again, which draws each named figure as `media/social-<id>.png` (and `.mp4`). Commit those files too. `make build` and `make test` fail on a broken rule. `open-interpretability social post --preview 1` prints the thread with each tweet's length.
 
+- **The X link is metadata.** Once a published paper posts to X, the deploy opens a PR that writes the post's URL as `x_url` in `media/social.json` (#5840). The page then shows "Thread on X". That PR changes no text of the paper, so it isn't a change to a frozen paper.
+
 ## Status: preprint or published
 
 The maintainer decided on 2026-11-17 that every paper is either a **preprint** or **published**, and that the reader must see which (#3150). The status line under the abstract says it, and the site shows it beside the title.

@@ -250,3 +250,26 @@ def write_figure(folder: Path, fig_id: str, files: list[str]) -> None:
     data.setdefault("figures", {})[fig_id] = {"sha256": digest(source), "files": sorted(files)}
     data["figures"] = dict(sorted(data["figures"].items()))
     (folder / "media" / MANIFEST).write_text(json.dumps(data, indent=1) + "\n", encoding="utf-8")
+
+
+def x_url(folder: Path) -> str | None:
+    """The URL of the paper's or post's X post, from ``media/social.json`` (#5840).
+
+    Args:
+        folder: A paper's or a post's folder.
+
+    Returns:
+        The URL, or None before the paper or post is posted.
+
+    Examples:
+        >>> import tempfile
+        >>> folder = Path(tempfile.mkdtemp())
+        >>> x_url(folder) is None
+        True
+        >>> (folder / "media").mkdir()
+        >>> _ = (folder / "media" / MANIFEST).write_text('{"x_url": "https://x.com/i/status/9"}')
+        >>> x_url(folder)
+        'https://x.com/i/status/9'
+    """
+    found = _manifest(folder).get("x_url")
+    return found if isinstance(found, str) and found.startswith("https://x.com/") else None
