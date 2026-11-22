@@ -215,6 +215,18 @@ def test_the_stop_file_stops_before_any_draw(repo, monkeypatch, capsys):
     assert "Stopping" in capsys.readouterr().out
 
 
+def test_reset_keeps_a_branch_that_another_worktree_has(repo):
+    # #6039: git refuses to delete a branch that a worktree has checked out, even a stale one.
+    from openinterpretability.experiment_loop import reset
+
+    _git("branch", "experiment/old", cwd=repo.work)
+    _git("worktree", "add", "-b", "experiment/taken", str(repo.tmp / "other"), cwd=repo.work)
+    reset()
+    left = subprocess.run(["git", "branch", "--list", "experiment/*"], cwd=repo.work,
+                          capture_output=True, text=True, check=True).stdout  # fmt: skip
+    assert "experiment/taken" in left and "experiment/old" not in left
+
+
 def test_merge_blockers():
     record = "wiki/experiments/m/L1/N2-positive/1.json"
     view = {"files": [{"path": record}]}
