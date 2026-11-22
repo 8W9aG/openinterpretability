@@ -33,7 +33,7 @@ Ask the user for the prompt and the model if they didn't give them. The default 
    uv run open-interpretability explain --model <model> --target <target> --record --yes -- '<prompt>'
    ```
    It writes the record at the mechanism level and opens its PR, which doesn't wait for CI.
-5. **Run the answer experiment.** `answer_experiment` in the JSON gives its commands. `answer-proposer` answers the proposer prompt and `answer-reviewer` the reviewer prompt, as their agent files say.
+5. **Run the answer experiment.** `answer_experiment` in the JSON gives its commands. `answer-proposer` answers the proposer prompt and `answer-reviewer` the reviewer prompt, as their agent files say. When the commands are empty, skip this step and report the answer experiment's `reason`. For example, the units' effects can cancel, and then the gates have no baseline (#5967).
 6. **Narrate.** Start this in the background, because the narrator waits for its answer:
    ```bash
    uv run open-interpretability explain --model <model> --target <target> --level long --record --yes -- '<prompt>'
