@@ -44,7 +44,10 @@ def _entries(path: Path | None) -> list:
 @click.option("--repost", multiple=True,
               help="Post this entry id although the state has it, as the first run seeds "
               "every entry (#5527). Repeat for more.")  # fmt: skip
-def post_command(papers, posts, state, dry_run, newest, repost) -> None:
+@click.option("--record", type=click.Path(path_type=Path), default=None,
+              help="Write the entries that this run posts, and their post URLs, here, for "
+              "`social link` (#5840).")  # fmt: skip
+def post_command(papers, posts, state, dry_run, newest, repost, record) -> None:
     """Post each new published paper and site post once, within the daily limit (#5533).
 
     Args:
@@ -54,6 +57,7 @@ def post_command(papers, posts, state, dry_run, newest, repost) -> None:
         dry_run: Print the posts, and post nothing.
         newest: Print the posts of this many newest entries of each feed, or 0.
         repost: Entry ids to post although the state has them.
+        record: Where to write this run's posts, or None.
 
     Raises:
         click.ClickException: When a post fails, for example on an HTTP or network error.
@@ -73,9 +77,32 @@ def post_command(papers, posts, state, dry_run, newest, repost) -> None:
     if keys is None and not dry_run:
         click.echo("The X secrets are not set, so nothing is posted.")
         return
-    poster = None if dry_run else XPoster(keys).post
+    poster, posted = None if dry_run else XPoster(keys).post, []
     try:
-        lines = run(state, feeds, poster, time.time(), frozenset(repost))
+        lines = run(state, feeds, poster, time.time(), frozenset(repost), posted)
     except OSError as error:  # an HTTP or network error: posts so far stay recorded
         raise click.ClickException(f"posting failed: {error}") from error
+    finally:
+        if record is not None and posted:  # what posted, even if a later post failed
+            from openinterpretability.social.links import write_records
+
+            write_records(record, posted)
     click.echo("\n".join(lines))
+
+
+@social_group.command(name="link")
+@click.argument("posted", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def link_command(posted) -> None:
+    """Write each posted entry's X URL into its folder's media/social.json (#5840).
+
+    POSTED is the file that `social post --record` wrote. The deploy runs this, and opens
+    a PR with the files it changes.
+
+    \f
+    Args:
+        posted: The file of this run's posts.
+    """
+    from openinterpretability.social.links import link
+
+    for path in link(posted):
+        click.echo(path.as_posix())

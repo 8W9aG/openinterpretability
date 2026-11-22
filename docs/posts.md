@@ -62,6 +62,10 @@ Write the post's X thread in `thread.yaml`, in the same PR (#5833). The rules ar
 
 Run `scripts/social_images.py` again to draw each figure that the thread names. A post with no `thread.yaml` posts as one post, as before. The thread posts once the post is published, never as a draft.
 
+## The link to X
+
+When a post or a published paper posts to X, the deploy opens a PR that writes the post's URL as `x_url` in the folder's `media/social.json` (#5840). The PR merges by itself once CI passes, and the page then shows "Thread on X". The link is metadata, not a change to the text, so a published paper stays frozen. The next deploy doesn't post it again, because the social state holds its page's URL.
+
 ## Check it
 
 ```bash
