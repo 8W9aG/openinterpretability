@@ -73,6 +73,12 @@ class ExplanationView:
         return len(run.landed) if run is not None else 0
 
     @property
+    def local(self) -> int:
+        """The experiments of its run that were only local when it measured (#5827)."""
+        run = getattr(self.record, "run", None)
+        return len(run.local) if run is not None else 0
+
+    @property
     def pending(self) -> int:
         """The experiments of its run whose PRs were open when it measured (#5826)."""
         run = getattr(self.record, "run", None)

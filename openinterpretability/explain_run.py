@@ -16,7 +16,7 @@ from openinterpretability.loop_pending import PendingRecords
 
 
 def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit: int,
-         wiki_dir: Path, measure=(None, None)):  # fmt: skip
+         wiki_dir: Path, measure=(None, None), local: bool = False):  # fmt: skip
     """Run the plan through the experiment loop, and return what it did.
 
     It returns the run's summary, its exit code and the records of its open PRs
@@ -27,7 +27,9 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
     runs, or ``(None, None)`` to count the share of |attribution| instead. Circuits wait
     for an agent to write their task (``explanation_targets.circuit_notes``). When the loop
     ends, its worktree is reset to ``origin/main``. Its PRs land without waiting for CI, so
-    the caller measures with the pending records in place (#5826).
+    the caller measures with the pending records in place (#5826). A ``local`` run works
+    in the user's checkout, opens no PR and never resets, so its records count at once
+    (#5827).
     """
     from openinterpretability.cli_loop import _api_model, _models, run_loop
     from openinterpretability.explanation_targets import (
@@ -60,19 +62,23 @@ def run_plan(found, ask, agents: tuple[str, str, str], max_attempts: int, limit:
     draws = TargetedDraws(chosen, reviewer, max_attempts, meter=meter, target=target,
                           limit=limit, window=window)  # fmt: skip
     out: dict = {}
-    code = run_loop(proposer, reviewer, draws, out=out)
+    code = run_loop(proposer, reviewer, draws, out=out, local=local)
     loop = out.get("loop")
-    ran = _ran(loop, found.coverage.get("coverage") or 0.0, code)
+    ran = _ran(loop, found.coverage.get("coverage") or 0.0, code, local)
     pending = loop.options.pending if loop is not None else PendingRecords()
     return ran.model_copy(update={"shares": draws.shares}), code, pending
 
 
-def _ran(loop, before: float, code: int):
-    """The run's summary for the record (#4474). Its share after is set once re-measured."""
+def _ran(loop, before: float, code: int, local: bool = False):
+    """The run's summary for the record (#4474). Its share after is set once re-measured.
+
+    A local run's experiments are listed as ``local`` (#5827), and its checkout is left as
+    it is.
+    """
     from openinterpretability.core.explanation_records import ExplainRun
     from openinterpretability.experiment_loop import reset
 
-    if loop is not None:
+    if loop is not None and not local:
         reset()  # the loop's worktree, at origin/main: the merged records are there
     results = loop.results if loop is not None else []
     stopped = (loop.finished if loop is not None else None) or (
@@ -83,6 +89,7 @@ def _ran(loop, before: float, code: int):
         landed=[f"{r.slug} {r.verdict} {r.url}" for r in results if r.merged],
         left_open=[r.url for r in results if r.url and not r.merged],
         pending=[f"{r.slug} {r.verdict} {r.url}" for r in results if r.url and not r.merged],
+        local=[f"{r.slug} {r.verdict} {r.record}" for r in results if r.record],
     )  # fmt: skip
 
 
