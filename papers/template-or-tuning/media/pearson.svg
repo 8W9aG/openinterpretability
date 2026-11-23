@@ -1,0 +1,417 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 511" width="760" height="511" role="img">
+<title>A scatter plot of 360 marks between r = 0.86 and 1. 343 marks sit below the line of equal correlation.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+.half{opacity:.6}</style>
+<rect class="bg" width="760" height="511" rx="10"/>
+<text x="20.0" y="30.0" class="title">On chat text, 343 of 360 poles correlate less</text>
+<text x="20.0" y="53.0" class="title">between the base and instruct models</text>
+<text x="20.0" y="73.0" class="sub">Each mark is one pole: Pearson&#x27;s r between its activations in the two models, on the plain</text>
+<text x="20.0" y="91.0" class="sub">corpus sample (across) and on the same documents as user turns (up). The line is equal r.</text>
+<path class="grid" d="M90.0 139.0L90.0 439.0"/>
+<text x="90.0" y="454.0" class="small" text-anchor="middle">0.92</text>
+<path class="grid" d="M190.0 139.0L190.0 439.0"/>
+<text x="190.0" y="454.0" class="small" text-anchor="middle">0.94</text>
+<path class="grid" d="M290.0 139.0L290.0 439.0"/>
+<text x="290.0" y="454.0" class="small" text-anchor="middle">0.96</text>
+<path class="grid" d="M390.0 139.0L390.0 439.0"/>
+<text x="390.0" y="454.0" class="small" text-anchor="middle">0.98</text>
+<path class="grid" d="M490.0 139.0L490.0 439.0"/>
+<text x="490.0" y="454.0" class="small" text-anchor="middle">1.00</text>
+<path class="grid" d="M90.0 439.0L490.0 439.0"/>
+<text x="83.0" y="443.0" class="small" text-anchor="end">0.86</text>
+<path class="grid" d="M90.0 353.3L490.0 353.3"/>
+<text x="83.0" y="357.3" class="small" text-anchor="end">0.90</text>
+<path class="grid" d="M90.0 267.6L490.0 267.6"/>
+<text x="83.0" y="271.6" class="small" text-anchor="end">0.94</text>
+<path class="grid" d="M90.0 181.9L490.0 181.9"/>
+<text x="83.0" y="185.9" class="small" text-anchor="end">0.98</text>
+<path class="dip" d="M90.0 310.4L490.0 139.0"/>
+<text x="290.0" y="470.0" class="small" text-anchor="middle">r on plain text</text>
+<text x="40.0" y="131.0" class="small">r on chat text</text>
+<circle class="fc1 half" cx="461.0" cy="152.7" r="3"/>
+<circle class="fc1 half" cx="440.0" cy="161.5" r="3"/>
+<circle class="fc1 half" cx="476.0" cy="145.6" r="3"/>
+<circle class="fc1 half" cx="455.0" cy="153.8" r="3"/>
+<circle class="fc1 half" cx="455.0" cy="154.6" r="3"/>
+<circle class="fc1 half" cx="455.0" cy="154.6" r="3"/>
+<circle class="fc1 half" cx="470.5" cy="148.4" r="3"/>
+<circle class="fc1 half" cx="460.5" cy="152.7" r="3"/>
+<circle class="fc1 half" cx="452.5" cy="155.3" r="3"/>
+<circle class="fc1 half" cx="457.0" cy="152.3" r="3"/>
+<circle class="fc1 half" cx="459.5" cy="150.8" r="3"/>
+<circle class="fc1 half" cx="440.5" cy="159.6" r="3"/>
+<circle class="fc1 half" cx="465.0" cy="149.5" r="3"/>
+<circle class="fc1 half" cx="474.0" cy="146.7" r="3"/>
+<circle class="fc1 half" cx="483.0" cy="142.0" r="3"/>
+<circle class="fc1 half" cx="464.0" cy="149.9" r="3"/>
+<circle class="fc1 half" cx="441.0" cy="162.1" r="3"/>
+<circle class="fc1 half" cx="463.0" cy="151.9" r="3"/>
+<circle class="fc1 half" cx="476.5" cy="144.8" r="3"/>
+<circle class="fc1 half" cx="477.5" cy="145.2" r="3"/>
+<circle class="fc1 half" cx="458.0" cy="152.5" r="3"/>
+<circle class="fc1 half" cx="476.5" cy="145.0" r="3"/>
+<circle class="fc1 half" cx="454.0" cy="156.4" r="3"/>
+<circle class="fc1 half" cx="480.0" cy="143.7" r="3"/>
+<circle class="fc1 half" cx="469.5" cy="149.5" r="3"/>
+<circle class="fc1 half" cx="439.5" cy="161.7" r="3"/>
+<circle class="fc1 half" cx="419.5" cy="173.5" r="3"/>
+<circle class="fc1 half" cx="453.5" cy="155.9" r="3"/>
+<circle class="fc1 half" cx="436.0" cy="164.1" r="3"/>
+<circle class="fc1 half" cx="442.5" cy="169.9" r="3"/>
+<circle class="fc1 half" cx="434.5" cy="167.7" r="3"/>
+<circle class="fc1 half" cx="437.0" cy="163.4" r="3"/>
+<circle class="fc1 half" cx="440.0" cy="161.9" r="3"/>
+<circle class="fc1 half" cx="438.5" cy="167.5" r="3"/>
+<circle class="fc1 half" cx="385.5" cy="184.9" r="3"/>
+<circle class="fc1 half" cx="414.5" cy="178.6" r="3"/>
+<circle class="fc1 half" cx="420.5" cy="182.1" r="3"/>
+<circle class="fc1 half" cx="420.5" cy="173.1" r="3"/>
+<circle class="fc1 half" cx="452.5" cy="161.7" r="3"/>
+<circle class="fc1 half" cx="430.0" cy="167.5" r="3"/>
+<circle class="fc1 half" cx="408.5" cy="178.9" r="3"/>
+<circle class="fc1 half" cx="415.0" cy="176.9" r="3"/>
+<circle class="fc1 half" cx="456.0" cy="159.4" r="3"/>
+<circle class="fc1 half" cx="425.0" cy="171.6" r="3"/>
+<circle class="fc1 half" cx="421.5" cy="173.1" r="3"/>
+<circle class="fc1 half" cx="398.0" cy="179.7" r="3"/>
+<circle class="fc1 half" cx="415.5" cy="179.7" r="3"/>
+<circle class="fc1 half" cx="451.0" cy="158.7" r="3"/>
+<circle class="fc1 half" cx="458.0" cy="158.1" r="3"/>
+<circle class="fc1 half" cx="409.5" cy="171.8" r="3"/>
+<circle class="fc1 half" cx="403.5" cy="171.6" r="3"/>
+<circle class="fc1 half" cx="401.5" cy="182.9" r="3"/>
+<circle class="fc1 half" cx="403.5" cy="183.6" r="3"/>
+<circle class="fc1 half" cx="411.5" cy="179.3" r="3"/>
+<circle class="fc1 half" cx="394.0" cy="176.9" r="3"/>
+<circle class="fc1 half" cx="371.5" cy="202.6" r="3"/>
+<circle class="fc1 half" cx="418.0" cy="176.1" r="3"/>
+<circle class="fc1 half" cx="386.0" cy="203.3" r="3"/>
+<circle class="fc1 half" cx="421.5" cy="180.1" r="3"/>
+<circle class="fc1 half" cx="412.5" cy="181.0" r="3"/>
+<circle class="fc1 half" cx="388.0" cy="189.4" r="3"/>
+<circle class="fc1 half" cx="389.5" cy="191.1" r="3"/>
+<circle class="fc1 half" cx="434.0" cy="167.3" r="3"/>
+<circle class="fc1 half" cx="447.0" cy="163.9" r="3"/>
+<circle class="fc1 half" cx="393.0" cy="187.2" r="3"/>
+<circle class="fc1 half" cx="394.5" cy="173.7" r="3"/>
+<circle class="fc1 half" cx="386.0" cy="193.2" r="3"/>
+<circle class="fc1 half" cx="384.0" cy="194.5" r="3"/>
+<circle class="fc1 half" cx="355.5" cy="223.6" r="3"/>
+<circle class="fc1 half" cx="330.0" cy="215.9" r="3"/>
+<circle class="fc1 half" cx="401.5" cy="179.3" r="3"/>
+<circle class="fc1 half" cx="401.5" cy="179.3" r="3"/>
+<circle class="fc1 half" cx="387.5" cy="198.4" r="3"/>
+<circle class="fc1 half" cx="360.5" cy="215.5" r="3"/>
+<circle class="fc1 half" cx="368.0" cy="202.6" r="3"/>
+<circle class="fc1 half" cx="351.0" cy="233.7" r="3"/>
+<circle class="fc1 half" cx="390.5" cy="186.4" r="3"/>
+<circle class="fc1 half" cx="388.5" cy="188.7" r="3"/>
+<circle class="fc1 half" cx="403.0" cy="183.4" r="3"/>
+<circle class="fc1 half" cx="401.5" cy="187.2" r="3"/>
+<circle class="fc1 half" cx="416.5" cy="181.4" r="3"/>
+<circle class="fc1 half" cx="416.5" cy="181.4" r="3"/>
+<circle class="fc1 half" cx="367.5" cy="200.1" r="3"/>
+<circle class="fc1 half" cx="380.5" cy="204.8" r="3"/>
+<circle class="fc1 half" cx="380.5" cy="198.4" r="3"/>
+<circle class="fc1 half" cx="326.0" cy="213.6" r="3"/>
+<circle class="fc1 half" cx="388.5" cy="194.5" r="3"/>
+<circle class="fc1 half" cx="351.5" cy="210.4" r="3"/>
+<circle class="fc1 half" cx="367.0" cy="204.6" r="3"/>
+<circle class="fc1 half" cx="386.0" cy="190.0" r="3"/>
+<circle class="fc1 half" cx="386.0" cy="190.0" r="3"/>
+<circle class="fc1 half" cx="370.0" cy="222.8" r="3"/>
+<circle class="fc1 half" cx="355.0" cy="202.4" r="3"/>
+<circle class="fc1 half" cx="372.0" cy="202.2" r="3"/>
+<circle class="fc1 half" cx="375.0" cy="200.5" r="3"/>
+<circle class="fc1 half" cx="387.5" cy="209.1" r="3"/>
+<circle class="fc1 half" cx="385.0" cy="199.6" r="3"/>
+<circle class="fc1 half" cx="439.0" cy="159.1" r="3"/>
+<circle class="fc1 half" cx="439.0" cy="159.1" r="3"/>
+<circle class="fc1 half" cx="336.0" cy="215.9" r="3"/>
+<circle class="fc1 half" cx="354.5" cy="219.4" r="3"/>
+<circle class="fc1 half" cx="408.0" cy="184.6" r="3"/>
+<circle class="fc1 half" cx="443.0" cy="168.4" r="3"/>
+<circle class="fc1 half" cx="388.0" cy="191.1" r="3"/>
+<circle class="fc1 half" cx="365.5" cy="225.8" r="3"/>
+<circle class="fc1 half" cx="364.5" cy="209.1" r="3"/>
+<circle class="fc1 half" cx="304.5" cy="245.5" r="3"/>
+<circle class="fc1 half" cx="323.5" cy="236.5" r="3"/>
+<circle class="fc1 half" cx="370.0" cy="208.9" r="3"/>
+<circle class="fc1 half" cx="332.5" cy="229.6" r="3"/>
+<circle class="fc1 half" cx="354.5" cy="232.0" r="3"/>
+<circle class="fc1 half" cx="390.5" cy="207.1" r="3"/>
+<circle class="fc1 half" cx="364.0" cy="214.2" r="3"/>
+<circle class="fc1 half" cx="364.0" cy="214.2" r="3"/>
+<circle class="fc1 half" cx="364.0" cy="201.4" r="3"/>
+<circle class="fc1 half" cx="336.5" cy="231.4" r="3"/>
+<circle class="fc1 half" cx="361.0" cy="210.4" r="3"/>
+<circle class="fc1 half" cx="345.5" cy="215.3" r="3"/>
+<circle class="fc1 half" cx="339.0" cy="228.6" r="3"/>
+<circle class="fc1 half" cx="388.0" cy="200.9" r="3"/>
+<circle class="fc1 half" cx="362.5" cy="221.3" r="3"/>
+<circle class="fc1 half" cx="359.5" cy="217.6" r="3"/>
+<circle class="fc1 half" cx="433.5" cy="172.6" r="3"/>
+<circle class="fc1 half" cx="336.0" cy="218.7" r="3"/>
+<circle class="fc1 half" cx="366.5" cy="224.7" r="3"/>
+<circle class="fc1 half" cx="435.5" cy="186.8" r="3"/>
+<circle class="fc1 half" cx="397.0" cy="184.0" r="3"/>
+<circle class="fc1 half" cx="396.0" cy="201.1" r="3"/>
+<circle class="fc1 half" cx="340.0" cy="236.3" r="3"/>
+<circle class="fc1 half" cx="371.5" cy="210.6" r="3"/>
+<circle class="fc1 half" cx="352.0" cy="218.1" r="3"/>
+<circle class="fc1 half" cx="400.5" cy="200.5" r="3"/>
+<circle class="fc1 half" cx="332.5" cy="245.1" r="3"/>
+<circle class="fc1 half" cx="316.0" cy="251.1" r="3"/>
+<circle class="fc1 half" cx="297.0" cy="230.9" r="3"/>
+<circle class="fc1 half" cx="354.5" cy="218.9" r="3"/>
+<circle class="fc1 half" cx="376.0" cy="196.6" r="3"/>
+<circle class="fc1 half" cx="358.5" cy="211.2" r="3"/>
+<circle class="fc1 half" cx="358.5" cy="211.2" r="3"/>
+<circle class="fc1 half" cx="366.5" cy="204.1" r="3"/>
+<circle class="fc1 half" cx="333.5" cy="224.7" r="3"/>
+<circle class="fc1 half" cx="359.0" cy="233.5" r="3"/>
+<circle class="fc1 half" cx="365.0" cy="227.7" r="3"/>
+<circle class="fc1 half" cx="363.0" cy="210.6" r="3"/>
+<circle class="fc1 half" cx="277.5" cy="283.9" r="3"/>
+<circle class="fc1 half" cx="280.0" cy="260.7" r="3"/>
+<circle class="fc1 half" cx="323.0" cy="238.4" r="3"/>
+<circle class="fc1 half" cx="287.0" cy="270.6" r="3"/>
+<circle class="fc1 half" cx="344.0" cy="239.3" r="3"/>
+<circle class="fc1 half" cx="338.0" cy="234.1" r="3"/>
+<circle class="fc1 half" cx="301.5" cy="275.5" r="3"/>
+<circle class="fc1 half" cx="302.0" cy="271.4" r="3"/>
+<circle class="fc1 half" cx="286.5" cy="278.5" r="3"/>
+<circle class="fc1 half" cx="301.0" cy="270.1" r="3"/>
+<circle class="fc1 half" cx="293.5" cy="254.5" r="3"/>
+<circle class="fc1 half" cx="274.5" cy="287.7" r="3"/>
+<circle class="fc1 half" cx="279.0" cy="297.1" r="3"/>
+<circle class="fc1 half" cx="318.5" cy="254.1" r="3"/>
+<circle class="fc1 half" cx="278.5" cy="287.7" r="3"/>
+<circle class="fc1 half" cx="343.5" cy="232.2" r="3"/>
+<circle class="fc1 half" cx="343.5" cy="232.2" r="3"/>
+<circle class="fc1 half" cx="303.0" cy="267.4" r="3"/>
+<circle class="fc1 half" cx="262.0" cy="288.8" r="3"/>
+<circle class="fc1 half" cx="281.5" cy="273.1" r="3"/>
+<circle class="fc1 half" cx="304.0" cy="302.3" r="3"/>
+<circle class="fc1 half" cx="305.5" cy="257.1" r="3"/>
+<circle class="fc1 half" cx="270.0" cy="323.5" r="3"/>
+<circle class="fc1 half" cx="311.0" cy="281.5" r="3"/>
+<circle class="fc1 half" cx="332.0" cy="256.9" r="3"/>
+<circle class="fc1 half" cx="313.0" cy="269.5" r="3"/>
+<circle class="fc1 half" cx="302.0" cy="267.8" r="3"/>
+<circle class="fc1 half" cx="269.5" cy="266.9" r="3"/>
+<circle class="fc1 half" cx="284.0" cy="274.0" r="3"/>
+<circle class="fc1 half" cx="271.0" cy="299.5" r="3"/>
+<circle class="fc1 half" cx="192.0" cy="343.6" r="3"/>
+<circle class="fc1 half" cx="268.5" cy="292.0" r="3"/>
+<circle class="fc1 half" cx="281.0" cy="275.5" r="3"/>
+<circle class="fc1 half" cx="281.0" cy="275.5" r="3"/>
+<circle class="fc1 half" cx="291.0" cy="270.4" r="3"/>
+<circle class="fc1 half" cx="237.5" cy="313.6" r="3"/>
+<circle class="fc1 half" cx="253.0" cy="299.3" r="3"/>
+<circle class="fc1 half" cx="368.0" cy="224.7" r="3"/>
+<circle class="fc1 half" cx="254.0" cy="289.6" r="3"/>
+<circle class="fc1 half" cx="325.0" cy="245.1" r="3"/>
+<circle class="fc1 half" cx="208.5" cy="364.9" r="3"/>
+<circle class="fc1 half" cx="301.0" cy="270.8" r="3"/>
+<circle class="fc1 half" cx="289.0" cy="266.7" r="3"/>
+<circle class="fc1 half" cx="332.5" cy="254.5" r="3"/>
+<circle class="fc1 half" cx="323.5" cy="250.9" r="3"/>
+<circle class="fc1 half" cx="323.5" cy="250.9" r="3"/>
+<circle class="fc1 half" cx="347.0" cy="254.3" r="3"/>
+<circle class="fc1 half" cx="233.0" cy="351.8" r="3"/>
+<circle class="fc1 half" cx="283.5" cy="296.9" r="3"/>
+<circle class="fc1 half" cx="297.0" cy="274.6" r="3"/>
+<circle class="fc1 half" cx="373.5" cy="203.3" r="3"/>
+<circle class="fc1 half" cx="287.0" cy="283.2" r="3"/>
+<circle class="fc1 half" cx="408.5" cy="202.9" r="3"/>
+<circle class="fc1 half" cx="261.0" cy="284.3" r="3"/>
+<circle class="fc1 half" cx="275.0" cy="286.0" r="3"/>
+<circle class="fc1 half" cx="345.0" cy="264.4" r="3"/>
+<circle class="fc1 half" cx="295.0" cy="272.3" r="3"/>
+<circle class="fc1 half" cx="278.5" cy="283.6" r="3"/>
+<circle class="fc1 half" cx="278.5" cy="283.6" r="3"/>
+<circle class="fc1 half" cx="353.0" cy="250.0" r="3"/>
+<circle class="fc1 half" cx="293.0" cy="280.2" r="3"/>
+<circle class="fc1 half" cx="177.0" cy="413.7" r="3"/>
+<circle class="fc1 half" cx="350.0" cy="230.5" r="3"/>
+<circle class="fc1 half" cx="331.0" cy="253.4" r="3"/>
+<circle class="fc1 half" cx="294.5" cy="264.8" r="3"/>
+<circle class="fc1 half" cx="299.5" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="230.0" cy="400.6" r="3"/>
+<circle class="fc1 half" cx="296.0" cy="273.6" r="3"/>
+<circle class="fc1 half" cx="329.5" cy="251.3" r="3"/>
+<circle class="fc1 half" cx="233.5" cy="298.2" r="3"/>
+<circle class="fc1 half" cx="349.0" cy="234.8" r="3"/>
+<circle class="fc1 half" cx="349.0" cy="234.8" r="3"/>
+<circle class="fc1 half" cx="344.0" cy="254.7" r="3"/>
+<circle class="fc1 half" cx="300.5" cy="277.9" r="3"/>
+<circle class="fc1 half" cx="253.5" cy="290.9" r="3"/>
+<circle class="fc1 half" cx="303.5" cy="298.6" r="3"/>
+<circle class="fc1 half" cx="308.5" cy="272.9" r="3"/>
+<circle class="fc1 half" cx="324.0" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="413.5" cy="195.1" r="3"/>
+<circle class="fc1 half" cx="337.0" cy="224.1" r="3"/>
+<circle class="fc1 half" cx="364.5" cy="223.2" r="3"/>
+<circle class="fc1 half" cx="293.5" cy="258.1" r="3"/>
+<circle class="fc1 half" cx="210.0" cy="359.9" r="3"/>
+<circle class="fc1 half" cx="272.5" cy="273.1" r="3"/>
+<circle class="fc1 half" cx="381.0" cy="213.4" r="3"/>
+<circle class="fc1 half" cx="303.5" cy="259.6" r="3"/>
+<circle class="fc1 half" cx="305.0" cy="284.1" r="3"/>
+<circle class="fc1 half" cx="264.0" cy="290.1" r="3"/>
+<circle class="fc1 half" cx="313.5" cy="254.9" r="3"/>
+<circle class="fc1 half" cx="280.0" cy="294.8" r="3"/>
+<circle class="fc1 half" cx="280.0" cy="294.8" r="3"/>
+<circle class="fc1 half" cx="300.5" cy="264.8" r="3"/>
+<circle class="fc1 half" cx="337.0" cy="270.8" r="3"/>
+<circle class="fc1 half" cx="388.5" cy="209.5" r="3"/>
+<circle class="fc1 half" cx="379.0" cy="208.4" r="3"/>
+<circle class="fc1 half" cx="325.0" cy="256.0" r="3"/>
+<circle class="fc1 half" cx="411.5" cy="182.1" r="3"/>
+<circle class="fc1 half" cx="339.0" cy="229.0" r="3"/>
+<circle class="fc1 half" cx="369.5" cy="220.9" r="3"/>
+<circle class="fc1 half" cx="416.0" cy="199.0" r="3"/>
+<circle class="fc1 half" cx="403.0" cy="202.4" r="3"/>
+<circle class="fc1 half" cx="337.5" cy="245.1" r="3"/>
+<circle class="fc1 half" cx="328.0" cy="251.9" r="3"/>
+<circle class="fc1 half" cx="355.5" cy="233.9" r="3"/>
+<circle class="fc1 half" cx="467.5" cy="153.1" r="3"/>
+<circle class="fc1 half" cx="420.0" cy="193.9" r="3"/>
+<circle class="fc1 half" cx="306.0" cy="269.3" r="3"/>
+<circle class="fc1 half" cx="328.0" cy="251.1" r="3"/>
+<circle class="fc1 half" cx="385.5" cy="198.1" r="3"/>
+<circle class="fc1 half" cx="366.0" cy="253.0" r="3"/>
+<circle class="fc1 half" cx="381.0" cy="203.5" r="3"/>
+<circle class="fc1 half" cx="305.5" cy="290.1" r="3"/>
+<circle class="fc1 half" cx="364.0" cy="216.4" r="3"/>
+<circle class="fc1 half" cx="381.5" cy="201.4" r="3"/>
+<circle class="fc1 half" cx="339.5" cy="234.4" r="3"/>
+<circle class="fc1 half" cx="216.0" cy="323.7" r="3"/>
+<circle class="fc1 half" cx="331.0" cy="286.0" r="3"/>
+<circle class="fc1 half" cx="365.5" cy="226.0" r="3"/>
+<circle class="fc1 half" cx="251.0" cy="287.3" r="3"/>
+<circle class="fc1 half" cx="361.5" cy="227.7" r="3"/>
+<circle class="fc1 half" cx="380.0" cy="235.4" r="3"/>
+<circle class="fc1 half" cx="455.5" cy="170.9" r="3"/>
+<circle class="fc1 half" cx="330.0" cy="231.1" r="3"/>
+<circle class="fc1 half" cx="428.5" cy="177.6" r="3"/>
+<circle class="fc1 half" cx="333.5" cy="233.9" r="3"/>
+<circle class="fc1 half" cx="339.0" cy="216.1" r="3"/>
+<circle class="fc1 half" cx="355.0" cy="244.0" r="3"/>
+<circle class="fc1 half" cx="437.0" cy="163.4" r="3"/>
+<circle class="fc1 half" cx="312.0" cy="246.6" r="3"/>
+<circle class="fc1 half" cx="311.0" cy="253.0" r="3"/>
+<circle class="fc1 half" cx="314.0" cy="244.6" r="3"/>
+<circle class="fc1 half" cx="338.5" cy="241.0" r="3"/>
+<circle class="fc1 half" cx="373.0" cy="201.1" r="3"/>
+<circle class="fc1 half" cx="273.5" cy="327.1" r="3"/>
+<circle class="fc1 half" cx="350.5" cy="235.4" r="3"/>
+<circle class="fc1 half" cx="337.5" cy="229.9" r="3"/>
+<circle class="fc1 half" cx="339.5" cy="221.5" r="3"/>
+<circle class="fc1 half" cx="123.0" cy="239.3" r="3"/>
+<circle class="fc1 half" cx="212.5" cy="374.5" r="3"/>
+<circle class="fc1 half" cx="398.5" cy="203.5" r="3"/>
+<circle class="fc1 half" cx="361.0" cy="221.5" r="3"/>
+<circle class="fc1 half" cx="408.5" cy="191.3" r="3"/>
+<circle class="fc1 half" cx="324.5" cy="248.1" r="3"/>
+<circle class="fc1 half" cx="379.0" cy="215.7" r="3"/>
+<circle class="fc1 half" cx="405.0" cy="194.9" r="3"/>
+<circle class="fc1 half" cx="353.0" cy="241.4" r="3"/>
+<circle class="fc1 half" cx="306.0" cy="249.6" r="3"/>
+<circle class="fc1 half" cx="372.5" cy="223.2" r="3"/>
+<circle class="fc1 half" cx="394.5" cy="204.1" r="3"/>
+<circle class="fc1 half" cx="346.5" cy="211.4" r="3"/>
+<circle class="fc1 half" cx="360.5" cy="225.6" r="3"/>
+<circle class="fc1 half" cx="436.0" cy="176.5" r="3"/>
+<circle class="fc1 half" cx="385.5" cy="204.4" r="3"/>
+<circle class="fc1 half" cx="365.5" cy="217.9" r="3"/>
+<circle class="fc1 half" cx="472.5" cy="149.1" r="3"/>
+<circle class="fc1 half" cx="354.5" cy="248.5" r="3"/>
+<circle class="fc1 half" cx="385.5" cy="200.7" r="3"/>
+<circle class="fc1 half" cx="320.5" cy="205.4" r="3"/>
+<circle class="fc1 half" cx="376.0" cy="212.9" r="3"/>
+<circle class="fc1 half" cx="376.0" cy="212.9" r="3"/>
+<circle class="fc1 half" cx="327.0" cy="340.9" r="3"/>
+<circle class="fc1 half" cx="414.5" cy="196.9" r="3"/>
+<circle class="fc1 half" cx="423.5" cy="181.0" r="3"/>
+<circle class="fc1 half" cx="435.0" cy="175.2" r="3"/>
+<circle class="fc1 half" cx="354.5" cy="224.1" r="3"/>
+<circle class="fc1 half" cx="373.0" cy="210.1" r="3"/>
+<circle class="fc1 half" cx="337.0" cy="210.6" r="3"/>
+<circle class="fc1 half" cx="361.0" cy="225.4" r="3"/>
+<circle class="fc1 half" cx="342.0" cy="234.8" r="3"/>
+<circle class="fc1 half" cx="342.0" cy="234.8" r="3"/>
+<circle class="fc1 half" cx="401.5" cy="214.2" r="3"/>
+<circle class="fc1 half" cx="396.5" cy="193.6" r="3"/>
+<circle class="fc1 half" cx="422.5" cy="187.2" r="3"/>
+<circle class="fc1 half" cx="382.0" cy="217.2" r="3"/>
+<circle class="fc1 half" cx="367.5" cy="199.2" r="3"/>
+<circle class="fc1 half" cx="389.5" cy="200.5" r="3"/>
+<circle class="fc1 half" cx="356.0" cy="229.4" r="3"/>
+<circle class="fc1 half" cx="352.0" cy="224.9" r="3"/>
+<circle class="fc1 half" cx="328.0" cy="234.6" r="3"/>
+<circle class="fc1 half" cx="421.5" cy="190.6" r="3"/>
+<circle class="fc1 half" cx="373.5" cy="234.8" r="3"/>
+<circle class="fc1 half" cx="364.5" cy="215.5" r="3"/>
+<circle class="fc1 half" cx="409.5" cy="212.1" r="3"/>
+<circle class="fc1 half" cx="354.5" cy="242.9" r="3"/>
+<circle class="fc1 half" cx="347.0" cy="210.1" r="3"/>
+<circle class="fc1 half" cx="376.0" cy="205.2" r="3"/>
+<circle class="fc1 half" cx="392.0" cy="219.4" r="3"/>
+<circle class="fc1 half" cx="395.5" cy="199.4" r="3"/>
+<circle class="fc1 half" cx="349.0" cy="223.6" r="3"/>
+<circle class="fc1 half" cx="376.5" cy="213.1" r="3"/>
+<circle class="fc1 half" cx="398.0" cy="213.6" r="3"/>
+<circle class="fc1 half" cx="379.0" cy="203.3" r="3"/>
+<circle class="fc1 half" cx="433.0" cy="177.6" r="3"/>
+<circle class="fc1 half" cx="378.5" cy="233.9" r="3"/>
+<circle class="fc1 half" cx="342.0" cy="230.7" r="3"/>
+<circle class="fc1 half" cx="321.5" cy="223.6" r="3"/>
+<circle class="fc1 half" cx="284.5" cy="282.6" r="3"/>
+<circle class="fc1 half" cx="284.5" cy="282.6" r="3"/>
+<circle class="fc1 half" cx="339.0" cy="224.7" r="3"/>
+<circle class="fc1 half" cx="357.5" cy="220.0" r="3"/>
+<circle class="fc1 half" cx="346.5" cy="229.2" r="3"/>
+<circle class="fc1 half" cx="356.0" cy="220.2" r="3"/>
+<circle class="fc1 half" cx="314.5" cy="239.1" r="3"/>
+<circle class="fc1 half" cx="342.0" cy="217.2" r="3"/>
+<circle class="fc1 half" cx="281.5" cy="278.9" r="3"/>
+<circle class="fc1 half" cx="322.5" cy="234.4" r="3"/>
+<circle class="fc1 half" cx="322.5" cy="234.4" r="3"/>
+<circle class="fc1 half" cx="354.0" cy="257.7" r="3"/>
+<circle class="fc1 half" cx="385.5" cy="197.7" r="3"/>
+<circle class="fc1 half" cx="375.0" cy="195.1" r="3"/>
+<circle class="fc1 half" cx="347.0" cy="242.3" r="3"/>
+<circle class="fc1 half" cx="381.0" cy="225.1" r="3"/>
+<circle class="fc1 half" cx="314.0" cy="249.4" r="3"/>
+<circle class="fc1 half" cx="314.0" cy="249.4" r="3"/>
+<circle class="fc1 half" cx="459.5" cy="158.3" r="3"/>
+<circle class="fc1 half" cx="412.0" cy="187.6" r="3"/>
+</svg>

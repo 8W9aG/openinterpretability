@@ -1,0 +1,28 @@
+{
+ "source": "media/square.svg",
+ "sha256": "088df115eb7b8841c2781625eb319e2838fdff7fe81aa777d6cbf18de411b6bc",
+ "files": [
+  "social.png"
+ ],
+ "figures": {
+  "grid": {
+   "sha256": "1c86ccbe89c017784f0f4392f0cbc3e916947846148d67f5b8fc78536ad57380",
+   "files": [
+    "social-grid.mp4",
+    "social-grid.png"
+   ]
+  },
+  "pearson": {
+   "sha256": "44bdf4467270d2cc39d6cccfad40fb64a27ccc229afc368a794ff5765f8f9afa",
+   "files": [
+    "social-pearson.png"
+   ]
+  },
+  "square": {
+   "sha256": "088df115eb7b8841c2781625eb319e2838fdff7fe81aa777d6cbf18de411b6bc",
+   "files": [
+    "social-square.png"
+   ]
+  }
+ }
+}
