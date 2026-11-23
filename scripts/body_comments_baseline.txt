@@ -207,7 +207,6 @@ scripts/ground_truth.py::plant
 scripts/ground_truth.py::scan
 scripts/ground_truth.py::summary
 scripts/head_tolerance.py::measure
-scripts/issue_state.py::eligibility
 scripts/issue_state.py::milestone_issues
 scripts/linear_sync.py::roadmap
 scripts/linear_sync.py::main
@@ -256,7 +255,6 @@ scripts/syntax_probes.py::probe_rows
 scripts/syntax_probes.py::trace_row
 scripts/train_resting.py::build_model
 scripts/train_resting.py::training_tokens
-scripts/train_resting.py::evaluate
 scripts/train_resting.py::train_command
 scripts/untrained_null.py::scan
 scripts/untrained_null.py::summary

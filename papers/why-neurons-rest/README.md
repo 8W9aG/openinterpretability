@@ -2,7 +2,7 @@
 
 Training moves most of GPT-2's neurons to a median pre-activation $h$ of about −1, as [the paper on default-on negative poles](../default-on-poles/README.md) found. That is below GELU's minimum at −0.75. That paper also found that the input weights do this. It did not find why. This paper trains small GPT-2s and changes one thing at a time. It finds a small push on each neuron's rest that is steady over many steps, and that the optimizer's step size sets how far the push takes the rest.
 
-**Status:** Preprint. Work left: #3193, #3192 and #4093 (the causes of the push that are still open).
+**Status:** Preprint. Work left: #3193 and #4093 (the causes of the push that are still open).
 
 ## Introduction
 
@@ -259,7 +259,7 @@ The fourth question is how the loss reaches the MLP's mean output, and how the p
 
 **Table 9.** The routes of the pull. The cosine is between the MLP's mean output and the gradient on its output bias, as a mean over L1–L3 and over the 20 windows. A positive cosine means that gradient descent shrinks the mean output.
 
-The pull on the mean output goes through the final LayerNorm and dropout. With dropout at 0, the pull stays, but it is weaker: ReLU's cosine falls from +0.072 to +0.043, on two seeds. When the final LayerNorm cannot see a constant and nothing drops out, the pull stops. The block LayerNorms alone do not make it. With both routes closed, the push on ReLU's rest keeps its pace, so the pull is not needed for the rest. The appendix *The pull on the mean output* gives the detail.
+The pull on the mean output goes through the final LayerNorm and dropout. With dropout at 0, the pull stays, but it is weaker: ReLU's cosine falls from +0.072 to +0.043, on two seeds. When the final LayerNorm cannot see a constant and nothing drops out, the pull stops. The block LayerNorms alone do not make it. With nothing to pull it back, the MLPs' mean output then grows until a shared constant fills the input of the later blocks' LayerNorms, and L2 and L3 nearly shut (appendix *Why L2 and L3 shut*). Dropout's own pull goes through the block LayerNorms and the final LayerNorm alike (appendix *Dropout's routes*). With both routes closed, the push on ReLU's rest keeps its pace, so the pull is not needed for the rest. The appendix *The pull on the mean output* gives the detail.
 
 The final LayerNorm's pull comes from the unigram prior. One reading was that a constant takes part of each token's norm. Then the LayerNorm divides by a larger norm, shrinks the parts that differ between tokens, and flattens the logits. `scripts/ln_offset.py` tests this on trained models. It adds an offset $c$ along a direction to the input $x$ of a LayerNorm, in three ways:
 
@@ -519,6 +519,21 @@ uv run python scripts/ln_offset.py frequency --condition gelu --cache tokens.pt 
     $(for F in ckpt/gelu_*.pt; do echo --checkpoint $F; done)
 uv run python scripts/ln_offset.py frequency --condition relu --cache tokens.pt --out $OUT \
     $(for F in ckpt/relu_*.pt; do echo --checkpoint $F; done)
+# Why L2 and L3 shut, and dropout's routes (#3192), on an NVIDIA GPU
+for S in 0 1; do
+  for C in relu_final_norm_centred_dropout_0 relu_dropout_0 relu_norms_centred_dropout_0; do
+    uv run python scripts/train_resting.py train --seed $S --condition $C --steps 2000 --eval-every 100 \
+        --cache tokens.pt --device cuda --part training_shut --out $OUT
+  done
+  for C in relu gelu; do
+    uv run python scripts/train_resting.py train --seed $S --condition $C --steps 2000 --eval-every 500 \
+        --cache tokens.pt --device cuda --part training_dropout_routes --save-every 2000 --save-dir ckpt --out $OUT
+  done
+done
+for C in relu gelu; do
+  uv run python scripts/dropout_routes.py --condition $C --device cuda --out $OUT \
+      --checkpoint ckpt/${C}_seed0_step2000.pt --checkpoint ckpt/${C}_seed1_step2000.pt
+done
 uv run python scripts/paper_figures.py
 ```
 
@@ -638,7 +653,7 @@ It is a pull on the mean, not on each token. If the loss pulled each token's out
 
 The final LayerNorm and dropout carry the pull (Table 9). Each of the two routes makes the pull alone. Dropout alone gives +0.059, and the final LayerNorm alone gives +0.046. Removing dropout from a model with every route open lowers the cosine by 0.03 for ReLU and 0.013–0.014 for GELU, on each seed. The earlier test centred every norm but kept dropout, so it could not rule LayerNorm out.
 
-The block LayerNorms do not make the pull. With only them open, the cosine is −0.017 and −0.019 on the two seeds, and is above 0 in 1 window of 20 on each. But in these runs L2 and L3 nearly shut: $h$'s SD there fell to 0.07–0.10, against about 0.5 in the other runs. Their loss is 5.937 and 5.950, against 5.758 and 5.753 with no dropout. At L1, where $h$'s SD is 0.42, the cosine is −0.02 to −0.04 over the last 5 windows.
+The block LayerNorms do not make the pull. With only them open, the cosine is −0.017 and −0.019 on the two seeds, and is above 0 in 1 window of 20 on each. But in these runs L2 and L3 nearly shut: $h$'s SD there fell to 0.07–0.10, against about 0.5 in the other runs. Their loss is 5.937 and 5.950, against 5.758 and 5.753 with no dropout. At L1, where $h$'s SD is 0.42, the cosine is −0.02 to −0.04 over the last 5 windows. The appendix *Why L2 and L3 shut* gives the cause.
 
 With no route open, the pull is 0. Then every reader of the residual stream centres it over tokens. So the gradient on $b_{\mathrm{out}}$ is exactly 0, and so is the output's push summed over tokens. The cosine is noise, at −0.008 to +0.007 over the two seeds.
 
@@ -657,6 +672,48 @@ The block LayerNorms push the other way. The same offset, seen only by the Layer
 With every route open, the sign depends on the layer. L0's total is a push up in 9 of 9 checkpoints, and L1's in 8 of 9, because the block route is larger. L2's and L3's totals are pulls, in 8 and 6 of 9. In training, dropout adds a pull of its own, and these slopes leave it out.
 
 GPT-2 small has no pull here either. Along its MLP mean output, the full slope is −0.099 at the final LayerNorm, with shrink at −0.032 and shift at −0.067. The shrink still flattens its logits, with an entropy slope of +1.82, and the shift sharpens them, at −1.13.
+
+### Why L2 and L3 shut
+
+With only the block LayerNorms open, nothing pulls the MLPs' mean output toward 0, and the later blocks even use a constant in the residual stream (*What the final LayerNorm does with a constant*). So the mean output grows until it fills the input of those LayerNorms. A LayerNorm centres each token over its features, not over tokens, so a constant that all tokens share passes through it. When the shared part is several times the part that differs between tokens, the LayerNorm's output barely differs between tokens, and neither does the next MLP's $h$.
+
+To test this, the evaluation of `train_resting.py` records two more measures for each block. The *offset ratio* $r$ at a LayerNorm's input is the norm of the residual stream's mean over tokens, over the mean norm of each token's deviation from that mean. The other is the norm of the MLP's mean output. Three ReLU conditions with no dropout ran for 2,000 steps on two seeds, evaluated every 100 steps (Table 21). The runs were on an NVIDIA GPU. They reproduce the earlier losses to 0.016 or better.
+
+| Run | Seed | Loss | MLP mean output, L0–L3 | $r$ at L2's `ln_2` | $r$ at L3's `ln_2` | $h$ SD, L2 | $h$ SD, L3 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Only block norms open | 0 | 5.937 | 4.1, 6.0, 5.6, 2.5 | 2.93 | 3.72 | 0.10 | 0.08 |
+| Only block norms open | 1 | 5.934 | 4.2, 7.5, 8.1, 3.6 | 3.73 | 4.41 | 0.09 | 0.07 |
+| Block and final norms open | 0 | 5.758 | 2.3, 0.7, 0.8, 1.5 | 0.46 | 0.38 | 0.58 | 0.57 |
+| Block and final norms open | 1 | 5.753 | 2.4, 0.6, 0.7, 1.5 | 0.49 | 0.38 | 0.57 | 0.58 |
+| Only the final norm open | 0 | 5.898 | 2.3, 1.9, 2.1, 4.1 | 0.31 | 0.30 | 0.57 | 0.58 |
+| Only the final norm open | 1 | 5.914 | 2.5, 2.1, 1.9, 4.2 | 0.34 | 0.29 | 0.57 | 0.59 |
+
+**Table 21.** The three ReLU runs with no dropout at step 2,000. $r$ is the offset ratio at the input of the block's second LayerNorm, which feeds its MLP.
+
+The hypothesis holds on both seeds. With only the block norms open, the shared constant at the input of L2's and L3's MLP LayerNorms is 2.9 to 4.4 times the part that differs between tokens. With the final norm open as well, it is 0.38 to 0.49. The mean outputs show why: with no pull, L1 and L2 reach norms of 5.6 to 8.1, against 0.6 to 0.8 with the final norm open. When the block norms are centred and only the final norm is open, the mean outputs are also large, at up to 4.2. But no block LayerNorm sees them, and nothing shuts. L1 has a ratio of about 0.8 in the shut runs, and its $h$ keeps an SD of 0.44–0.45.
+
+The constant comes first, and the shut follows. By step 100, the ratio at L3's MLP LayerNorm is already 3.9 and 5.6 on the two seeds, while $h$'s SD there is still 0.24 and 0.17. The ratio then settles at about 3 to 4.4, and $h$'s SD keeps falling to 0.07–0.08 by step 2,000. A LayerNorm alone would scale the varying part by about $1/\sqrt{1 + r^2}$, which is 0.26 at $r = 3.72$. $h$'s SD falls further, to about 0.14 of the open run's. So the weights also turn away from what is left. These runs saved no checkpoints, so the paper does not test this by removing the constant from a trained model.
+
+### Dropout's routes
+
+Dropout makes a pull of its own (Table 9). It drops each element of the MLP's output on each token, so a mean output $c$ that every token shares becomes per-token noise:
+
+$$
+n_t = c \odot \left(\frac{m_t}{1 - p} - 1\right),
+$$
+
+where $m_t$ keeps each element with probability $1 - p$, and $p = 0.1$. The noise grows with $c$. If it costs loss, gradient descent shrinks $c$. `scripts/dropout_routes.py` splits this as `ln_offset.py` splits the final LayerNorm's part. On checkpoints of ReLU and GELU at step 2,000, it adds the noise of one MLP, times a scale $\alpha$, to one set of readers at a time. The sets are the later blocks' LayerNorms only, the final LayerNorm only, and the residual stream itself, as in training. It gives the slope of the expected loss at $\alpha = 1$ by autograd, over 8 masks for each batch of the 128 test windows. The model is otherwise in eval mode. A positive slope is a pull.
+
+| Checkpoint | Later blocks' LayerNorms | Final LayerNorm | Residual stream | Block share |
+| --- | --- | --- | --- | --- |
+| ReLU, seed 0 | +3.5 | +1.8 | +4.4 | 0.67 |
+| ReLU, seed 1 | +3.1 | +2.0 | +4.3 | 0.60 |
+| GELU, seed 0 | +2.1 | +1.6 | +2.7 | 0.57 |
+| GELU, seed 1 | +2.5 | +1.5 | +3.1 | 0.62 |
+
+**Table 22.** Dropout's pull on the MLPs' mean output by route, as the slope of the loss summed over L0–L3, in units of $10^{-3}$ nats. The block share is the block route's part of the two routes' sum.
+
+Every route pulls. The slope is positive for every MLP on each route that it can reach, in all four checkpoints. The noise that dropout makes from the constant costs loss through the later blocks' LayerNorms too, although the same constant without noise lowers the loss there. The later blocks carry 57%–67% of the two routes' sum, mostly from L0, whose mean output is the largest (1.3–1.7). For L2 and L3 the final LayerNorm carries most of it. The residual stream's slope is less than the two routes' sum, by 0.7–0.8 ($10^{-3}$) at L0. The noise has mean 0, so its cost is of second order in its size, and a cross term between the two routes is negative.
 
 ### Push against depth
 

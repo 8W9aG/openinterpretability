@@ -78,7 +78,7 @@ Do these seven steps first, in order. Each fix goes in its own PR, which merges 
    ```bash
    uv run python scripts/papers.py submit <slug> --issue
    ```
-   The issue has the label `muse`, which tells Muse to act on it. Its body gives the steps and each field of alphaXiv's form. An addendum is a new alphaXiv version, so it gets a new issue. The command doesn't open an issue twice. Never upload a paper yourself, and never work a `muse` issue: `next-issue` skips them. List the issues in the release PR.
+   The issue has the label `muse`, which tells Muse to act on it. Only the maintainer's own issues, or issues with the maintainer's thumbs up, may have that label (`docs/muse.md`). Its body gives the steps and each field of alphaXiv's form. An addendum is a new alphaXiv version, so it gets a new issue. The command doesn't open an issue twice. Never upload a paper yourself, and never work a `muse` issue: `next-issue` skips them. List the issues in the release PR.
 7. **Release the version**, with the procedure below.
 
 ## Procedure

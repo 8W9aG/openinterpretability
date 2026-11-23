@@ -110,7 +110,7 @@ def sample(rows: Sequence, count: int, seed: int) -> list:
         >>> sample(list(range(10)), 3, 0) == sample(list(range(10)), 3, 0)
         True
     """
-    if count >= len(rows):
+    if count >= len(rows):  # pragma: no mutate, equivalent: same list when count == len
         return list(rows)
     return [rows[i] for i in sorted(random.Random(seed).sample(range(len(rows)), count))]
 

@@ -37,6 +37,18 @@ def test_sample_keeps_every_row_when_asked_for_more():
     assert len(got) == 10 and got == sorted(got)
 
 
+def test_sample_is_fixed_by_its_seed():
+    rows = list(range(1000))
+    assert tuning.sample(rows, 10, 0) == tuning.sample(rows, 10, 0)
+    assert tuning.sample(rows, 10, 0) != tuning.sample(rows, 10, 1)
+
+
+def test_pair_reads_only_the_first_two_columns():
+    task = tuning.Task("t", "r", "c", "tr", "ho", ("q", "a", "extra"), "Do it.")
+    prompt, target = tuning.pair(task, {"q": "x", "a": " y ", "extra": "z"})
+    assert target == "y" and "x" in prompt and "z" not in prompt
+
+
 def test_load_rows_reads_the_pinned_parquet(tmp_path, monkeypatch):
     import pyarrow as pa
     import pyarrow.parquet as pq

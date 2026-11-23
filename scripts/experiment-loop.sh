@@ -2,9 +2,8 @@
 # Run experiments back to back, each in a fresh headless Claude Code session, until
 # the iteration limit is reached or `claude` fails (e.g. the usage limit is hit).
 #
-# Claude drives the workflow (land-experiment: plan, claim, audit, review, post a PR,
-# wait for green CI, and merge it when the PR only touches wiki/ and `gh` has write
-# access); the proposer and reviewer LLMs are whatever you pass here. A model
+# Claude drives the workflow (land-experiment: plan, claim, audit, review, post a PR and
+# mark it ready; auto-merge.yml merges it once CI passes); the proposer and reviewer LLMs are whatever you pass here. A model
 # `external/<name>` means the driving Claude session answers that agent itself.
 #
 # Runs in a separate git worktree on a fresh origin/main each iteration, so your
@@ -139,10 +138,10 @@ describes and note it in the PR description.
   reviewer without API keys" section, with the neuron-proposer, neuron-reviewer and
   explanation-judge subagents answering the prompts. Every review needs explanation
   scores. Record the model IDs they report.
-- Post the result whatever the verdict, then land it as land-experiment describes: build,
-  wait for green checks, and merge only if every merge condition holds; otherwise leave
-  the PR open with a comment saying why. If you have to abandon it, say why in the PR and
-  land it with only its ledger entry (wiki/ledger/). Don't close it.
+- Post the result whatever the verdict. Build, then mark the PR ready and stop. Don't wait
+  for CI and don't merge: auto-merge.yml merges it once CI passes (#5826). If you have to
+  abandon it, say why in the PR and land it with only its ledger entry (wiki/ledger/).
+  Don't close it.
 - If \`open-interpretability next\` says new experiments are paused, stop at once: claim nothing,
   and end with RESULT: none paused.
 - Finish on a clean working tree. End your reply with one line:
