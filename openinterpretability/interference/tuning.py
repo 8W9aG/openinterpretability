@@ -171,7 +171,7 @@ def train_stage(model, tokenizer, pairs: list[tuple[str, str]], *, device: str, 
             for ids, attention, mask in parts:
                 loss, _ = response_loss(model, ids, attention, mask, device)
                 (loss / max(tokens, 1)).backward()
-                total += float(loss)
+                total += float(loss.detach())
             optimiser.step()
             optimiser.zero_grad(set_to_none=True)
             losses.append(total / max(tokens, 1))
