@@ -1,0 +1,27 @@
+# The paper's X thread (openinterpretability/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Neuron explanations fail more often inside a chat model's template. Is it the template
+    or the instruction tuning? We read 360 VERIFIED poles of Qwen2.5-0.5B in four
+    conditions. It is mostly the template. {link}
+  media: [square]
+- section: Does the template alone cost explanations?
+  text: >-
+    The base model, never tuned on the template, loses 76 of 360 explanations inside it.
+    Mean sensitivity falls by 0.060, and specificity barely moves.
+- section: Does the tuning move explanations more inside the template?
+  text: >-
+    The tuning costs 61 explanations on plain text. Inside the template it costs a net 19
+    (41 lost, 22 gained). 54 of the 95 failures on the instruct model inside the template
+    already fail on the base model there.
+  media: [grid]
+- section: Do the activations move more on chat text?
+  text: >-
+    The activations do move a little more on chat text: the base-to-instruct correlation is
+    lower for 343 of 360 poles, by a median of 0.011.
+  media: [pearson]
+- section: Conclusion
+  text: >-
+    Test a base-model explanation inside the template on the base model before blaming
+    the tuning for a failure. {link}

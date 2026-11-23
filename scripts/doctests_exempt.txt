@@ -10,3 +10,5 @@ openinterpretability/interference/fisher.py::neuron_weights  needs a model runne
 openinterpretability/interference/fisher.py::diagonal_fisher  needs a model runner and backward passes; tests/test_interference_fisher.py runs it on a tiny Qwen2
 openinterpretability/interference/fisher.py::activation_rms  needs a model runner; tests/test_interference_fisher.py runs it on a tiny Qwen2
 openinterpretability/interference/pruning.py::pruned  needs a model runner; tests/test_interference_pruning.py runs it on a tiny GPT-NeoX and Qwen2
+openinterpretability/interference/template.py::chat_sample  reads a corpus file and needs a tokenizer with a chat template; tests/test_interference_template.py runs it on a fake one
+openinterpretability/interference/template.py::chat_columns  needs a model runner; tests/test_interference_template.py runs it on a toy model

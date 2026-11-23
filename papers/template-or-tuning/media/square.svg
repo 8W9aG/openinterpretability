@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 463" width="760" height="463" role="img">
+<title>Two line charts, plain text against the chat template, one line per model. Keeps: base 360 to 284, instruct 299 to 265. Mean sensitivity: base 0.815 to 0.755, instruct 0.791 to 0.752.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="463" rx="10"/>
+<text x="20.0" y="30.0" class="title">The chat template costs the base model more</text>
+<text x="20.0" y="53.0" class="title">explanations than instruction tuning does</text>
+<text x="20.0" y="73.0" class="sub">360 VERIFIED poles of Qwen2.5-0.5B, each read on its own probes in four conditions.</text>
+<text x="20.0" y="91.0" class="sub">Left: the poles that still pass both gates. Right: the mean sensitivity of the probes.</text>
+<path class="grid" d="M80.0 365.0L399.0 365.0"/>
+<text x="73.0" y="369.0" class="small" text-anchor="end">250</text>
+<path class="grid" d="M80.0 310.0L399.0 310.0"/>
+<text x="73.0" y="314.0" class="small" text-anchor="end">280</text>
+<path class="grid" d="M80.0 255.0L399.0 255.0"/>
+<text x="73.0" y="259.0" class="small" text-anchor="end">310</text>
+<path class="grid" d="M80.0 200.0L399.0 200.0"/>
+<text x="73.0" y="204.0" class="small" text-anchor="end">340</text>
+<path class="grid" d="M80.0 145.0L399.0 145.0"/>
+<text x="73.0" y="149.0" class="small" text-anchor="end">370</text>
+<text x="80.0" y="137.0" class="head">poles that keep</text>
+<path class="line sc1" d="M145.7 163.3L333.3 302.7"/>
+<circle class="fc1 ring" cx="145.7" cy="163.3" r="5"/>
+<text x="133.7" y="167.3" class="ink" text-anchor="end">360</text>
+<circle class="fc1 ring" cx="333.3" cy="302.7" r="5"/>
+<text x="345.3" y="296.7" class="ink">284</text>
+<path class="line sc2" d="M145.7 275.2L333.3 337.5"/>
+<path class="fc2 ring" d="M145.7 269.2L151.7 280.0L139.7 280.0Z"/>
+<text x="133.7" y="279.2" class="ink" text-anchor="end">299</text>
+<path class="fc2 ring" d="M333.3 331.5L339.3 342.3L327.3 342.3Z"/>
+<text x="345.3" y="349.5" class="ink">265</text>
+<text x="145.7" y="383.0" class="small" text-anchor="middle">plain text</text>
+<text x="333.3" y="383.0" class="small" text-anchor="middle">chat template</text>
+<path class="grid" d="M417.0 365.0L736.0 365.0"/>
+<text x="410.0" y="369.0" class="small" text-anchor="end">0.72</text>
+<path class="grid" d="M417.0 310.0L736.0 310.0"/>
+<text x="410.0" y="314.0" class="small" text-anchor="end">0.75</text>
+<path class="grid" d="M417.0 255.0L736.0 255.0"/>
+<text x="410.0" y="259.0" class="small" text-anchor="end">0.78</text>
+<path class="grid" d="M417.0 200.0L736.0 200.0"/>
+<text x="410.0" y="204.0" class="small" text-anchor="end">0.81</text>
+<path class="grid" d="M417.0 145.0L736.0 145.0"/>
+<text x="410.0" y="149.0" class="small" text-anchor="end">0.84</text>
+<text x="417.0" y="137.0" class="head">mean sensitivity</text>
+<path class="line sc1" d="M482.7 190.4L670.3 300.5"/>
+<circle class="fc1 ring" cx="482.7" cy="190.4" r="5"/>
+<text x="470.7" y="194.4" class="ink" text-anchor="end">0.815</text>
+<circle class="fc1 ring" cx="670.3" cy="300.5" r="5"/>
+<text x="682.3" y="294.5" class="ink">0.755</text>
+<path class="line sc2" d="M482.7 234.7L670.3 306.1"/>
+<path class="fc2 ring" d="M482.7 228.7L488.7 239.5L476.7 239.5Z"/>
+<text x="470.7" y="238.7" class="ink" text-anchor="end">0.791</text>
+<path class="fc2 ring" d="M670.3 300.1L676.3 310.9L664.3 310.9Z"/>
+<text x="682.3" y="318.1" class="ink">0.752</text>
+<text x="482.7" y="383.0" class="small" text-anchor="middle">plain text</text>
+<text x="670.3" y="383.0" class="small" text-anchor="middle">chat template</text>
+<circle class="fc1" cx="25.0" cy="411.0" r="5"/>
+<text x="35.0" y="415.0">Qwen2.5-0.5B (base)</text>
+<path class="fc2" d="M176.6 405.0L182.6 415.8L170.6 415.8Z"/>
+<text x="186.6" y="415.0">Qwen2.5-0.5B-Instruct</text>
+</svg>
