@@ -1,0 +1,1490 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 471" width="760" height="471" role="img">
+<title>A grid of 360 marks in 24 columns, one per layer. Four frames: the base model on plain text, the base model inside the chat template, the instruct model on plain text and the instruct model inside the chat template. Open marks appear in every layer from the second frame on.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+.half{opacity:.6}@keyframes cond0{0%{opacity:0}0.0%{opacity:1}21.2%{opacity:0}100%{opacity:0}}.cond0{animation:cond0 8s step-end infinite;opacity:0}@keyframes cond1{0%{opacity:0}21.2%{opacity:1}42.5%{opacity:0}100%{opacity:0}}.cond1{animation:cond1 8s step-end infinite;opacity:0}@keyframes cond2{0%{opacity:0}42.5%{opacity:1}63.8%{opacity:0}100%{opacity:0}}.cond2{animation:cond2 8s step-end infinite;opacity:0}@keyframes cond3{0%{opacity:0}63.8%{opacity:1}100%{opacity:1}}.cond3{animation:cond3 8s step-end infinite;opacity:1}</style>
+<rect class="bg" width="760" height="471" rx="10"/>
+<text x="20.0" y="30.0" class="title">Most of the explanations that fail inside the</text>
+<text x="20.0" y="53.0" class="title">chat template fail on the base model already</text>
+<text x="20.0" y="73.0" class="sub">Each mark is one VERIFIED pole of Qwen2.5-0.5B, in the column of its layer. A filled</text>
+<text x="20.0" y="91.0" class="sub">mark passes its own probes, and an open mark fails. The frames step through the four conditions.</text>
+<text x="64.0" y="137.0" class="head cond0">base model, plain text: 360 of 360 keep</text>
+<circle class="fc1 cond0" cx="70.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="284.0" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="292.6" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="301.2" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="309.8" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="318.4" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="327.0" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="335.6" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="344.2" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="352.8" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="361.4" r="3.2"/>
+<circle class="fc1 cond0" cx="70.0" cy="370.0" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="97.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="125.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="152.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="284.0" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="292.6" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="301.2" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="309.8" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="318.4" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="327.0" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="335.6" r="3.2"/>
+<circle class="fc1 cond0" cx="180.0" cy="344.2" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="207.5" cy="275.4" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond0" cx="235.0" cy="284.0" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="262.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="290.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="317.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="345.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="372.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="400.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="275.4" r="3.2"/>
+<circle class="fc1 cond0" cx="427.5" cy="284.0" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="455.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="482.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="284.0" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="292.6" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="301.2" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="309.8" r="3.2"/>
+<circle class="fc1 cond0" cx="510.0" cy="318.4" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="537.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="565.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="592.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="620.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="275.4" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="284.0" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="292.6" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="301.2" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="309.8" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="318.4" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="327.0" r="3.2"/>
+<circle class="fc1 cond0" cx="647.5" cy="335.6" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="284.0" r="3.2"/>
+<circle class="fc1 cond0" cx="675.0" cy="292.6" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond0" cx="702.5" cy="258.2" r="3.2"/>
+<text x="64.0" y="137.0" class="head cond1">base model, inside the chat template: 284 of 360 keep</text>
+<circle class="fc1 cond1" cx="70.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="266.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="70.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="284.0" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="292.6" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="301.2" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="309.8" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="318.4" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="327.0" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="335.6" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="344.2" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="352.8" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="361.4" r="3.2"/>
+<circle class="fc1 cond1" cx="70.0" cy="370.0" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="180.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="97.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="206.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="97.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="232.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="97.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="97.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="172.2" r="3.2"/>
+<circle class="open sc1 cond1" cx="125.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="206.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="125.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="125.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="152.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="198.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="152.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="241.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="152.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="152.5" cy="266.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="180.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="163.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="180.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="198.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="180.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="232.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="180.0" cy="241.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="180.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="284.0" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="292.6" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="301.2" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="309.8" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="318.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="180.0" cy="327.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="180.0" cy="335.6" r="3.2"/>
+<circle class="fc1 cond1" cx="180.0" cy="344.2" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="232.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="207.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="207.5" cy="275.4" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="206.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="235.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="223.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="235.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond1" cx="235.0" cy="284.0" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="262.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="290.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="290.0" cy="163.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="290.0" cy="172.2" r="3.2"/>
+<circle class="open sc1 cond1" cx="290.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="290.0" cy="189.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="290.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="290.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="290.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="290.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="290.0" cy="232.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="290.0" cy="241.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="290.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="317.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="223.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="317.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="249.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="317.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="317.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="345.0" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="345.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="345.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="345.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="345.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="345.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="345.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="345.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="345.0" cy="223.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="345.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="345.0" cy="241.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="372.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="372.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="372.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="372.5" cy="180.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="372.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="372.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="372.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="372.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="372.5" cy="223.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="372.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="372.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="400.0" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="400.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="400.0" cy="172.2" r="3.2"/>
+<circle class="open sc1 cond1" cx="400.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="400.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="400.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="400.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="400.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="400.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="400.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="400.0" cy="241.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="400.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="427.5" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="427.5" cy="163.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="427.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="427.5" cy="180.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="427.5" cy="189.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="427.5" cy="198.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="427.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="427.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="427.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="427.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="427.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="427.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="427.5" cy="258.2" r="3.2"/>
+<circle class="open sc1 cond1" cx="427.5" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="427.5" cy="275.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="427.5" cy="284.0" r="3.2"/>
+<circle class="fc1 cond1" cx="455.0" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="455.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="455.0" cy="172.2" r="3.2"/>
+<circle class="open sc1 cond1" cx="455.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="455.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="455.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="455.0" cy="206.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="455.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="455.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="455.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="455.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="455.0" cy="249.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="455.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="482.5" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="482.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="482.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="482.5" cy="180.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="482.5" cy="189.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="482.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="482.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="482.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="482.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="482.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="482.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="482.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="180.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="510.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="249.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="510.0" cy="258.2" r="3.2"/>
+<circle class="open sc1 cond1" cx="510.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="275.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="510.0" cy="284.0" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="292.6" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="301.2" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="309.8" r="3.2"/>
+<circle class="fc1 cond1" cx="510.0" cy="318.4" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="537.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="198.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="537.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="537.5" cy="258.2" r="3.2"/>
+<circle class="open sc1 cond1" cx="565.0" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="232.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="565.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="565.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="198.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="592.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="223.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="592.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="592.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="620.0" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="223.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="620.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="241.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="620.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="258.2" r="3.2"/>
+<circle class="open sc1 cond1" cx="620.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="620.0" cy="275.4" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="163.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="647.5" cy="172.2" r="3.2"/>
+<circle class="open sc1 cond1" cx="647.5" cy="180.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="647.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="198.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="647.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="223.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="647.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="266.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="647.5" cy="275.4" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="284.0" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="292.6" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="301.2" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="309.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="647.5" cy="318.4" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="327.0" r="3.2"/>
+<circle class="fc1 cond1" cx="647.5" cy="335.6" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="155.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="675.0" cy="163.6" r="3.2"/>
+<circle class="open sc1 cond1" cx="675.0" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="189.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="675.0" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="223.8" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="258.2" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="266.8" r="3.2"/>
+<circle class="fc1 cond1" cx="675.0" cy="275.4" r="3.2"/>
+<circle class="open sc1 cond1" cx="675.0" cy="284.0" r="3.2"/>
+<circle class="open sc1 cond1" cx="675.0" cy="292.6" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="155.0" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="163.6" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="172.2" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="180.8" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="189.4" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="198.0" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="206.6" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="215.2" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="223.8" r="3.2"/>
+<circle class="open sc1 cond1" cx="702.5" cy="232.4" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="241.0" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="249.6" r="3.2"/>
+<circle class="fc1 cond1" cx="702.5" cy="258.2" r="3.2"/>
+<text x="64.0" y="137.0" class="head cond2">instruct model, plain text: 299 of 360 keep</text>
+<path class="fc2 cond2" d="M70.0 151.2L73.8 158.1L66.2 158.1Z"/>
+<path class="fc2 cond2" d="M70.0 159.8L73.8 166.7L66.2 166.7Z"/>
+<path class="fc2 cond2" d="M70.0 168.4L73.8 175.3L66.2 175.3Z"/>
+<path class="fc2 cond2" d="M70.0 177.0L73.8 183.9L66.2 183.9Z"/>
+<path class="fc2 cond2" d="M70.0 185.6L73.8 192.5L66.2 192.5Z"/>
+<path class="fc2 cond2" d="M70.0 194.2L73.8 201.1L66.2 201.1Z"/>
+<path class="fc2 cond2" d="M70.0 202.8L73.8 209.7L66.2 209.7Z"/>
+<path class="fc2 cond2" d="M70.0 211.4L73.8 218.3L66.2 218.3Z"/>
+<path class="fc2 cond2" d="M70.0 220.0L73.8 226.9L66.2 226.9Z"/>
+<path class="fc2 cond2" d="M70.0 228.6L73.8 235.5L66.2 235.5Z"/>
+<path class="fc2 cond2" d="M70.0 237.2L73.8 244.1L66.2 244.1Z"/>
+<path class="fc2 cond2" d="M70.0 245.8L73.8 252.7L66.2 252.7Z"/>
+<path class="fc2 cond2" d="M70.0 254.4L73.8 261.3L66.2 261.3Z"/>
+<path class="fc2 cond2" d="M70.0 263.0L73.8 269.9L66.2 269.9Z"/>
+<path class="fc2 cond2" d="M70.0 271.6L73.8 278.5L66.2 278.5Z"/>
+<path class="fc2 cond2" d="M70.0 280.2L73.8 287.1L66.2 287.1Z"/>
+<path class="fc2 cond2" d="M70.0 288.8L73.8 295.7L66.2 295.7Z"/>
+<path class="fc2 cond2" d="M70.0 297.4L73.8 304.3L66.2 304.3Z"/>
+<path class="fc2 cond2" d="M70.0 306.0L73.8 312.9L66.2 312.9Z"/>
+<path class="fc2 cond2" d="M70.0 314.6L73.8 321.5L66.2 321.5Z"/>
+<path class="fc2 cond2" d="M70.0 323.2L73.8 330.1L66.2 330.1Z"/>
+<path class="fc2 cond2" d="M70.0 331.8L73.8 338.7L66.2 338.7Z"/>
+<path class="open sc2 cond2" d="M70.0 340.4L73.8 347.3L66.2 347.3Z"/>
+<path class="fc2 cond2" d="M70.0 349.0L73.8 355.9L66.2 355.9Z"/>
+<path class="fc2 cond2" d="M70.0 357.6L73.8 364.5L66.2 364.5Z"/>
+<path class="fc2 cond2" d="M70.0 366.2L73.8 373.1L66.2 373.1Z"/>
+<path class="fc2 cond2" d="M97.5 151.2L101.3 158.1L93.7 158.1Z"/>
+<path class="fc2 cond2" d="M97.5 159.8L101.3 166.7L93.7 166.7Z"/>
+<path class="fc2 cond2" d="M97.5 168.4L101.3 175.3L93.7 175.3Z"/>
+<path class="fc2 cond2" d="M97.5 177.0L101.3 183.9L93.7 183.9Z"/>
+<path class="fc2 cond2" d="M97.5 185.6L101.3 192.5L93.7 192.5Z"/>
+<path class="fc2 cond2" d="M97.5 194.2L101.3 201.1L93.7 201.1Z"/>
+<path class="fc2 cond2" d="M97.5 202.8L101.3 209.7L93.7 209.7Z"/>
+<path class="open sc2 cond2" d="M97.5 211.4L101.3 218.3L93.7 218.3Z"/>
+<path class="fc2 cond2" d="M97.5 220.0L101.3 226.9L93.7 226.9Z"/>
+<path class="fc2 cond2" d="M97.5 228.6L101.3 235.5L93.7 235.5Z"/>
+<path class="fc2 cond2" d="M97.5 237.2L101.3 244.1L93.7 244.1Z"/>
+<path class="fc2 cond2" d="M97.5 245.8L101.3 252.7L93.7 252.7Z"/>
+<path class="fc2 cond2" d="M97.5 254.4L101.3 261.3L93.7 261.3Z"/>
+<path class="fc2 cond2" d="M97.5 263.0L101.3 269.9L93.7 269.9Z"/>
+<path class="fc2 cond2" d="M125.0 151.2L128.8 158.1L121.2 158.1Z"/>
+<path class="fc2 cond2" d="M125.0 159.8L128.8 166.7L121.2 166.7Z"/>
+<path class="fc2 cond2" d="M125.0 168.4L128.8 175.3L121.2 175.3Z"/>
+<path class="fc2 cond2" d="M125.0 177.0L128.8 183.9L121.2 183.9Z"/>
+<path class="fc2 cond2" d="M125.0 185.6L128.8 192.5L121.2 192.5Z"/>
+<path class="fc2 cond2" d="M125.0 194.2L128.8 201.1L121.2 201.1Z"/>
+<path class="fc2 cond2" d="M125.0 202.8L128.8 209.7L121.2 209.7Z"/>
+<path class="open sc2 cond2" d="M125.0 211.4L128.8 218.3L121.2 218.3Z"/>
+<path class="fc2 cond2" d="M125.0 220.0L128.8 226.9L121.2 226.9Z"/>
+<path class="fc2 cond2" d="M125.0 228.6L128.8 235.5L121.2 235.5Z"/>
+<path class="fc2 cond2" d="M125.0 237.2L128.8 244.1L121.2 244.1Z"/>
+<path class="fc2 cond2" d="M125.0 245.8L128.8 252.7L121.2 252.7Z"/>
+<path class="fc2 cond2" d="M125.0 254.4L128.8 261.3L121.2 261.3Z"/>
+<path class="fc2 cond2" d="M125.0 263.0L128.8 269.9L121.2 269.9Z"/>
+<path class="fc2 cond2" d="M152.5 151.2L156.3 158.1L148.7 158.1Z"/>
+<path class="fc2 cond2" d="M152.5 159.8L156.3 166.7L148.7 166.7Z"/>
+<path class="fc2 cond2" d="M152.5 168.4L156.3 175.3L148.7 175.3Z"/>
+<path class="fc2 cond2" d="M152.5 177.0L156.3 183.9L148.7 183.9Z"/>
+<path class="fc2 cond2" d="M152.5 185.6L156.3 192.5L148.7 192.5Z"/>
+<path class="fc2 cond2" d="M152.5 194.2L156.3 201.1L148.7 201.1Z"/>
+<path class="fc2 cond2" d="M152.5 202.8L156.3 209.7L148.7 209.7Z"/>
+<path class="fc2 cond2" d="M152.5 211.4L156.3 218.3L148.7 218.3Z"/>
+<path class="fc2 cond2" d="M152.5 220.0L156.3 226.9L148.7 226.9Z"/>
+<path class="open sc2 cond2" d="M152.5 228.6L156.3 235.5L148.7 235.5Z"/>
+<path class="fc2 cond2" d="M152.5 237.2L156.3 244.1L148.7 244.1Z"/>
+<path class="open sc2 cond2" d="M152.5 245.8L156.3 252.7L148.7 252.7Z"/>
+<path class="fc2 cond2" d="M152.5 254.4L156.3 261.3L148.7 261.3Z"/>
+<path class="fc2 cond2" d="M152.5 263.0L156.3 269.9L148.7 269.9Z"/>
+<path class="fc2 cond2" d="M180.0 151.2L183.8 158.1L176.2 158.1Z"/>
+<path class="fc2 cond2" d="M180.0 159.8L183.8 166.7L176.2 166.7Z"/>
+<path class="fc2 cond2" d="M180.0 168.4L183.8 175.3L176.2 175.3Z"/>
+<path class="fc2 cond2" d="M180.0 177.0L183.8 183.9L176.2 183.9Z"/>
+<path class="fc2 cond2" d="M180.0 185.6L183.8 192.5L176.2 192.5Z"/>
+<path class="fc2 cond2" d="M180.0 194.2L183.8 201.1L176.2 201.1Z"/>
+<path class="open sc2 cond2" d="M180.0 202.8L183.8 209.7L176.2 209.7Z"/>
+<path class="fc2 cond2" d="M180.0 211.4L183.8 218.3L176.2 218.3Z"/>
+<path class="fc2 cond2" d="M180.0 220.0L183.8 226.9L176.2 226.9Z"/>
+<path class="fc2 cond2" d="M180.0 228.6L183.8 235.5L176.2 235.5Z"/>
+<path class="fc2 cond2" d="M180.0 237.2L183.8 244.1L176.2 244.1Z"/>
+<path class="fc2 cond2" d="M180.0 245.8L183.8 252.7L176.2 252.7Z"/>
+<path class="fc2 cond2" d="M180.0 254.4L183.8 261.3L176.2 261.3Z"/>
+<path class="fc2 cond2" d="M180.0 263.0L183.8 269.9L176.2 269.9Z"/>
+<path class="open sc2 cond2" d="M180.0 271.6L183.8 278.5L176.2 278.5Z"/>
+<path class="fc2 cond2" d="M180.0 280.2L183.8 287.1L176.2 287.1Z"/>
+<path class="fc2 cond2" d="M180.0 288.8L183.8 295.7L176.2 295.7Z"/>
+<path class="fc2 cond2" d="M180.0 297.4L183.8 304.3L176.2 304.3Z"/>
+<path class="fc2 cond2" d="M180.0 306.0L183.8 312.9L176.2 312.9Z"/>
+<path class="fc2 cond2" d="M180.0 314.6L183.8 321.5L176.2 321.5Z"/>
+<path class="open sc2 cond2" d="M180.0 323.2L183.8 330.1L176.2 330.1Z"/>
+<path class="fc2 cond2" d="M180.0 331.8L183.8 338.7L176.2 338.7Z"/>
+<path class="fc2 cond2" d="M180.0 340.4L183.8 347.3L176.2 347.3Z"/>
+<path class="fc2 cond2" d="M207.5 151.2L211.3 158.1L203.7 158.1Z"/>
+<path class="fc2 cond2" d="M207.5 159.8L211.3 166.7L203.7 166.7Z"/>
+<path class="fc2 cond2" d="M207.5 168.4L211.3 175.3L203.7 175.3Z"/>
+<path class="fc2 cond2" d="M207.5 177.0L211.3 183.9L203.7 183.9Z"/>
+<path class="fc2 cond2" d="M207.5 185.6L211.3 192.5L203.7 192.5Z"/>
+<path class="fc2 cond2" d="M207.5 194.2L211.3 201.1L203.7 201.1Z"/>
+<path class="fc2 cond2" d="M207.5 202.8L211.3 209.7L203.7 209.7Z"/>
+<path class="fc2 cond2" d="M207.5 211.4L211.3 218.3L203.7 218.3Z"/>
+<path class="fc2 cond2" d="M207.5 220.0L211.3 226.9L203.7 226.9Z"/>
+<path class="fc2 cond2" d="M207.5 228.6L211.3 235.5L203.7 235.5Z"/>
+<path class="fc2 cond2" d="M207.5 237.2L211.3 244.1L203.7 244.1Z"/>
+<path class="fc2 cond2" d="M207.5 245.8L211.3 252.7L203.7 252.7Z"/>
+<path class="fc2 cond2" d="M207.5 254.4L211.3 261.3L203.7 261.3Z"/>
+<path class="fc2 cond2" d="M207.5 263.0L211.3 269.9L203.7 269.9Z"/>
+<path class="fc2 cond2" d="M207.5 271.6L211.3 278.5L203.7 278.5Z"/>
+<path class="fc2 cond2" d="M235.0 151.2L238.8 158.1L231.2 158.1Z"/>
+<path class="fc2 cond2" d="M235.0 159.8L238.8 166.7L231.2 166.7Z"/>
+<path class="fc2 cond2" d="M235.0 168.4L238.8 175.3L231.2 175.3Z"/>
+<path class="fc2 cond2" d="M235.0 177.0L238.8 183.9L231.2 183.9Z"/>
+<path class="fc2 cond2" d="M235.0 185.6L238.8 192.5L231.2 192.5Z"/>
+<path class="fc2 cond2" d="M235.0 194.2L238.8 201.1L231.2 201.1Z"/>
+<path class="fc2 cond2" d="M235.0 202.8L238.8 209.7L231.2 209.7Z"/>
+<path class="fc2 cond2" d="M235.0 211.4L238.8 218.3L231.2 218.3Z"/>
+<path class="fc2 cond2" d="M235.0 220.0L238.8 226.9L231.2 226.9Z"/>
+<path class="fc2 cond2" d="M235.0 228.6L238.8 235.5L231.2 235.5Z"/>
+<path class="fc2 cond2" d="M235.0 237.2L238.8 244.1L231.2 244.1Z"/>
+<path class="fc2 cond2" d="M235.0 245.8L238.8 252.7L231.2 252.7Z"/>
+<path class="fc2 cond2" d="M235.0 254.4L238.8 261.3L231.2 261.3Z"/>
+<path class="fc2 cond2" d="M235.0 263.0L238.8 269.9L231.2 269.9Z"/>
+<path class="fc2 cond2" d="M235.0 271.6L238.8 278.5L231.2 278.5Z"/>
+<path class="fc2 cond2" d="M235.0 280.2L238.8 287.1L231.2 287.1Z"/>
+<path class="fc2 cond2" d="M262.5 151.2L266.3 158.1L258.7 158.1Z"/>
+<path class="fc2 cond2" d="M262.5 159.8L266.3 166.7L258.7 166.7Z"/>
+<path class="fc2 cond2" d="M262.5 168.4L266.3 175.3L258.7 175.3Z"/>
+<path class="fc2 cond2" d="M262.5 177.0L266.3 183.9L258.7 183.9Z"/>
+<path class="fc2 cond2" d="M262.5 185.6L266.3 192.5L258.7 192.5Z"/>
+<path class="fc2 cond2" d="M262.5 194.2L266.3 201.1L258.7 201.1Z"/>
+<path class="fc2 cond2" d="M262.5 202.8L266.3 209.7L258.7 209.7Z"/>
+<path class="fc2 cond2" d="M262.5 211.4L266.3 218.3L258.7 218.3Z"/>
+<path class="fc2 cond2" d="M262.5 220.0L266.3 226.9L258.7 226.9Z"/>
+<path class="fc2 cond2" d="M262.5 228.6L266.3 235.5L258.7 235.5Z"/>
+<path class="fc2 cond2" d="M290.0 151.2L293.8 158.1L286.2 158.1Z"/>
+<path class="open sc2 cond2" d="M290.0 159.8L293.8 166.7L286.2 166.7Z"/>
+<path class="fc2 cond2" d="M290.0 168.4L293.8 175.3L286.2 175.3Z"/>
+<path class="fc2 cond2" d="M290.0 177.0L293.8 183.9L286.2 183.9Z"/>
+<path class="fc2 cond2" d="M290.0 185.6L293.8 192.5L286.2 192.5Z"/>
+<path class="open sc2 cond2" d="M290.0 194.2L293.8 201.1L286.2 201.1Z"/>
+<path class="fc2 cond2" d="M290.0 202.8L293.8 209.7L286.2 209.7Z"/>
+<path class="open sc2 cond2" d="M290.0 211.4L293.8 218.3L286.2 218.3Z"/>
+<path class="fc2 cond2" d="M290.0 220.0L293.8 226.9L286.2 226.9Z"/>
+<path class="fc2 cond2" d="M290.0 228.6L293.8 235.5L286.2 235.5Z"/>
+<path class="open sc2 cond2" d="M290.0 237.2L293.8 244.1L286.2 244.1Z"/>
+<path class="fc2 cond2" d="M290.0 245.8L293.8 252.7L286.2 252.7Z"/>
+<path class="open sc2 cond2" d="M317.5 151.2L321.3 158.1L313.7 158.1Z"/>
+<path class="open sc2 cond2" d="M317.5 159.8L321.3 166.7L313.7 166.7Z"/>
+<path class="fc2 cond2" d="M317.5 168.4L321.3 175.3L313.7 175.3Z"/>
+<path class="fc2 cond2" d="M317.5 177.0L321.3 183.9L313.7 183.9Z"/>
+<path class="fc2 cond2" d="M317.5 185.6L321.3 192.5L313.7 192.5Z"/>
+<path class="fc2 cond2" d="M317.5 194.2L321.3 201.1L313.7 201.1Z"/>
+<path class="fc2 cond2" d="M317.5 202.8L321.3 209.7L313.7 209.7Z"/>
+<path class="fc2 cond2" d="M317.5 211.4L321.3 218.3L313.7 218.3Z"/>
+<path class="fc2 cond2" d="M317.5 220.0L321.3 226.9L313.7 226.9Z"/>
+<path class="open sc2 cond2" d="M317.5 228.6L321.3 235.5L313.7 235.5Z"/>
+<path class="fc2 cond2" d="M317.5 237.2L321.3 244.1L313.7 244.1Z"/>
+<path class="open sc2 cond2" d="M317.5 245.8L321.3 252.7L313.7 252.7Z"/>
+<path class="open sc2 cond2" d="M317.5 254.4L321.3 261.3L313.7 261.3Z"/>
+<path class="open sc2 cond2" d="M317.5 263.0L321.3 269.9L313.7 269.9Z"/>
+<path class="fc2 cond2" d="M345.0 151.2L348.8 158.1L341.2 158.1Z"/>
+<path class="fc2 cond2" d="M345.0 159.8L348.8 166.7L341.2 166.7Z"/>
+<path class="fc2 cond2" d="M345.0 168.4L348.8 175.3L341.2 175.3Z"/>
+<path class="fc2 cond2" d="M345.0 177.0L348.8 183.9L341.2 183.9Z"/>
+<path class="fc2 cond2" d="M345.0 185.6L348.8 192.5L341.2 192.5Z"/>
+<path class="open sc2 cond2" d="M345.0 194.2L348.8 201.1L341.2 201.1Z"/>
+<path class="fc2 cond2" d="M345.0 202.8L348.8 209.7L341.2 209.7Z"/>
+<path class="open sc2 cond2" d="M345.0 211.4L348.8 218.3L341.2 218.3Z"/>
+<path class="fc2 cond2" d="M345.0 220.0L348.8 226.9L341.2 226.9Z"/>
+<path class="fc2 cond2" d="M345.0 228.6L348.8 235.5L341.2 235.5Z"/>
+<path class="open sc2 cond2" d="M345.0 237.2L348.8 244.1L341.2 244.1Z"/>
+<path class="fc2 cond2" d="M372.5 151.2L376.3 158.1L368.7 158.1Z"/>
+<path class="open sc2 cond2" d="M372.5 159.8L376.3 166.7L368.7 166.7Z"/>
+<path class="fc2 cond2" d="M372.5 168.4L376.3 175.3L368.7 175.3Z"/>
+<path class="fc2 cond2" d="M372.5 177.0L376.3 183.9L368.7 183.9Z"/>
+<path class="open sc2 cond2" d="M372.5 185.6L376.3 192.5L368.7 192.5Z"/>
+<path class="open sc2 cond2" d="M372.5 194.2L376.3 201.1L368.7 201.1Z"/>
+<path class="fc2 cond2" d="M372.5 202.8L376.3 209.7L368.7 209.7Z"/>
+<path class="open sc2 cond2" d="M372.5 211.4L376.3 218.3L368.7 218.3Z"/>
+<path class="open sc2 cond2" d="M372.5 220.0L376.3 226.9L368.7 226.9Z"/>
+<path class="fc2 cond2" d="M372.5 228.6L376.3 235.5L368.7 235.5Z"/>
+<path class="open sc2 cond2" d="M372.5 237.2L376.3 244.1L368.7 244.1Z"/>
+<path class="fc2 cond2" d="M400.0 151.2L403.8 158.1L396.2 158.1Z"/>
+<path class="open sc2 cond2" d="M400.0 159.8L403.8 166.7L396.2 166.7Z"/>
+<path class="fc2 cond2" d="M400.0 168.4L403.8 175.3L396.2 175.3Z"/>
+<path class="fc2 cond2" d="M400.0 177.0L403.8 183.9L396.2 183.9Z"/>
+<path class="fc2 cond2" d="M400.0 185.6L403.8 192.5L396.2 192.5Z"/>
+<path class="fc2 cond2" d="M400.0 194.2L403.8 201.1L396.2 201.1Z"/>
+<path class="fc2 cond2" d="M400.0 202.8L403.8 209.7L396.2 209.7Z"/>
+<path class="open sc2 cond2" d="M400.0 211.4L403.8 218.3L396.2 218.3Z"/>
+<path class="fc2 cond2" d="M400.0 220.0L403.8 226.9L396.2 226.9Z"/>
+<path class="fc2 cond2" d="M400.0 228.6L403.8 235.5L396.2 235.5Z"/>
+<path class="open sc2 cond2" d="M400.0 237.2L403.8 244.1L396.2 244.1Z"/>
+<path class="fc2 cond2" d="M400.0 245.8L403.8 252.7L396.2 252.7Z"/>
+<path class="fc2 cond2" d="M427.5 151.2L431.3 158.1L423.7 158.1Z"/>
+<path class="open sc2 cond2" d="M427.5 159.8L431.3 166.7L423.7 166.7Z"/>
+<path class="open sc2 cond2" d="M427.5 168.4L431.3 175.3L423.7 175.3Z"/>
+<path class="open sc2 cond2" d="M427.5 177.0L431.3 183.9L423.7 183.9Z"/>
+<path class="fc2 cond2" d="M427.5 185.6L431.3 192.5L423.7 192.5Z"/>
+<path class="open sc2 cond2" d="M427.5 194.2L431.3 201.1L423.7 201.1Z"/>
+<path class="fc2 cond2" d="M427.5 202.8L431.3 209.7L423.7 209.7Z"/>
+<path class="fc2 cond2" d="M427.5 211.4L431.3 218.3L423.7 218.3Z"/>
+<path class="fc2 cond2" d="M427.5 220.0L431.3 226.9L423.7 226.9Z"/>
+<path class="fc2 cond2" d="M427.5 228.6L431.3 235.5L423.7 235.5Z"/>
+<path class="fc2 cond2" d="M427.5 237.2L431.3 244.1L423.7 244.1Z"/>
+<path class="fc2 cond2" d="M427.5 245.8L431.3 252.7L423.7 252.7Z"/>
+<path class="fc2 cond2" d="M427.5 254.4L431.3 261.3L423.7 261.3Z"/>
+<path class="open sc2 cond2" d="M427.5 263.0L431.3 269.9L423.7 269.9Z"/>
+<path class="fc2 cond2" d="M427.5 271.6L431.3 278.5L423.7 278.5Z"/>
+<path class="fc2 cond2" d="M427.5 280.2L431.3 287.1L423.7 287.1Z"/>
+<path class="fc2 cond2" d="M455.0 151.2L458.8 158.1L451.2 158.1Z"/>
+<path class="fc2 cond2" d="M455.0 159.8L458.8 166.7L451.2 166.7Z"/>
+<path class="fc2 cond2" d="M455.0 168.4L458.8 175.3L451.2 175.3Z"/>
+<path class="fc2 cond2" d="M455.0 177.0L458.8 183.9L451.2 183.9Z"/>
+<path class="open sc2 cond2" d="M455.0 185.6L458.8 192.5L451.2 192.5Z"/>
+<path class="fc2 cond2" d="M455.0 194.2L458.8 201.1L451.2 201.1Z"/>
+<path class="fc2 cond2" d="M455.0 202.8L458.8 209.7L451.2 209.7Z"/>
+<path class="open sc2 cond2" d="M455.0 211.4L458.8 218.3L451.2 218.3Z"/>
+<path class="fc2 cond2" d="M455.0 220.0L458.8 226.9L451.2 226.9Z"/>
+<path class="fc2 cond2" d="M455.0 228.6L458.8 235.5L451.2 235.5Z"/>
+<path class="fc2 cond2" d="M455.0 237.2L458.8 244.1L451.2 244.1Z"/>
+<path class="fc2 cond2" d="M455.0 245.8L458.8 252.7L451.2 252.7Z"/>
+<path class="open sc2 cond2" d="M455.0 254.4L458.8 261.3L451.2 261.3Z"/>
+<path class="fc2 cond2" d="M482.5 151.2L486.3 158.1L478.7 158.1Z"/>
+<path class="fc2 cond2" d="M482.5 159.8L486.3 166.7L478.7 166.7Z"/>
+<path class="fc2 cond2" d="M482.5 168.4L486.3 175.3L478.7 175.3Z"/>
+<path class="fc2 cond2" d="M482.5 177.0L486.3 183.9L478.7 183.9Z"/>
+<path class="open sc2 cond2" d="M482.5 185.6L486.3 192.5L478.7 192.5Z"/>
+<path class="fc2 cond2" d="M482.5 194.2L486.3 201.1L478.7 201.1Z"/>
+<path class="fc2 cond2" d="M482.5 202.8L486.3 209.7L478.7 209.7Z"/>
+<path class="fc2 cond2" d="M482.5 211.4L486.3 218.3L478.7 218.3Z"/>
+<path class="fc2 cond2" d="M482.5 220.0L486.3 226.9L478.7 226.9Z"/>
+<path class="fc2 cond2" d="M482.5 228.6L486.3 235.5L478.7 235.5Z"/>
+<path class="fc2 cond2" d="M482.5 237.2L486.3 244.1L478.7 244.1Z"/>
+<path class="fc2 cond2" d="M482.5 245.8L486.3 252.7L478.7 252.7Z"/>
+<path class="fc2 cond2" d="M510.0 151.2L513.8 158.1L506.2 158.1Z"/>
+<path class="fc2 cond2" d="M510.0 159.8L513.8 166.7L506.2 166.7Z"/>
+<path class="fc2 cond2" d="M510.0 168.4L513.8 175.3L506.2 175.3Z"/>
+<path class="open sc2 cond2" d="M510.0 177.0L513.8 183.9L506.2 183.9Z"/>
+<path class="fc2 cond2" d="M510.0 185.6L513.8 192.5L506.2 192.5Z"/>
+<path class="fc2 cond2" d="M510.0 194.2L513.8 201.1L506.2 201.1Z"/>
+<path class="fc2 cond2" d="M510.0 202.8L513.8 209.7L506.2 209.7Z"/>
+<path class="fc2 cond2" d="M510.0 211.4L513.8 218.3L506.2 218.3Z"/>
+<path class="fc2 cond2" d="M510.0 220.0L513.8 226.9L506.2 226.9Z"/>
+<path class="open sc2 cond2" d="M510.0 228.6L513.8 235.5L506.2 235.5Z"/>
+<path class="fc2 cond2" d="M510.0 237.2L513.8 244.1L506.2 244.1Z"/>
+<path class="fc2 cond2" d="M510.0 245.8L513.8 252.7L506.2 252.7Z"/>
+<path class="fc2 cond2" d="M510.0 254.4L513.8 261.3L506.2 261.3Z"/>
+<path class="fc2 cond2" d="M510.0 263.0L513.8 269.9L506.2 269.9Z"/>
+<path class="open sc2 cond2" d="M510.0 271.6L513.8 278.5L506.2 278.5Z"/>
+<path class="fc2 cond2" d="M510.0 280.2L513.8 287.1L506.2 287.1Z"/>
+<path class="open sc2 cond2" d="M510.0 288.8L513.8 295.7L506.2 295.7Z"/>
+<path class="open sc2 cond2" d="M510.0 297.4L513.8 304.3L506.2 304.3Z"/>
+<path class="fc2 cond2" d="M510.0 306.0L513.8 312.9L506.2 312.9Z"/>
+<path class="fc2 cond2" d="M510.0 314.6L513.8 321.5L506.2 321.5Z"/>
+<path class="fc2 cond2" d="M537.5 151.2L541.3 158.1L533.7 158.1Z"/>
+<path class="fc2 cond2" d="M537.5 159.8L541.3 166.7L533.7 166.7Z"/>
+<path class="fc2 cond2" d="M537.5 168.4L541.3 175.3L533.7 175.3Z"/>
+<path class="fc2 cond2" d="M537.5 177.0L541.3 183.9L533.7 183.9Z"/>
+<path class="fc2 cond2" d="M537.5 185.6L541.3 192.5L533.7 192.5Z"/>
+<path class="fc2 cond2" d="M537.5 194.2L541.3 201.1L533.7 201.1Z"/>
+<path class="fc2 cond2" d="M537.5 202.8L541.3 209.7L533.7 209.7Z"/>
+<path class="fc2 cond2" d="M537.5 211.4L541.3 218.3L533.7 218.3Z"/>
+<path class="fc2 cond2" d="M537.5 220.0L541.3 226.9L533.7 226.9Z"/>
+<path class="fc2 cond2" d="M537.5 228.6L541.3 235.5L533.7 235.5Z"/>
+<path class="open sc2 cond2" d="M537.5 237.2L541.3 244.1L533.7 244.1Z"/>
+<path class="fc2 cond2" d="M537.5 245.8L541.3 252.7L533.7 252.7Z"/>
+<path class="fc2 cond2" d="M537.5 254.4L541.3 261.3L533.7 261.3Z"/>
+<path class="open sc2 cond2" d="M565.0 151.2L568.8 158.1L561.2 158.1Z"/>
+<path class="fc2 cond2" d="M565.0 159.8L568.8 166.7L561.2 166.7Z"/>
+<path class="fc2 cond2" d="M565.0 168.4L568.8 175.3L561.2 175.3Z"/>
+<path class="fc2 cond2" d="M565.0 177.0L568.8 183.9L561.2 183.9Z"/>
+<path class="fc2 cond2" d="M565.0 185.6L568.8 192.5L561.2 192.5Z"/>
+<path class="fc2 cond2" d="M565.0 194.2L568.8 201.1L561.2 201.1Z"/>
+<path class="fc2 cond2" d="M565.0 202.8L568.8 209.7L561.2 209.7Z"/>
+<path class="fc2 cond2" d="M565.0 211.4L568.8 218.3L561.2 218.3Z"/>
+<path class="fc2 cond2" d="M565.0 220.0L568.8 226.9L561.2 226.9Z"/>
+<path class="fc2 cond2" d="M565.0 228.6L568.8 235.5L561.2 235.5Z"/>
+<path class="fc2 cond2" d="M565.0 237.2L568.8 244.1L561.2 244.1Z"/>
+<path class="fc2 cond2" d="M565.0 245.8L568.8 252.7L561.2 252.7Z"/>
+<path class="fc2 cond2" d="M565.0 254.4L568.8 261.3L561.2 261.3Z"/>
+<path class="fc2 cond2" d="M565.0 263.0L568.8 269.9L561.2 269.9Z"/>
+<path class="fc2 cond2" d="M592.5 151.2L596.3 158.1L588.7 158.1Z"/>
+<path class="fc2 cond2" d="M592.5 159.8L596.3 166.7L588.7 166.7Z"/>
+<path class="fc2 cond2" d="M592.5 168.4L596.3 175.3L588.7 175.3Z"/>
+<path class="fc2 cond2" d="M592.5 177.0L596.3 183.9L588.7 183.9Z"/>
+<path class="fc2 cond2" d="M592.5 185.6L596.3 192.5L588.7 192.5Z"/>
+<path class="fc2 cond2" d="M592.5 194.2L596.3 201.1L588.7 201.1Z"/>
+<path class="open sc2 cond2" d="M592.5 202.8L596.3 209.7L588.7 209.7Z"/>
+<path class="fc2 cond2" d="M592.5 211.4L596.3 218.3L588.7 218.3Z"/>
+<path class="fc2 cond2" d="M592.5 220.0L596.3 226.9L588.7 226.9Z"/>
+<path class="fc2 cond2" d="M592.5 228.6L596.3 235.5L588.7 235.5Z"/>
+<path class="fc2 cond2" d="M592.5 237.2L596.3 244.1L588.7 244.1Z"/>
+<path class="fc2 cond2" d="M592.5 245.8L596.3 252.7L588.7 252.7Z"/>
+<path class="fc2 cond2" d="M592.5 254.4L596.3 261.3L588.7 261.3Z"/>
+<path class="fc2 cond2" d="M620.0 151.2L623.8 158.1L616.2 158.1Z"/>
+<path class="open sc2 cond2" d="M620.0 159.8L623.8 166.7L616.2 166.7Z"/>
+<path class="fc2 cond2" d="M620.0 168.4L623.8 175.3L616.2 175.3Z"/>
+<path class="fc2 cond2" d="M620.0 177.0L623.8 183.9L616.2 183.9Z"/>
+<path class="fc2 cond2" d="M620.0 185.6L623.8 192.5L616.2 192.5Z"/>
+<path class="fc2 cond2" d="M620.0 194.2L623.8 201.1L616.2 201.1Z"/>
+<path class="fc2 cond2" d="M620.0 202.8L623.8 209.7L616.2 209.7Z"/>
+<path class="fc2 cond2" d="M620.0 211.4L623.8 218.3L616.2 218.3Z"/>
+<path class="fc2 cond2" d="M620.0 220.0L623.8 226.9L616.2 226.9Z"/>
+<path class="open sc2 cond2" d="M620.0 228.6L623.8 235.5L616.2 235.5Z"/>
+<path class="fc2 cond2" d="M620.0 237.2L623.8 244.1L616.2 244.1Z"/>
+<path class="fc2 cond2" d="M620.0 245.8L623.8 252.7L616.2 252.7Z"/>
+<path class="fc2 cond2" d="M620.0 254.4L623.8 261.3L616.2 261.3Z"/>
+<path class="open sc2 cond2" d="M620.0 263.0L623.8 269.9L616.2 269.9Z"/>
+<path class="fc2 cond2" d="M620.0 271.6L623.8 278.5L616.2 278.5Z"/>
+<path class="fc2 cond2" d="M647.5 151.2L651.3 158.1L643.7 158.1Z"/>
+<path class="fc2 cond2" d="M647.5 159.8L651.3 166.7L643.7 166.7Z"/>
+<path class="open sc2 cond2" d="M647.5 168.4L651.3 175.3L643.7 175.3Z"/>
+<path class="open sc2 cond2" d="M647.5 177.0L651.3 183.9L643.7 183.9Z"/>
+<path class="fc2 cond2" d="M647.5 185.6L651.3 192.5L643.7 192.5Z"/>
+<path class="fc2 cond2" d="M647.5 194.2L651.3 201.1L643.7 201.1Z"/>
+<path class="fc2 cond2" d="M647.5 202.8L651.3 209.7L643.7 209.7Z"/>
+<path class="fc2 cond2" d="M647.5 211.4L651.3 218.3L643.7 218.3Z"/>
+<path class="fc2 cond2" d="M647.5 220.0L651.3 226.9L643.7 226.9Z"/>
+<path class="fc2 cond2" d="M647.5 228.6L651.3 235.5L643.7 235.5Z"/>
+<path class="fc2 cond2" d="M647.5 237.2L651.3 244.1L643.7 244.1Z"/>
+<path class="fc2 cond2" d="M647.5 245.8L651.3 252.7L643.7 252.7Z"/>
+<path class="fc2 cond2" d="M647.5 254.4L651.3 261.3L643.7 261.3Z"/>
+<path class="fc2 cond2" d="M647.5 263.0L651.3 269.9L643.7 269.9Z"/>
+<path class="fc2 cond2" d="M647.5 271.6L651.3 278.5L643.7 278.5Z"/>
+<path class="fc2 cond2" d="M647.5 280.2L651.3 287.1L643.7 287.1Z"/>
+<path class="fc2 cond2" d="M647.5 288.8L651.3 295.7L643.7 295.7Z"/>
+<path class="fc2 cond2" d="M647.5 297.4L651.3 304.3L643.7 304.3Z"/>
+<path class="fc2 cond2" d="M647.5 306.0L651.3 312.9L643.7 312.9Z"/>
+<path class="open sc2 cond2" d="M647.5 314.6L651.3 321.5L643.7 321.5Z"/>
+<path class="fc2 cond2" d="M647.5 323.2L651.3 330.1L643.7 330.1Z"/>
+<path class="fc2 cond2" d="M647.5 331.8L651.3 338.7L643.7 338.7Z"/>
+<path class="fc2 cond2" d="M675.0 151.2L678.8 158.1L671.2 158.1Z"/>
+<path class="fc2 cond2" d="M675.0 159.8L678.8 166.7L671.2 166.7Z"/>
+<path class="open sc2 cond2" d="M675.0 168.4L678.8 175.3L671.2 175.3Z"/>
+<path class="fc2 cond2" d="M675.0 177.0L678.8 183.9L671.2 183.9Z"/>
+<path class="fc2 cond2" d="M675.0 185.6L678.8 192.5L671.2 192.5Z"/>
+<path class="open sc2 cond2" d="M675.0 194.2L678.8 201.1L671.2 201.1Z"/>
+<path class="open sc2 cond2" d="M675.0 202.8L678.8 209.7L671.2 209.7Z"/>
+<path class="fc2 cond2" d="M675.0 211.4L678.8 218.3L671.2 218.3Z"/>
+<path class="open sc2 cond2" d="M675.0 220.0L678.8 226.9L671.2 226.9Z"/>
+<path class="fc2 cond2" d="M675.0 228.6L678.8 235.5L671.2 235.5Z"/>
+<path class="fc2 cond2" d="M675.0 237.2L678.8 244.1L671.2 244.1Z"/>
+<path class="open sc2 cond2" d="M675.0 245.8L678.8 252.7L671.2 252.7Z"/>
+<path class="fc2 cond2" d="M675.0 254.4L678.8 261.3L671.2 261.3Z"/>
+<path class="fc2 cond2" d="M675.0 263.0L678.8 269.9L671.2 269.9Z"/>
+<path class="fc2 cond2" d="M675.0 271.6L678.8 278.5L671.2 278.5Z"/>
+<path class="fc2 cond2" d="M675.0 280.2L678.8 287.1L671.2 287.1Z"/>
+<path class="fc2 cond2" d="M675.0 288.8L678.8 295.7L671.2 295.7Z"/>
+<path class="fc2 cond2" d="M702.5 151.2L706.3 158.1L698.7 158.1Z"/>
+<path class="fc2 cond2" d="M702.5 159.8L706.3 166.7L698.7 166.7Z"/>
+<path class="fc2 cond2" d="M702.5 168.4L706.3 175.3L698.7 175.3Z"/>
+<path class="open sc2 cond2" d="M702.5 177.0L706.3 183.9L698.7 183.9Z"/>
+<path class="fc2 cond2" d="M702.5 185.6L706.3 192.5L698.7 192.5Z"/>
+<path class="fc2 cond2" d="M702.5 194.2L706.3 201.1L698.7 201.1Z"/>
+<path class="fc2 cond2" d="M702.5 202.8L706.3 209.7L698.7 209.7Z"/>
+<path class="fc2 cond2" d="M702.5 211.4L706.3 218.3L698.7 218.3Z"/>
+<path class="fc2 cond2" d="M702.5 220.0L706.3 226.9L698.7 226.9Z"/>
+<path class="open sc2 cond2" d="M702.5 228.6L706.3 235.5L698.7 235.5Z"/>
+<path class="fc2 cond2" d="M702.5 237.2L706.3 244.1L698.7 244.1Z"/>
+<path class="fc2 cond2" d="M702.5 245.8L706.3 252.7L698.7 252.7Z"/>
+<path class="open sc2 cond2" d="M702.5 254.4L706.3 261.3L698.7 261.3Z"/>
+<text x="64.0" y="137.0" class="head cond3">instruct model, inside the chat template: 265 of 360 keep</text>
+<path class="fc2 cond3" d="M70.0 151.2L73.8 158.1L66.2 158.1Z"/>
+<path class="fc2 cond3" d="M70.0 159.8L73.8 166.7L66.2 166.7Z"/>
+<path class="fc2 cond3" d="M70.0 168.4L73.8 175.3L66.2 175.3Z"/>
+<path class="fc2 cond3" d="M70.0 177.0L73.8 183.9L66.2 183.9Z"/>
+<path class="fc2 cond3" d="M70.0 185.6L73.8 192.5L66.2 192.5Z"/>
+<path class="fc2 cond3" d="M70.0 194.2L73.8 201.1L66.2 201.1Z"/>
+<path class="fc2 cond3" d="M70.0 202.8L73.8 209.7L66.2 209.7Z"/>
+<path class="fc2 cond3" d="M70.0 211.4L73.8 218.3L66.2 218.3Z"/>
+<path class="fc2 cond3" d="M70.0 220.0L73.8 226.9L66.2 226.9Z"/>
+<path class="fc2 cond3" d="M70.0 228.6L73.8 235.5L66.2 235.5Z"/>
+<path class="fc2 cond3" d="M70.0 237.2L73.8 244.1L66.2 244.1Z"/>
+<path class="fc2 cond3" d="M70.0 245.8L73.8 252.7L66.2 252.7Z"/>
+<path class="fc2 cond3" d="M70.0 254.4L73.8 261.3L66.2 261.3Z"/>
+<path class="fc2 cond3" d="M70.0 263.0L73.8 269.9L66.2 269.9Z"/>
+<path class="open sc2 cond3" d="M70.0 271.6L73.8 278.5L66.2 278.5Z"/>
+<path class="fc2 cond3" d="M70.0 280.2L73.8 287.1L66.2 287.1Z"/>
+<path class="fc2 cond3" d="M70.0 288.8L73.8 295.7L66.2 295.7Z"/>
+<path class="fc2 cond3" d="M70.0 297.4L73.8 304.3L66.2 304.3Z"/>
+<path class="fc2 cond3" d="M70.0 306.0L73.8 312.9L66.2 312.9Z"/>
+<path class="fc2 cond3" d="M70.0 314.6L73.8 321.5L66.2 321.5Z"/>
+<path class="fc2 cond3" d="M70.0 323.2L73.8 330.1L66.2 330.1Z"/>
+<path class="fc2 cond3" d="M70.0 331.8L73.8 338.7L66.2 338.7Z"/>
+<path class="open sc2 cond3" d="M70.0 340.4L73.8 347.3L66.2 347.3Z"/>
+<path class="fc2 cond3" d="M70.0 349.0L73.8 355.9L66.2 355.9Z"/>
+<path class="fc2 cond3" d="M70.0 357.6L73.8 364.5L66.2 364.5Z"/>
+<path class="fc2 cond3" d="M70.0 366.2L73.8 373.1L66.2 373.1Z"/>
+<path class="fc2 cond3" d="M97.5 151.2L101.3 158.1L93.7 158.1Z"/>
+<path class="fc2 cond3" d="M97.5 159.8L101.3 166.7L93.7 166.7Z"/>
+<path class="fc2 cond3" d="M97.5 168.4L101.3 175.3L93.7 175.3Z"/>
+<path class="fc2 cond3" d="M97.5 177.0L101.3 183.9L93.7 183.9Z"/>
+<path class="open sc2 cond3" d="M97.5 185.6L101.3 192.5L93.7 192.5Z"/>
+<path class="fc2 cond3" d="M97.5 194.2L101.3 201.1L93.7 201.1Z"/>
+<path class="fc2 cond3" d="M97.5 202.8L101.3 209.7L93.7 209.7Z"/>
+<path class="open sc2 cond3" d="M97.5 211.4L101.3 218.3L93.7 218.3Z"/>
+<path class="fc2 cond3" d="M97.5 220.0L101.3 226.9L93.7 226.9Z"/>
+<path class="fc2 cond3" d="M97.5 228.6L101.3 235.5L93.7 235.5Z"/>
+<path class="fc2 cond3" d="M97.5 237.2L101.3 244.1L93.7 244.1Z"/>
+<path class="fc2 cond3" d="M97.5 245.8L101.3 252.7L93.7 252.7Z"/>
+<path class="fc2 cond3" d="M97.5 254.4L101.3 261.3L93.7 261.3Z"/>
+<path class="fc2 cond3" d="M97.5 263.0L101.3 269.9L93.7 269.9Z"/>
+<path class="fc2 cond3" d="M125.0 151.2L128.8 158.1L121.2 158.1Z"/>
+<path class="fc2 cond3" d="M125.0 159.8L128.8 166.7L121.2 166.7Z"/>
+<path class="open sc2 cond3" d="M125.0 168.4L128.8 175.3L121.2 175.3Z"/>
+<path class="open sc2 cond3" d="M125.0 177.0L128.8 183.9L121.2 183.9Z"/>
+<path class="fc2 cond3" d="M125.0 185.6L128.8 192.5L121.2 192.5Z"/>
+<path class="fc2 cond3" d="M125.0 194.2L128.8 201.1L121.2 201.1Z"/>
+<path class="fc2 cond3" d="M125.0 202.8L128.8 209.7L121.2 209.7Z"/>
+<path class="open sc2 cond3" d="M125.0 211.4L128.8 218.3L121.2 218.3Z"/>
+<path class="fc2 cond3" d="M125.0 220.0L128.8 226.9L121.2 226.9Z"/>
+<path class="fc2 cond3" d="M125.0 228.6L128.8 235.5L121.2 235.5Z"/>
+<path class="fc2 cond3" d="M125.0 237.2L128.8 244.1L121.2 244.1Z"/>
+<path class="fc2 cond3" d="M125.0 245.8L128.8 252.7L121.2 252.7Z"/>
+<path class="fc2 cond3" d="M125.0 254.4L128.8 261.3L121.2 261.3Z"/>
+<path class="fc2 cond3" d="M125.0 263.0L128.8 269.9L121.2 269.9Z"/>
+<path class="fc2 cond3" d="M152.5 151.2L156.3 158.1L148.7 158.1Z"/>
+<path class="open sc2 cond3" d="M152.5 159.8L156.3 166.7L148.7 166.7Z"/>
+<path class="fc2 cond3" d="M152.5 168.4L156.3 175.3L148.7 175.3Z"/>
+<path class="fc2 cond3" d="M152.5 177.0L156.3 183.9L148.7 183.9Z"/>
+<path class="fc2 cond3" d="M152.5 185.6L156.3 192.5L148.7 192.5Z"/>
+<path class="fc2 cond3" d="M152.5 194.2L156.3 201.1L148.7 201.1Z"/>
+<path class="fc2 cond3" d="M152.5 202.8L156.3 209.7L148.7 209.7Z"/>
+<path class="fc2 cond3" d="M152.5 211.4L156.3 218.3L148.7 218.3Z"/>
+<path class="fc2 cond3" d="M152.5 220.0L156.3 226.9L148.7 226.9Z"/>
+<path class="open sc2 cond3" d="M152.5 228.6L156.3 235.5L148.7 235.5Z"/>
+<path class="fc2 cond3" d="M152.5 237.2L156.3 244.1L148.7 244.1Z"/>
+<path class="fc2 cond3" d="M152.5 245.8L156.3 252.7L148.7 252.7Z"/>
+<path class="fc2 cond3" d="M152.5 254.4L156.3 261.3L148.7 261.3Z"/>
+<path class="fc2 cond3" d="M152.5 263.0L156.3 269.9L148.7 269.9Z"/>
+<path class="open sc2 cond3" d="M180.0 151.2L183.8 158.1L176.2 158.1Z"/>
+<path class="fc2 cond3" d="M180.0 159.8L183.8 166.7L176.2 166.7Z"/>
+<path class="open sc2 cond3" d="M180.0 168.4L183.8 175.3L176.2 175.3Z"/>
+<path class="fc2 cond3" d="M180.0 177.0L183.8 183.9L176.2 183.9Z"/>
+<path class="fc2 cond3" d="M180.0 185.6L183.8 192.5L176.2 192.5Z"/>
+<path class="fc2 cond3" d="M180.0 194.2L183.8 201.1L176.2 201.1Z"/>
+<path class="open sc2 cond3" d="M180.0 202.8L183.8 209.7L176.2 209.7Z"/>
+<path class="fc2 cond3" d="M180.0 211.4L183.8 218.3L176.2 218.3Z"/>
+<path class="fc2 cond3" d="M180.0 220.0L183.8 226.9L176.2 226.9Z"/>
+<path class="fc2 cond3" d="M180.0 228.6L183.8 235.5L176.2 235.5Z"/>
+<path class="fc2 cond3" d="M180.0 237.2L183.8 244.1L176.2 244.1Z"/>
+<path class="open sc2 cond3" d="M180.0 245.8L183.8 252.7L176.2 252.7Z"/>
+<path class="fc2 cond3" d="M180.0 254.4L183.8 261.3L176.2 261.3Z"/>
+<path class="fc2 cond3" d="M180.0 263.0L183.8 269.9L176.2 269.9Z"/>
+<path class="open sc2 cond3" d="M180.0 271.6L183.8 278.5L176.2 278.5Z"/>
+<path class="fc2 cond3" d="M180.0 280.2L183.8 287.1L176.2 287.1Z"/>
+<path class="fc2 cond3" d="M180.0 288.8L183.8 295.7L176.2 295.7Z"/>
+<path class="fc2 cond3" d="M180.0 297.4L183.8 304.3L176.2 304.3Z"/>
+<path class="fc2 cond3" d="M180.0 306.0L183.8 312.9L176.2 312.9Z"/>
+<path class="fc2 cond3" d="M180.0 314.6L183.8 321.5L176.2 321.5Z"/>
+<path class="open sc2 cond3" d="M180.0 323.2L183.8 330.1L176.2 330.1Z"/>
+<path class="open sc2 cond3" d="M180.0 331.8L183.8 338.7L176.2 338.7Z"/>
+<path class="fc2 cond3" d="M180.0 340.4L183.8 347.3L176.2 347.3Z"/>
+<path class="fc2 cond3" d="M207.5 151.2L211.3 158.1L203.7 158.1Z"/>
+<path class="fc2 cond3" d="M207.5 159.8L211.3 166.7L203.7 166.7Z"/>
+<path class="fc2 cond3" d="M207.5 168.4L211.3 175.3L203.7 175.3Z"/>
+<path class="fc2 cond3" d="M207.5 177.0L211.3 183.9L203.7 183.9Z"/>
+<path class="fc2 cond3" d="M207.5 185.6L211.3 192.5L203.7 192.5Z"/>
+<path class="fc2 cond3" d="M207.5 194.2L211.3 201.1L203.7 201.1Z"/>
+<path class="fc2 cond3" d="M207.5 202.8L211.3 209.7L203.7 209.7Z"/>
+<path class="fc2 cond3" d="M207.5 211.4L211.3 218.3L203.7 218.3Z"/>
+<path class="fc2 cond3" d="M207.5 220.0L211.3 226.9L203.7 226.9Z"/>
+<path class="fc2 cond3" d="M207.5 228.6L211.3 235.5L203.7 235.5Z"/>
+<path class="fc2 cond3" d="M207.5 237.2L211.3 244.1L203.7 244.1Z"/>
+<path class="fc2 cond3" d="M207.5 245.8L211.3 252.7L203.7 252.7Z"/>
+<path class="fc2 cond3" d="M207.5 254.4L211.3 261.3L203.7 261.3Z"/>
+<path class="fc2 cond3" d="M207.5 263.0L211.3 269.9L203.7 269.9Z"/>
+<path class="fc2 cond3" d="M207.5 271.6L211.3 278.5L203.7 278.5Z"/>
+<path class="open sc2 cond3" d="M235.0 151.2L238.8 158.1L231.2 158.1Z"/>
+<path class="fc2 cond3" d="M235.0 159.8L238.8 166.7L231.2 166.7Z"/>
+<path class="fc2 cond3" d="M235.0 168.4L238.8 175.3L231.2 175.3Z"/>
+<path class="fc2 cond3" d="M235.0 177.0L238.8 183.9L231.2 183.9Z"/>
+<path class="fc2 cond3" d="M235.0 185.6L238.8 192.5L231.2 192.5Z"/>
+<path class="open sc2 cond3" d="M235.0 194.2L238.8 201.1L231.2 201.1Z"/>
+<path class="fc2 cond3" d="M235.0 202.8L238.8 209.7L231.2 209.7Z"/>
+<path class="fc2 cond3" d="M235.0 211.4L238.8 218.3L231.2 218.3Z"/>
+<path class="fc2 cond3" d="M235.0 220.0L238.8 226.9L231.2 226.9Z"/>
+<path class="open sc2 cond3" d="M235.0 228.6L238.8 235.5L231.2 235.5Z"/>
+<path class="fc2 cond3" d="M235.0 237.2L238.8 244.1L231.2 244.1Z"/>
+<path class="fc2 cond3" d="M235.0 245.8L238.8 252.7L231.2 252.7Z"/>
+<path class="fc2 cond3" d="M235.0 254.4L238.8 261.3L231.2 261.3Z"/>
+<path class="fc2 cond3" d="M235.0 263.0L238.8 269.9L231.2 269.9Z"/>
+<path class="fc2 cond3" d="M235.0 271.6L238.8 278.5L231.2 278.5Z"/>
+<path class="fc2 cond3" d="M235.0 280.2L238.8 287.1L231.2 287.1Z"/>
+<path class="fc2 cond3" d="M262.5 151.2L266.3 158.1L258.7 158.1Z"/>
+<path class="open sc2 cond3" d="M262.5 159.8L266.3 166.7L258.7 166.7Z"/>
+<path class="fc2 cond3" d="M262.5 168.4L266.3 175.3L258.7 175.3Z"/>
+<path class="fc2 cond3" d="M262.5 177.0L266.3 183.9L258.7 183.9Z"/>
+<path class="fc2 cond3" d="M262.5 185.6L266.3 192.5L258.7 192.5Z"/>
+<path class="fc2 cond3" d="M262.5 194.2L266.3 201.1L258.7 201.1Z"/>
+<path class="fc2 cond3" d="M262.5 202.8L266.3 209.7L258.7 209.7Z"/>
+<path class="fc2 cond3" d="M262.5 211.4L266.3 218.3L258.7 218.3Z"/>
+<path class="fc2 cond3" d="M262.5 220.0L266.3 226.9L258.7 226.9Z"/>
+<path class="fc2 cond3" d="M262.5 228.6L266.3 235.5L258.7 235.5Z"/>
+<path class="fc2 cond3" d="M290.0 151.2L293.8 158.1L286.2 158.1Z"/>
+<path class="open sc2 cond3" d="M290.0 159.8L293.8 166.7L286.2 166.7Z"/>
+<path class="open sc2 cond3" d="M290.0 168.4L293.8 175.3L286.2 175.3Z"/>
+<path class="fc2 cond3" d="M290.0 177.0L293.8 183.9L286.2 183.9Z"/>
+<path class="fc2 cond3" d="M290.0 185.6L293.8 192.5L286.2 192.5Z"/>
+<path class="open sc2 cond3" d="M290.0 194.2L293.8 201.1L286.2 201.1Z"/>
+<path class="fc2 cond3" d="M290.0 202.8L293.8 209.7L286.2 209.7Z"/>
+<path class="open sc2 cond3" d="M290.0 211.4L293.8 218.3L286.2 218.3Z"/>
+<path class="open sc2 cond3" d="M290.0 220.0L293.8 226.9L286.2 226.9Z"/>
+<path class="fc2 cond3" d="M290.0 228.6L293.8 235.5L286.2 235.5Z"/>
+<path class="open sc2 cond3" d="M290.0 237.2L293.8 244.1L286.2 244.1Z"/>
+<path class="fc2 cond3" d="M290.0 245.8L293.8 252.7L286.2 252.7Z"/>
+<path class="open sc2 cond3" d="M317.5 151.2L321.3 158.1L313.7 158.1Z"/>
+<path class="open sc2 cond3" d="M317.5 159.8L321.3 166.7L313.7 166.7Z"/>
+<path class="fc2 cond3" d="M317.5 168.4L321.3 175.3L313.7 175.3Z"/>
+<path class="fc2 cond3" d="M317.5 177.0L321.3 183.9L313.7 183.9Z"/>
+<path class="fc2 cond3" d="M317.5 185.6L321.3 192.5L313.7 192.5Z"/>
+<path class="fc2 cond3" d="M317.5 194.2L321.3 201.1L313.7 201.1Z"/>
+<path class="fc2 cond3" d="M317.5 202.8L321.3 209.7L313.7 209.7Z"/>
+<path class="fc2 cond3" d="M317.5 211.4L321.3 218.3L313.7 218.3Z"/>
+<path class="fc2 cond3" d="M317.5 220.0L321.3 226.9L313.7 226.9Z"/>
+<path class="open sc2 cond3" d="M317.5 228.6L321.3 235.5L313.7 235.5Z"/>
+<path class="fc2 cond3" d="M317.5 237.2L321.3 244.1L313.7 244.1Z"/>
+<path class="open sc2 cond3" d="M317.5 245.8L321.3 252.7L313.7 252.7Z"/>
+<path class="open sc2 cond3" d="M317.5 254.4L321.3 261.3L313.7 261.3Z"/>
+<path class="open sc2 cond3" d="M317.5 263.0L321.3 269.9L313.7 269.9Z"/>
+<path class="fc2 cond3" d="M345.0 151.2L348.8 158.1L341.2 158.1Z"/>
+<path class="fc2 cond3" d="M345.0 159.8L348.8 166.7L341.2 166.7Z"/>
+<path class="open sc2 cond3" d="M345.0 168.4L348.8 175.3L341.2 175.3Z"/>
+<path class="open sc2 cond3" d="M345.0 177.0L348.8 183.9L341.2 183.9Z"/>
+<path class="fc2 cond3" d="M345.0 185.6L348.8 192.5L341.2 192.5Z"/>
+<path class="fc2 cond3" d="M345.0 194.2L348.8 201.1L341.2 201.1Z"/>
+<path class="fc2 cond3" d="M345.0 202.8L348.8 209.7L341.2 209.7Z"/>
+<path class="open sc2 cond3" d="M345.0 211.4L348.8 218.3L341.2 218.3Z"/>
+<path class="fc2 cond3" d="M345.0 220.0L348.8 226.9L341.2 226.9Z"/>
+<path class="fc2 cond3" d="M345.0 228.6L348.8 235.5L341.2 235.5Z"/>
+<path class="open sc2 cond3" d="M345.0 237.2L348.8 244.1L341.2 244.1Z"/>
+<path class="fc2 cond3" d="M372.5 151.2L376.3 158.1L368.7 158.1Z"/>
+<path class="open sc2 cond3" d="M372.5 159.8L376.3 166.7L368.7 166.7Z"/>
+<path class="fc2 cond3" d="M372.5 168.4L376.3 175.3L368.7 175.3Z"/>
+<path class="open sc2 cond3" d="M372.5 177.0L376.3 183.9L368.7 183.9Z"/>
+<path class="open sc2 cond3" d="M372.5 185.6L376.3 192.5L368.7 192.5Z"/>
+<path class="fc2 cond3" d="M372.5 194.2L376.3 201.1L368.7 201.1Z"/>
+<path class="fc2 cond3" d="M372.5 202.8L376.3 209.7L368.7 209.7Z"/>
+<path class="fc2 cond3" d="M372.5 211.4L376.3 218.3L368.7 218.3Z"/>
+<path class="fc2 cond3" d="M372.5 220.0L376.3 226.9L368.7 226.9Z"/>
+<path class="fc2 cond3" d="M372.5 228.6L376.3 235.5L368.7 235.5Z"/>
+<path class="fc2 cond3" d="M372.5 237.2L376.3 244.1L368.7 244.1Z"/>
+<path class="fc2 cond3" d="M400.0 151.2L403.8 158.1L396.2 158.1Z"/>
+<path class="open sc2 cond3" d="M400.0 159.8L403.8 166.7L396.2 166.7Z"/>
+<path class="open sc2 cond3" d="M400.0 168.4L403.8 175.3L396.2 175.3Z"/>
+<path class="fc2 cond3" d="M400.0 177.0L403.8 183.9L396.2 183.9Z"/>
+<path class="fc2 cond3" d="M400.0 185.6L403.8 192.5L396.2 192.5Z"/>
+<path class="fc2 cond3" d="M400.0 194.2L403.8 201.1L396.2 201.1Z"/>
+<path class="fc2 cond3" d="M400.0 202.8L403.8 209.7L396.2 209.7Z"/>
+<path class="open sc2 cond3" d="M400.0 211.4L403.8 218.3L396.2 218.3Z"/>
+<path class="fc2 cond3" d="M400.0 220.0L403.8 226.9L396.2 226.9Z"/>
+<path class="fc2 cond3" d="M400.0 228.6L403.8 235.5L396.2 235.5Z"/>
+<path class="open sc2 cond3" d="M400.0 237.2L403.8 244.1L396.2 244.1Z"/>
+<path class="fc2 cond3" d="M400.0 245.8L403.8 252.7L396.2 252.7Z"/>
+<path class="fc2 cond3" d="M427.5 151.2L431.3 158.1L423.7 158.1Z"/>
+<path class="open sc2 cond3" d="M427.5 159.8L431.3 166.7L423.7 166.7Z"/>
+<path class="open sc2 cond3" d="M427.5 168.4L431.3 175.3L423.7 175.3Z"/>
+<path class="open sc2 cond3" d="M427.5 177.0L431.3 183.9L423.7 183.9Z"/>
+<path class="open sc2 cond3" d="M427.5 185.6L431.3 192.5L423.7 192.5Z"/>
+<path class="open sc2 cond3" d="M427.5 194.2L431.3 201.1L423.7 201.1Z"/>
+<path class="fc2 cond3" d="M427.5 202.8L431.3 209.7L423.7 209.7Z"/>
+<path class="fc2 cond3" d="M427.5 211.4L431.3 218.3L423.7 218.3Z"/>
+<path class="fc2 cond3" d="M427.5 220.0L431.3 226.9L423.7 226.9Z"/>
+<path class="open sc2 cond3" d="M427.5 228.6L431.3 235.5L423.7 235.5Z"/>
+<path class="fc2 cond3" d="M427.5 237.2L431.3 244.1L423.7 244.1Z"/>
+<path class="open sc2 cond3" d="M427.5 245.8L431.3 252.7L423.7 252.7Z"/>
+<path class="open sc2 cond3" d="M427.5 254.4L431.3 261.3L423.7 261.3Z"/>
+<path class="open sc2 cond3" d="M427.5 263.0L431.3 269.9L423.7 269.9Z"/>
+<path class="fc2 cond3" d="M427.5 271.6L431.3 278.5L423.7 278.5Z"/>
+<path class="open sc2 cond3" d="M427.5 280.2L431.3 287.1L423.7 287.1Z"/>
+<path class="fc2 cond3" d="M455.0 151.2L458.8 158.1L451.2 158.1Z"/>
+<path class="fc2 cond3" d="M455.0 159.8L458.8 166.7L451.2 166.7Z"/>
+<path class="fc2 cond3" d="M455.0 168.4L458.8 175.3L451.2 175.3Z"/>
+<path class="fc2 cond3" d="M455.0 177.0L458.8 183.9L451.2 183.9Z"/>
+<path class="open sc2 cond3" d="M455.0 185.6L458.8 192.5L451.2 192.5Z"/>
+<path class="fc2 cond3" d="M455.0 194.2L458.8 201.1L451.2 201.1Z"/>
+<path class="fc2 cond3" d="M455.0 202.8L458.8 209.7L451.2 209.7Z"/>
+<path class="open sc2 cond3" d="M455.0 211.4L458.8 218.3L451.2 218.3Z"/>
+<path class="fc2 cond3" d="M455.0 220.0L458.8 226.9L451.2 226.9Z"/>
+<path class="fc2 cond3" d="M455.0 228.6L458.8 235.5L451.2 235.5Z"/>
+<path class="fc2 cond3" d="M455.0 237.2L458.8 244.1L451.2 244.1Z"/>
+<path class="fc2 cond3" d="M455.0 245.8L458.8 252.7L451.2 252.7Z"/>
+<path class="open sc2 cond3" d="M455.0 254.4L458.8 261.3L451.2 261.3Z"/>
+<path class="fc2 cond3" d="M482.5 151.2L486.3 158.1L478.7 158.1Z"/>
+<path class="fc2 cond3" d="M482.5 159.8L486.3 166.7L478.7 166.7Z"/>
+<path class="open sc2 cond3" d="M482.5 168.4L486.3 175.3L478.7 175.3Z"/>
+<path class="fc2 cond3" d="M482.5 177.0L486.3 183.9L478.7 183.9Z"/>
+<path class="open sc2 cond3" d="M482.5 185.6L486.3 192.5L478.7 192.5Z"/>
+<path class="open sc2 cond3" d="M482.5 194.2L486.3 201.1L478.7 201.1Z"/>
+<path class="fc2 cond3" d="M482.5 202.8L486.3 209.7L478.7 209.7Z"/>
+<path class="fc2 cond3" d="M482.5 211.4L486.3 218.3L478.7 218.3Z"/>
+<path class="fc2 cond3" d="M482.5 220.0L486.3 226.9L478.7 226.9Z"/>
+<path class="fc2 cond3" d="M482.5 228.6L486.3 235.5L478.7 235.5Z"/>
+<path class="fc2 cond3" d="M482.5 237.2L486.3 244.1L478.7 244.1Z"/>
+<path class="fc2 cond3" d="M482.5 245.8L486.3 252.7L478.7 252.7Z"/>
+<path class="fc2 cond3" d="M510.0 151.2L513.8 158.1L506.2 158.1Z"/>
+<path class="fc2 cond3" d="M510.0 159.8L513.8 166.7L506.2 166.7Z"/>
+<path class="fc2 cond3" d="M510.0 168.4L513.8 175.3L506.2 175.3Z"/>
+<path class="open sc2 cond3" d="M510.0 177.0L513.8 183.9L506.2 183.9Z"/>
+<path class="fc2 cond3" d="M510.0 185.6L513.8 192.5L506.2 192.5Z"/>
+<path class="fc2 cond3" d="M510.0 194.2L513.8 201.1L506.2 201.1Z"/>
+<path class="fc2 cond3" d="M510.0 202.8L513.8 209.7L506.2 209.7Z"/>
+<path class="fc2 cond3" d="M510.0 211.4L513.8 218.3L506.2 218.3Z"/>
+<path class="open sc2 cond3" d="M510.0 220.0L513.8 226.9L506.2 226.9Z"/>
+<path class="open sc2 cond3" d="M510.0 228.6L513.8 235.5L506.2 235.5Z"/>
+<path class="fc2 cond3" d="M510.0 237.2L513.8 244.1L506.2 244.1Z"/>
+<path class="fc2 cond3" d="M510.0 245.8L513.8 252.7L506.2 252.7Z"/>
+<path class="fc2 cond3" d="M510.0 254.4L513.8 261.3L506.2 261.3Z"/>
+<path class="open sc2 cond3" d="M510.0 263.0L513.8 269.9L506.2 269.9Z"/>
+<path class="open sc2 cond3" d="M510.0 271.6L513.8 278.5L506.2 278.5Z"/>
+<path class="open sc2 cond3" d="M510.0 280.2L513.8 287.1L506.2 287.1Z"/>
+<path class="open sc2 cond3" d="M510.0 288.8L513.8 295.7L506.2 295.7Z"/>
+<path class="open sc2 cond3" d="M510.0 297.4L513.8 304.3L506.2 304.3Z"/>
+<path class="fc2 cond3" d="M510.0 306.0L513.8 312.9L506.2 312.9Z"/>
+<path class="fc2 cond3" d="M510.0 314.6L513.8 321.5L506.2 321.5Z"/>
+<path class="fc2 cond3" d="M537.5 151.2L541.3 158.1L533.7 158.1Z"/>
+<path class="open sc2 cond3" d="M537.5 159.8L541.3 166.7L533.7 166.7Z"/>
+<path class="fc2 cond3" d="M537.5 168.4L541.3 175.3L533.7 175.3Z"/>
+<path class="fc2 cond3" d="M537.5 177.0L541.3 183.9L533.7 183.9Z"/>
+<path class="fc2 cond3" d="M537.5 185.6L541.3 192.5L533.7 192.5Z"/>
+<path class="fc2 cond3" d="M537.5 194.2L541.3 201.1L533.7 201.1Z"/>
+<path class="open sc2 cond3" d="M537.5 202.8L541.3 209.7L533.7 209.7Z"/>
+<path class="fc2 cond3" d="M537.5 211.4L541.3 218.3L533.7 218.3Z"/>
+<path class="fc2 cond3" d="M537.5 220.0L541.3 226.9L533.7 226.9Z"/>
+<path class="fc2 cond3" d="M537.5 228.6L541.3 235.5L533.7 235.5Z"/>
+<path class="open sc2 cond3" d="M537.5 237.2L541.3 244.1L533.7 244.1Z"/>
+<path class="fc2 cond3" d="M537.5 245.8L541.3 252.7L533.7 252.7Z"/>
+<path class="fc2 cond3" d="M537.5 254.4L541.3 261.3L533.7 261.3Z"/>
+<path class="open sc2 cond3" d="M565.0 151.2L568.8 158.1L561.2 158.1Z"/>
+<path class="fc2 cond3" d="M565.0 159.8L568.8 166.7L561.2 166.7Z"/>
+<path class="fc2 cond3" d="M565.0 168.4L568.8 175.3L561.2 175.3Z"/>
+<path class="fc2 cond3" d="M565.0 177.0L568.8 183.9L561.2 183.9Z"/>
+<path class="fc2 cond3" d="M565.0 185.6L568.8 192.5L561.2 192.5Z"/>
+<path class="fc2 cond3" d="M565.0 194.2L568.8 201.1L561.2 201.1Z"/>
+<path class="fc2 cond3" d="M565.0 202.8L568.8 209.7L561.2 209.7Z"/>
+<path class="fc2 cond3" d="M565.0 211.4L568.8 218.3L561.2 218.3Z"/>
+<path class="fc2 cond3" d="M565.0 220.0L568.8 226.9L561.2 226.9Z"/>
+<path class="fc2 cond3" d="M565.0 228.6L568.8 235.5L561.2 235.5Z"/>
+<path class="open sc2 cond3" d="M565.0 237.2L568.8 244.1L561.2 244.1Z"/>
+<path class="fc2 cond3" d="M565.0 245.8L568.8 252.7L561.2 252.7Z"/>
+<path class="fc2 cond3" d="M565.0 254.4L568.8 261.3L561.2 261.3Z"/>
+<path class="fc2 cond3" d="M565.0 263.0L568.8 269.9L561.2 269.9Z"/>
+<path class="fc2 cond3" d="M592.5 151.2L596.3 158.1L588.7 158.1Z"/>
+<path class="fc2 cond3" d="M592.5 159.8L596.3 166.7L588.7 166.7Z"/>
+<path class="fc2 cond3" d="M592.5 168.4L596.3 175.3L588.7 175.3Z"/>
+<path class="fc2 cond3" d="M592.5 177.0L596.3 183.9L588.7 183.9Z"/>
+<path class="fc2 cond3" d="M592.5 185.6L596.3 192.5L588.7 192.5Z"/>
+<path class="fc2 cond3" d="M592.5 194.2L596.3 201.1L588.7 201.1Z"/>
+<path class="open sc2 cond3" d="M592.5 202.8L596.3 209.7L588.7 209.7Z"/>
+<path class="fc2 cond3" d="M592.5 211.4L596.3 218.3L588.7 218.3Z"/>
+<path class="open sc2 cond3" d="M592.5 220.0L596.3 226.9L588.7 226.9Z"/>
+<path class="open sc2 cond3" d="M592.5 228.6L596.3 235.5L588.7 235.5Z"/>
+<path class="fc2 cond3" d="M592.5 237.2L596.3 244.1L588.7 244.1Z"/>
+<path class="fc2 cond3" d="M592.5 245.8L596.3 252.7L588.7 252.7Z"/>
+<path class="fc2 cond3" d="M592.5 254.4L596.3 261.3L588.7 261.3Z"/>
+<path class="fc2 cond3" d="M620.0 151.2L623.8 158.1L616.2 158.1Z"/>
+<path class="open sc2 cond3" d="M620.0 159.8L623.8 166.7L616.2 166.7Z"/>
+<path class="fc2 cond3" d="M620.0 168.4L623.8 175.3L616.2 175.3Z"/>
+<path class="fc2 cond3" d="M620.0 177.0L623.8 183.9L616.2 183.9Z"/>
+<path class="fc2 cond3" d="M620.0 185.6L623.8 192.5L616.2 192.5Z"/>
+<path class="fc2 cond3" d="M620.0 194.2L623.8 201.1L616.2 201.1Z"/>
+<path class="fc2 cond3" d="M620.0 202.8L623.8 209.7L616.2 209.7Z"/>
+<path class="fc2 cond3" d="M620.0 211.4L623.8 218.3L616.2 218.3Z"/>
+<path class="fc2 cond3" d="M620.0 220.0L623.8 226.9L616.2 226.9Z"/>
+<path class="open sc2 cond3" d="M620.0 228.6L623.8 235.5L616.2 235.5Z"/>
+<path class="fc2 cond3" d="M620.0 237.2L623.8 244.1L616.2 244.1Z"/>
+<path class="open sc2 cond3" d="M620.0 245.8L623.8 252.7L616.2 252.7Z"/>
+<path class="fc2 cond3" d="M620.0 254.4L623.8 261.3L616.2 261.3Z"/>
+<path class="open sc2 cond3" d="M620.0 263.0L623.8 269.9L616.2 269.9Z"/>
+<path class="fc2 cond3" d="M620.0 271.6L623.8 278.5L616.2 278.5Z"/>
+<path class="fc2 cond3" d="M647.5 151.2L651.3 158.1L643.7 158.1Z"/>
+<path class="fc2 cond3" d="M647.5 159.8L651.3 166.7L643.7 166.7Z"/>
+<path class="fc2 cond3" d="M647.5 168.4L651.3 175.3L643.7 175.3Z"/>
+<path class="open sc2 cond3" d="M647.5 177.0L651.3 183.9L643.7 183.9Z"/>
+<path class="open sc2 cond3" d="M647.5 185.6L651.3 192.5L643.7 192.5Z"/>
+<path class="fc2 cond3" d="M647.5 194.2L651.3 201.1L643.7 201.1Z"/>
+<path class="open sc2 cond3" d="M647.5 202.8L651.3 209.7L643.7 209.7Z"/>
+<path class="fc2 cond3" d="M647.5 211.4L651.3 218.3L643.7 218.3Z"/>
+<path class="fc2 cond3" d="M647.5 220.0L651.3 226.9L643.7 226.9Z"/>
+<path class="open sc2 cond3" d="M647.5 228.6L651.3 235.5L643.7 235.5Z"/>
+<path class="fc2 cond3" d="M647.5 237.2L651.3 244.1L643.7 244.1Z"/>
+<path class="open sc2 cond3" d="M647.5 245.8L651.3 252.7L643.7 252.7Z"/>
+<path class="fc2 cond3" d="M647.5 254.4L651.3 261.3L643.7 261.3Z"/>
+<path class="open sc2 cond3" d="M647.5 263.0L651.3 269.9L643.7 269.9Z"/>
+<path class="open sc2 cond3" d="M647.5 271.6L651.3 278.5L643.7 278.5Z"/>
+<path class="fc2 cond3" d="M647.5 280.2L651.3 287.1L643.7 287.1Z"/>
+<path class="fc2 cond3" d="M647.5 288.8L651.3 295.7L643.7 295.7Z"/>
+<path class="fc2 cond3" d="M647.5 297.4L651.3 304.3L643.7 304.3Z"/>
+<path class="fc2 cond3" d="M647.5 306.0L651.3 312.9L643.7 312.9Z"/>
+<path class="open sc2 cond3" d="M647.5 314.6L651.3 321.5L643.7 321.5Z"/>
+<path class="fc2 cond3" d="M647.5 323.2L651.3 330.1L643.7 330.1Z"/>
+<path class="fc2 cond3" d="M647.5 331.8L651.3 338.7L643.7 338.7Z"/>
+<path class="fc2 cond3" d="M675.0 151.2L678.8 158.1L671.2 158.1Z"/>
+<path class="open sc2 cond3" d="M675.0 159.8L678.8 166.7L671.2 166.7Z"/>
+<path class="open sc2 cond3" d="M675.0 168.4L678.8 175.3L671.2 175.3Z"/>
+<path class="fc2 cond3" d="M675.0 177.0L678.8 183.9L671.2 183.9Z"/>
+<path class="fc2 cond3" d="M675.0 185.6L678.8 192.5L671.2 192.5Z"/>
+<path class="open sc2 cond3" d="M675.0 194.2L678.8 201.1L671.2 201.1Z"/>
+<path class="fc2 cond3" d="M675.0 202.8L678.8 209.7L671.2 209.7Z"/>
+<path class="fc2 cond3" d="M675.0 211.4L678.8 218.3L671.2 218.3Z"/>
+<path class="open sc2 cond3" d="M675.0 220.0L678.8 226.9L671.2 226.9Z"/>
+<path class="fc2 cond3" d="M675.0 228.6L678.8 235.5L671.2 235.5Z"/>
+<path class="fc2 cond3" d="M675.0 237.2L678.8 244.1L671.2 244.1Z"/>
+<path class="fc2 cond3" d="M675.0 245.8L678.8 252.7L671.2 252.7Z"/>
+<path class="fc2 cond3" d="M675.0 254.4L678.8 261.3L671.2 261.3Z"/>
+<path class="open sc2 cond3" d="M675.0 263.0L678.8 269.9L671.2 269.9Z"/>
+<path class="fc2 cond3" d="M675.0 271.6L678.8 278.5L671.2 278.5Z"/>
+<path class="fc2 cond3" d="M675.0 280.2L678.8 287.1L671.2 287.1Z"/>
+<path class="open sc2 cond3" d="M675.0 288.8L678.8 295.7L671.2 295.7Z"/>
+<path class="open sc2 cond3" d="M702.5 151.2L706.3 158.1L698.7 158.1Z"/>
+<path class="fc2 cond3" d="M702.5 159.8L706.3 166.7L698.7 166.7Z"/>
+<path class="fc2 cond3" d="M702.5 168.4L706.3 175.3L698.7 175.3Z"/>
+<path class="fc2 cond3" d="M702.5 177.0L706.3 183.9L698.7 183.9Z"/>
+<path class="fc2 cond3" d="M702.5 185.6L706.3 192.5L698.7 192.5Z"/>
+<path class="fc2 cond3" d="M702.5 194.2L706.3 201.1L698.7 201.1Z"/>
+<path class="fc2 cond3" d="M702.5 202.8L706.3 209.7L698.7 209.7Z"/>
+<path class="fc2 cond3" d="M702.5 211.4L706.3 218.3L698.7 218.3Z"/>
+<path class="fc2 cond3" d="M702.5 220.0L706.3 226.9L698.7 226.9Z"/>
+<path class="open sc2 cond3" d="M702.5 228.6L706.3 235.5L698.7 235.5Z"/>
+<path class="fc2 cond3" d="M702.5 237.2L706.3 244.1L698.7 244.1Z"/>
+<path class="fc2 cond3" d="M702.5 245.8L706.3 252.7L698.7 252.7Z"/>
+<path class="fc2 cond3" d="M702.5 254.4L706.3 261.3L698.7 261.3Z"/>
+<text x="70.0" y="390.6" class="small" text-anchor="middle">L0</text>
+<text x="180.0" y="390.6" class="small" text-anchor="middle">L4</text>
+<text x="290.0" y="390.6" class="small" text-anchor="middle">L8</text>
+<text x="400.0" y="390.6" class="small" text-anchor="middle">L12</text>
+<text x="510.0" y="390.6" class="small" text-anchor="middle">L16</text>
+<text x="620.0" y="390.6" class="small" text-anchor="middle">L20</text>
+<circle class="fc1" cx="25.0" cy="418.6" r="5"/>
+<text x="35.0" y="422.6">Qwen2.5-0.5B (base)</text>
+<path class="fc2" d="M176.6 412.6L182.6 423.4L170.6 423.4Z"/>
+<text x="186.6" y="422.6">Qwen2.5-0.5B-Instruct</text>
+</svg>

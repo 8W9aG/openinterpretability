@@ -2,6 +2,7 @@
 
 Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its recorded output, and `media/` holds its figures. `scripts/paper_figures.py` draws the figures from the results, and a test fails if they differ. The site's Research section publishes the papers listed here, newest first, by the date before each one: the day it was first published. The `write-paper` skill describes how to write one.
 
+- 2026-11-23: [Is it the template or the tuning? Why neuron explanations fail inside a chat model's prompt format](template-or-tuning/README.md)
 - 2026-11-22: [How many of a neuron's weights does its explanation need?](pruning-keep/README.md)
 - 2026-11-22: [Does Fisher importance predict which explanations survive instruction tuning?](fisher-keep/README.md)
 - 2026-11-20: [One concept map for four models](shared-concept-space/README.md)
