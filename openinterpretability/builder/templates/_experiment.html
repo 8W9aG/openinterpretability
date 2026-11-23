@@ -357,19 +357,7 @@
         agreement with replacing one token at a time ρ = {{ ia.ablation_agreement | num(2) }} · reported, not gated
       </p>
       {% endif %}
-      {% if sub.head_profile %}
-      {% set hp = sub.head_profile %}
-      <dl class="mt-4 grid grid-cols-3 gap-px overflow-hidden rounded border border-slate-200 bg-slate-200 text-center text-xs dark:border-slate-800 dark:bg-slate-800">
-        {% for label, value, hint in [
-          ("Previous token", hp.previous_token_score, "Mean attention to the token before"),
-          ("Duplicate token", hp.duplicate_token_score, "Mean attention from a repeated token to its earlier copy"),
-          ("Induction", hp.induction_score, "Mean attention to the token after the earlier copy of the current token"),
-        ] %}
-        <div class="bg-white p-2 dark:bg-slate-950" title="{{ hint }}"><dt class="text-slate-500">{{ label }}</dt><dd class="mt-0.5 font-mono text-base tabular-nums">{{ value | num(2) }}</dd></div>
-        {% endfor %}
-      </dl>
-      <p class="mt-1 text-xs text-slate-500">Attention-pattern scores on {{ hp.pattern_sequences }} random {{ hp.pattern_length }}-token sequences repeated twice (reported, not gated). Strength is measured from the head's mean output over {{ "{:,}".format(hp.mean_tokens) }} scanned tokens.</p>
-      {% endif %}
+      {% include "_head_profile.html" %}
       {% if sub.dictionary_profile %}
       {% set dp = sub.dictionary_profile %}
       <dl class="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded border border-slate-200 bg-slate-200 text-center text-xs sm:grid-cols-4 dark:border-slate-800 dark:bg-slate-800">
