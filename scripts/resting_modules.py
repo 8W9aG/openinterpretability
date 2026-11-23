@@ -164,3 +164,70 @@ def warmup(optimizer: torch.optim.Optimizer, steps: int):
     if not steps:
         return None
     return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: min(1.0, (step + 1) / steps))
+
+
+def keeper(seen: dict, key: str, layer: int, output: bool = False):
+    """A hook that keeps a module's input, or its output, without the first token.
+
+    Args:
+        seen: Where the tensors go, by ``(key, layer)``.
+        key: The name of what the hook keeps.
+        layer: The block's index.
+        output: Keep the module's output, not its input.
+
+    Returns:
+        The hook, for ``register_forward_pre_hook`` or, with ``output``,
+        ``register_forward_hook``.
+    """
+
+    def keep(_module, args, result=None):
+        """Keep the module's input, or its ``result``, as ``[tokens, features]``.
+
+        Args:
+            _module: The hooked module.
+            args: Its positional inputs.
+            result: Its output, when the hook keeps outputs.
+        """
+        x = result if output else args[0]
+        seen.setdefault((key, layer), []).append(x[:, 1:].reshape(-1, x.shape[-1]).float().cpu())
+
+    if output:
+        return lambda module, args, result: keep(module, args, result)
+    return lambda module, args: keep(module, args)
+
+
+def offset_ratio(x: torch.Tensor) -> float:
+    """The norm of ``x``'s mean over tokens, over the mean norm of each token's deviation.
+
+    Args:
+        x: ``[tokens, d_model]``.
+
+    Returns:
+        The ratio. A LayerNorm centres over features, not tokens, so a large ratio leaves
+        little of its output for the part that differs between tokens.
+
+    Examples:
+        >>> offset_ratio(torch.tensor([[3.0, 1.0], [3.0, -1.0]]))
+        3.0
+    """
+    mean = x.mean(0)
+    return (mean.norm() / (x - mean).norm(dim=1).mean()).item()
+
+
+def offset_stats(seen: dict, layer: int) -> dict:
+    """One block's offset measures, from the tensors that :func:`keeper` kept (#3192).
+
+    Args:
+        seen: The kept tensors, by ``(key, layer)``.
+        layer: The block's index.
+
+    Returns:
+        The offset ratio at the input of ``ln_1`` and of ``ln_2``, and the norm of the MLP's
+        mean output.
+    """
+    stream = {key: torch.cat(seen[(key, layer)]) for key in ("ln_1", "ln_2", "mlp_out")}
+    return {
+        "ln_1_offset_ratio": offset_ratio(stream["ln_1"]),
+        "ln_2_offset_ratio": offset_ratio(stream["ln_2"]),
+        "mlp_mean_output_norm": stream["mlp_out"].mean(0).norm().item(),
+    }

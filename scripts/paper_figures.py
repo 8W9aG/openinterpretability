@@ -19,8 +19,10 @@ import figures_development
 import figures_fisher_keep
 import figures_native_learned
 import figures_pruning_keep
+import figures_sequential_tuning
 import figures_spd_input
 import figures_syntax
+import figures_template_tuning
 import figures_transfer
 import figures_why_rest
 import figures_why_rest_equal
@@ -75,6 +77,8 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
             _other_models("syntax-positive-controls"),
             _rows("syntax-positive-controls", "results.followups.jsonl"),
         ),
+        "template-or-tuning": figures_template_tuning.build(_rows("template-or-tuning")),
+        "sequential-tuning": figures_sequential_tuning.build(_rows("sequential-tuning")),
         "why-neurons-rest": {
             "surface.svg": figures_depth.surface(resting, dip),
             **figures_why_rest.build(resting, dip),

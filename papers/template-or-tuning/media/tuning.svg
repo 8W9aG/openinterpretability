@@ -1,0 +1,430 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 537" width="760" height="537" role="img">
+<title>A scatter plot of 360 marks. The marks spread further up and down than across. Many of the open marks, the poles that the template cost on the base model, sit above the zero line.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+.half{opacity:.6}</style>
+<rect class="bg" width="760" height="537" rx="10"/>
+<text x="20.0" y="30.0" class="title">Inside the template, the tuning moves sensitivity</text>
+<text x="20.0" y="53.0" class="title">further, and it moves it up as often as down</text>
+<text x="20.0" y="73.0" class="sub">Each mark is one pole: the instruct model&#x27;s sensitivity minus the base model&#x27;s, on plain text</text>
+<text x="20.0" y="91.0" class="sub">(across) and inside the chat template (up). Open marks failed inside the template on the base model.</text>
+<path class="grid" d="M110.7 139.0L110.7 439.0"/>
+<text x="110.7" y="454.0" class="small" text-anchor="middle">−0.8</text>
+<path class="grid" d="M193.7 139.0L193.7 439.0"/>
+<text x="193.7" y="454.0" class="small" text-anchor="middle">−0.6</text>
+<path class="grid" d="M276.7 139.0L276.7 439.0"/>
+<text x="276.7" y="454.0" class="small" text-anchor="middle">−0.4</text>
+<path class="grid" d="M359.6 139.0L359.6 439.0"/>
+<text x="359.6" y="454.0" class="small" text-anchor="middle">−0.2</text>
+<path class="grid" d="M442.6 139.0L442.6 439.0"/>
+<text x="442.6" y="454.0" class="small" text-anchor="middle">0.0</text>
+<path class="grid" d="M525.6 139.0L525.6 439.0"/>
+<text x="525.6" y="454.0" class="small" text-anchor="middle">0.2</text>
+<path class="grid" d="M608.5 139.0L608.5 439.0"/>
+<text x="608.5" y="454.0" class="small" text-anchor="middle">0.4</text>
+<path class="grid" d="M90.0 426.0L650.0 426.0"/>
+<text x="83.0" y="430.0" class="small" text-anchor="end">−0.6</text>
+<path class="grid" d="M90.0 373.8L650.0 373.8"/>
+<text x="83.0" y="377.8" class="small" text-anchor="end">−0.4</text>
+<path class="grid" d="M90.0 321.6L650.0 321.6"/>
+<text x="83.0" y="325.6" class="small" text-anchor="end">−0.2</text>
+<path class="grid" d="M90.0 269.4L650.0 269.4"/>
+<text x="83.0" y="273.4" class="small" text-anchor="end">0.0</text>
+<path class="grid" d="M90.0 217.3L650.0 217.3"/>
+<text x="83.0" y="221.3" class="small" text-anchor="end">0.2</text>
+<path class="grid" d="M90.0 165.1L650.0 165.1"/>
+<text x="83.0" y="169.1" class="small" text-anchor="end">0.4</text>
+<path class="axis" d="M90.0 269.4L650.0 269.4"/>
+<path class="axis" d="M442.6 139.0L442.6 439.0"/>
+<text x="370.0" y="470.0" class="small" text-anchor="middle">change in sensitivity on plain text</text>
+<text x="40.0" y="131.0" class="small">change inside the chat template</text>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="320.8" cy="304.1" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="292.9" r="3"/>
+<circle class="fc1 half" cx="511.7" cy="227.0" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="open sc1" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="380.8" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="226.5" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="215.7" r="3"/>
+<circle class="open sc1" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="223.9" r="3"/>
+<circle class="open sc1" cx="400.3" cy="218.8" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="open sc1" cx="442.6" cy="233.2" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="512.6" cy="226.5" r="3"/>
+<circle class="fc1 half" cx="377.6" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="234.3" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="open sc1" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="open sc1" cx="383.3" cy="233.2" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="305.1" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="217.3" r="3"/>
+<circle class="open sc1" cx="438.4" cy="189.1" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="open sc1" cx="375.9" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="322.4" cy="346.1" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="open sc1" cx="369.3" cy="223.9" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="open sc1" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="370.1" cy="310.3" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="376.8" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="523.1" cy="272.0" r="3"/>
+<circle class="open sc1" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="open sc1" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="319.5" r="3"/>
+<circle class="fc1 half" cx="524.7" cy="271.0" r="3"/>
+<circle class="open sc1" cx="375.9" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="380.0" cy="229.6" r="3"/>
+<circle class="fc1 half" cx="511.7" cy="227.0" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="open sc1" cx="440.1" cy="167.7" r="3"/>
+<circle class="open sc1" cx="443.4" cy="232.7" r="3"/>
+<circle class="fc1 half" cx="488.2" cy="241.8" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="325.7" cy="306.7" r="3"/>
+<circle class="fc1 half" cx="355.5" cy="267.3" r="3"/>
+<circle class="open sc1" cx="358.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="open sc1" cx="439.3" cy="192.3" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="362.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="612.7" cy="215.7" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="167.2" r="3"/>
+<circle class="fc1 half" cx="306.0" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="272.5" cy="423.9" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="244.9" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="216.7" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="501.9" cy="233.2" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="open sc1" cx="440.1" cy="219.9" r="3"/>
+<circle class="fc1 half" cx="484.9" cy="270.0" r="3"/>
+<circle class="open sc1" cx="529.7" cy="215.7" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="375.1" cy="226.0" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="306.2" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="304.1" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="259.1" r="3"/>
+<circle class="fc1 half" cx="357.1" cy="324.2" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="224.4" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="355.5" cy="215.2" r="3"/>
+<circle class="fc1 half" cx="524.7" cy="218.8" r="3"/>
+<circle class="open sc1" cx="445.1" cy="268.9" r="3"/>
+<circle class="open sc1" cx="508.4" cy="223.3" r="3"/>
+<circle class="fc1 half" cx="501.9" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="open sc1" cx="321.6" cy="309.3" r="3"/>
+<circle class="fc1 half" cx="111.6" cy="374.3" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="305.1" r="3"/>
+<circle class="fc1 half" cx="371.8" cy="271.5" r="3"/>
+<circle class="open sc1" cx="444.3" cy="269.4" r="3"/>
+<circle class="open sc1" cx="438.4" cy="192.8" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="314.5" r="3"/>
+<circle class="open sc1" cx="514.2" cy="182.0" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="214.7" r="3"/>
+<circle class="fc1 half" cx="359.6" cy="374.8" r="3"/>
+<circle class="open sc1" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="360.5" cy="322.1" r="3"/>
+<circle class="fc1 half" cx="387.5" cy="305.1" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="open sc1" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="231.6" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="214.7" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="322.7" r="3"/>
+<circle class="open sc1" cx="445.9" cy="216.2" r="3"/>
+<circle class="fc1 half" cx="523.1" cy="219.9" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="320.0" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="272.5" cy="319.5" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="open sc1" cx="445.1" cy="231.6" r="3"/>
+<circle class="fc1 half" cx="508.4" cy="266.8" r="3"/>
+<circle class="open sc1" cx="442.6" cy="158.7" r="3"/>
+<circle class="fc1 half" cx="362.9" cy="268.4" r="3"/>
+<circle class="open sc1" cx="606.0" cy="324.2" r="3"/>
+<circle class="fc1 half" cx="401.9" cy="296.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="297.6" r="3"/>
+<circle class="open sc1" cx="444.3" cy="182.5" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="383.3" cy="345.0" r="3"/>
+<circle class="open sc1" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="open sc1" cx="443.4" cy="307.2" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="320.0" r="3"/>
+<circle class="open sc1" cx="440.9" cy="228.0" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="355.5" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="372.6" cy="314.5" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="225.4" r="3"/>
+<circle class="fc1 half" cx="356.3" cy="214.7" r="3"/>
+<circle class="fc1 half" cx="501.9" cy="307.7" r="3"/>
+<circle class="open sc1" cx="362.9" cy="320.6" r="3"/>
+<circle class="open sc1" cx="509.2" cy="228.6" r="3"/>
+<circle class="fc1 half" cx="401.9" cy="296.0" r="3"/>
+<circle class="open sc1" cx="363.8" cy="215.7" r="3"/>
+<circle class="fc1 half" cx="381.7" cy="420.6" r="3"/>
+<circle class="open sc1" cx="444.3" cy="269.4" r="3"/>
+<circle class="open sc1" cx="355.5" cy="267.3" r="3"/>
+<circle class="open sc1" cx="501.0" cy="196.5" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="304.1" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="523.1" cy="324.2" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="374.3" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="215.7" r="3"/>
+<circle class="open sc1" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="295.5" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="open sc1" cx="382.5" cy="345.5" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="321.1" r="3"/>
+<circle class="open sc1" cx="439.3" cy="214.7" r="3"/>
+<circle class="fc1 half" cx="383.3" cy="307.7" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="open sc1" cx="384.2" cy="307.2" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="333.1" r="3"/>
+<circle class="fc1 half" cx="358.0" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="373.8" r="3"/>
+<circle class="open sc1" cx="438.4" cy="230.1" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="314.0" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="open sc1" cx="440.1" cy="219.9" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="open sc1" cx="405.3" cy="294.0" r="3"/>
+<circle class="open sc1" cx="440.9" cy="197.0" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="215.2" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="308.3" r="3"/>
+<circle class="open sc1" cx="445.1" cy="355.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="371.2" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="217.8" r="3"/>
+<circle class="fc1 half" cx="363.8" cy="320.0" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="361.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="163.0" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="375.3" r="3"/>
+<circle class="fc1 half" cx="403.6" cy="295.0" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="525.6" cy="270.5" r="3"/>
+<circle class="open sc1" cx="492.0" cy="239.4" r="3"/>
+<circle class="open sc1" cx="440.1" cy="324.2" r="3"/>
+<circle class="fc1 half" cx="360.5" cy="426.5" r="3"/>
+<circle class="open sc1" cx="387.5" cy="230.6" r="3"/>
+<circle class="fc1 half" cx="371.8" cy="315.0" r="3"/>
+<circle class="fc1 half" cx="392.4" cy="302.0" r="3"/>
+<circle class="open sc1" cx="438.4" cy="300.0" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="528.0" cy="216.7" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="open sc1" cx="509.2" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="306.0" cy="399.9" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="304.6" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="295.0" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="319.0" r="3"/>
+<circle class="open sc1" cx="359.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="217.3" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="358.8" cy="271.0" r="3"/>
+<circle class="open sc1" cx="445.1" cy="321.1" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="216.2" r="3"/>
+<circle class="open sc1" cx="523.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="360.5" cy="322.1" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="228.0" r="3"/>
+<circle class="fc1 half" cx="402.8" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="241.3" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="417.4" cy="286.3" r="3"/>
+<circle class="fc1 half" cx="370.1" cy="353.8" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="307.7" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="294.5" r="3"/>
+<circle class="open sc1" cx="357.1" cy="324.2" r="3"/>
+<circle class="fc1 half" cx="484.9" cy="270.0" r="3"/>
+<circle class="open sc1" cx="363.8" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="219.3" r="3"/>
+<circle class="open sc1" cx="385.0" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="300.2" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="486.6" cy="216.7" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="open sc1" cx="443.4" cy="217.8" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="open sc1" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="217.3" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="open sc1" cx="382.5" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="open sc1" cx="442.6" cy="195.9" r="3"/>
+<circle class="fc1 half" cx="386.7" cy="305.7" r="3"/>
+<circle class="open sc1" cx="440.1" cy="309.3" r="3"/>
+<circle class="open sc1" cx="443.4" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="488.2" cy="241.8" r="3"/>
+<circle class="open sc1" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="open sc1" cx="441.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="268.9" r="3"/>
+<circle class="fc1 half" cx="370.1" cy="353.8" r="3"/>
+<circle class="fc1 half" cx="401.1" cy="296.6" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="open sc1" cx="440.1" cy="234.8" r="3"/>
+<circle class="fc1 half" cx="324.9" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="320.0" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="444.3" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="241.3" r="3"/>
+<circle class="open sc1" cx="441.8" cy="233.7" r="3"/>
+<circle class="open sc1" cx="445.1" cy="216.7" r="3"/>
+<circle class="fc1 half" cx="439.3" cy="266.8" r="3"/>
+<circle class="open sc1" cx="442.6" cy="270.5" r="3"/>
+<circle class="open sc1" cx="362.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="298.1" r="3"/>
+<circle class="fc1 half" cx="512.6" cy="313.4" r="3"/>
+<circle class="open sc1" cx="612.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="361.3" cy="321.6" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="358.8" cy="271.0" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="321.1" r="3"/>
+<circle class="fc1 half" cx="522.2" cy="266.8" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="322.7" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="301.8" cy="272.0" r="3"/>
+<circle class="open sc1" cx="305.2" cy="270.0" r="3"/>
+<circle class="fc1 half" cx="446.7" cy="267.9" r="3"/>
+<circle class="fc1 half" cx="440.9" cy="271.5" r="3"/>
+<circle class="fc1 half" cx="527.2" cy="269.4" r="3"/>
+<circle class="fc1 half" cx="438.4" cy="267.3" r="3"/>
+<circle class="fc1 half" cx="441.8" cy="227.5" r="3"/>
+<circle class="fc1 half" cx="445.1" cy="194.4" r="3"/>
+<circle class="fc1 half" cx="301.0" cy="223.3" r="3"/>
+<circle class="fc1 half" cx="442.6" cy="270.5" r="3"/>
+<circle class="fc1 half" cx="445.9" cy="268.4" r="3"/>
+<circle class="fc1 half" cx="440.1" cy="272.0" r="3"/>
+<circle class="fc1 half" cx="443.4" cy="243.9" r="3"/>
+<circle class="fc1" cx="25.0" cy="485.0" r="4"/>
+<text x="35.0" y="489.0">kept inside the template on the base model</text>
+<circle class="open sc1" cx="345.0" cy="485.0" r="4"/>
+<text x="355.0" y="489.0">failed inside the template on the base model</text>
+</svg>
