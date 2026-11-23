@@ -142,7 +142,7 @@ def _sourced(record):
     from openinterpretability.core.corpora import CorpusSource
 
     source = CorpusSource(dataset="org/a", revision="r1", files="*.parquet", documents=2,
-                          seed=7, max_chars=9, sha256="s" * 64)  # fmt: skip
+                          seed=7, max_chars=9, sha256="5" * 64)  # fmt: skip
     inputs = record.inputs.model_copy(update={"means_corpus_source": source})
     return record.model_copy(update={"inputs": inputs})
 
@@ -161,7 +161,7 @@ def test_a_corpus_with_a_source_is_built_again_once_into_the_cache(recorded, mon
     record = _sourced(recorded[1])
     assert means_corpus(record, {}) == ["one", "two"]
     assert means_corpus(record, {}) == ["one", "two"]
-    assert built == [tmp_path / "rebuilt" / f"{'s' * 64}.jsonl"]  # built once, then read
+    assert built == [tmp_path / "rebuilt" / f"{'5' * 64}.jsonl"]  # built once, then read
 
 
 def test_a_corpus_cannot_be_built_again_with_the_cache_off(recorded, monkeypatch):
