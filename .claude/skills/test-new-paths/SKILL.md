@@ -1,6 +1,6 @@
 ---
 name: test-new-paths
-description: Check that a code change tests every path it adds, before the PR is marked ready. List each new branch, early return and error in the diff. Find the test that reaches it, and check that the test asserts on the result. Then run `make coverage`, which also runs diff-cover. Use for every PR that changes Python under openinterpretability/ or scripts/.
+description: Check that a code change tests every path it adds, before the PR is marked ready. List each new branch, early return and error in the diff. Find the test that reaches it, and check that the test asserts on the result. Then run `make coverage`, which also runs diff-cover, and `make mutation BASE=origin/main` on the changed package files. Use for every PR that changes Python under openinterpretability/ or scripts/.
 ---
 
 # Test the new paths
@@ -25,7 +25,11 @@ Coverage says which lines ran. It doesn't say whether a test checked what they d
    - a bad input from the user, with the message that the user sees.
 5. **Run the checks.** Run `make coverage`. It runs the suite with branch coverage, and fails below `fail_under` in `[tool.coverage.report]`. Then it runs diff-cover against `origin/main` at `fail_under` in `[tool.diff_cover]`, which is 100% (#5855). Every changed line must be tested, or marked as the next step says.
 6. **Mark only what no test can reach.** A line that CI can't run gets `# pragma: no cover` and a comment with the reason. Examples are a guard for a device that CI lacks (CUDA, MPS, the Neural Engine) and a real network download. Never mark code that a test can reach, however hard. Mock the boundary, not the code under test.
-7. **Run mutation testing on verdict code.** If the change touches a file in `only_mutate` of `[tool.mutmut]` in `pyproject.toml`, run `make mutation`. It takes about 5 minutes. Look at each surviving mutant in the functions that you changed (`uv run --with mutmut==3.8.1 mutmut show <name>`). Add a test that kills it, or say in the PR why it can't change a verdict (#5763).
+7. **Run mutation testing on the changed code.** After `make coverage`, run `make mutation BASE=origin/main` (#5856). It mutates each file under `openinterpretability/` that the branch changes. It runs the tests that import those files, and it fails when a mutant survives or no test reaches it. On one changed module with one test file it takes about 30 seconds. A file that many tests import takes longer. For each mutant that it lists:
+   - **Kill it.** Add a test that fails on the mutant and passes on the code. See the diff with `uv run --with mutmut==3.8.1 python scripts/mutation.py --base origin/main show <name>`.
+   - **Or record it as equivalent.** If the mutant changes nothing that a caller can see, put mutmut's pragma on its line, with the reason: `# pragma: no mutate, equivalent: <why>`. mutmut then makes no mutants on that line, so later runs don't report it. "Hard to test" is not a reason.
+
+   Run it again until it passes. `make mutation` with no `BASE` mutates the fixed verdict code of `[tool.mutmut]` (#5763), in about 5 minutes.
 
 ## Notes
 
