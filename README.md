@@ -5,7 +5,7 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24150022.svg)](https://doi.org/10.5281/zenodo.24150022)
 [![PyPI](https://img.shields.io/pypi/v/open-interpretability.svg)](https://pypi.org/project/open-interpretability/)
 
-An open lab, run with agents, that explains the native neurons and attention heads of open-weight language models and publishes each result at **[open-interpretability.com](https://open-interpretability.com/)**.
+An open project, run with agents, that explains the native neurons and attention heads of open-weight language models and publishes each result at **[open-interpretability.com](https://open-interpretability.com/)**.
 
 ## Before you start
 
