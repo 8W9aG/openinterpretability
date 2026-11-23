@@ -44,14 +44,12 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from openinterpretability.builder.alphaxiv import ALPHAXIV, ALPHAXIV_URL, cited_alphaxiv  # noqa: E402
 from openinterpretability.builder.research import (  # noqa: E402
     _ENTRY,
     ADDENDA,
-    ALPHAXIV,
-    ALPHAXIV_URL,
     STATUS,
     _read_paper,
-    alphaxiv_url,
     paper_status,
 )
 
@@ -153,7 +151,7 @@ def problems(folder: Path, date: str) -> list[str]:
         stored = [i.get("value") for i in cff.get("identifiers", []) if i.get("type") == "other"]
         if stored != [frozen_hash(folder)]:
             out.append("the published text or results changed: add an addendum instead")
-    url = alphaxiv_url(folder)
+    url = cited_alphaxiv(folder)
     if url and status.preprint:
         out.append("a preprint has an alphaXiv URL: only a published paper goes there")
     if url and not ALPHAXIV_URL.fullmatch(url):
