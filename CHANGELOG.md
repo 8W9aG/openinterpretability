@@ -13,6 +13,14 @@ Changes waiting for the next release are files in [changelog.d/](changelog.d/REA
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-23
+
+Ships with protocol version **0.10**. A hotfix of 0.4.1, which PyPI refused.
+
+### Fixed
+
+- PyPI refused 0.4.1, because an email link in `[project.urls]` is not a valid Project-URL. The contact address is now the `maintainers` email in `pyproject.toml`, which the site reads as before (#6434).
+
 ## [0.4.1] - 2026-11-23
 
 Ships with protocol version **0.10**.
