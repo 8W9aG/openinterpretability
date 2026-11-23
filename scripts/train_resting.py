@@ -32,7 +32,7 @@ from default_on_poles import (
     write_row,
 )
 from figure_svg import LEAKY_SLOPE
-from resting_modules import Activation, CentredNorm, parallel_forward, warmup
+from resting_modules import Activation, CentredNorm, keeper, offset_stats, parallel_forward, warmup
 from resting_push import PushRecorder
 
 from openinterpretability.cli import _load, resolve_device
@@ -259,6 +259,9 @@ def evaluate(model, ids: torch.Tensor) -> dict:
     """Return the held-out loss and, per layer, where the neurons rest and why."""
     model.eval()
     inputs: dict[int, list[torch.Tensor]] = {i: [] for i in range(N_LAYER)}
+    # The residual stream at the input of each block's two LayerNorms, and each MLP's output,
+    # for the offset measures of #3192.
+    seen: dict[tuple[str, int], list[torch.Tensor]] = {}
     handles = []
     for i, block in enumerate(model.transformer.h):
 
@@ -266,6 +269,9 @@ def evaluate(model, ids: torch.Tensor) -> dict:
             inputs[i].append(args[0][:, 1:].reshape(-1, args[0].shape[-1]).float().cpu())
 
         handles.append(block.mlp.register_forward_pre_hook(record))
+        for key, module in (("ln_1", block.ln_1), ("ln_2", block.ln_2)):
+            handles.append(module.register_forward_pre_hook(keeper(seen, key, i)))
+        handles.append(block.mlp.register_forward_hook(keeper(seen, "mlp_out", i, output=True)))
     device = next(model.parameters()).device
     total = 0.0
     batches = ids.split(BATCH)
@@ -275,7 +281,8 @@ def evaluate(model, ids: torch.Tensor) -> dict:
     for handle in handles:
         handle.remove()
     blocks = enumerate(model.transformer.h)
-    layers = [_layer_stats(block.mlp, torch.cat(inputs[i])) for i, block in blocks]
+    layers = [{**_layer_stats(block.mlp, torch.cat(inputs[i])), **offset_stats(seen, i)}
+              for i, block in blocks]  # fmt: skip
     model.train()
     return {"loss": total / len(batches), "layers": layers}
 
