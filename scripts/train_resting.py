@@ -259,6 +259,9 @@ def evaluate(model, ids: torch.Tensor) -> dict:
     """Return the held-out loss and, per layer, where the neurons rest and why."""
     model.eval()
     inputs: dict[int, list[torch.Tensor]] = {i: [] for i in range(N_LAYER)}
+    # The residual stream at the input of each block's two LayerNorms, and each MLP's output,
+    # for the offset measures of #3192.
+    seen: dict[tuple[str, int], list[torch.Tensor]] = {}
     handles = []
     for i, block in enumerate(model.transformer.h):
 
@@ -266,6 +269,9 @@ def evaluate(model, ids: torch.Tensor) -> dict:
             inputs[i].append(args[0][:, 1:].reshape(-1, args[0].shape[-1]).float().cpu())
 
         handles.append(block.mlp.register_forward_pre_hook(record))
+        for key, module in (("ln_1", block.ln_1), ("ln_2", block.ln_2)):
+            handles.append(module.register_forward_pre_hook(_keeper(seen, key, i)))
+        handles.append(block.mlp.register_forward_hook(_keeper(seen, "mlp_out", i, output=True)))
     device = next(model.parameters()).device
     total = 0.0
     batches = ids.split(BATCH)
@@ -275,9 +281,70 @@ def evaluate(model, ids: torch.Tensor) -> dict:
     for handle in handles:
         handle.remove()
     blocks = enumerate(model.transformer.h)
-    layers = [_layer_stats(block.mlp, torch.cat(inputs[i])) for i, block in blocks]
+    layers = [{**_layer_stats(block.mlp, torch.cat(inputs[i])), **_offset_stats(seen, i)}
+              for i, block in blocks]  # fmt: skip
     model.train()
     return {"loss": total / len(batches), "layers": layers}
+
+
+def _keeper(seen: dict, key: str, layer: int, output: bool = False):
+    """A hook that keeps a module's input, or its output, without the first token.
+
+    Args:
+        seen: Where the tensors go, by ``(key, layer)``.
+        key: The name of what the hook keeps.
+        layer: The block's index.
+        output: Keep the module's output, not its input.
+
+    Returns:
+        The hook, for ``register_forward_pre_hook`` or, with ``output``,
+        ``register_forward_hook``.
+    """
+
+    def keep(_module, args, result=None):
+        x = result if output else args[0]
+        seen.setdefault((key, layer), []).append(x[:, 1:].reshape(-1, x.shape[-1]).float().cpu())
+
+    if output:
+        return lambda module, args, result: keep(module, args, result)
+    return lambda module, args: keep(module, args)
+
+
+def offset_ratio(x: torch.Tensor) -> float:
+    """The norm of ``x``'s mean over tokens, over the mean norm of each token's deviation.
+
+    Args:
+        x: ``[tokens, d_model]``.
+
+    Returns:
+        The ratio. A LayerNorm centres over features, not tokens, so a large ratio leaves
+        little of its output for the part that differs between tokens.
+
+    Examples:
+        >>> offset_ratio(torch.tensor([[3.0, 1.0], [3.0, -1.0]]))
+        3.0
+    """
+    mean = x.mean(0)
+    return (mean.norm() / (x - mean).norm(dim=1).mean()).item()
+
+
+def _offset_stats(seen: dict, layer: int) -> dict:
+    """One block's offset measures, from the tensors that :func:`_keeper` kept (#3192).
+
+    Args:
+        seen: The kept tensors, by ``(key, layer)``.
+        layer: The block's index.
+
+    Returns:
+        The offset ratio at the input of ``ln_1`` and of ``ln_2``, and the norm of the MLP's
+        mean output.
+    """
+    stream = {key: torch.cat(seen[(key, layer)]) for key in ("ln_1", "ln_2", "mlp_out")}
+    return {
+        "ln_1_offset_ratio": offset_ratio(stream["ln_1"]),
+        "ln_2_offset_ratio": offset_ratio(stream["ln_2"]),
+        "mlp_mean_output_norm": stream["mlp_out"].mean(0).norm().item(),
+    }
 
 
 def _layer_stats(mlp, x: torch.Tensor) -> dict:
