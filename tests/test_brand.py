@@ -32,7 +32,8 @@ def test_the_site_shows_the_mark_favicon_and_card(tmp_path, record):
     assert 'rel="icon" href="assets/mark.svg"' in page and "⊕" not in page
     assert '<meta property="og:image" content="https://' in page and "assets/og.png" in page
     assert 'name="twitter:card" content="summary_large_image"' in page
-    assert '<meta name="description" content="An agent-run mechanistic interpretability lab' in page
+    meta = '<meta name="description" content="An agent-run mechanistic interpretability project'
+    assert meta in page
 
 
 def test_the_accent_has_one_name():
@@ -75,8 +76,9 @@ def test_the_header_has_no_tagline(tmp_path):
     compile_site([], tmp_path)
     page = (tmp_path / "index.html").read_text()
     header = page[page.index("<header") : page.index("</header>")]
-    assert "interpretability lab" not in header  # removed from the header (#5535)
-    assert '<meta name="description" content="An agent-run mechanistic interpretability lab' in page
+    assert "interpretability project" not in header  # removed from the header (#5535)
+    meta = '<meta name="description" content="An agent-run mechanistic interpretability project'
+    assert meta in page
 
 
 def test_write_svgs_writes_the_mark_and_the_logo_from_the_palette(tmp_path):
