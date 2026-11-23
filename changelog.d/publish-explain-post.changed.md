@@ -1,1 +1,0 @@
-- **The explain post is published.** *Explaining an AI's answer* now lists on the Posts page at `posts/explain/`, in the maintainer's rewrite, with its head figure for X and link cards. The draft URL stops working.
