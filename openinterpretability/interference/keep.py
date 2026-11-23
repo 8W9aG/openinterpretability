@@ -108,14 +108,19 @@ def sample_stats(base, instruct, batches, records) -> dict[str, dict]:
     return out
 
 
-def chat_strength(runner, unit, text: str) -> float | None:
+def chat_strength(runner, unit, text: str, template=None) -> float | None:
     """The unit's peak over ``text``'s tokens, with ``text`` as a user turn of the template.
 
-    ``None`` when no token overlaps the text.
+    ``template`` is the tokenizer whose chat template renders the turn, by default the
+    runner's own. A base model and its instruct model can then read one rendered text,
+    since their templates' default system prompts differ (#5126). ``None`` when no token
+    overlaps the text.
     """
     tokenizer = runner.tokenizer
     turn = [{"role": "user", "content": text}]
-    chat = tokenizer.apply_chat_template(turn, tokenize=False, add_generation_prompt=False)
+    chat = (template or tokenizer).apply_chat_template(
+        turn, tokenize=False, add_generation_prompt=False
+    )
     start = chat.rindex(text)  # the user turn, after any system turn
     offsets = tokenizer(chat, return_offsets_mapping=True)["offset_mapping"]
     strengths = unit.strengths(runner, chat)[0]
@@ -127,13 +132,16 @@ def chat_strength(runner, unit, text: str) -> float | None:
     return max(held) if held else None
 
 
-def chat_probes(runner, unit, probes, scale: float, threshold: float):
-    """:func:`measure_probes`'s results, with each probe read by :func:`chat_strength`."""
+def chat_probes(runner, unit, probes, scale: float, threshold: float, template=None):
+    """:func:`measure_probes`'s results, with each probe read by :func:`chat_strength`.
+
+    ``template`` renders the chat turn, as in :func:`chat_strength`.
+    """
     from openinterpretability.core.schemas import AdversarialTestResult
 
     results = []
     for probe in probes:
-        strength = chat_strength(runner, unit, probe.text)
+        strength = chat_strength(runner, unit, probe.text, template)
         active = strength is not None and scale > 0 and strength >= threshold
         results.append(
             AdversarialTestResult(
@@ -147,10 +155,12 @@ def chat_probes(runner, unit, probes, scale: float, threshold: float):
     return results, None, None
 
 
-def readings(runner, record, scale_factor: float = 1.0, chat: bool = False) -> dict:
+def readings(runner, record, scale_factor: float = 1.0, chat: bool = False,
+             template=None) -> dict:  # fmt: skip
     """The record's probes measured on ``runner``: rates, and the two gates.
 
-    With ``chat``, each probe is read inside the chat template (:func:`chat_strength`).
+    With ``chat``, each probe is read inside the chat template (:func:`chat_strength`),
+    rendered by ``template`` when it is given.
     """
     from openinterpretability.agents.review_measurements import (
         measure_probes,
@@ -167,8 +177,11 @@ def readings(runner, record, scale_factor: float = 1.0, chat: bool = False) -> d
     ]
     _, unit, scale = settle_first_token_floor(record.submission, runner, policy)
     scale *= scale_factor
-    measure = chat_probes if chat else measure_probes
-    results, _, _ = measure(runner, unit, probes, scale, policy.activation_threshold * scale)
+    threshold = policy.activation_threshold * scale
+    if chat:
+        results, _, _ = chat_probes(runner, unit, probes, scale, threshold, template)
+    else:
+        results, _, _ = measure_probes(runner, unit, probes, scale, threshold)
     metrics = review_metrics(results, policy, independent=True)
     return {
         "specificity": metrics.specificity, "sensitivity": metrics.sensitivity,
