@@ -45,6 +45,9 @@ class Activation(nn.Module):
         # The bins add up to the spread term, whatever the mean of g.
         self.bins: torch.Tensor | None = None
         self.spread_bins: torch.Tensor | None = None
+        # ``output_bins`` sums g over each bin's tokens, and ``count_bins`` counts them (#3193).
+        self.output_bins: torch.Tensor | None = None
+        self.count_bins: torch.Tensor | None = None
         # This control separates the cost of centring from the cost of a shared, fixed rest.
         self.learned_rest = nn.Parameter(torch.zeros(learned_width)) if learned_width else None
 
@@ -89,14 +92,15 @@ class Activation(nn.Module):
         """Keep the spread term split by the bin of h, one row per bin."""
         push = -grad
         product = (push - push.mean((0, 1))) * centred
-        rows = len(self.bins) + 1
-        out = torch.zeros(rows, product.shape[-1], device=product.device)
-        out.scatter_add_(
-            0,
-            where.reshape(-1, product.shape[-1]),
-            product.reshape(-1, product.shape[-1]),
-        )
-        self.spread_bins = out
+        index = where.reshape(-1, product.shape[-1])
+        self.spread_bins = self._bin_sum(index, product)
+        self.output_bins = self._bin_sum(index, push)
+        self.count_bins = self._bin_sum(index, torch.ones_like(push))
+
+    def _bin_sum(self, index: torch.Tensor, values: torch.Tensor) -> torch.Tensor:
+        """Sum ``values`` over each bin's tokens, one row per bin and one column per neuron."""
+        out = torch.zeros(len(self.bins) + 1, values.shape[-1], device=values.device)
+        return out.scatter_add_(0, index, values.reshape(-1, values.shape[-1]))
 
     def _slope(self, h: torch.Tensor) -> torch.Tensor:
         """Return the slope a'(h) on each element, in a graph of its own."""

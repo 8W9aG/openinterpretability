@@ -159,6 +159,12 @@ CONDITIONS = {
     "relu_final_norm_centred_dropout_0": replace(
         BASE, activation="relu", centre_norms="final", dropout=0.0
     ),
+    # The same norm conditions for GELU (#3193).
+    "gelu_norms_centred": replace(BASE, centre_norms="blocks"),
+    "gelu_all_norms_centred": replace(BASE, centre_norms="all"),
+    "gelu_norms_centred_dropout_0": replace(BASE, centre_norms="blocks", dropout=0.0),
+    "gelu_all_norms_centred_dropout_0": replace(BASE, centre_norms="all", dropout=0.0),
+    "gelu_final_norm_centred_dropout_0": replace(BASE, centre_norms="final", dropout=0.0),
     # Pythia's setup, one part at a time, on the no-dropout baseline, then all parts.
     "pythia_lr": replace(BASE, dropout=0.0, learning_rate=PYTHIA_LEARNING_RATE),
     "pythia_warmup": replace(

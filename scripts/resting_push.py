@@ -67,6 +67,8 @@ class PushRecorder:
             )
         }
         self.spread_bins = [None] * len(self.mlps)
+        self.output_bins = [None] * len(self.mlps)
+        self.count_bins = [None] * len(self.mlps)
         self.steps = 0
         self.offset = [{"cosine": 0.0, "correlation": 0.0} for _ in self.mlps]
         self.energy = [{"correlation": 0.0} for _ in self.mlps]
@@ -102,10 +104,9 @@ class PushRecorder:
             self.energy[i]["correlation"] += torch.corrcoef(pair)[0, 1].nan_to_num().item()
             self.window["down_weights"][i] += (push_weights < 0).float()
             if self.bins is not None:
-                split = mlp.act.spread_bins.float()
-                self.spread_bins[i] = (
-                    split if self.spread_bins[i] is None else self.spread_bins[i] + split
-                )
+                for key in ("spread_bins", "output_bins", "count_bins"):
+                    split, kept = getattr(mlp.act, key).float(), getattr(self, key)
+                    kept[i] = split if kept[i] is None else kept[i] + split
             self.run_down_weights[i] += (push_weights < 0).float()
 
     def after_step(self) -> None:
@@ -174,9 +175,23 @@ class PushRecorder:
         if self.bins is None or self.spread_bins[i] is None:
             return {}
         split = self.spread_bins[i].cpu() / self.steps
+        # The output's push per token in each bin (#3193): NaN for a neuron with no tokens there.
+        counts = self.count_bins[i].cpu()
+        per_token = self.output_bins[i].cpu() / counts.where(counts > 0, torch.nan)
         return {
             "spread_bin_edges": [float(e) for e in self.bins],
             "median_spread_bins": split.median(1).values.tolist(),
             "share_spread_bins_down": (split < 0).float().mean(1).tolist(),
             "median_spread_binned": split.sum(0).median().item(),
+            # None for a bin that no token reached, since JSON has no NaN.
+            "median_output_bins": [_or_none(v) for v in per_token.nanmedian(1).values.tolist()],
+            "share_output_bins_up": [
+                _or_none((row[~row.isnan()] > 0).float().mean().item()) for row in per_token
+            ],
+            "token_share_bins": (counts.sum(1) / counts.sum()).tolist(),
         }
+
+
+def _or_none(value: float) -> float | None:
+    """``value``, or None when it is NaN."""
+    return None if value != value else value
