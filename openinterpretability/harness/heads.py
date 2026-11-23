@@ -15,10 +15,12 @@ from functools import partial
 
 import torch
 
+from openinterpretability.core.profiles import OVLens
 from openinterpretability.core.schemas import ActivatingExample, HeadIdentifier, HeadProfile
 from openinterpretability.harness.annotations import Tagger
 from openinterpretability.harness.confounds import ConfoundAccumulator
 from openinterpretability.harness.hooks import Inputs, NeuronHookRunner
+from openinterpretability.harness.ov_lens import ov_lens
 from openinterpretability.harness.patcher import Effect, Positions
 from openinterpretability.harness.scan import (
     BATCH_TOKENS,
@@ -120,9 +122,11 @@ def scan_head(
 
     patterns = (pattern_sequences, pattern_length, pattern_seed)
     profile = _head_profile(runner, layer, head, mean, count, *patterns)
-    profile = profile.model_copy(update={"strength_floor": floor})
+    examples = [peak_attention(runner, e, layer, head) for e in examples]
+    lens = _ov_lens(runner, layer, head, examples)
+    profile = profile.model_copy(update={"strength_floor": floor, "ov_lens": lens})
     return HeadScanResult(
-        examples=[peak_attention(runner, e, layer, head) for e in examples],
+        examples=examples,
         values=values,
         correlated=[],
         confounds=labels.finalize(confounds.finalize(runner.tokenizer, min_count), values),
@@ -168,6 +172,29 @@ def _head_profile(runner, layer, head, mean, count, sequences, length, seed) -> 
         pattern_length=length,
         pattern_seed=seed,
     )
+
+
+def _ov_lens(runner, layer: int, head: int, examples) -> OVLens | None:
+    """The OV lens (#5062), mapping the token that each of the top 5 peaks attends to most.
+
+    Args:
+        runner: The model.
+        layer: The head's layer.
+        head: The head's index.
+        examples: The top examples, with the tokens that their peaks attend to.
+
+    Returns:
+        The lens, or None when the model's attention weights aren't supported.
+    """
+    attended = [
+        int(runner.encode(e.text)["input_ids"][0, e.attends_to[0]])
+        for e in examples[:5]
+        if e.attends_to
+    ]
+    try:
+        return ov_lens(runner, layer, head, attended)
+    except ValueError:
+        return None
 
 
 def head_write_norms(runner: NeuronHookRunner, layer: int, z: torch.Tensor) -> torch.Tensor:

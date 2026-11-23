@@ -16,6 +16,44 @@ from pydantic import Field, model_validator
 from openinterpretability.core.strict import StrictModel, UnitFloat
 
 
+class OVMapping(StrictModel):
+    """One input token, and the tokens that the head's OV write of it raises most."""
+
+    token: str
+    top: list[str] = Field(min_length=1)
+
+
+class OVLens(StrictModel):
+    """A head's OV circuit read through the vocabulary, from its weights alone (#5062).
+
+    The circuit is ``W_U · W_O · W_V · W_Eᵀ``: a token's embedding, through the head's
+    value and output weights, to the logits. The norm before attention is folded into
+    ``W_V``, and the final norm's gain into ``W_U``. The token embedding is the raw one,
+    not one that has passed through the first MLP.
+
+    - ``copying_score``: ``Σλ / Σ|λ|`` over the circuit's eigenvalues (Olsson et al.,
+      2022). Near +1 the head copies the tokens that it attends to; near −1 it
+      suppresses them.
+    - ``copy_share``, ``suppression_share``: ``tokens`` vocabulary tokens are drawn with
+      ``seed``. These are the shares whose own logit is in the top ``k``, or the bottom
+      ``k``, of their OV write (McDougall et al., 2023).
+    - ``median_rank``: the median rank of each token's own logit, 1 for the highest.
+    - ``mappings``: the top examples' attended tokens, each with the tokens that its OV
+      write raises most (Geva et al., 2023, appendix G).
+
+    Reported, not gated.
+    """
+
+    copying_score: float = Field(ge=-1.0, le=1.0)
+    copy_share: UnitFloat
+    suppression_share: UnitFloat
+    median_rank: int = Field(ge=1)
+    tokens: int = Field(gt=0)
+    seed: int
+    k: int = Field(gt=0)
+    mappings: list[OVMapping] = Field(default_factory=list)
+
+
 class HeadProfile(StrictModel):
     """What defines an attention head's activity, and its standard attention-pattern scores.
 
@@ -52,6 +90,9 @@ class HeadProfile(StrictModel):
     pattern_sequences: int = Field(gt=0)
     pattern_length: int = Field(gt=1)
     pattern_seed: int
+    ov_lens: OVLens | None = Field(
+        default=None, description="The OV circuit read through the vocabulary (#5062)."
+    )
 
 
 DictionarySite = Literal[

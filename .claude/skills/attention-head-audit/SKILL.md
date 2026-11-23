@@ -31,7 +31,12 @@ How the harness handles heads (protocol 0.6, `harness/units.py` and `harness/hea
 1. **Attention patterns.** Head commands load the model with `attn_implementation="eager"` (`attn_implementation(ident)`), since SDPA and flash attention don't return weights.
 2. **Identifiers.** `ComponentIdentifier` is `NeuronIdentifier | HeadIdentifier`, told apart by `kind`. Submissions and evidence take either. A head submission must carry a `HeadProfile`.
 3. **Strength.** `|W_O (z_t − z̄)|`, with z̄ the head's mean output over the scan, stored in `head_profile.mean_output`. The raw write norm `|W_O z|` doesn't work, because most heads write a sizeable resting vector. On GPT-2 small L5H1, the median token sits at a quarter of the maximum, so half of all text would count as "active". Against z̄, the five known GPT-2 small induction heads (L5H1, L5H5, L6H9, L7H2, L7H10) are active on every second-half token of repeated random tokens. They are active on almost none of the first half. The previous-token head L4H11 is active nearly everywhere. Ablation is mean ablation (z → z̄), so strength is exactly how far ablating the head moves the residual stream.
-4. **Evidence.** The scan records the tokens each top example's peak attends to, and previous-token, duplicate-token and induction scores on random repeated sequences. There is no vocabulary lens or partner search for heads.
+4. **Evidence.** The scan records the tokens each top example's peak attends to, and previous-token, duplicate-token and induction scores on random repeated sequences. It also reads the head's OV circuit through the vocabulary, from the weights alone (`HeadProfile.ov_lens`, #5062):
+   - **Copying score.** Near +1 the head copies the tokens that it attends to, and near −1 it suppresses them (Olsson et al., 2022).
+   - **Own-token shares.** The lens draws random tokens. For each, it ranks the token's own logit in its OV write. It gives the shares in the top 10 and the bottom 10 (McDougall et al., 2023).
+   - **Mappings.** The lens lists each top example's attended token with the tokens that its OV write raises most (Geva et al., 2023).
+
+   The lens uses the raw token embedding, not the output of the first MLP. So a head that reads MLP0's output can score lower here. Use the sign to say whether a head copies or suppresses. There is no partner search for heads.
 5. **Probe semantics.** Hard negatives for an induction head are repeated sequences with the copy broken. Holdouts are repeated random-token sequences (Olsson et al.). Probes are measured on their own, so the earlier copy must be inside the probe.
 
 ## Broad early heads
