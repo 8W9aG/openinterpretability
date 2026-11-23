@@ -7,6 +7,7 @@
       "Bash(git:*)",
       "Bash(gh pr:*)",
       "Bash(gh run:*)",
+      "Bash(gh workflow run \"Deploy registry\":*)",
       "Bash(gh repo view:*)",
       "Bash(gh api -X PUT repos/8W9aG/openinterpretability/branches/main/protection:*)",
       "Bash(ls:*)",
