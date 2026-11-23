@@ -66,6 +66,26 @@ def linear_cka(x: torch.Tensor, y: torch.Tensor) -> float:
     return round(float(cross / ((x.T @ x).norm() * (y.T @ y).norm())), 6)
 
 
+def standardised(x: torch.Tensor) -> torch.Tensor:
+    """Each feature of ``x`` scaled to unit variance, so that no outlier neuron dominates.
+
+    A feature with no variance is left at 0.
+
+    Args:
+        x: ``[tokens, features]``.
+
+    Returns:
+        The scaled matrix.
+
+    Examples:
+        >>> scaled = standardised(torch.tensor([[1.0, 5.0], [3.0, 5.0]]))
+        >>> [round(v, 6) for v in scaled.std(0).tolist()]
+        [1.0, 0.0]
+    """
+    sd = x.std(0)
+    return x / sd.where(sd > 0, torch.ones_like(sd))
+
+
 def layer_rows(base, instruct, null, batches, stats, poles_by_layer) -> list[dict]:
     """One row per layer: CKA with the instruct model and with the null, and the poles' r.
 
@@ -84,11 +104,12 @@ def layer_rows(base, instruct, null, batches, stats, poles_by_layer) -> list[dic
     for layer in range(base.n_layers):
         every = list(range(base.mlp_width(layer)))
         a = layer_columns(base, batches, layer, every)
+        b = layer_columns(instruct, batches, layer, every)
         rs = [stats[s]["pearson"] for s in poles_by_layer.get(layer, ())]
         rs = [r for r in rs if r is not None]
         rows.append({
-            "table": "layer", "layer": layer,
-            "cka": linear_cka(a, layer_columns(instruct, batches, layer, every)),
+            "table": "layer", "layer": layer, "cka": linear_cka(a, b),
+            "cka_standardised": linear_cka(standardised(a), standardised(b)),
             "cka_null": linear_cka(a, layer_columns(null, batches, layer, every)),
             "poles": len(rs), "median_pole_pearson": statistics.median(rs) if rs else None,
         })  # fmt: skip
@@ -143,7 +164,9 @@ def swap_row(block: list[int], stats: dict, records, n_layers: int) -> dict:
               if r.submission.identifier.layer in third]  # fmt: skip
         rs = [r for r in rs if r is not None]
         medians.append(statistics.median(rs) if rs else None)
-    return {"table": "swap", "base_layers": block, "median_pole_pearson_by_third": medians}
+    poles = {slug: value["pearson"] for slug, value in stats.items()}
+    return {"table": "swap", "base_layers": block, "median_pole_pearson_by_third": medians,
+            "pole_pearson": poles}  # fmt: skip
 
 
 @click.command()
@@ -177,8 +200,11 @@ def main(wiki_dir: Path, out: Path, device: str, base_name: str) -> None:
     for block in thirds(base.n_layers):
         swapped = _load_runner(instruct_name, device, "float32", None)
         swap_blocks(swapped, base, block)
-        rows.append(swap_row(block, sample_stats(base, swapped, batches, records), records,
-                             base.n_layers))  # fmt: skip
+        moved = sample_stats(base, swapped, batches, records)
+        first = list(moved)[:3]  # in the log, so a swap that changed nothing shows at once
+        print(f"swap {block[0]}-{block[-1]}:", {k: (stats[k]["pearson"], moved[k]["pearson"])
+                                                 for k in first}, file=sys.stderr)  # fmt: skip
+        rows.append(swap_row(block, moved, records, base.n_layers))
         del swapped
     summary = {"table": "summary", "base": base_name, "instruct": instruct_name,
                "poles": len(records), "sample_tokens": SAMPLE_TOKENS,

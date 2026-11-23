@@ -35,7 +35,7 @@ def test_a_model_against_itself_has_cka_one_and_its_poles_correlate(tiny_gpt2):
     batches = [torch.randint(VOCAB, (2, 16), generator=torch.Generator().manual_seed(0))]
     stats = {"a": {"pearson": 1.0}, "b": {"pearson": None}}
     rows = cka.layer_rows(runner, runner, runner, batches, stats, {0: ["a", "b"]})
-    assert [r["cka"] for r in rows] == [1.0, 1.0]
+    assert [r["cka"] for r in rows] == [r["cka_standardised"] for r in rows] == [1.0, 1.0]
     assert rows[0]["poles"] == 1 and rows[0]["median_pole_pearson"] == 1.0
     assert rows[1]["poles"] == 0 and rows[1]["median_pole_pearson"] is None
 
@@ -56,8 +56,5 @@ def test_a_swap_copies_the_blocks_and_the_row_reads_each_third(tiny_gpt2):
     records = [_record(0, "x"), _record(2, "y"), _record(2, "z")]
     stats = {"x": {"pearson": 0.9}, "y": {"pearson": 0.5}, "z": {"pearson": None}}
     row = cka.swap_row([1], stats, records, n_layers=3)
-    assert row == {
-        "table": "swap",
-        "base_layers": [1],
-        "median_pole_pearson_by_third": [0.9, None, 0.5],
-    }
+    assert row["median_pole_pearson_by_third"] == [0.9, None, 0.5]
+    assert row["pole_pearson"] == {"x": 0.9, "y": 0.5, "z": None}
