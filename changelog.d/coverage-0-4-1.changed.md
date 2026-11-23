@@ -1,0 +1,5 @@
+- The registry coverage ran again on 2026-11-23. The share of the loss rise that the VERIFIED poles recover, against matched random poles, is:
+  - GPT-2: 6.9% against 0.6%, with 218 poles (was 4.0%, with 208).
+  - Pythia-70m: 4.5% against 0.5%, with 150 poles (was 4.3%, with 115).
+  - Qwen2.5-0.5B: 0.38% against 0.30%, with 363 poles (was 0.39% against 0.06%). The random share rose, so the gap is now small.
+  - Qwen2.5-1.5B: 0.01%, with 73 poles (unchanged).

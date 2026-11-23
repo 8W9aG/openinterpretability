@@ -10,3 +10,5 @@
 {"date": "2026-11-20", "event": "gone", "id": "C4"}
 {"date": "2026-11-20", "event": "gone", "id": "C5"}
 {"date": "2026-11-21", "event": "grow", "id": "C6", "members": ["models/openai-community--gpt2/L4/N2999.html", "models/openai-community--gpt2/L5/N1208.html", "models/openai-community--gpt2/L5/N2567.html", "models/openai-community--gpt2/L5/N616.html", "models/openai-community--gpt2/L7/H10.html", "models/openai-community--gpt2/L7/H2.html"]}
+{"date": "2026-11-23", "event": "new", "id": "C7", "members": ["models/openai-community--gpt2/L3/N1741.html", "models/openai-community--gpt2/L5/N2567.html", "models/openai-community--gpt2/L5/N616.html", "models/openai-community--gpt2/L6/N3059.html", "models/openai-community--gpt2/L6/N37.html", "models/openai-community--gpt2/L7/H10.html", "models/openai-community--gpt2/L7/H2.html"]}
+{"date": "2026-11-23", "event": "gone", "id": "C6"}
