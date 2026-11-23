@@ -15,9 +15,11 @@ MLP. This script delivers it to one set of readers at a time:
 
 For each MLP and route, it scales the noise by ``alpha`` and takes the slope of the
 expected loss at ``alpha = 1``, by autograd, over ``--draws`` masks. A positive slope is a
-pull. The model is otherwise in eval mode, so no other dropout runs. To first order in the
-noise's size, the *all* slope is the sum of the other two. ``extra`` is the loss with the
-noise at ``alpha = 1`` minus the loss without it.
+pull. The model is otherwise in eval mode, so no other dropout runs. ``extra`` is the loss
+with the noise at ``alpha = 1`` minus the loss without it. The noise has mean 0, so its
+cost is of second order in its size. So the *all* slope is not the sum of the other two:
+it also has a cross term, where the noise reaches the final LayerNorm both directly and
+through the later blocks.
 
     uv run python scripts/dropout_routes.py --condition relu \\
         --checkpoint ckpt/relu_seed0_step2000.pt --out routes.jsonl
@@ -131,6 +133,9 @@ def route_slope(model, ids, layer: int, route: str, c: torch.Tensor, p: float, d
         ``slope``, the mean of ``dL/dalpha`` at ``alpha = 1``, and ``extra``, the mean loss
         with the noise minus the loss without it.
     """
+    targets = readers(model, layer, route)
+    if not targets:  # the last block's noise has no later block to reach
+        return {"slope": 0.0, "extra": 0.0}
     device = next(model.parameters()).device
     generator = torch.Generator().manual_seed(seed)
     alpha = torch.ones((), device=device, requires_grad=True)
@@ -143,7 +148,7 @@ def route_slope(model, ids, layer: int, route: str, c: torch.Tensor, p: float, d
         return (args[0] + alpha * current["noise"], *args[1:])
 
     hooks = [m.register_forward_hook(add) if output else m.register_forward_pre_hook(add)
-             for m in readers(model, layer, route)]  # fmt: skip
+             for m in targets]  # fmt: skip
     slopes, extras = [], []
     try:
         for batch in ids.split(BATCH):
