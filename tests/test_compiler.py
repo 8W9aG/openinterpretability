@@ -409,7 +409,7 @@ def test_footer_links_repo_and_contact(tmp_path):
     compile_site([], tmp_path)
     index = (tmp_path / "index.html").read_text()
     assert 'href="https://github.com/8W9aG/openinterpretability"' in index
-    email = project_links()["contact_email"]  # pyproject.toml's [project.urls], the one source
+    email = project_links()["contact_email"]  # pyproject.toml's maintainers, the one source
     assert email == "contact@open-interpretability.com" and f'href="mailto:{email}"' in index
     # Every email link on every page is the contact address, so the old one is gone (#5853).
     linked = {
@@ -1964,3 +1964,11 @@ def test_explain_reads_the_standing_not_the_newest_record(tmp_path, records):
     )[slug]
     assert status == "VERIFIED"
     assert explanation == records[1].submission.natural_language_explanation
+
+
+def test_every_project_url_is_one_that_pypi_accepts():
+    # #6434: PyPI refused 0.4.1 because a Project-URL was a mailto: link.
+    import tomllib
+
+    urls = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())["project"]
+    assert all(re.fullmatch(r"https?://\S+", url) for url in urls["urls"].values())
