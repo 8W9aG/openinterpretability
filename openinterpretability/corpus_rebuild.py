@@ -7,6 +7,7 @@ the record's source is what brings the same bytes back.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from openinterpretability.blends import build_blend
@@ -14,6 +15,8 @@ from openinterpretability.core.schemas import COMMITTED_SOURCES, CorpusSource
 from openinterpretability.corpus import build_from_hub, load_sources, source_path
 
 COMMITTED_SIDECARS = tuple(Path(name) for name in COMMITTED_SOURCES)
+# A SHA-256 as the cache names its files: 64 lowercase hex digits, so no path can come of it.
+SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
 def scanned_source(submission) -> CorpusSource:
@@ -63,6 +66,10 @@ def cache_path(source: CorpusSource) -> Path | None:
         ``<cache>/<sha256>.jsonl``. The cache is ``$OPENINTERPRETABILITY_REBUILT_CORPORA``,
         else ``rebuilt-corpora`` in the cache folder.
 
+    Raises:
+        ValueError: ``source.sha256`` is not 64 lowercase hex digits. A record gives the
+            source, so the name must not be able to point outside the cache.
+
     Examples:
         >>> import os
         >>> os.environ["OPENINTERPRETABILITY_REBUILT_CORPORA"] = "/cache"
@@ -73,6 +80,8 @@ def cache_path(source: CorpusSource) -> Path | None:
     """
     from openinterpretability.core.cache_dirs import cache_root
 
+    if not SHA256.fullmatch(source.sha256):
+        raise ValueError(f"not a SHA-256, so the corpus can't be cached: {source.sha256!r}")
     root = cache_root("OPENINTERPRETABILITY_REBUILT_CORPORA", "rebuilt-corpora")
     return root / f"{source.sha256}.jsonl" if root else None
 
