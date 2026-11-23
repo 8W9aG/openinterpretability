@@ -7,6 +7,15 @@ probes, and judges explanation scores. In records it appears as
 `external/muse-spark`, for both the proposer and the reviewer, unless a
 different reviewer model is used.
 
+## Which issues Muse acts on
+
+Muse acts on GitHub issues labelled `muse`, such as an issue to post a paper to alphaXiv (#5259). Only two kinds of issue may have the label:
+
+- an issue that the maintainer opened.
+- an issue that the maintainer gave a thumbs up, with no edit by anyone else after it.
+
+An issue from a bot or a workflow does not qualify. The *Muse label* workflow (`.github/workflows/muse-label.yml`) checks each labelled issue with `python3 scripts/issue_state.py --muse-check <number>`. It removes the label from any other issue. A thumbs up raises no workflow event, so the maintainer adds the label again after the thumbs up. Muse must still check the rule itself before it acts on an issue.
+
 ## What Muse does in a run
 
 A full experiment has six stages, in order:
