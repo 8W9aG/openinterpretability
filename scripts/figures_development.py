@@ -207,4 +207,10 @@ def _animate(fig: Figure, left: Panel, right: Panel, medians: list, loss: list[d
 
 def build(rows: list[dict]) -> dict[str, Figure]:
     """The paper's figures by file name."""
-    return {"development.svg": development(rows), "holding.svg": holding(rows)}
+    from figures_development_savings import figure as savings_figure
+
+    return {
+        "development.svg": development(rows),
+        "holding.svg": holding(rows),
+        "savings.svg": savings_figure(rows),
+    }

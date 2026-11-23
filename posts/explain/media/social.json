@@ -1,0 +1,45 @@
+{
+ "source": "media/baseline.svg",
+ "sha256": "8f765a8f30e868dc888583fd0365ffb5473810860ae3734245919f2fa7ac9433",
+ "files": [
+  "social.mp4",
+  "social.png"
+ ],
+ "figures": {
+  "core": {
+   "sha256": "240cd5c12d2de1b4df65b12c51859d71ffb9eaa0ca4287946994d2ef22a34fb6",
+   "files": [
+    "social-core.mp4",
+    "social-core.png"
+   ]
+  },
+  "coverage": {
+   "sha256": "78a4e84a7290dd36268fc6698850855e3dbb25d704c88d0fb874e10ff76a3c92",
+   "files": [
+    "social-coverage.mp4",
+    "social-coverage.png"
+   ]
+  },
+  "days-copy": {
+   "sha256": "472a029c1e379f174d31c32df712eb69b8e2cc1fa5dacfe8190d646a1c1bf570",
+   "files": [
+    "social-days-copy.mp4",
+    "social-days-copy.png"
+   ]
+  },
+  "days-mistake": {
+   "sha256": "543b74bd4da998752a5103ee18a8186caf80edc81c70535fdf6b952e63f58fe2",
+   "files": [
+    "social-days-mistake.png"
+   ]
+  },
+  "route": {
+   "sha256": "3a57694ad869ff7911d9268b440e03ddfdbf964d19934051dcc6d3536009e313",
+   "files": [
+    "social-route.mp4",
+    "social-route.png"
+   ]
+  }
+ },
+ "x_url": "https://x.com/i/status/2124651402483945630"
+}

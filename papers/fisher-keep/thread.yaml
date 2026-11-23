@@ -1,0 +1,29 @@
+# The paper's X thread (openinterpretability/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Does Fisher importance predict which neuron explanations survive instruction tuning? We
+    tested 311 VERIFIED poles of Qwen2.5-0.5B against Qwen2.5-0.5B-Instruct. It does not.
+    {link}
+  media: [keep]
+- section: Does Fisher importance predict which explanations keep?
+  text: >-
+    252 of the 311 explanations keep. A neuron's within-layer Fisher percentile separates
+    the ones that keep from the ones that fail with AUC 0.475, against 0.523 under a
+    within-layer shuffle (p = 0.21).
+  media: [shuffles]
+- section: Is the Fisher only the activation scale?
+  text: >-
+    The output-weight Fisher does go with a smaller activation change (ρ = −0.33). But
+    neurons that fire more move less too (ρ = −0.35). With the activation scale taken out,
+    the Fisher's ρ is −0.03.
+  media: [move]
+- section: Is the Fisher only the activation scale?
+  text: >-
+    At a fixed activation scale, a higher input-weight Fisher goes with more change, not
+    less (ρ = +0.22, p = 0.0001). That is the opposite of what elastic weight consolidation
+    assumes.
+- section: Conclusion
+  text: >-
+    Weight importance from the base model is not a guide to which explanations to re-audit
+    after instruction tuning. {link}

@@ -1,7 +1,7 @@
 [project]
 name = "open-interpretability"
 dynamic = ["version"]
-description = "Open Interpretability: an agent-run mechanistic interpretability lab, with an audited registry of native neurons in open-weight models."
+description = "Open Interpretability: an agent-run mechanistic interpretability project, with an audited registry of native neurons in open-weight models."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -298,3 +298,31 @@ plugins.md041.enabled = false
 plugins.md038.enabled = false
 # Skills, agents and Hub cards start with YAML front matter.
 extensions.front-matter.enabled = true
+
+[tool.mutmut]
+# Mutation testing of the code that decides verdicts (#5763): `make mutation`, by hand.
+# source_paths copies the whole package into mutants/, so the tests can import it.
+# only_mutate limits the mutants to the verdict code.
+source_paths = ["openinterpretability"]
+only_mutate = [
+    "openinterpretability/core/stats.py",
+    "openinterpretability/builder/standing.py",
+    "openinterpretability/agents/reviewer.py",
+    "openinterpretability/planner.py",
+]
+# The repository data that the selected tests read.
+also_copy = ["wiki/circuits", ".github/workflows"]
+pytest_add_cli_args = ["-p", "no:cacheprovider", "-o", "addopts=-ra", "-q"]
+pytest_add_cli_args_test_selection = [
+    "tests/test_core_stats.py",
+    "tests/test_builder_significance.py",
+    "tests/test_covariance.py",
+    "tests/test_builder_standing.py",
+    "tests/test_agents_reviewer.py",
+    "tests/test_verdict_regression.py",
+    "tests/test_planner.py",
+    "tests/test_planner_circuits.py",
+    "tests/test_planner_explanations.py",
+    "tests/test_planner_sisters.py",
+    "tests/test_planner_superpositions.py",
+]

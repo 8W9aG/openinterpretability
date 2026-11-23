@@ -1,0 +1,1 @@
+- **The first alphaXiv AI Track paper** (#5259). The paper `papers/syntax-positive-controls/` is on alphaXiv, and its `CITATION.cff` records the URL. The paper page links it.

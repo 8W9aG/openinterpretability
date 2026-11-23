@@ -136,7 +136,7 @@ The maintainer decided on 2026-11-17 that every paper is either a **preprint** o
   ```bash
   uv run python scripts/papers.py publish <slug>
   ```
-  The line then gives the date, and `CITATION.cff` holds the SHA-256 of the text and the results files.
+  The line then gives the date, and `CITATION.cff` holds the SHA-256 of the text and the results files. The next release opens an issue for Muse to post it to the alphaXiv AI Track (`release` skill, *Before the release*, #5259).
 - **A published paper doesn't change.** A later correction goes in a `## Addenda` section at the end, one dated `### YYYY-MM-DD` entry each. New work becomes a new paper that cites it. `make lint` (`scripts/papers.py check`) fails if the text above the addenda, or a results file, changes.
 
 ## Before you finish

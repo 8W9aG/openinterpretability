@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 467" width="760" height="467" role="img">
+<title>A line chart of the keep share against the share of input weights zeroed: 0, 50, 75 and 90%. Magnitude pruning keeps 0.50 at 90%, and random pruning 0.13. Both start at 1.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="467" rx="10"/>
+<text x="20.0" y="30.0" class="title">Magnitude pruning keeps most explanations, and</text>
+<text x="20.0" y="53.0" class="title">random pruning of as many weights does not</text>
+<text x="20.0" y="73.0" class="sub">Each mark is the share of Pythia-70m&#x27;s 127 VERIFIED explanations that still pass their probes, with a 95% interval.</text>
+<text x="20.0" y="91.0" class="sub">With 90% of each neuron&#x27;s input weights zeroed: 63 keep by magnitude, 17 at random.</text>
+<path class="grid" d="M90.0 139.0L90.0 369.0"/>
+<text x="90.0" y="384.0" class="small" text-anchor="middle">0.00</text>
+<path class="grid" d="M256.7 139.0L256.7 369.0"/>
+<text x="256.7" y="384.0" class="small" text-anchor="middle">0.25</text>
+<path class="grid" d="M423.3 139.0L423.3 369.0"/>
+<text x="423.3" y="384.0" class="small" text-anchor="middle">0.50</text>
+<path class="grid" d="M590.0 139.0L590.0 369.0"/>
+<text x="590.0" y="384.0" class="small" text-anchor="middle">0.75</text>
+<path class="grid" d="M690.0 139.0L690.0 369.0"/>
+<text x="690.0" y="384.0" class="small" text-anchor="middle">0.90</text>
+<path class="grid" d="M70.0 369.0L710.0 369.0"/>
+<text x="63.0" y="373.0" class="small" text-anchor="end">0.00</text>
+<path class="grid" d="M70.0 314.2L710.0 314.2"/>
+<text x="63.0" y="318.2" class="small" text-anchor="end">0.25</text>
+<path class="grid" d="M70.0 259.5L710.0 259.5"/>
+<text x="63.0" y="263.5" class="small" text-anchor="end">0.50</text>
+<path class="grid" d="M70.0 204.7L710.0 204.7"/>
+<text x="63.0" y="208.7" class="small" text-anchor="end">0.75</text>
+<path class="grid" d="M70.0 150.0L710.0 150.0"/>
+<text x="63.0" y="154.0" class="small" text-anchor="end">1.00</text>
+<text x="390.0" y="400.0" class="small" text-anchor="middle">share of each neuron&#x27;s input weights zeroed</text>
+<path class="line sc1" d="M90.0 150.0L423.3 206.9L590.0 243.1L690.0 260.3"/>
+<path class="range sc1" d="M90.0 150.0L90.0 150.0"/>
+<circle class="fc1 ring" cx="90.0" cy="150.0" r="5"/>
+<path class="range sc1" d="M423.3 225.0L423.3 191.9"/>
+<circle class="fc1 ring" cx="423.3" cy="206.9" r="5"/>
+<path class="range sc1" d="M590.0 262.1L590.0 225.0"/>
+<circle class="fc1 ring" cx="590.0" cy="243.1" r="5"/>
+<path class="range sc1" d="M690.0 279.1L690.0 241.5"/>
+<circle class="fc1 ring" cx="690.0" cy="260.3" r="5"/>
+<path class="line sc2" d="M90.0 150.0L423.3 243.1L590.0 296.6L690.0 339.7"/>
+<path class="range sc2" d="M90.0 150.0L90.0 150.0"/>
+<path class="fc2 ring" d="M90.0 144.0L96.0 154.8L84.0 154.8Z"/>
+<path class="range sc2" d="M423.3 262.1L423.3 225.0"/>
+<path class="fc2 ring" d="M423.3 237.1L429.3 247.9L417.3 247.9Z"/>
+<path class="range sc2" d="M590.0 313.2L590.0 277.8"/>
+<path class="fc2 ring" d="M590.0 290.6L596.0 301.4L584.0 301.4Z"/>
+<path class="range sc2" d="M690.0 350.3L690.0 324.3"/>
+<path class="fc2 ring" d="M690.0 333.7L696.0 344.5L684.0 344.5Z"/>
+<circle class="fc1" cx="25.0" cy="415.0" r="5"/>
+<text x="35.0" y="419.0">magnitude (smallest weights first)</text>
+<path class="fc2" d="M272.6 409.0L278.6 419.8L266.6 419.8Z"/>
+<text x="282.6" y="419.0">random (the null)</text>
+</svg>

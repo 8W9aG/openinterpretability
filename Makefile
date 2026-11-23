@@ -1,4 +1,4 @@
-.PHONY: install test coverage perf lint typecheck markdown shell vale ste format check check-all stats maps build css search-index sample-run serve loop clean
+.PHONY: install test coverage mutation perf lint typecheck markdown shell vale ste format check check-all stats maps build css search-index sample-run serve loop clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -28,6 +28,15 @@ coverage:
 	@mkdir -p logs
 	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run python -m openinterpretability.core.heavy_lock pytest -n $(TEST_WORKERS) --cov --cov-report=xml --cov-report=term 2>&1 | tee logs/coverage-last.log'
 	uv run diff-cover coverage.xml -c pyproject.toml --compare-branch=$(COVERAGE_BASE)
+
+# Mutation testing of the verdict code (#5763): the files and tests are in [tool.mutmut] in
+# pyproject.toml. It takes about 5 minutes. Run by hand only, not in CI. mutmut is pinned here,
+# so the lockfile doesn't carry it. `mutmut browse` shows each surviving mutant's diff.
+MUTMUT ?= mutmut==3.8.1
+mutation:
+	rm -rf mutants
+	uv run --with $(MUTMUT) mutmut run
+	uv run --with $(MUTMUT) mutmut results
 
 # Wall time, CPU time and peak memory of fixed workloads, checked against
 # docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.

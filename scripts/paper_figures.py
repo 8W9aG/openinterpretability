@@ -16,7 +16,9 @@ import figures_default_on
 import figures_default_on_decoding
 import figures_depth
 import figures_development
+import figures_fisher_keep
 import figures_native_learned
+import figures_pruning_keep
 import figures_spd_input
 import figures_syntax
 import figures_transfer
@@ -43,7 +45,7 @@ def _other_models(paper: str) -> dict[str, list[dict]]:
     return found
 
 
-def build_all() -> dict[str, str]:
+def build_all() -> dict[str, str]:  # long-function: one entry for each paper
     """Return each figure's SVG text by its path under papers/."""
     poles = _rows("default-on-poles")
     resting = _rows("why-neurons-rest")
@@ -63,8 +65,10 @@ def build_all() -> dict[str, str]:
             [r for r in _rows("copy-first-unit") if "prompt" in r]
         ),
         "neuron-development": figures_development.build(_rows("neuron-development")),
+        "fisher-keep": figures_fisher_keep.build(_rows("fisher-keep")),
         "explanations-across-models": figures_transfer.build(_rows("explanations-across-models")),
         "native-vs-learned": figures_native_learned.build(_rows("native-vs-learned")),
+        "pruning-keep": figures_pruning_keep.build(_rows("pruning-keep")),
         "spd-input-projections": figures_spd_input.build(_rows("spd-input-projections")),
         "syntax-positive-controls": figures_syntax.build(
             _rows("syntax-positive-controls"),
