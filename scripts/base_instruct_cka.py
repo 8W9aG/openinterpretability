@@ -1,7 +1,7 @@
 """Layer-level CKA between a base model and its instruct model (#5127).
 
-`docs/analyses/base-instruct.md` finds that a pole's activation changes most in the middle
-third of Qwen2.5-0.5B's layers under instruction tuning. This script asks whether that is
+Under instruction tuning, a pole's activation changes most in the middle third of
+Qwen2.5-0.5B's layers (`docs/analyses/base-instruct.md`). This script asks whether that is
 a change of the whole layer or a change within it. It writes two tables:
 
 * ``layer``: each layer's linear CKA (Kornblith et al., 2019) between the two models'
@@ -13,7 +13,8 @@ a change of the whole layer or a change within it. It writes two tables:
   poles come back, the change is local to those blocks. If later poles come back too,
   the change was carried forward from them.
 
-    uv run python scripts/base_instruct_cka.py --device cuda --out docs/analyses/base-instruct-cka.jsonl
+    uv run python scripts/base_instruct_cka.py --device cuda \\
+        --out docs/analyses/base-instruct-cka.jsonl
 """
 
 from __future__ import annotations
@@ -53,9 +54,11 @@ def linear_cka(x: torch.Tensor, y: torch.Tensor) -> float:
     Returns:
         ``‖Yᵀ X‖² / (‖Xᵀ X‖ ‖Yᵀ Y‖)`` after centring each feature (Frobenius norms).
 
-    >>> x = torch.randn(50, 4, generator=torch.Generator().manual_seed(0))
-    >>> round(linear_cka(x, 3 * x @ torch.linalg.qr(torch.randn(4, 4))[0]), 6)
-    1.0
+    Examples:
+        >>> x = torch.randn(50, 4, generator=torch.Generator().manual_seed(0))
+        >>> rotation = torch.linalg.qr(torch.randn(4, 4))[0]
+        >>> round(linear_cka(x, 3 * x @ rotation), 6)
+        1.0
     """
     x = (x - x.mean(0)).double()
     y = (y - y.mean(0)).double()
@@ -64,7 +67,19 @@ def linear_cka(x: torch.Tensor, y: torch.Tensor) -> float:
 
 
 def layer_rows(base, instruct, null, batches, stats, poles_by_layer) -> list[dict]:
-    """One row per layer: CKA with the instruct model and with the null, and the poles' r."""
+    """One row per layer: CKA with the instruct model and with the null, and the poles' r.
+
+    Args:
+        base: The base model.
+        instruct: The instruct model.
+        null: The base architecture with random weights.
+        batches: The sample, from ``sample_windows``.
+        stats: Each pole's ``pearson`` between base and instruct, by slug.
+        poles_by_layer: The poles' slugs, by layer.
+
+    Returns:
+        The rows, in layer order.
+    """
     rows = []
     for layer in range(base.n_layers):
         every = list(range(base.mlp_width(layer)))
@@ -84,8 +99,15 @@ def layer_rows(base, instruct, null, batches, stats, poles_by_layer) -> list[dic
 def thirds(n_layers: int) -> list[list[int]]:
     """The layers in three equal blocks, the last taking any remainder.
 
-    >>> thirds(24)[1], thirds(7)
-    ([8, 9, 10, 11, 12, 13, 14, 15], [[0, 1], [2, 3], [4, 5, 6]])
+    Args:
+        n_layers: How many layers the model has.
+
+    Returns:
+        Three lists of layer indices.
+
+    Examples:
+        >>> thirds(24)[1], thirds(7)
+        ([8, 9, 10, 11, 12, 13, 14, 15], [[0, 1], [2, 3], [4, 5, 6]])
     """
     k = n_layers // 3
     return [list(range(0, k)), list(range(k, 2 * k)), list(range(2 * k, n_layers))]
@@ -104,7 +126,17 @@ def swap_blocks(target, source, layers: list[int]) -> None:
 
 
 def swap_row(block: list[int], stats: dict, records, n_layers: int) -> dict:
-    """The median r of the poles in each third, with ``block`` taken from the base model."""
+    """The median r of the poles in each third, with ``block`` taken from the base model.
+
+    Args:
+        block: The layers taken from the base model, or [] for none.
+        stats: Each pole's ``pearson`` with the base model, by slug.
+        records: The VERIFIED records.
+        n_layers: How many layers the model has.
+
+    Returns:
+        The row.
+    """
     medians = []
     for third in thirds(n_layers):
         rs = [stats[r.submission.identifier.slug]["pearson"] for r in records
@@ -120,7 +152,14 @@ def swap_row(block: list[int], stats: dict, records, n_layers: int) -> dict:
 @click.option("--device", default="cpu", show_default=True)
 @click.option("--base", "base_name", default=BASE, show_default=True)
 def main(wiki_dir: Path, out: Path, device: str, base_name: str) -> None:
-    """Write the layer and swap tables for ``base_name`` and its instruct model."""
+    """Write the layer and swap tables for ``base_name`` and its instruct model.
+
+    Args:
+        wiki_dir: The registry, for the VERIFIED records.
+        out: Where the rows go.
+        device: Where the models run.
+        base_name: The base model; the instruct model is ``<base_name>-Instruct``.
+    """
     from openinterpretability.cli import _load_runner
 
     instruct_name = f"{base_name}-Instruct"
@@ -142,7 +181,8 @@ def main(wiki_dir: Path, out: Path, device: str, base_name: str) -> None:
                              base.n_layers))  # fmt: skip
         del swapped
     summary = {"table": "summary", "base": base_name, "instruct": instruct_name,
-               "poles": len(records), "sample_tokens": SAMPLE_TOKENS, "null_seed": NULL_SEED}  # fmt: skip
+               "poles": len(records), "sample_tokens": SAMPLE_TOKENS,
+               "null_seed": NULL_SEED}  # fmt: skip
     out.write_text("".join(json.dumps(r) + "\n" for r in [summary, *rows]))
     click.echo(json.dumps(summary))
 
