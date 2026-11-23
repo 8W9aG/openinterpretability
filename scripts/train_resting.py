@@ -182,6 +182,8 @@ CONDITIONS = {
     "sgd": replace(BASE, optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
     "relu_sgd": replace(BASE, activation="relu", optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
 }
+CONDITIONS |= {f"gelu_{n[5:]}": replace(c, activation="gelu")  # each ReLU norm condition (#3193)
+               for n, c in CONDITIONS.items() if n[:5] == "relu_" and c.centre_norms}  # fmt: skip
 
 
 def build_model(condition: Condition, vocab_size: int, seed: int):

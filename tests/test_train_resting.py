@@ -262,6 +262,27 @@ def test_spread_bins_add_up_to_the_spread_term_on_each_neuron():
     assert row["median_spread_binned"] == pytest.approx(row["median_push_spread"], abs=1e-9)
 
 
+def test_the_outputs_push_by_bin_adds_up_to_the_outputs_push(  # #3193
+):
+    condition = CONDITIONS["gelu_all_norms_centred_dropout_0"]
+    model = build_model(condition, vocab_size=50, seed=0).train()
+    recorder = PushRecorder(model, bins=torch.tensor(PUSH_BINS))
+    batch = torch.randint(50, (2, 16), generator=torch.Generator().manual_seed(0))
+    model(batch, labels=batch).loss.backward()
+    recorder.before_step()
+    act = model.transformer.h[1].mlp.act
+    assert act.output_bins.sum(0).allclose(-act.output_grad, atol=1e-7)
+    assert (act.count_bins.sum(0) == batch.numel()).all()
+    recorder.after_step()
+    row = recorder.row()[1]
+    assert sum(row["token_share_bins"]) == pytest.approx(1.0)
+    assert len(row["median_output_bins"]) == len(row["share_output_bins_up"]) == len(PUSH_BINS) + 1
+    shares = row["share_output_bins_up"]
+    assert all(share is None or 0.0 <= share <= 1.0 for share in shares)
+    empty = [i for i, share in enumerate(row["token_share_bins"]) if share == 0]
+    assert all(shares[i] is None and row["median_output_bins"][i] is None for i in empty)
+
+
 def test_parallel_block_adds_attention_and_mlp_of_the_same_input():
     model = build_model(CONDITIONS["pythia_parallel"], vocab_size=50, seed=0).eval()
     block = model.transformer.h[0]

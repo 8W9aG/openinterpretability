@@ -2,7 +2,7 @@
 
 Training moves most of GPT-2's neurons to a median pre-activation $h$ of about −1, as [the paper on default-on negative poles](../default-on-poles/README.md) found. That is below GELU's minimum at −0.75. That paper also found that the input weights do this. It did not find why. This paper trains small GPT-2s and changes one thing at a time. It finds a small push on each neuron's rest that is steady over many steps, and that the optimizer's step size sets how far the push takes the rest.
 
-**Status:** Preprint. Work left: #3193 and #4093 (the causes of the push that are still open).
+**Status:** Preprint. Work left: #4093 and #6465 (the causes of the push that are still open).
 
 ## Introduction
 
@@ -239,7 +239,7 @@ The push has two terms, and each one-sided activation has at least one that poin
 
 A neuron's mean output decides which term carries the push. ReLU and softplus have large mean outputs at init, and GELU and SiLU small ones. Adding a constant to the output leaves the activation's shape the same. ReLU shifted to GELU's mean output then gets GELU's pattern: its output's push points up, and it rests about a third shallower. GELU shifted to ReLU's mean output loses its up phase and rests about twice as deep. One cause is a weak pull of the loss on the MLP's mean output toward 0, which holds in every window of every run.
 
-The spread term comes from tokens with a low slope, not from the steepest tokens (Table 16, in the appendices). For GELU and SiLU, the output's push points up mostly on tokens below the rest. Their slope is below the mean, so they make the spread term point down. In GELU's dip their slope is negative, so they push $h$ down directly. The steepest tokens, from 0.75 to 1.5, make the spread term point up. Two seeds agree to 0.13 ($10^{-6}$) in each bin. The appendix *The terms of the push* gives the detail.
+The spread term comes from tokens with a low slope, not from the steepest tokens (Table 16, in the appendices). For GELU and SiLU, the output's push points up mostly on tokens below the rest (Table 23), also when no norm and no dropout can see a constant. Their slope is below the mean, so they make the spread term point down. In GELU's dip their slope is negative, so they push $h$ down directly. The steepest tokens, from 0.75 to 1.5, make the spread term point up. Two seeds agree to 0.13 ($10^{-6}$) in each bin. The appendix *The terms of the push* gives the detail.
 
 ## How do the final LayerNorm and depth shape the push?
 
@@ -491,6 +491,12 @@ for SEED in 0 1; do
       --push-part push_spread_bins --spread-bins --device cpu --condition gelu --condition silu \
       --condition relu $T
 done
+for SEED in 0 1; do  # Table 23, on an NVIDIA GPU (#3193)
+  uv run python scripts/train_resting.py train --seed $SEED --steps 1000 --part training_output_bins \
+      --push-part push_output_bins --spread-bins --device cuda --condition gelu --condition silu \
+      --condition relu --condition dropout_0 --condition gelu_all_norms_centred_dropout_0 \
+      --condition gelu_final_norm_centred_dropout_0 $T
+done
 for C in dropout_0 relu_dropout_0; do
   uv run python scripts/train_resting.py train --seed 0 --condition $C --steps 2000 \
       --part training_calib --push-part push_calib --save-every 250 --save-dir ckpt $T
@@ -626,6 +632,23 @@ The push down comes from below the rest. A token's part is its output's push tim
 In the first 200 steps, the push down comes from just below 0. Then the rests are shallow, and few tokens reach the dip. GELU's largest part is then −1.3 to −1.4, from −0.75 to −0.25, on each seed.
 
 ReLU has the same pattern, but its two sides cancel. Below 0 its slope is 0, and its part is below 0. Above 0 its slope is 1, and its part is above 0, at +3.4 from 0.25 to 0.75. So ReLU's spread term is small, and its slope term carries its push. We do not know why the output's push points up below the rest. Over tokens, the output and its gradient do not correlate (Table 17), so it is not a pull on each token's output.
+
+The output's push itself points up below the rest, and it still does when no LayerNorm and no dropout can see a constant (#3193). Runs labelled `training_output_bins` repeat Table 16's runs and add three conditions. For each neuron and each bin, they record the output's push per token, not only its part of the spread term. These runs are on an NVIDIA GPU, and they reproduce Table 16's spread-term shares to 0.01 in every bin. Table 23 gives the share of neurons whose output's push points up in each bin.
+
+| Condition | Below −1.5 | −1.5 to −0.75 | −0.75 to −0.25 | −0.25 to 0.25 | 0.25 to 0.75 | 0.75 to 1.5 | Above 1.5 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GELU | 0.73 | 0.90 | 0.68 | 0.18 | 0.53 | 0.67 | 0.54 |
+| SiLU | 0.73 | 0.86 | 0.83 | 0.16 | 0.53 | 0.69 | 0.61 |
+| ReLU | 0.49 | 0.62 | 0.23 | 0.05 | 0.62 | 0.62 | 0.50 |
+| GELU, no dropout | 0.73 | 0.90 | 0.67 | 0.18 | 0.52 | 0.66 | 0.53 |
+| GELU, every norm centred, no dropout | 0.73 | 0.88 | 0.71 | 0.12 | 0.26 | 0.51 | 0.64 |
+| GELU, final norm centred, no dropout | 0.56 | 0.60 | 0.63 | 0.36 | 0.43 | 0.52 | 0.56 |
+
+**Table 23.** The share of neurons whose output's push per token points up, in each bin of $h$. It is a mean over L1–L3, steps 201–1,000 and two seeds. The seeds agree to 0.04 in each bin.
+
+For GELU and SiLU, the output's push points up on 68%–90% of neurons below −0.25, and on 16%–18% near 0. So the up push comes from the tokens below the rest, as Table 16 inferred from the spread term. ReLU has no such pattern below −0.75. Without dropout, GELU's shares change by at most 0.01. With every norm centred and no dropout, no LayerNorm and no dropout mask can see a constant offset. The shares below −0.25 then stay within 0.03 of GELU's. So the pattern does not reach the output's push through a constant offset.
+
+Centring only the final norm, with no dropout, weakens the pattern: 56%–63% of neurons below −0.25 have an up push. Centring every norm does not weaken it. At step 1,000 both conditions have a higher loss than GELU, 6.37–6.45 against 6.20–6.21, by about the same amount. So the loss does not explain the difference. We do not know why. #6465 holds the question.
 
 Removing the output's push removes the up phase. Runs labelled `training_output` centre each neuron's output $a$ over the batch. Then $-\partial L / \partial a$ sums to 0 over tokens, and only the spread term remains. GELU's push ratio is then −0.048 over steps 1–100 and SiLU's −0.045, against +0.005 and +0.016 in free runs. At step 1,000, GELU's L1 rests at −0.60 against −0.42, and SiLU's at −0.40 against −0.15.
 
