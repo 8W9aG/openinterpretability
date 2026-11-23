@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import math
 import sys
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -46,6 +47,16 @@ CONDITIONS = ("base_plain", "base_chat", "instruct_plain", "instruct_chat")
 CHANGES = (("template", "base_plain", "base_chat"),
            ("tuning_plain", "base_plain", "instruct_plain"),
            ("tuning_chat", "base_chat", "instruct_chat"))  # fmt: skip
+
+
+def progress(message: str, started: float) -> None:
+    """Print one progress line to standard error, with the time since ``started``.
+
+    Args:
+        message: What has just finished.
+        started: The ``time.monotonic()`` of the run's start.
+    """
+    click.echo(f"[{time.monotonic() - started:7.0f}s] {message}", err=True)
 
 
 def binomial_p(k: int, n: int) -> float:
@@ -152,7 +163,9 @@ def summary(rows: list[dict], base_name: str) -> dict:
 @click.option("--device", default="cpu", show_default=True)
 @click.option("--base", "base_name", default=BASE, show_default=True)
 @click.option("--corpus", default="corpus.jsonl", show_default=True)
-def main(wiki_dir: Path, out: Path, device: str, base_name: str, corpus: str) -> None:
+@click.option("--limit", type=int, default=None, help="Read only the first N poles: a timing test.")
+def main(wiki_dir: Path, out: Path, device: str, base_name: str, corpus: str,
+         limit: int | None) -> None:  # fmt: skip
     """Read each VERIFIED pole in the four conditions, and write the rows.
 
     Args:
@@ -161,17 +174,23 @@ def main(wiki_dir: Path, out: Path, device: str, base_name: str, corpus: str) ->
         device: The device of the models.
         base_name: The base model. Its instruct model is ``<base>-Instruct``.
         corpus: The corpus of the two samples.
+        limit: Read only this many poles, or every pole when None.
     """
     from openinterpretability.cli import _load_runner
 
-    records = verified_records(wiki_dir, base_name)
+    records = verified_records(wiki_dir, base_name)[:limit]
+    started = time.monotonic()
+    progress(f"{len(records)} poles of {base_name}", started)
     base = _load_runner(base_name, device, "float32", None)
     instruct = _load_runner(f"{base_name}-Instruct", device, "float32", None)
     render = instruct.tokenizer  # one template for both models
     plain = sample_stats(base, instruct, sample_windows(base.tokenizer, corpus=corpus), records)
+    progress("plain sample read", started)
     chat = chat_stats(base, instruct, chat_sample(render, base.tokenizer, corpus), records)
+    progress("chat sample read", started)
     rows = []
-    for record in records:
+    begun = time.monotonic()
+    for i, record in enumerate(records, 1):
         ident = record.submission.identifier
         ratio = plain[ident.slug]["ratio"] or 1.0
         rows.append({
@@ -183,6 +202,9 @@ def main(wiki_dir: Path, out: Path, device: str, base_name: str, corpus: str) ->
             "ratio": plain[ident.slug]["ratio"], "pearson_plain": plain[ident.slug]["pearson"],
             **chat[ident.slug],
         })  # fmt: skip
+        each = (time.monotonic() - begun) / i
+        progress(f"pole {i}/{len(records)} {ident.slug}: {each:.1f}s a pole, "
+                 f"{each * (len(records) - i) / 60:.1f} min left", started)  # fmt: skip
     head = summary(rows, base_name)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("".join(json.dumps(r) + "\n" for r in [head, *compare(rows), *rows]))
