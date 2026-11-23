@@ -5,11 +5,11 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24150022.svg)](https://doi.org/10.5281/zenodo.24150022)
 [![PyPI](https://img.shields.io/pypi/v/open-interpretability.svg)](https://pypi.org/project/open-interpretability/)
 
-An open lab, run with agents, that explains the native neurons and attention heads of open-weight language models and publishes each result at **[open-interpretability.com](https://open-interpretability.com/)**.
+An open project, run with agents, that explains the native neurons and attention heads of open-weight language models and publishes each result at **[open-interpretability.com](https://open-interpretability.com/)**.
 
 ## Before you start
 
-You need [Git](https://git-scm.com/), [Python](https://www.python.org/) 3.11+, [uv](https://docs.astral.sh/uv/) and [Claude Code](https://claude.com/claude-code). A laptop CPU is enough.
+You need [Git](https://git-scm.com/), [Python](https://www.python.org/) 3.11+, [uv](https://docs.astral.sh/uv/), [Claude Code](https://claude.com/claude-code) and the [GitHub CLI](https://cli.github.com/). Run `gh auth login` once, so the loop can fork the repository and open pull requests. A laptop CPU is enough.
 
 ## Run an experiment
 
