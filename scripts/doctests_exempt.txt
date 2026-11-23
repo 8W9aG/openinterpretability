@@ -12,3 +12,11 @@ openinterpretability/interference/fisher.py::activation_rms  needs a model runne
 openinterpretability/interference/pruning.py::pruned  needs a model runner; tests/test_interference_pruning.py runs it on a tiny GPT-NeoX and Qwen2
 openinterpretability/interference/template.py::chat_sample  reads a corpus file and needs a tokenizer with a chat template; tests/test_interference_template.py runs it on a fake one
 openinterpretability/interference/template.py::chat_columns  needs a model runner; tests/test_interference_template.py runs it on a toy model
+openinterpretability/interference/tuning.py::load_rows  downloads a parquet file from the Hub; tests/test_interference_tuning.py fakes the download
+openinterpretability/interference/tuning.py::encode  needs a tokenizer; tests/test_interference_tuning.py runs it on a fake one
+openinterpretability/interference/tuning.py::response_log_probs  needs a model; tests/test_interference_tuning.py runs it on a toy model
+openinterpretability/interference/tuning.py::response_loss  needs a model; tests/test_interference_tuning.py runs it on a toy model
+openinterpretability/interference/tuning.py::train_stage  needs a model and backward passes; tests/test_interference_tuning.py runs it on a toy model and a tiny GPT-2
+openinterpretability/interference/tuning.py::heldout_loss  needs a model; tests/test_interference_tuning.py runs it on a toy model
+openinterpretability/interference/tuning.py::stage_kl  needs two models; tests/test_interference_tuning.py runs it on toy models
+openinterpretability/interference/tuning.py::arc_accuracy  needs a model; tests/test_interference_tuning.py runs it on a toy model

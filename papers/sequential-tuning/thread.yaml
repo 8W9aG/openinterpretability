@@ -1,0 +1,27 @@
+# The paper's X thread (openinterpretability/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Do neuron explanations survive fine-tuning after fine-tuning? We tuned Qwen2.5-0.5B and
+    its instruct model on SST-2, then XSum, then GSM8K, and re-tested 362 VERIFIED
+    explanations after each stage. About three quarters keep. {link}
+  media: [stages]
+- section: Does instruction tuning protect explanations, or spend them first?
+  text: >-
+    The first narrow stage costs the base model 66 explanations, about what instruction
+    tuning costs (62). 28 poles are in both sets, against 11 by chance. After that, the
+    two models keep the same explanations.
+- section: Do failed explanations stay failed?
+  text: >-
+    Losses churn. On the base model, 136 explanations fail at some stage, but only 95 at
+    the end: 50 come back at a later stage.
+  media: [grid]
+- section: Does the benchmark score track the explanations?
+  text: >-
+    ARC-Easy does not track any of it. On the base model it ends 3.5 points up while a
+    quarter of the explanations fail. On the instruct model it falls 9.4 points at the
+    stage that costs a net 9.
+- section: Conclusion
+  text: >-
+    An explanation registry has to re-test its explanations on each fine-tuned model, not
+    infer their state from its benchmarks. {link}
