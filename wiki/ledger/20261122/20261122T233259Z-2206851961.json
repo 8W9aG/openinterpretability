@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-22T23:32:59Z","seed":2206851961,"kind":"explore","model":"EleutherAI/pythia-70m","slug":"EleutherAI--pythia-70m/L5/N1804-negative","record":null,"audit":"--model EleutherAI/pythia-70m --random --seed 4018064499","pole_forced":false,"until_verified":false,"max_turns":null,"harness_version":"0.4.0"}
