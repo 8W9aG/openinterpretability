@@ -2,7 +2,7 @@
 
 Training moves most of GPT-2's neurons to a median pre-activation $h$ of about −1, as [the paper on default-on negative poles](../default-on-poles/README.md) found. That is below GELU's minimum at −0.75. That paper also found that the input weights do this. It did not find why. This paper trains small GPT-2s and changes one thing at a time. It finds a small push on each neuron's rest that is steady over many steps, and that the optimizer's step size sets how far the push takes the rest.
 
-**Status:** Preprint. Work left: #3193 and #4093 (the causes of the push that are still open).
+**Status:** Preprint. Work left: #4093 and #6465 (the causes of the push that are still open).
 
 ## Introduction
 
