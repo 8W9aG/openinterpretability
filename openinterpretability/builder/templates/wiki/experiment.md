@@ -44,6 +44,9 @@
 {% if sub.head_profile %}
 {% set hp = sub.head_profile %}
 - **Attention patterns** (random {{ hp.pattern_length }}-token sequences repeated twice; reported, not gated): previous token {{ hp.previous_token_score | num(2) }}, duplicate token {{ hp.duplicate_token_score | num(2) }}, induction {{ hp.induction_score | num(2) }}
+{% if hp.ov_lens %}
+- **OV lens** (weights only, {{ hp.ov_lens.tokens }} random tokens; reported, not gated): copying score {{ "{:+.2f}".format(hp.ov_lens.copying_score) }}, own token in the top {{ hp.ov_lens.k }} {{ hp.ov_lens.copy_share | num(2) }}, in the bottom {{ hp.ov_lens.k }} {{ hp.ov_lens.suppression_share | num(2) }}, median own rank {{ hp.ov_lens.median_rank }}
+{% endif %}
 {% endif %}
 {% if sub.dictionary_profile %}
 {% set dp = sub.dictionary_profile %}

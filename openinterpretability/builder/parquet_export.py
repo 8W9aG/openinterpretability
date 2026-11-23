@@ -158,6 +158,9 @@ REGISTRY_SCHEMA = pa.schema(
         ("previous_token_score", pa.float64()),
         ("duplicate_token_score", pa.float64()),
         ("induction_score", pa.float64()),
+        ("ov_copying_score", pa.float64()),
+        ("ov_copy_share", pa.float64()),
+        ("ov_suppression_share", pa.float64()),
         ("dictionary_explained_variance", pa.float64()),
         ("dictionary_mean_l0", pa.float64()),
         ("dictionary_dead_share", pa.float64()),
@@ -278,6 +281,11 @@ HEAD_COLUMNS = {
     "duplicate_token_score": "duplicate_token_score",
     "induction_score": "induction_score",
 }
+OV_COLUMNS = {  # the head's OV lens (#5062)
+    "ov_copying_score": "copying_score",
+    "ov_copy_share": "copy_share",
+    "ov_suppression_share": "suppression_share",
+}
 DICTIONARY_COLUMNS = {
     "dictionary_explained_variance": "explained_variance",
     "dictionary_mean_l0": "mean_l0",
@@ -320,6 +328,7 @@ def experiment_row(exp: Experiment, corpus_sources: Sources = None, *, with_json
         "fuzzing_score": _balanced(scores.fuzzing if scores else None),
         "embedding_auroc": scores.embedding_auroc if scores else None,
         **_columns(sub.head_profile, HEAD_COLUMNS),
+        **_columns(sub.head_profile and sub.head_profile.ov_lens, OV_COLUMNS),
         **_columns(sub.dictionary_profile, DICTIONARY_COLUMNS),
     }
 

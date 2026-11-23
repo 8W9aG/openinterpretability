@@ -20,3 +20,7 @@ openinterpretability/interference/tuning.py::train_stage  needs a model and back
 openinterpretability/interference/tuning.py::heldout_loss  needs a model; tests/test_interference_tuning.py runs it on a toy model
 openinterpretability/interference/tuning.py::stage_kl  needs two models; tests/test_interference_tuning.py runs it on toy models
 openinterpretability/interference/tuning.py::arc_accuracy  needs a model; tests/test_interference_tuning.py runs it on a toy model
+openinterpretability/harness/ov_lens.py::mappings  needs a loaded model's weights
+openinterpretability/harness/ov_lens.py::ov_circuit  needs a loaded model's weights
+openinterpretability/harness/ov_lens.py::ov_lens  needs a loaded model's weights
+openinterpretability/harness/ov_lens.py::unembedding  needs a loaded model's weights

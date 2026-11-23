@@ -1,6 +1,6 @@
 """How the proposer's prompt describes a unit that is not a neuron pole.
 
-A head is described by its attention-pattern scores, and a dictionary feature by its
+A head is described by its attention-pattern scores and its OV lens, and a dictionary feature by its
 dictionary's fit. A superposition is described by its member neurons and their weights.
 """
 
@@ -19,7 +19,31 @@ def format_head_profile(profile: HeadProfile) -> str:
         f"random {profile.pattern_length}-token sequences repeated twice (0-1; mean attention "
         f"weight): previous token {profile.previous_token_score:.2f}, duplicate token "
         f"{profile.duplicate_token_score:.2f}, induction (to the token after an earlier copy "
-        f"of the current one) {profile.induction_score:.2f}.\n"
+        f"of the current one) {profile.induction_score:.2f}.\n" + format_ov_lens(profile)
+    )
+
+
+def format_ov_lens(profile: HeadProfile) -> str:
+    """The proposer's note on the head's OV circuit, read through the vocabulary (#5062).
+
+    Args:
+        profile: The head's profile.
+
+    Returns:
+        One line, or "" when the profile has no OV lens.
+    """
+    lens = profile.ov_lens
+    if lens is None:
+        return ""
+    maps = "; ".join(f"{m.token!r} -> {', '.join(map(repr, m.top))}" for m in lens.mappings)
+    return (
+        f"OV circuit through the vocabulary (weights only): copying score "
+        f"{lens.copying_score:+.2f} (+1 copies the attended token, -1 suppresses it). Of "
+        f"{lens.tokens} random tokens, {lens.copy_share:.0%} have their own logit in the top "
+        f"{lens.k} of their OV write and {lens.suppression_share:.0%} in the bottom {lens.k}; "
+        f"median own rank {lens.median_rank}."
+        + (f" The top examples' attended tokens map to: {maps}." if maps else "")
+        + "\n"
     )
 
 
