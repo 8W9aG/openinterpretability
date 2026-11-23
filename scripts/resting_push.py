@@ -193,5 +193,15 @@ class PushRecorder:
 
 
 def _or_none(value: float) -> float | None:
-    """``value``, or None when it is NaN."""
+    """``value``, or None when it is NaN.
+
+    Args:
+        value: The number.
+
+    Returns:
+        ``value``, or None.
+
+    >>> _or_none(1.5), _or_none(float("nan"))
+    (1.5, None)
+    """
     return None if value != value else value

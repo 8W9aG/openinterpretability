@@ -98,7 +98,15 @@ class Activation(nn.Module):
         self.count_bins = self._bin_sum(index, torch.ones_like(push))
 
     def _bin_sum(self, index: torch.Tensor, values: torch.Tensor) -> torch.Tensor:
-        """Sum ``values`` over each bin's tokens, one row per bin and one column per neuron."""
+        """Sum ``values`` over each bin's tokens, one row per bin and one column per neuron.
+
+        Args:
+            index: Each token's bin, ``[tokens, width]``.
+            values: The values to sum, ``[batch, seq, width]``.
+
+        Returns:
+            ``[bins + 1, width]``.
+        """
         out = torch.zeros(len(self.bins) + 1, values.shape[-1], device=values.device)
         return out.scatter_add_(0, index, values.reshape(-1, values.shape[-1]))
 
