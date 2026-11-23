@@ -5,10 +5,10 @@ come from Hub datasets, each pinned to one commit and read from its parquet file
 task uses one prompt template, :data:`TEMPLATE`, so that two models trained on one sequence
 differ only in where they start. After each stage, these measures show what changed:
 
-- :func:`heldout_loss`: the mean loss on the response tokens of a task's held-out pairs.
-- :func:`stage_kl`: KL(before ‖ after) on the response tokens of the stage's own held-out
-  pairs, the quantity of RL's Razor (Shenfeld et al., 2025).
-- :func:`arc_accuracy`: zero-shot ARC-Easy accuracy, the general benchmark.
+- :func:`heldout_loss` gives the mean loss on the response tokens of held-out pairs.
+- :func:`stage_kl` gives KL(before ‖ after) on the stage's own held-out pairs. It is the
+  quantity of RL's Razor (Shenfeld et al., 2026).
+- :func:`arc_accuracy` gives zero-shot ARC-Easy accuracy, the general benchmark.
 """
 
 from __future__ import annotations
@@ -58,8 +58,16 @@ ARC = Task("arc_easy", "allenai/ai2_arc", "210d026faf9955653af8916fad021475a3f00
 def pair(task: Task, row: dict) -> tuple[str, str]:
     """``(prompt, response)`` for one row of ``task``.
 
-    >>> pair(TASKS[0], {"sentence": "a fine film", "label": 1})[1]
-    'positive'
+    Args:
+        task: The task.
+        row: One row of the task's dataset.
+
+    Returns:
+        ``(prompt, response)``.
+
+    Examples:
+        >>> pair(TASKS[0], {"sentence": "a fine film", "label": 1})[1]
+        'positive'
     """
     text, target = (row[c] for c in task.columns[:2])
     if task.name == "sst2":
@@ -70,7 +78,15 @@ def pair(task: Task, row: dict) -> tuple[str, str]:
 
 
 def load_rows(task: Task, split: str) -> list[dict]:
-    """Every row of ``task``'s ``split`` file (``train`` or ``heldout``), from the Hub."""
+    """Every row of ``task``'s ``split`` file (``train`` or ``heldout``), from the Hub.
+
+    Args:
+        task: The task.
+        split: ``train`` or ``heldout``: the file to read.
+
+    Returns:
+        The rows, each a dict of the task's columns.
+    """
     import pyarrow.parquet as pq
     from huggingface_hub import hf_hub_download
 
@@ -82,8 +98,17 @@ def load_rows(task: Task, split: str) -> list[dict]:
 def sample(rows: Sequence, count: int, seed: int) -> list:
     """``count`` rows drawn without replacement with ``seed``, or all rows when fewer.
 
-    >>> sample(list(range(10)), 3, 0) == sample(list(range(10)), 3, 0)
-    True
+    Args:
+        rows: The rows.
+        count: How many to draw.
+        seed: The seed of the draw.
+
+    Returns:
+        The drawn rows, in their order in ``rows``.
+
+    Examples:
+        >>> sample(list(range(10)), 3, 0) == sample(list(range(10)), 3, 0)
+        True
     """
     if count >= len(rows):
         return list(rows)
@@ -95,6 +120,14 @@ def encode(tokenizer, prompt: str, response: str) -> tuple[list[int], int]:
 
     The ids are cut to :data:`MAX_TOKENS`. The prompt is cut first from its start, so the
     response and the instruction's end stay.
+
+    Args:
+        tokenizer: The model's tokenizer.
+        prompt: The prompt, from :func:`pair`.
+        response: The response.
+
+    Returns:
+        ``(ids, start)``: the ids, and the index of the response's first token.
     """
     head = tokenizer.encode(prompt, add_special_tokens=False)
     tail = tokenizer.encode(response + tokenizer.eos_token, add_special_tokens=False)
@@ -104,7 +137,18 @@ def encode(tokenizer, prompt: str, response: str) -> tuple[list[int], int]:
 
 
 def collate(rows: list[tuple[list[int], int]]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """``(ids, attention, mask)``, right-padded. ``mask`` marks each response token."""
+    """``(ids, attention, mask)``, right-padded. ``mask`` marks each response token.
+
+    Args:
+        rows: ``(ids, start)`` of each pair, from :func:`encode`.
+
+    Returns:
+        ``(ids, attention, mask)``, each ``[pairs, longest]``.
+
+    Examples:
+        >>> collate([([5, 6, 7], 2), ([8], 1)])[2].tolist()
+        [[False, False, True], [False, False, False]]
+    """
     width = max(len(ids) for ids, _ in rows)
     ids = torch.zeros(len(rows), width, dtype=torch.long)
     attention = torch.zeros(len(rows), width, dtype=torch.long)
@@ -122,6 +166,13 @@ def response_log_probs(model, ids, attention, mask, device) -> tuple[torch.Tenso
     Only the response positions pass through the softmax, which keeps a large vocabulary
     in memory (151,936 for Qwen2.5).
 
+    Args:
+        model: The model.
+        ids: The token ids, from :func:`collate`.
+        attention: The attention mask.
+        mask: Where the response tokens are.
+        device: The device of the model.
+
     Returns:
         ``(log_probs, targets, rows)``. ``targets`` is each position's next token, and
         ``rows`` the row of ``ids`` that the position is in.
@@ -135,7 +186,18 @@ def response_log_probs(model, ids, attention, mask, device) -> tuple[torch.Tenso
 
 
 def response_loss(model, ids, attention, mask, device) -> tuple[torch.Tensor, int]:
-    """The summed loss on the response tokens, and how many there are."""
+    """The summed loss on the response tokens, and how many there are.
+
+    Args:
+        model: The model.
+        ids: The token ids, from :func:`collate`.
+        attention: The attention mask.
+        mask: Where the response tokens are.
+        device: The device of the model.
+
+    Returns:
+        ``(loss, tokens)``: the summed loss, and the number of response tokens.
+    """
     logp, targets, _ = response_log_probs(model, ids, attention, mask, device)
     return -logp.gather(-1, targets.unsqueeze(-1)).sum(), len(targets)
 
@@ -148,12 +210,26 @@ def train_stage(model, tokenizer, pairs: list[tuple[str, str]], *, device: str, 
     Each optimiser step takes ``batch * accumulate`` pairs. The loss is the mean over the
     response tokens of a step. The model is left in eval mode with no gradients.
 
+    Args:
+        model: The model, changed in place.
+        tokenizer: Its tokenizer.
+        pairs: The ``(prompt, response)`` pairs to train on.
+        device: The device of the model.
+        epochs: The passes over ``pairs``.
+        lr: The learning rate.
+        batch: The pairs of one forward pass.
+        accumulate: The forward passes of one optimiser step.
+        seed: The seed of the order of the pairs.
+        progress: Called with a line every 50 steps.
+
     Returns:
         The loss of each optimiser step.
     """
     encoded = [encode(tokenizer, p, r) for p, r in pairs]
     model.train()
     model.requires_grad_(True)
+    # Recompute activations in the backward pass. The 0.5B model, its gradients and AdamW's
+    # two moments fill most of a 12 GB GPU. Stored activations would not fit.
     if hasattr(model, "gradient_checkpointing_enable"):
         model.gradient_checkpointing_enable()
         model.config.use_cache = False
@@ -166,6 +242,8 @@ def train_stage(model, tokenizer, pairs: list[tuple[str, str]], *, device: str, 
         for start in range(0, len(order) - per_step + 1, per_step):
             step = [encoded[i] for i in order[start : start + per_step]]
             parts = [collate(step[i : i + batch]) for i in range(0, per_step, batch)]
+            # Divide by the step's response tokens, not each part's. Then the step's loss is
+            # one mean over all its tokens, however the pairs split into micro-batches.
             tokens = sum(int(m[:, 1:].sum()) for _, _, m in parts)
             total = 0.0
             for ids, attention, mask in parts:
@@ -188,7 +266,18 @@ def train_stage(model, tokenizer, pairs: list[tuple[str, str]], *, device: str, 
 @torch.no_grad()
 def heldout_loss(model, tokenizer, pairs: list[tuple[str, str]], device: str,
                  batch: int = 4) -> float:  # fmt: skip
-    """The mean loss, in nats, over every response token of ``pairs``."""
+    """The mean loss, in nats, over every response token of ``pairs``.
+
+    Args:
+        model: The model.
+        tokenizer: Its tokenizer.
+        pairs: The ``(prompt, response)`` pairs.
+        device: The device of the model.
+        batch: The pairs of one forward pass.
+
+    Returns:
+        The mean loss per response token.
+    """
     encoded = [encode(tokenizer, p, r) for p, r in pairs]
     total, count = 0.0, 0
     for i in range(0, len(encoded), batch):
@@ -203,6 +292,17 @@ def stage_kl(before, after, tokenizer, pairs: list[tuple[str, str]], device: str
     """The mean KL(before ‖ after), in nats, over every response token of ``pairs``.
 
     The response tokens are the dataset's references, not samples from either model.
+
+    Args:
+        before: The model before the stage.
+        after: The model after it.
+        tokenizer: Their tokenizer.
+        pairs: The ``(prompt, response)`` pairs.
+        device: The device of both models.
+        batch: The pairs of one forward pass.
+
+    Returns:
+        The mean KL per response token.
     """
     encoded = [encode(tokenizer, p, r) for p, r in pairs]
     total, count = 0.0, 0
@@ -217,8 +317,15 @@ def stage_kl(before, after, tokenizer, pairs: list[tuple[str, str]], device: str
 def arc_prompt(question: str) -> str:
     """The zero-shot prompt of one ARC question.
 
-    >>> arc_prompt("Why?")
-    'Question: Why?\\nAnswer:'
+    Args:
+        question: The question's text.
+
+    Returns:
+        The prompt.
+
+    Examples:
+        >>> arc_prompt("Why?")
+        'Question: Why?\\nAnswer:'
     """
     return f"Question: {question.strip()}\nAnswer:"
 
@@ -229,6 +336,15 @@ def arc_accuracy(model, tokenizer, rows: list[dict], device: str) -> tuple[int, 
 
     The model's answer is the choice whose tokens have the highest mean log-probability
     after :func:`arc_prompt`. The mean over tokens corrects for the length of a choice.
+
+    Args:
+        model: The model.
+        tokenizer: Its tokenizer.
+        rows: ARC rows, each with ``question``, ``choices`` and ``answerKey``.
+        device: The device of the model.
+
+    Returns:
+        ``(correct, items)``.
     """
     correct = 0
     for row in rows:

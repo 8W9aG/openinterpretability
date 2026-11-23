@@ -1,14 +1,14 @@
 """Do VERIFIED explanations keep through a sequence of narrow fine-tunes (#5125)?
 
 The script fine-tunes ``--base`` and its ``-Instruct`` model on one sequence of narrow tasks
-(``interference/tuning.py``): SST-2 sentiment, then XSum summaries, then GSM8K maths. Each
-stage trains every weight. Before the first stage and after each stage, it measures three
-things. It runs the keep test of ``docs/analyses/base-instruct.md`` on each VERIFIED neuron
-pole of the base model. It scores ARC-Easy, zero-shot, with a Wilson interval. And it gives
-the held-out loss of each task. Each stage also gives the KL on its own held-out data
-between the model before and after it. The scale ratio of the keep test is the pole's
-maximum on the stage model over its maximum on the base model, on one sample of
-``corpus.jsonl``. The script writes no record and saves no weights.
+(``interference/tuning.py``). The tasks are SST-2 sentiment, then XSum summaries, then GSM8K
+maths. Each stage trains every weight. Before the first stage and after each stage, it
+measures three things. It runs the keep test of ``docs/analyses/base-instruct.md`` on each
+VERIFIED neuron pole of the base model. It scores ARC-Easy, zero-shot, with a Wilson
+interval. And it gives the held-out loss of each task. Each stage also gives the KL on its
+own held-out data between the model before and after it. The keep test scales each pole by a
+ratio. It is the pole's maximum on the stage model over its maximum on the base model, on
+one sample of ``corpus.jsonl``. The script writes no record and saves no weights.
 
     uv run python scripts/sequential_tuning.py --device cuda \\
         --out papers/sequential-tuning/results.jsonl
@@ -19,6 +19,7 @@ from __future__ import annotations
 import copy
 import gc
 import json
+import math
 import sys
 import time
 from collections import defaultdict
@@ -62,19 +63,32 @@ BATCH, ACCUMULATE = 1, 8
 
 
 def progress(message: str, started: float) -> None:
-    """Print ``message`` to stderr after the minutes since ``started``."""
+    """Print ``message`` to stderr after the minutes since ``started``.
+
+    Args:
+        message: The line to print.
+        started: When the run started.
+    """
     print(f"[{(time.monotonic() - started) / 60:6.1f} min] {message}", file=sys.stderr, flush=True)
 
 
 def _free(device: str) -> None:
-    """Return freed memory to the device, so the next model or copy fits."""
+    """Return freed memory to the device, so the next model or copy fits.
+
+    Args:
+        device: The device of the models.
+    """
     gc.collect()
     if device == "cuda":
         torch.cuda.empty_cache()
 
 
 def by_layer(records: list) -> dict[int, list]:
-    """``{layer: [identifier, ...]}`` of the records' poles, in layer order."""
+    """``{layer: [identifier, ...]}`` of the records' poles, in layer order.
+
+    Args:
+        records: The VERIFIED records.
+    """
     out: dict[int, list] = defaultdict(list)
     for record in records:
         out[record.submission.identifier.layer].append(record.submission.identifier)
@@ -82,7 +96,13 @@ def by_layer(records: list) -> dict[int, list]:
 
 
 def columns(runner, batches, layers: dict[int, list]) -> dict[int, tuple[list, torch.Tensor]]:
-    """``{layer: (neurons, activations)}`` over the sample, for each layer's poles."""
+    """``{layer: (neurons, activations)}`` over the sample, for each layer's poles.
+
+    Args:
+        runner: The model's ``NeuronHookRunner``.
+        batches: The corpus sample, from ``sample_windows``.
+        layers: The poles of each layer, from :func:`by_layer`.
+    """
     out = {}
     for layer, idents in layers.items():
         neurons = sorted({i.neuron_idx for i in idents})
@@ -179,8 +199,114 @@ def first_failures(rows: list[dict], reproduced: set[str], stages: int) -> list[
     return out
 
 
+def binomial_p(k: int, n: int) -> float:
+    """The exact two-sided binomial p of ``k`` successes in ``n`` at one half.
+
+    Args:
+        k: The successes.
+        n: The trials.
+
+    Returns:
+        The p value, at most 1.
+    """
+    if n == 0:
+        return 1.0
+    tail = sum(math.comb(n, i) for i in range(min(k, n - k) + 1)) / 2**n
+    return min(1.0, 2 * tail)
+
+
+def _p(value: float) -> float:
+    """A p value to three significant figures, so that a very small one stays above zero.
+
+    Args:
+        value: The p value.
+    """
+    return float(f"{value:.3g}")
+
+
+def compare(rows: list[dict], reproduced: set[str], stages: int) -> list[dict]:
+    """The paired tests of the paper, from the ``pole`` rows.
+
+    Args:
+        rows: Every ``pole`` row.
+        reproduced: The slugs that keep on the base model before any stage.
+        stages: The number of fine-tune stages.
+
+    Returns:
+        - One ``change`` row for each stage of each arm: the poles that stop and start
+          keeping at that stage, with an exact McNemar p, and the mean change of each gate.
+        - One ``between`` row for each stage: the poles that keep on one model only.
+        - One ``depth`` row for each arm and third of the layers, after the last stage.
+        - One ``overlap`` row: the poles that fail after the base model's first stage,
+          against those that fail on the instruct model before any stage.
+    """
+    at = {(r["arm"], r["stage"], r["slug"]): r for r in rows if r["slug"] in reproduced}
+    keeps = lambda arm, stage, slug: at[(arm, stage, slug)]["keeps"]  # noqa: E731
+    out = []
+    for arm in ARMS:
+        for stage in range(1, stages + 1):
+            lost = sum(keeps(arm, stage - 1, x) and not keeps(arm, stage, x) for x in reproduced)
+            gained = sum(keeps(arm, stage, x) and not keeps(arm, stage - 1, x)
+                         for x in reproduced)  # fmt: skip
+            row = {"table": "change", "arm": arm, "stage": stage, "lost": lost,
+                   "gained": gained, "p_keep": _p(binomial_p(lost, lost + gained))}  # fmt: skip
+            for gate in ("specificity", "sensitivity"):
+                deltas = [at[(arm, stage, x)][gate] - at[(arm, stage - 1, x)][gate]
+                          for x in reproduced]  # fmt: skip
+                row[f"mean_{gate}_change"] = round(sum(deltas) / len(deltas), 4)
+            out.append(row)
+    for stage in range(stages + 1):
+        base = sum(keeps("base", stage, x) and not keeps("instruct", stage, x) for x in reproduced)
+        tuned = sum(keeps("instruct", stage, x) and not keeps("base", stage, x)
+                    for x in reproduced)  # fmt: skip
+        out.append({"table": "between", "stage": stage, "base_only": base,
+                    "instruct_only": tuned, "p": _p(binomial_p(base, base + tuned))})  # fmt: skip
+    for arm in ARMS:
+        for low in (0, 8, 16):
+            got = [x for x in reproduced if low <= at[(arm, stages, x)]["layer"] < low + 8]
+            kept = sum(keeps(arm, stages, x) for x in got)
+            out.append({"table": "depth", "arm": arm, "layers": [low, low + 7],
+                        "poles": len(got), "keeps": kept})  # fmt: skip
+    first = {x for x in reproduced if not keeps("base", 1, x)}
+    tuned = {x for x in reproduced if not keeps("instruct", 0, x)}
+    both, n = len(first & tuned), len(reproduced)
+    ways = sum(math.comb(len(tuned), k) * math.comb(n - len(tuned), len(first) - k)
+               for k in range(both, min(len(first), len(tuned)) + 1))  # fmt: skip
+    tail = ways / math.comb(n, len(first))  # the hypergeometric upper tail
+    out.append({"table": "overlap", "base_stage_1_fail": len(first),
+                "instruct_stage_0_fail": len(tuned), "both": both,
+                "expected": round(len(first) * len(tuned) / n, 2),
+                "p_hypergeometric": _p(tail)})  # fmt: skip
+    return out
+
+
+def analysed(rows: list[dict], stages: int) -> list[dict]:
+    """``rows`` with their first-failure and comparison rows made again from the pole rows.
+
+    Args:
+        rows: The results: the summary, stage and pole rows, with any analysis rows.
+        stages: The number of fine-tune stages.
+
+    Returns:
+        The summary and stage rows, then the analysis rows, then the pole rows.
+    """
+    poles = [r for r in rows if r["table"] == "pole"]
+    reproduced = {r["slug"] for r in poles if (r["arm"], r["stage"]) == ("base", 0) and r["keeps"]}
+    kept = [r for r in rows if r["table"] in ("summary", "stage")]
+    return [
+        *kept,
+        *first_failures(poles, reproduced, stages),
+        *compare(poles, reproduced, stages),
+        *poles,
+    ]
+
+
 def task_data(count: int) -> dict[str, dict]:
-    """``{task: {"train", "heldout"}}``: the sampled pairs of each task, drawn with :data:`SEED`."""
+    """``{task: {"train", "heldout"}}``: the sampled pairs of each task, drawn with :data:`SEED`.
+
+    Args:
+        count: The training pairs of each task.
+    """
     out = {}
     for task in TASKS:
         train = sample(load_rows(task, "train"), count, SEED)
@@ -219,13 +345,75 @@ def tune(runner, pairs: dict, name: str, stage: int, device: str, started: float
 
 
 def measure_stage(runner, data: dict, arc_rows: list, device: str) -> dict:
-    """ARC-Easy accuracy with its interval, and each task's held-out loss, at one stage."""
+    """ARC-Easy accuracy with its interval, and each task's held-out loss, at one stage.
+
+    Args:
+        runner: The model at this stage.
+        data: Each task's pairs, from :func:`task_data`.
+        arc_rows: The ARC-Easy rows.
+        device: The device of the model.
+    """
     correct, items = arc_accuracy(runner.model, runner.tokenizer, arc_rows, device)
     losses = {name: round(heldout_loss(runner.model, runner.tokenizer, d["heldout"], device), 4)
               for name, d in data.items()}  # fmt: skip
     return {"arc_correct": correct, "arc_items": items,
             "arc_accuracy": round(correct / items, 4) if items else None,
             "arc_ci95": wilson(correct, items), "task_loss": losses}  # fmt: skip
+
+
+def stage_rows(runner, arm: str, stage: int, run: dict) -> tuple[dict, list[dict]]:
+    """Tune ``runner`` for ``stage`` when it is above 0, then measure it.
+
+    Args:
+        runner: The arm's model, changed in place.
+        arm: ``base`` or ``instruct``.
+        stage: 0 before any fine-tune, else the stage to train.
+        run: The run's fixed inputs: ``data``, ``arc``, ``device``, ``started``,
+            ``records``, ``batches``, ``layers`` and the base model's columns, ``base``.
+
+    Returns:
+        The stage row, without its keep summary, and the stage's ``pole`` rows.
+    """
+    device, started = run["device"], run["started"]
+    row: dict = {"table": "stage", "arm": arm, "stage": stage,
+                 "task": TASKS[stage - 1].name if stage else None}  # fmt: skip
+    if stage:
+        row.update(tune(runner, run["data"][TASKS[stage - 1].name], f"{arm} stage {stage}",
+                        stage, device, started))  # fmt: skip
+    row.update(measure_stage(runner, run["data"], run["arc"], device))
+    progress(f"{arm} stage {stage}: ARC {row['arc_accuracy']}, "
+             f"losses {row['task_loss']}, KL {row.get('kl')}", started)  # fmt: skip
+    first = (arm, stage) == ("base", 0)  # the base model unchanged: its columns are cached
+    now = run["base"] if first else columns(runner, run["batches"], run["layers"])
+    return row, pole_rows(runner, run["records"], run["base"], now, arm, stage, started)
+
+
+def reanalyse(out: Path) -> None:
+    """Make the analysis rows of the results file ``out`` again, from its pole rows.
+
+    Args:
+        out: The results file, rewritten in place.
+    """
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    out.write_text("".join(json.dumps(r) + "\n" for r in analysed(rows, len(TASKS))))
+
+
+def summary_row(base_name: str, count: int, poles: int, reproduced: int) -> dict:
+    """The ``summary`` row: the run's settings, its counts and each dataset's commit.
+
+    Args:
+        base_name: The base model.
+        count: The training pairs of each stage.
+        poles: The VERIFIED poles read.
+        reproduced: The poles that keep on the base model before any stage.
+
+    Returns:
+        The row.
+    """
+    return {"table": "summary", "base": base_name, "instruct": f"{base_name}-Instruct",
+            "tasks": [t.name for t in TASKS], "train_pairs": count, "epochs": EPOCHS, "lr": LR,
+            "batch": BATCH * ACCUMULATE, "seed": SEED, "poles": poles, "reproduced": reproduced,
+            "revisions": {t.name: t.revision for t in (*TASKS, ARC)}}  # fmt: skip
 
 
 @click.command()
@@ -237,8 +425,9 @@ def measure_stage(runner, data: dict, arc_rows: list, device: str) -> dict:
 @click.option("--train", "count", default=TRAIN, show_default=True, help="Pairs per stage.")
 @click.option("--limit", type=int, default=None, help="Read only the first N poles: a timing test.")
 @click.option("--arc-limit", type=int, default=None, help="Score only the first N ARC items.")
+@click.option("--analyse", is_flag=True, help="Remake the analysis rows of --out; train nothing.")
 def main(wiki_dir: Path, out: Path, device: str, base_name: str, corpus: str, count: int,
-         limit: int | None, arc_limit: int | None) -> None:  # fmt: skip
+         limit: int | None, arc_limit: int | None, analyse: bool) -> None:  # fmt: skip
     """Fine-tune both models through the sequence, and write the rows after each stage.
 
     Args:
@@ -250,19 +439,23 @@ def main(wiki_dir: Path, out: Path, device: str, base_name: str, corpus: str, co
         count: The training pairs of each stage.
         limit: Read only this many poles, or every pole when None.
         arc_limit: Score only this many ARC items, or all of them when None.
+        analyse: Only make the analysis rows of ``out`` again.
     """
     from openinterpretability.cli import _load_runner
 
+    if analyse:
+        reanalyse(out)
+        return
     started = time.monotonic()
     torch.manual_seed(SEED)
     records = verified_records(wiki_dir, base_name)[:limit]
-    layers = by_layer(records)
-    data = task_data(count)
-    arc_rows = load_rows(ARC, "heldout")[:arc_limit]
+    layers, arc_rows = by_layer(records), load_rows(ARC, "heldout")[:arc_limit]
     progress(f"{len(records)} poles, {len(arc_rows)} ARC items, {count} pairs a stage", started)
     base = _load_runner(base_name, device, "float32", None)
     batches = sample_windows(base.tokenizer, corpus=corpus)
-    base_cols = columns(base, batches, layers)
+    run = {"data": task_data(count), "arc": arc_rows, "device": device, "started": started,
+           "records": records, "batches": batches, "layers": layers,
+           "base": columns(base, batches, layers)}  # fmt: skip
     progress("base sample read", started)
     poles: list[dict] = []
     stages: list[dict] = []
@@ -271,16 +464,7 @@ def main(wiki_dir: Path, out: Path, device: str, base_name: str, corpus: str, co
         runner = base if arm == "base" else _load_runner(f"{base_name}-Instruct", device,
                                                          "float32", None)  # fmt: skip
         for stage in range(len(TASKS) + 1):
-            row: dict = {"table": "stage", "arm": arm, "stage": stage,
-                         "task": TASKS[stage - 1].name if stage else None}  # fmt: skip
-            if stage:
-                row.update(tune(runner, data[TASKS[stage - 1].name], f"{arm} stage {stage}",
-                                stage, device, started))  # fmt: skip
-            row.update(measure_stage(runner, data, arc_rows, device))
-            progress(f"{arm} stage {stage}: ARC {row['arc_accuracy']}, "
-                     f"losses {row['task_loss']}, KL {row.get('kl')}", started)  # fmt: skip
-            now = base_cols if (arm, stage) == ("base", 0) else columns(runner, batches, layers)
-            got = pole_rows(runner, records, base_cols, now, arm, stage, started)
+            row, got = stage_rows(runner, arm, stage, run)
             if (arm, stage) == ("base", 0):
                 reproduced = {r["slug"] for r in got if r["keeps"]}
             poles += got
@@ -291,13 +475,9 @@ def main(wiki_dir: Path, out: Path, device: str, base_name: str, corpus: str, co
             out.write_text("".join(json.dumps(r) + "\n" for r in [*stages, *poles]))
         runner = base = None  # the next arm needs only the base model's cached columns
         _free(device)
-    head = {"table": "summary", "base": base_name, "instruct": f"{base_name}-Instruct",
-            "tasks": [t.name for t in TASKS], "train_pairs": count, "epochs": EPOCHS, "lr": LR,
-            "batch": BATCH * ACCUMULATE, "seed": SEED, "poles": len(records),
-            "reproduced": len(reproduced),
-            "revisions": {t.name: t.revision for t in (*TASKS, ARC)}}  # fmt: skip
-    fails = first_failures(poles, reproduced, len(TASKS))
-    out.write_text("".join(json.dumps(r) + "\n" for r in [head, *stages, *fails, *poles]))
+    head = summary_row(base_name, count, len(records), len(reproduced))
+    done = analysed([head, *stages, *poles], len(TASKS))
+    out.write_text("".join(json.dumps(r) + "\n" for r in done))
     click.echo(json.dumps(head))
 
 
