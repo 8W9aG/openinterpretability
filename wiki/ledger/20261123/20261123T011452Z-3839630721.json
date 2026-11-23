@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-23T01:14:52Z","seed":3839630721,"kind":"explore","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L0/N435-positive","record":null,"audit":"--model Qwen/Qwen2.5-0.5B --layer 0 --neuron 435 --pole positive --selection attribution","pole_forced":null,"until_verified":false,"max_turns":null,"harness_version":"0.4.0"}
