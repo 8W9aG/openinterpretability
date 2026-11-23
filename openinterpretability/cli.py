@@ -326,7 +326,7 @@ def with_model_options(fn):
 )
 @click.pass_context
 def cli(ctx, quiet) -> None:
-    """Open Interpretability: a mechanistic interpretability lab and its neuron registry."""
+    """Open Interpretability: a mechanistic interpretability project and its neuron registry."""
     import time
 
     from openinterpretability.core import costs

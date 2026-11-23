@@ -1,7 +1,7 @@
 [project]
 name = "open-interpretability"
 dynamic = ["version"]
-description = "Open Interpretability: an agent-run mechanistic interpretability lab, with an audited registry of native neurons in open-weight models."
+description = "Open Interpretability: an agent-run mechanistic interpretability project, with an audited registry of native neurons in open-weight models."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]

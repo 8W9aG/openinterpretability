@@ -1,0 +1,1 @@
+- **A project, not a lab.** The README, the About page, the package and CLI descriptions and the site's meta description now call Open Interpretability a project, not a lab.
