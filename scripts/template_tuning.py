@@ -1,13 +1,13 @@
 """Does instruction tuning move VERIFIED poles more on chat text than on plain text (#5126)?
 
-For each neuron pole of ``--base`` that stands VERIFIED, the script reads the record's own
-probes in four conditions: the base model and its ``-Instruct`` model, each on plain text and
+The script reads the probes of each VERIFIED neuron pole of ``--base`` in four conditions.
+The conditions are the base model and its ``-Instruct`` model, each on plain text and
 inside the chat template. Both models read the same rendered template, the instruct
 model's (``interference/template.py``). The scale rules are those of ``base_instruct.py``.
-From the four readings come three changes for each pole: the template's own effect, the
-tuning's effect on plain text and the tuning's effect on chat text. The script also gives
-each pole's base-to-instruct correlation on a plain sample and on a chat sample, and its
-mean strength on the template's own tokens. It writes no record.
+The four readings give three changes for each pole. They are the template's own effect,
+the tuning's effect on plain text and the tuning's effect on chat text. The script also gives
+each pole's base-to-instruct correlation on a plain sample and on a chat sample. It gives
+each pole's mean strength on the template's own tokens too. It writes no record.
 
     uv run python scripts/template_tuning.py --device cpu \\
         --out papers/template-or-tuning/results.jsonl
