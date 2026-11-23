@@ -116,21 +116,28 @@ def collate(rows: list[tuple[list[int], int]]) -> tuple[torch.Tensor, torch.Tens
     return ids, attention, mask
 
 
-def _token_log_probs(model, ids, attention, device) -> torch.Tensor:
-    """Log-probabilities of the next token at each position but the last, as float32."""
+def response_log_probs(model, ids, attention, mask, device) -> tuple[torch.Tensor, ...]:
+    """The log-probabilities at each response token, as float32 ``[tokens, vocab]``.
+
+    Only the response positions pass through the softmax, which keeps a large vocabulary
+    in memory (151,936 for Qwen2.5).
+
+    Returns:
+        ``(log_probs, targets, rows)``. ``targets`` is each position's next token, and
+        ``rows`` the row of ``ids`` that the position is in.
+    """
     autocast = torch.autocast("cuda", torch.bfloat16) if device == "cuda" else nullcontext()
     with autocast:
         logits = model(input_ids=ids.to(device), attention_mask=attention.to(device)).logits
-    return torch.log_softmax(logits[:, :-1].float(), dim=-1)
+    keep = mask[:, 1:].to(device)
+    picked = torch.log_softmax(logits[:, :-1][keep].float(), dim=-1)
+    return picked, ids[:, 1:].to(device)[keep], keep.nonzero()[:, 0]
 
 
 def response_loss(model, ids, attention, mask, device) -> tuple[torch.Tensor, int]:
     """The summed loss on the response tokens, and how many there are."""
-    logp = _token_log_probs(model, ids, attention, device)
-    target = ids[:, 1:].to(device)
-    picked = logp.gather(-1, target.unsqueeze(-1)).squeeze(-1)
-    keep = mask[:, 1:].to(device)
-    return -(picked * keep).sum(), int(keep.sum())
+    logp, targets, _ = response_log_probs(model, ids, attention, mask, device)
+    return -logp.gather(-1, targets.unsqueeze(-1)).sum(), len(targets)
 
 
 def train_stage(model, tokenizer, pairs: list[tuple[str, str]], *, device: str, epochs: int,
@@ -192,7 +199,7 @@ def heldout_loss(model, tokenizer, pairs: list[tuple[str, str]], device: str,
 
 @torch.no_grad()
 def stage_kl(before, after, tokenizer, pairs: list[tuple[str, str]], device: str,
-             batch: int = 2) -> float:  # fmt: skip
+             batch: int = 1) -> float:  # fmt: skip
     """The mean KL(before ‖ after), in nats, over every response token of ``pairs``.
 
     The response tokens are the dataset's references, not samples from either model.
@@ -200,12 +207,10 @@ def stage_kl(before, after, tokenizer, pairs: list[tuple[str, str]], device: str
     encoded = [encode(tokenizer, p, r) for p, r in pairs]
     total, count = 0.0, 0
     for i in range(0, len(encoded), batch):
-        ids, attention, mask = collate(encoded[i : i + batch])
-        p = _token_log_probs(before, ids, attention, device)
-        q = _token_log_probs(after, ids, attention, device)
-        kl = (p.exp() * (p - q)).sum(-1)
-        keep = mask[:, 1:].to(device)
-        total, count = total + float((kl * keep).sum()), count + int(keep.sum())
+        batch_rows = collate(encoded[i : i + batch])
+        p, _, _ = response_log_probs(before, *batch_rows, device)
+        q, _, _ = response_log_probs(after, *batch_rows, device)
+        total, count = total + float((p.exp() * (p - q)).sum()), count + len(p)
     return total / max(count, 1)
 
 
@@ -231,10 +236,13 @@ def arc_accuracy(model, tokenizer, rows: list[dict], device: str) -> tuple[int, 
         options = [(head + tokenizer.encode(" " + text.strip(), add_special_tokens=False),
                     len(head)) for text in row["choices"]["text"]]  # fmt: skip
         ids, attention, mask = collate(options)
-        logp = _token_log_probs(model, ids, attention, device)
-        picked = logp.gather(-1, ids[:, 1:].to(device).unsqueeze(-1)).squeeze(-1)
-        keep = mask[:, 1:].to(device)
-        scores = (picked * keep).sum(-1) / keep.sum(-1).clamp(min=1)
+        logp, targets, at = response_log_probs(model, ids, attention, mask, device)
+        picked = logp.gather(-1, targets.unsqueeze(-1)).squeeze(-1)
+        sums = torch.zeros(len(options), device=picked.device).index_add_(0, at, picked)
+        counts = torch.zeros(len(options), device=picked.device).index_add_(
+            0, at, torch.ones_like(picked)
+        )
+        scores = sums / counts.clamp(min=1)
         best = row["choices"]["label"][int(scores.argmax())]
         correct += best == row["answerKey"]
     return correct, len(rows)

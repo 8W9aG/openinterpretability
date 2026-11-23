@@ -58,7 +58,7 @@ HELDOUT = 200  # held-out pairs for each task's loss
 KL_PAIRS = 50  # held-out pairs for each stage's KL
 EPOCHS = 2
 LR = 2e-5  # Luo et al. (2023)
-BATCH, ACCUMULATE = 2, 4
+BATCH, ACCUMULATE = 1, 8
 
 
 def progress(message: str, started: float) -> None:
