@@ -1,0 +1,42 @@
+name: Muse label
+
+# Muse acts on every issue labelled `muse` (docs/muse.md). Only an issue that the maintainer
+# opened, or gave a thumbs up, may have the label. This job runs when an issue with the label
+# is opened, labelled, edited or reopened. It removes the label from any other issue.
+# A thumbs up raises no workflow event, so the maintainer adds the label again after it.
+
+on:
+  issues:
+    types: [opened, labeled, edited, reopened]
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: muse-label-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Keep the muse label on the maintainer's issues only
+    if: contains(github.event.issue.labels.*.name, 'muse')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      NUMBER: ${{ github.event.issue.number }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          sparse-checkout: scripts
+      - name: Remove the label from an issue that may not have it
+        run: |
+          set -euo pipefail
+          if ! python3 scripts/issue_state.py --muse-check "$NUMBER"; then
+            gh issue edit "$NUMBER" --repo "$REPO" --remove-label muse
+            note="**Muse label removed.** Only an issue that the maintainer opened,"
+            note="$note or gave a thumbs up, may have the \`muse\` label (docs/muse.md)."
+            gh issue comment "$NUMBER" --repo "$REPO" --body "$note"
+          fi

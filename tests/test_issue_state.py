@@ -103,3 +103,32 @@ def test_release_reports_a_failure(monkeypatch):
 
     monkeypatch.setattr(issue_state, "set_state", fail)
     assert not issue_state.release("v1")
+
+
+def test_only_the_maintainers_issues_or_approved_ones_may_carry_the_muse_label(monkeypatch):
+    _stub(monkeypatch, "8W9aG")
+    assert issue_state.muse_eligibility("1") == (True, "opened by 8W9aG")
+    for bot in ("dependabot[bot]", "github-actions[bot]"):  # eligible for work, not for Muse
+        _stub(monkeypatch, bot, title="Nightly reproduction failed")
+        assert not issue_state.muse_eligibility("1")[0]
+    _stub(monkeypatch, "someone", thumbs=["8W9aG"])
+    assert issue_state.muse_eligibility("1")[0]
+    after = "2026-11-11T00:00:00Z"
+    _stub(monkeypatch, "someone", thumbs=["8W9aG"], edits=[(after, "someone")])
+    assert not issue_state.muse_eligibility("1")[0]
+
+
+def test_the_muse_check_exits_1_for_an_issue_that_may_not_have_the_label(monkeypatch, capsys):
+    _stub(monkeypatch, "someone")
+    monkeypatch.setattr(issue_state.sys, "argv", ["issue_state.py", "--muse-check", "#7"])
+    with pytest.raises(SystemExit) as stop:
+        issue_state.main()
+    assert stop.value.code == 1
+    out = capsys.readouterr().out
+    assert "#7: NOT eligible (opened by someone, with no thumbs up from 8W9aG)" in out
+
+
+def test_the_muse_label_workflow_runs_the_check_on_labelled_issues():
+    text = (Path(__file__).parents[1] / ".github/workflows/muse-label.yml").read_text()
+    assert '--muse-check "$NUMBER"' in text and "--remove-label muse" in text
+    assert "contains(github.event.issue.labels.*.name, 'muse')" in text

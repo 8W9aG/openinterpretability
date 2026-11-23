@@ -6,7 +6,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from openinterpretability.claude_sessions import ALLOWED_TOOLS, Session
+from openinterpretability.claude_sessions import ALLOWED_TOOLS, DENIED_TOOLS, TOKEN_ENV, Session
 from openinterpretability.cli import cli
 from openinterpretability.explain_backend import narrator
 
@@ -66,3 +66,25 @@ def test_inside_claude_code_the_narrator_is_a_subagent(monkeypatch, tmp_path):
                     "/Narrator.prompt.md with the explanation-narrator agent."]  # fmt: skip
     monkeypatch.delenv("CLAUDECODE")
     assert narrator(None, said.append) is None and len(said) == 1
+
+
+def test_a_session_loads_only_the_project_settings_and_is_denied_outward_actions():
+    command = Session("m", 3).command({"CLAUDE_BIN": "/c"})
+    assert command[command.index("--setting-sources") + 1] == "project"
+    denied = command[command.index("--disallowedTools") + 1 :][: len(DENIED_TOOLS)]
+    assert denied == list(DENIED_TOOLS)
+    assert "Bash(gh workflow:*)" in denied and "Bash(uv run python:*)" in denied
+    assert "Bash(uv run:*)" not in ALLOWED_TOOLS  # only the package's own command
+
+
+def test_a_session_token_replaces_the_users_login(tmp_path, monkeypatch):
+    claude = tmp_path / "claude"
+    claude.write_text(FAKE.replace('"ledger"', '"token": os.environ.get("GH_TOKEN"), "ledger"')
+                      .format(python=sys.executable))  # fmt: skip
+    claude.chmod(0o755)
+    monkeypatch.setenv("CLAUDE_BIN", str(claude))
+    monkeypatch.setenv("CLAUDE_LOG", str(tmp_path / "seen.json"))
+    monkeypatch.setenv(TOKEN_ENV, "scoped")
+    paths = [tmp_path / name for name in ("out.json", "err.log", "costs.jsonl")]
+    assert Session("", 3).run("go", tmp_path, *paths) == 4
+    assert json.loads((tmp_path / "seen.json").read_text())["token"] == "scoped"

@@ -6,6 +6,7 @@ integration links each issue, and this script finds the Linear issue from that l
     python3 scripts/issue_state.py 3371 "In Progress"
     python3 scripts/issue_state.py 3371 3372 "In Review"
     python3 scripts/issue_state.py --check 3371
+    python3 scripts/issue_state.py --muse-check 5300
     python3 scripts/issue_state.py --release v0.0.20 [--dry-run]
     python3 scripts/issue_state.py --blocked-by 3372 3371
 
@@ -21,6 +22,9 @@ An issue labelled `proposed` is never eligible, whoever opened it. The maintaine
 the label to hold an issue back, and removes it to release the issue.
 
 `--check` prints whether each issue is eligible, and why. It exits 1 if one is not.
+`--muse-check` does the same for the `muse` label, with a stricter rule. Only an issue
+that the maintainer opened, or gave a thumbs up, may have it. Bots and workflows don't count.
+The `muse-label` workflow removes the label from any other issue (docs/muse.md).
 `--release <tag>` moves every closed issue in milestone ``<tag>`` to Released. The
 `linear-released` workflow runs it when that release is published.
 `--blocked-by <issue> <blocker>` records that ``<issue>`` can't start until ``<blocker>``
@@ -105,6 +109,20 @@ def eligibility(number: str) -> tuple[bool, str]:
         return True, f"opened by {author}"
     if author == NIGHTLY_BOT and issue["title"] in automatic_titles():
         return True, f"opened by a workflow ({issue['title']})"
+    return approval(number, issue)
+
+
+def approval(number: str, issue: dict) -> tuple[bool, str]:
+    """Whether the maintainer gave issue ``number`` a thumbs up that no later edit undid.
+
+    Args:
+        number: The issue's number.
+        issue: The issue, as the GitHub API gives it.
+
+    Returns:
+        Whether the thumbs up stands, and the reason.
+    """
+    author = issue["user"]["login"]
     if issue["reactions"]["+1"]:
         reactions = gh_api(f"repos/{REPO}/issues/{number}/reactions?per_page=100")
         approved = [
@@ -123,6 +141,24 @@ def eligibility(number: str) -> tuple[bool, str]:
                 )
             return True, f"opened by {author}, thumbs up from {MAINTAINER}"
     return False, f"opened by {author}, with no thumbs up from {MAINTAINER}"
+
+
+def muse_eligibility(number: str) -> tuple[bool, str]:
+    """Return whether issue ``number`` may carry the ``muse`` label, and the reason.
+
+    Muse acts on every issue with the label. So only two kinds of issue may have it: the
+    maintainer's own issues, and the ones with the maintainer's thumbs up. Bots don't count.
+
+    Args:
+        number: The issue's number.
+
+    Returns:
+        Whether the issue may have the label, and the reason.
+    """
+    issue = gh_api(f"repos/{REPO}/issues/{number}")
+    if issue["user"]["login"] == MAINTAINER:
+        return True, f"opened by {MAINTAINER}"
+    return approval(number, issue)
 
 
 EDITS_QUERY = """
@@ -231,11 +267,11 @@ def block(number: str, blocker: str) -> str:
     return f"#{number} is blocked by #{blocker}, in {where}"
 
 
-def check(numbers: list[str]) -> bool:
-    """Print each issue's eligibility. Return True when every one is eligible."""
+def check(numbers: list[str], rule=eligibility) -> bool:
+    """Print each issue's eligibility under ``rule``. Return True when every one is eligible."""
     ok = True
     for number in numbers:
-        allowed, reason = eligibility(number)
+        allowed, reason = rule(number)
         ok &= allowed
         print(f"#{number}: {'eligible' if allowed else 'NOT eligible'} ({reason})")
     return ok
@@ -286,8 +322,11 @@ def release(tag: str, dry_run: bool = False) -> bool:
 def main() -> None:
     """Check eligibility, or set a state. "In Progress" needs every issue to be eligible."""
     args = [a.lstrip("#") for a in sys.argv[1:]]
+    # The flags first, each with its own rule. A plain list of numbers then sets a state.
     if args[:1] == ["--check"]:
         sys.exit(0 if check(args[1:]) else 1)
+    if args[:1] == ["--muse-check"]:
+        sys.exit(0 if check(args[1:], muse_eligibility) else 1)
     if args[:1] == ["--blocked-by"] and len(args) == 3:
         print(block(args[1], args[2]))
         return
@@ -297,6 +336,7 @@ def main() -> None:
     if not numbers or state not in STATES:
         sys.exit(
             f"usage: issue_state.py <number>... <{'|'.join(STATES)}> | --check <number>..."
+            " | --muse-check <number>..."
             " | --release <tag> [--dry-run] | --blocked-by <issue> <blocker>"
         )
     if state == "In Progress" and not check(numbers):

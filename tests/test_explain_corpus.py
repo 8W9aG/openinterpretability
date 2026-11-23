@@ -54,3 +54,13 @@ def test_with_the_cache_off_the_error_names_the_option(monkeypatch, tmp_path):
     monkeypatch.setenv("OPENINTERPRETABILITY_REBUILT_CORPORA", "off")
     with pytest.raises(ValueError, match="Pass --corpus with a corpus file"):
         default_corpus(lambda _: None, local=tmp_path / "corpus.jsonl")
+
+
+def test_a_corpus_hash_that_is_not_a_sha256_never_names_a_cache_file(monkeypatch, tmp_path):
+    from openinterpretability.corpus_rebuild import cache_path
+
+    monkeypatch.setenv("OPENINTERPRETABILITY_REBUILT_CORPORA", str(tmp_path))
+    assert cache_path(EXPLAIN_CORPUS).parent == tmp_path
+    for bad in ("../../outside", EXPLAIN_CORPUS.sha256.upper(), ""):
+        with pytest.raises(ValueError, match="not a SHA-256"):
+            cache_path(EXPLAIN_CORPUS.model_copy(update={"sha256": bad}))
