@@ -1,4 +1,4 @@
-"""Open Interpretability: an agent-run mechanistic interpretability project and its neuron registry."""
+"""Open Interpretability: an agent-run interpretability project and its neuron registry."""
 
 from openinterpretability.core.legacy_names import adopt_legacy_env
 
