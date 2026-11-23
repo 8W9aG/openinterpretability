@@ -20,6 +20,9 @@ import yaml  # a dependency of transformers and huggingface_hub
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
+from openinterpretability.builder.alphaxiv import (
+    alphaxiv_url,
+)
 from openinterpretability.builder.contents import anchor as section_anchor
 from openinterpretability.builder.maths import MathsError, enable_maths
 from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
@@ -34,10 +37,6 @@ STATUS = re.compile(
     re.M,
 )
 ADDENDA = "## Addenda"  # a published paper changes only below this heading
-# A published paper's page on the alphaXiv AI Track (#5259): a ``url`` identifier of its
-# CITATION.cff, with this description. The field is outside the paper's frozen hash.
-ALPHAXIV = "alphaXiv AI Track"
-ALPHAXIV_URL = re.compile(r"https://www\.alphaxiv\.org/abs/[\w.\-]+(?:v\d+)?")
 
 
 @dataclass(frozen=True)
@@ -240,34 +239,6 @@ def cff_authors(folder: Path) -> tuple[str, ...]:
         a.get("name") or " ".join(filter(None, (a.get("given-names"), a.get("family-names"))))
         for a in people
     )
-
-
-def alphaxiv_url(folder: Path) -> str | None:
-    r"""The paper's alphaXiv URL, from the ``url`` identifier of its ``CITATION.cff``.
-
-    Args:
-        folder: The paper's folder.
-
-    Returns:
-        The URL, or None when the paper has no citation file or no such identifier.
-
-    Examples:
-        >>> import tempfile
-        >>> folder = Path(tempfile.mkdtemp())
-        >>> alphaxiv_url(folder) is None
-        True
-        >>> _ = (folder / "CITATION.cff").write_text(
-        ...     "identifiers:\n- type: url\n  value: https://www.alphaxiv.org/abs/2611.00001\n"
-        ...     "  description: alphaXiv AI Track\n")
-        >>> alphaxiv_url(folder)
-        'https://www.alphaxiv.org/abs/2611.00001'
-    """
-    path = folder / "CITATION.cff"
-    if not path.is_file():
-        return None
-    found = yaml.safe_load(path.read_text(encoding="utf-8")).get("identifiers") or []
-    return next((i["value"] for i in found
-                 if i.get("type") == "url" and i.get("description") == ALPHAXIV), None)  # fmt: skip
 
 
 def _read_paper(folder: Path, repo_url: str, source: str = "papers") -> Paper:
