@@ -9,12 +9,12 @@ on each token, so a mean output ``c`` that every token shares becomes per-token 
 The noise reaches the loss through the LayerNorms that read the residual stream after the
 MLP. This script delivers it to one set of readers at a time:
 
-- *blocks*: only the LayerNorms of the later blocks.
-- *final*: only the final LayerNorm.
-- *all*: the residual stream itself, so every later reader sees it, as in training.
+- *blocks* goes to the LayerNorms of the later blocks only.
+- *final* goes to the final LayerNorm only.
+- *all* goes to the residual stream itself, so every later reader sees it, as in training.
 
-For each MLP and route, it scales the noise by ``alpha`` and takes the slope of the
-expected loss at ``alpha = 1``, by autograd, over ``--draws`` masks. A positive slope is a
+For each MLP and route, it scales the noise by ``alpha``. Then it takes the slope of the
+expected loss at ``alpha = 1`` by autograd, over ``--draws`` masks. A positive slope is a
 pull. The model is otherwise in eval mode, so no other dropout runs. ``extra`` is the loss
 with the noise at ``alpha = 1`` minus the loss without it. The noise has mean 0, so its
 cost is of second order in its size. So the *all* slope is not the sum of the other two:
@@ -115,6 +115,37 @@ def noise(c: torch.Tensor, shape: tuple, p: float, generator: torch.Generator) -
     return c * (keep / (1 - p) - 1)
 
 
+def _adder(alpha: torch.Tensor, current: dict, output: bool):
+    """A hook that adds ``alpha`` times ``current["noise"]`` where a route's noise goes.
+
+    Args:
+        alpha: The noise's scale, which autograd differentiates.
+        current: Holds the noise of the batch being read, under ``"noise"``.
+        output: Add to the module's output, for the *all* route, not to its input.
+
+    Returns:
+        The hook, for ``register_forward_hook`` with ``output``, else for
+        ``register_forward_pre_hook``.
+    """
+
+    def add(_m, args, out=None):
+        """Add the scaled noise to a reader's input, or to the MLP's output.
+
+        Args:
+            _m: The hooked module.
+            args: Its positional inputs.
+            out: Its output, for the forward hook of the *all* route.
+
+        Returns:
+            The changed output, or the changed inputs.
+        """
+        if output:
+            return out + alpha * current["noise"]
+        return (args[0] + alpha * current["noise"], *args[1:])
+
+    return add
+
+
 def route_slope(model, ids, layer: int, route: str, c: torch.Tensor, p: float, draws: int,
                 seed: int = 0) -> dict:  # fmt: skip
     """The slope and the extra loss of one MLP's dropout noise on one route.
@@ -142,11 +173,7 @@ def route_slope(model, ids, layer: int, route: str, c: torch.Tensor, p: float, d
     current: dict[str, torch.Tensor] = {}
     output = route == "all"
 
-    def add(_m, args, out=None):
-        if output:
-            return out + alpha * current["noise"]
-        return (args[0] + alpha * current["noise"], *args[1:])
-
+    add = _adder(alpha, current, output)
     hooks = [m.register_forward_hook(add) if output else m.register_forward_pre_hook(add)
              for m in targets]  # fmt: skip
     slopes, extras = [], []

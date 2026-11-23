@@ -301,7 +301,7 @@ def test_pythia_conditions_set_its_optimizer_and_batch():
 
 
 def test_offset_ratio_is_the_shared_mean_over_the_spread():
-    from train_resting import offset_ratio
+    from resting_modules import offset_ratio
 
     x = torch.tensor([[3.0, 1.0], [3.0, -1.0]])  # mean (3, 0), each deviation of norm 1
     assert offset_ratio(x) == pytest.approx(3.0)
