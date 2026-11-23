@@ -298,3 +298,71 @@ def test_pythia_conditions_set_its_optimizer_and_batch():
     assert condition.batch == 4 * BATCH and condition.dropout == 0.0 and condition.parallel
     tokens = torch.arange(1000)
     assert sample_batch(tokens, torch.Generator().manual_seed(0), condition.batch).shape[0] == 128
+
+
+def test_offset_ratio_is_the_shared_mean_over_the_spread():
+    from resting_modules import offset_ratio
+
+    x = torch.tensor([[3.0, 1.0], [3.0, -1.0]])  # mean (3, 0), each deviation of norm 1
+    assert offset_ratio(x) == pytest.approx(3.0)
+    assert offset_ratio(x - x.mean(0)) == pytest.approx(0.0)
+
+
+def test_evaluate_records_the_offset_measures_of_each_block():
+    from train_resting import evaluate
+
+    model = build_model(CONDITIONS["relu_dropout_0"], vocab_size=50, seed=0)
+    out = evaluate(model, torch.randint(50, (2, 8)))
+    for layer in out["layers"]:
+        assert layer["ln_1_offset_ratio"] > 0 and layer["ln_2_offset_ratio"] > 0
+        assert layer["mlp_mean_output_norm"] > 0
+    assert model.training  # evaluate puts the model back in training mode
+
+
+def _routes():
+    import dropout_routes
+
+    return dropout_routes
+
+
+def test_dropout_noise_has_mean_zero_and_the_constants_size():
+    routes = _routes()
+    c = torch.tensor([2.0, -1.0, 0.5])
+    n = routes.noise(c, (64, 64), 0.5, torch.Generator().manual_seed(0))
+    assert torch.equal(n.abs(), c.abs().expand_as(n))  # kept: c * (2 - 1), dropped: -c
+    assert n.mean((0, 1)).abs().max() < 0.05
+
+
+def test_readers_of_each_route():
+    routes = _routes()
+    model = build_model(CONDITIONS["relu"], vocab_size=50, seed=0)
+    h = model.transformer.h
+    assert routes.readers(model, 1, "blocks") == [h[2].ln_1, h[2].ln_2, h[3].ln_1, h[3].ln_2]
+    assert routes.readers(model, 3, "blocks") == []
+    assert routes.readers(model, 0, "final") == [model.transformer.ln_f]
+    assert routes.readers(model, 2, "all") == [h[2].mlp]
+    with pytest.raises(ValueError, match="unknown route"):
+        routes.readers(model, 0, "attention")
+
+
+def test_route_slope_matches_the_loss_with_the_noise_added_by_hand():
+    routes = _routes()
+    model = build_model(CONDITIONS["relu"], vocab_size=50, seed=0).eval()
+    ids = torch.randint(50, (2, 8))
+    c = routes.mean_outputs(model, ids)[1] * 20
+    got = routes.route_slope(model, ids, 1, "final", c, 0.1, draws=1, seed=3)
+    for module in model.modules():  # the hooks are gone
+        assert not module._forward_hooks and not module._forward_pre_hooks
+    n = routes.noise(c, (2, 8), 0.1, torch.Generator().manual_seed(3))
+    alpha = torch.ones((), requires_grad=True)
+    hook = model.transformer.ln_f.register_forward_pre_hook(lambda _m, a: (a[0] + alpha * n,))
+    loss = model(ids, labels=ids).loss
+    hook.remove()
+    (slope,) = torch.autograd.grad(loss, alpha)
+    clean = model(ids, labels=ids).loss.item()
+    assert got["slope"] == pytest.approx(slope.item(), rel=1e-5)
+    assert got["extra"] == pytest.approx(loss.item() - clean, rel=1e-5)
+    none = routes.route_slope(model, ids, 3, "blocks", c, 0.1, draws=1)
+    assert none == {"slope": 0.0, "extra": 0.0}  # the last block has no later block
+    whole = routes.route_slope(model, ids, 1, "all", c, 0.1, draws=1, seed=3)
+    assert whole["extra"] != got["extra"]  # the noise joins the stream, not ln_f alone
