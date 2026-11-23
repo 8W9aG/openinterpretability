@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 473" width="760" height="473" role="img">
+<title>Two line charts over four stages, one line per model. The share of explanations that keep ends at 0.738 for the base model and 0.710 for the instruct model. ARC-Easy accuracy ends at 0.614 and 0.580.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="473" rx="10"/>
+<text x="20.0" y="30.0" class="title">After three narrow fine-tunes, a quarter of the</text>
+<text x="20.0" y="53.0" class="title">explanations fail, and ARC-Easy ends near its start</text>
+<text x="20.0" y="73.0" class="sub">362 VERIFIED poles of Qwen2.5-0.5B, each re-read on its own probes after each stage.</text>
+<text x="20.0" y="91.0" class="sub">Left: the share that still passes both gates. Right: zero-shot ARC-Easy accuracy. Bars: 95% intervals.</text>
+<path class="grid" d="M60.0 375.0L350.0 375.0"/>
+<text x="53.0" y="379.0" class="small" text-anchor="end">0.60</text>
+<path class="grid" d="M60.0 317.5L350.0 317.5"/>
+<text x="53.0" y="321.5" class="small" text-anchor="end">0.70</text>
+<path class="grid" d="M60.0 260.0L350.0 260.0"/>
+<text x="53.0" y="264.0" class="small" text-anchor="end">0.80</text>
+<path class="grid" d="M60.0 202.5L350.0 202.5"/>
+<text x="53.0" y="206.5" class="small" text-anchor="end">0.90</text>
+<path class="grid" d="M60.0 145.0L350.0 145.0"/>
+<text x="53.0" y="149.0" class="small" text-anchor="end">1.00</text>
+<text x="60.0" y="137.0" class="head">share of explanations that keep</text>
+<path class="line sc1" d="M86.1 145.0L158.6 249.8L231.1 280.0L303.6 295.9"/>
+<path class="line sc1" d="M86.1 151.0L86.1 145.0"/>
+<circle class="fc1 ring" cx="86.1" cy="145.0" r="4.5"/>
+<path class="line sc1" d="M158.6 274.6L158.6 228.9"/>
+<circle class="fc1 ring" cx="158.6" cy="249.8" r="4.5"/>
+<path class="line sc1" d="M231.1 306.6L231.1 256.6"/>
+<circle class="fc1 ring" cx="231.1" cy="280.0" r="4.5"/>
+<path class="line sc1" d="M303.6 323.3L303.6 271.4"/>
+<circle class="fc1 ring" cx="303.6" cy="295.9" r="4.5"/>
+<text x="313.6" y="291.9" class="ink">0.738</text>
+<path class="line sc2" d="M91.9 243.5L164.4 257.8L236.9 284.8L309.4 311.8"/>
+<path class="line sc2" d="M91.9 267.8L91.9 223.2"/>
+<path class="fc2 ring" d="M91.9 238.1L97.3 247.8L86.5 247.8Z"/>
+<path class="line sc2" d="M164.4 283.1L164.4 236.1"/>
+<path class="fc2 ring" d="M164.4 252.4L169.8 262.1L159.0 262.1Z"/>
+<path class="line sc2" d="M236.9 311.6L236.9 261.0"/>
+<path class="fc2 ring" d="M236.9 279.4L242.3 289.1L231.5 289.1Z"/>
+<path class="line sc2" d="M309.4 339.8L309.4 286.3"/>
+<path class="fc2 ring" d="M309.4 306.4L314.8 316.1L304.0 316.1Z"/>
+<text x="319.4" y="323.8" class="ink">0.710</text>
+<text x="89.0" y="390.0" class="small" text-anchor="middle">start</text>
+<text x="161.5" y="390.0" class="small" text-anchor="middle">after SST-2</text>
+<text x="234.0" y="390.0" class="small" text-anchor="middle">after XSum</text>
+<text x="306.5" y="390.0" class="small" text-anchor="middle">after GSM8K</text>
+<path class="grid" d="M420.0 375.0L710.0 375.0"/>
+<text x="413.0" y="379.0" class="small" text-anchor="end">0.45</text>
+<path class="grid" d="M420.0 317.5L710.0 317.5"/>
+<text x="413.0" y="321.5" class="small" text-anchor="end">0.50</text>
+<path class="grid" d="M420.0 260.0L710.0 260.0"/>
+<text x="413.0" y="264.0" class="small" text-anchor="end">0.55</text>
+<path class="grid" d="M420.0 202.5L710.0 202.5"/>
+<text x="413.0" y="206.5" class="small" text-anchor="end">0.60</text>
+<path class="grid" d="M420.0 145.0L710.0 145.0"/>
+<text x="413.0" y="149.0" class="small" text-anchor="end">0.65</text>
+<text x="420.0" y="137.0" class="head">ARC-Easy accuracy</text>
+<path class="line sc1" d="M446.1 227.5L518.6 247.3L591.1 207.1L663.6 186.9"/>
+<path class="line sc1" d="M446.1 250.5L446.1 204.8"/>
+<circle class="fc1 ring" cx="446.1" cy="227.5" r="4.5"/>
+<path class="line sc1" d="M518.6 270.3L518.6 224.5"/>
+<circle class="fc1 ring" cx="518.6" cy="247.3" r="4.5"/>
+<path class="line sc1" d="M591.1 230.0L591.1 184.7"/>
+<circle class="fc1 ring" cx="591.1" cy="207.1" r="4.5"/>
+<path class="line sc1" d="M663.6 209.5L663.6 164.6"/>
+<circle class="fc1 ring" cx="663.6" cy="186.9" r="4.5"/>
+<text x="673.6" y="182.9" class="ink">0.614</text>
+<path class="line sc2" d="M451.9 210.6L524.4 318.4L596.9 208.1L669.4 225.5"/>
+<path class="line sc2" d="M451.9 233.4L451.9 188.0"/>
+<path class="fc2 ring" d="M451.9 205.2L457.3 214.9L446.5 214.9Z"/>
+<path class="line sc2" d="M524.4 341.5L524.4 295.4"/>
+<path class="fc2 ring" d="M524.4 313.0L529.8 322.7L519.0 322.7Z"/>
+<path class="line sc2" d="M596.9 231.0L596.9 185.6"/>
+<path class="fc2 ring" d="M596.9 202.7L602.3 212.5L591.5 212.5Z"/>
+<path class="line sc2" d="M669.4 248.5L669.4 202.8"/>
+<path class="fc2 ring" d="M669.4 220.1L674.8 229.8L664.0 229.8Z"/>
+<text x="679.4" y="237.5" class="ink">0.580</text>
+<text x="449.0" y="390.0" class="small" text-anchor="middle">start</text>
+<text x="521.5" y="390.0" class="small" text-anchor="middle">after SST-2</text>
+<text x="594.0" y="390.0" class="small" text-anchor="middle">after XSum</text>
+<text x="666.5" y="390.0" class="small" text-anchor="middle">after GSM8K</text>
+<circle class="fc1" cx="25.0" cy="421.0" r="5"/>
+<text x="35.0" y="425.0">Qwen2.5-0.5B (base)</text>
+<path class="fc2" d="M176.6 415.0L182.6 425.8L170.6 425.8Z"/>
+<text x="186.6" y="425.0">Qwen2.5-0.5B-Instruct</text>
+</svg>
