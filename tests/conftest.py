@@ -38,7 +38,10 @@ def pytest_configure(config):
     worker = os.environ.get("PYTEST_XDIST_WORKER")
     if worker:
         CRASH_LOGS.mkdir(exist_ok=True)
-        config.crash_log = (CRASH_LOGS / f"faulthandler-{worker}.log").open("w")
+        # Append: xdist gives a replacement worker the dead one's name, so "w" erased its dump.
+        config.crash_log = (CRASH_LOGS / f"faulthandler-{worker}.log").open("a")
+        config.crash_log.write(f"== worker {worker}, pid {os.getpid()}\n")
+        config.crash_log.flush()
         faulthandler.enable(file=config.crash_log, all_threads=True)
 
 
