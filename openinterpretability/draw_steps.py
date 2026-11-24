@@ -391,7 +391,8 @@ def _post(key: str, kind: str) -> Step:
             "make check lint test",
             f'git add wiki && git commit -m "{VERBS[kind]} {key} (<VERDICT>, <balanced accuracy>)"',
             "uv run open-interpretability evidence push",
-            "git push && gh pr ready",
+            "gh pr ready",  # before the push: its CI run is then a full one (#6179)
+            "git push",
         ],
         "Commit the record's .sig if verify printed 'Signed as …'. `evidence push` sends the "
         "record's evidence blobs to their own branch, for CI to upload (issue #3254). Never "

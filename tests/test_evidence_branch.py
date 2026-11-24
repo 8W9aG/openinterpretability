@@ -95,9 +95,31 @@ def test_a_draw_pushes_its_evidence_before_its_branch():
     from openinterpretability.draw_steps import _post
 
     commands = _post("k", "explore").commands
-    assert commands.index("uv run open-interpretability evidence push") < commands.index(
-        "git push && gh pr ready"
+    assert commands.index("uv run open-interpretability evidence push") < commands.index("git push")
+
+
+def test_a_draw_marks_its_pr_ready_before_its_last_push():
+    # #6179: a push while the PR is a draft starts a run that skips every job. Marked ready
+    # first, the last push starts a full run on the head commit.
+    from openinterpretability.draw_steps import _post
+
+    commands = _post("k", "explore").commands
+    assert commands == [
+        "uv run open-interpretability wiki",
+        "make check lint test",
+        'git add wiki && git commit -m "Explore k (<VERDICT>, <balanced accuracy>)"',
+        "uv run open-interpretability evidence push",
+        "gh pr ready",
+        "git push",
+    ]
+    assert _post("k", "explore").title == "Post the result, whatever it is"
+    assert _post("k", "explore").note == (
+        "Commit the record's .sig if verify printed 'Signed as …'. `evidence push` sends the "
+        "record's evidence blobs to their own branch, for CI to upload (issue #3254). Never "
+        "abandon a claim silently: if you stop, say why in the PR and land it with only its "
+        "ledger entry (wiki/ledger/), so the draw still counts. Don't close it."
     )
+    assert not any("&&" in c and "gh pr ready" in c for c in commands)
 
 
 def test_publish_uploads_only_what_records_need_and_the_dataset_lacks(
