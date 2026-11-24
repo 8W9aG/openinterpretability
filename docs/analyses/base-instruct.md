@@ -67,6 +67,58 @@ Every pole reproduces on its base model in every run.
 
 **The pole sets differ by one.** Standings changed between runs. The 0.5B chat run has one more pole (L20/N3061 negative). The 1.5B chat run has L13/N4792 positive in place of L17/N7486 positive. The paired comparison uses only the shared poles.
 
+## Layer-level CKA, and blocks of base layers (#5127)
+
+Issue #5127 asks whether the change in Qwen2.5-0.5B's middle third changes the whole layer, or only some of its neurons. The run was on 2026-11-23, with `scripts/base_instruct_cka.py`, on an NVIDIA GPU. The rows are in `base-instruct-cka.jsonl`. The registry now holds 362 VERIFIED poles of Qwen2.5-0.5B, against 311 in the section above.
+
+- **CKA.** Linear CKA (Kornblith et al., 2019, [arXiv:1905.00414](https://arxiv.org/abs/1905.00414)) between the two models' MLP activations, over every neuron of the layer. The sample is the same 20,000 tokens as the correlations above. *Standardised* CKA first scales each neuron to unit variance.
+- **Null.** The base model against the same architecture with random weights (seed 0).
+- **Swaps.** The instruct model with one third of its blocks taken from the base model. Each pole is then correlated with the base model again.
+
+**Answer: the whole layer changes a little, most in the middle third. The change comes partly from the middle blocks and partly from the blocks before them.**
+
+| Layer | CKA | Standardised CKA | Null CKA | Poles | Median pole r |
+| --- | --- | --- | --- | --- | --- |
+| L0 | 0.999 | 0.997 | 0.171 | 27 | 0.994 |
+| L1 | 0.994 | 0.992 | 0.137 | 14 | 0.989 |
+| L2 | 0.171 | 0.988 | 0.018 | 14 | 0.985 |
+| L3 | 0.033 | 0.983 | 0.004 | 14 | 0.981 |
+| L4 | 0.984 | 0.982 | 0.182 | 22 | 0.979 |
+| L5 | 0.976 | 0.982 | 0.236 | 15 | 0.977 |
+| L6 | 0.980 | 0.980 | 0.209 | 16 | 0.974 |
+| L7 | 0.980 | 0.979 | 0.165 | 10 | 0.979 |
+| L8 | 0.977 | 0.978 | 0.156 | 12 | 0.974 |
+| L9 | 0.969 | 0.972 | 0.169 | 14 | 0.961 |
+| L10 | 0.970 | 0.973 | 0.244 | 11 | 0.963 |
+| L11 | 0.967 | 0.967 | 0.096 | 11 | 0.958 |
+| L12 | 0.964 | 0.970 | 0.220 | 12 | 0.964 |
+| L13 | 0.965 | 0.972 | 0.183 | 16 | 0.961 |
+| L14 | 0.973 | 0.979 | 0.260 | 13 | 0.962 |
+| L15 | 0.971 | 0.979 | 0.231 | 12 | 0.964 |
+| L16 | 0.976 | 0.984 | 0.168 | 22 | 0.971 |
+| L17 | 0.980 | 0.984 | 0.232 | 13 | 0.975 |
+| L18 | 0.980 | 0.983 | 0.214 | 14 | 0.970 |
+| L19 | 0.980 | 0.985 | 0.175 | 13 | 0.974 |
+| L20 | 0.986 | 0.987 | 0.243 | 15 | 0.977 |
+| L21 | 0.695 | 0.986 | 0.171 | 22 | 0.975 |
+| L22 | 0.979 | 0.985 | 0.142 | 17 | 0.973 |
+| L23 | 0.981 | 0.984 | 0.101 | 13 | 0.971 |
+
+- **The layers stay close.** Standardised CKA is 0.967 to 0.997 in every layer, against a null of at most 0.260.
+- **The middle third moves most.** Its standardised CKA is 0.967 to 0.979, where its median pole r is lowest, at 0.958 to 0.965. The median over layers is 0.983 in the first third, 0.973 in the middle and 0.985 in the last. So the dip that the poles show is in the whole layer too. It is small, though.
+- **Raw CKA fails on three layers.** At L2, L3 and L21, raw CKA is 0.171, 0.033 and 0.695, while their poles correlate at 0.975 or more. Standardised CKA there is 0.988, 0.983 and 0.986. So a few neurons with very large activations dominate raw CKA, and a change in their scale hides a layer that barely changed.
+
+| Base blocks in the instruct model | Median r, first third | Middle third | Last third |
+| --- | --- | --- | --- |
+| None (the instruct model) | 0.982 | 0.962 | 0.974 |
+| Layers 0–7 | 0.987 | 0.977 | 0.980 |
+| Layers 8–15 | 0.982 | 0.976 | 0.980 |
+| Layers 16–23 | 0.982 | 0.962 | 0.983 |
+
+- **Each swap changes only its own blocks and those after them.** That is the check that the copy took. A first version of the script lost the copy on a full GPU, as #5127 records.
+- **The middle third's change is not only local.** Base blocks 8–15 raise the middle third's median r from 0.962 to 0.976. Base blocks 0–7 raise it as far, to 0.977, with the middle blocks still the instruct model's. So part of the change reaches the middle third through its input from earlier layers. The two parts overlap, because either swap alone recovers most of the gap.
+- **The early blocks don't fit the instruct model's embeddings.** With base blocks 0–7, the first third's poles correlate 0.0028 higher at the median, but some L0 poles fall. L0/N532+ goes from 0.990 to 0.978. The base blocks then read the instruct model's embeddings, which instruction tuning also changed.
+
 ## Reading it
 
 Instruction tuning leaves these neurons in place. A neuron's activation pattern is almost the same after tuning, and its explanation still predicts its probes in eight or nine cases in ten. So a VERIFIED explanation of a base model is a good first guess for its instruct model, at the same index.
@@ -78,4 +130,5 @@ The chat template matters more than the tuning. Inside it, the same neurons fire
 - **Two pairs, one family.** Qwen2.5-0.5B adds 311 poles, and its interval is 76–85%. Both pairs are Qwen2.5, so another family could differ.
 - **The base model's own probes.** The reviewer wrote them to break the base model's hypothesis. Probes written against the instruct model could find differences these miss. That would need a review of the instruct model itself, which would make it a registry model.
 - **One template, one turn.** The chat runs put each probe in one user turn. A system prompt, earlier turns or the assistant's side of the template were not tested. The scale ratio comes from plain text, so a template that shifts a pole's whole range would show up as lost sensitivity here.
+- **CKA and swaps on one pair.** The CKA and the block swaps cover only Qwen2.5-0.5B, on one sample, and one null seed. The swaps read correlations, not the probes' gates.
 - **Not a crosscoder.** This compares neuron to neuron at one index. A learned shared basis, the crosscoder of Lindsey et al. (2024), could also find features that moved between neurons. That needs training, and it is a follow-up.
