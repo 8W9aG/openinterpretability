@@ -192,9 +192,11 @@ publishing_allowed = true
 testpaths = ["tests", "openinterpretability"]
 addopts = "-ra --doctest-modules"
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "ELLIPSIS"]
-# A hang fails within a minute, dumping every thread's stack and naming the test.
+# A hang fails within three minutes, dumping every thread's stack and naming the test.
 # "thread" because the hangs block in C (a semaphore wait), where SIGALRM never fires.
-timeout = 60
+# 60 s ended slow tests too: a whole-site build reads every literature review and paper,
+# and under coverage on a 2-core CI runner one took over 55 s (#6561).
+timeout = 180
 timeout_method = "thread"
 
 [tool.coverage.run]
