@@ -58,3 +58,16 @@ def test_a_norm_with_a_gain_but_no_centring_only_scales(runner, monkeypatch):
     monkeypatch.setattr(runner, "final_norm", lambda: norm)
     weights = runner.model.get_output_embeddings().weight.detach().float()
     assert torch.allclose(ov.unembedding(runner), weights * norm.weight.detach())
+
+
+def test_the_note_lists_each_mapping_split_by_semicolons():
+    from openinterpretability.agents.proposer_profiles import format_ov_lens
+    from openinterpretability.core.profiles import HeadProfile, OVLens, OVMapping
+
+    maps = [OVMapping(token="a", top=["b"]), OVMapping(token="c", top=["d", "e"])]
+    lens = OVLens(copying_score=0.5, copy_share=0.1, suppression_share=0.0, median_rank=3,
+                  tokens=10, seed=0, k=10, mappings=maps)  # fmt: skip
+    profile = HeadProfile(mean_output=[0.0], mean_tokens=1, previous_token_score=0.0,
+                          duplicate_token_score=0.0, induction_score=0.0, pattern_sequences=1,
+                          pattern_length=2, pattern_seed=0, ov_lens=lens)  # fmt: skip
+    assert "map to: 'a' -> 'b'; 'c' -> 'd', 'e'." in format_ov_lens(profile)

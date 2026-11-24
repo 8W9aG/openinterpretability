@@ -147,7 +147,7 @@ Do these seven steps first, in order. Each fix goes in its own PR, which merges 
    ```bash
    gh pr create --title "Release <version> (protocol v<PROTOCOL_VERSION>)" --body "..."
    ```
-   The body says what the release bumps and whether the protocol version changed. It also gives the sister refresh (rows and sisters added, or why it was skipped) and what each concept map gained. Open it ready, not as a draft. The maintainer decided on 2026-11-15 that you merge it yourself, as `next-issue` step 6 merges an issue's PR:
+   The body says what the release bumps and whether the protocol version changed. The version bump changes `openinterpretability/__init__.py`, so run `make mutation BASE=origin/main` and put its result line in the body, as `work-an-issue` step 6 says (#5857). It also gives the sister refresh (rows and sisters added, or why it was skipped) and what each concept map gained. Open it ready, not as a draft. The maintainer decided on 2026-11-15 that you merge it yourself, as `next-issue` step 6 merges an issue's PR:
    1. Merge `origin/main` into the release branch first. Collect any changelog fragments that arrived since step 6 into the version's section, under their types. Then run `make lint test` and push.
    2. Wait for every check on the head commit. Then merge with `gh pr merge <number> --squash --match-head-commit <sha>`. Never use `--admin`.
 9. **Tag the merged commit.** Do this after the PR merges, not before. A squash merge makes a new commit on `main`, so a tag on the release branch's commit is not on `main`:

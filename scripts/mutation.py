@@ -3,8 +3,10 @@
 ``make mutation BASE=origin/main`` runs this script. It finds the ``.py`` files under
 ``openinterpretability/`` that the branch changes against the base. That covers committed,
 uncommitted and untracked changes, but not deleted files. It mutates only those files, and
-it runs only the tests that import them. mutmut reads its config from ``pyproject.toml``
-alone, so the script overrides two keys in this process before mutmut starts:
+it runs only the tests that import them. Of their mutants, it runs only those in the
+functions that the branch changes, and at most :data:`CAP` of them, a seeded sample
+(#5857). A change to a large file then still takes minutes. mutmut reads its config from
+``pyproject.toml`` alone, so the script overrides two keys in this process before mutmut starts:
 ``only_mutate`` and ``pytest_add_cli_args_test_selection``. It does not change the file.
 Without ``--base``, mutmut runs the fixed verdict-code config of ``[tool.mutmut]`` (#5763).
 
@@ -13,12 +15,14 @@ there is one, so the run can gate a pull request. A mutant that changes nothing 
 see is recorded on its line with mutmut's pragma and the reason:
 ``# pragma: no mutate, equivalent: <why>``.
 
-    uv run --with mutmut==3.8.1 python scripts/mutation.py --base origin/main
-    uv run --with mutmut==3.8.1 python scripts/mutation.py --base origin/main show <mutant>
+    uv run python scripts/mutation.py --base origin/main
+    uv run python scripts/mutation.py --base origin/main show <mutant>
 """
 
 from __future__ import annotations
 
+import ast
+import random
 import re
 import subprocess
 import sys
@@ -29,6 +33,11 @@ FAILING = ("survived", "no tests", "timeout", "suspicious")
 # Left out of mutmut's copy of the repository. mutmut copies the package and the tests itself.
 # No unit test reads the 840 MB of experiment records.
 NOT_COPIED = {PACKAGE, "tests", "wiki/experiments"}
+# With --base, at most this many mutants run, a seeded sample of those in the changed
+# functions. So a large change still takes minutes, not most of an hour (#5857).
+CAP = 100
+SEED = 0
+HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", re.M)
 
 
 def _git(root: Path, *args: str) -> list[str]:
@@ -60,6 +69,123 @@ def changed_files(base: str, root: Path = Path(".")) -> list[str]:
     names |= set(_git(root, "ls-files", "--others", "--exclude-standard"))
     ours = (n for n in names if n.startswith(f"{PACKAGE}/") and n.endswith(".py"))
     return sorted(n for n in ours if (root / n).exists())
+
+
+def changed_lines(base: str, path: str, root: Path = Path(".")) -> set[int] | None:
+    """The lines of ``path`` that the branch adds or changes, against its merge base.
+
+    A deletion counts as a change of the line after it. Committed and uncommitted
+    changes both count.
+
+    Args:
+        base: The git ref to compare with.
+        path: A path relative to ``root``.
+        root: The repository's root.
+
+    Returns:
+        The 1-based line numbers, or None for a file that git doesn't track yet.
+    """
+    if not _git(root, "ls-files", path):
+        return None
+    merge_base = _git(root, "merge-base", base, "HEAD")[0]
+    diff = "\n".join(_git(root, "diff", "-U0", merge_base, "--", path))
+    lines: set[int] = set()
+    for start, count in HUNK.findall(diff):
+        first, n = int(start), int(count or 1)
+        lines |= set(range(first, first + n)) if n else {first + 1}  # +c,0 follows line c
+    return lines
+
+
+def function_spans(source: str) -> dict[str, tuple[int, int]]:
+    r"""Each function's name as mutmut writes it, and its first and last line.
+
+    mutmut names a module's function ``x_<name>`` and a class's method
+    ``xǁ<class>ǁ<name>``. A nested function belongs to the one around it.
+
+    Args:
+        source: A module's code.
+
+    Returns:
+        ``{mangled name: (first line, last line)}``.
+
+    Examples:
+        >>> function_spans("def f():\n    pass\n\nclass C:\n    def m(self):\n        pass\n")
+        {'x_f': (1, 2), 'xǁCǁm': (5, 6)}
+    """
+    spans = {}
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            spans[f"x_{node.name}"] = (node.lineno, node.end_lineno)
+        elif isinstance(node, ast.ClassDef):
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef | ast.AsyncFunctionDef):
+                    spans[f"xǁ{node.name}ǁ{item.name}"] = (item.lineno, item.end_lineno)
+    return spans
+
+
+def touched(names: list[str], spans: dict[str, tuple[int, int]], lines: set[int] | None):
+    """The mutant names whose function holds a changed line; all of them when ``lines`` is None.
+
+    Args:
+        names: mutmut's mutant names for one file, such as ``x_f__mutmut_3``.
+        spans: :func:`function_spans` of the file.
+        lines: :func:`changed_lines` of the file.
+
+    Returns:
+        The names, in their order.
+
+    Examples:
+        >>> touched(["x_f__mutmut_1", "x_g__mutmut_1"], {"x_f": (1, 2), "x_g": (4, 5)}, {2})
+        ['x_f__mutmut_1']
+    """
+    if lines is None:
+        return list(names)
+    span = [spans.get(n.partition("__mutmut_")[0], (0, -1)) for n in names]
+    return [n for n, (first, last) in zip(names, span, strict=True)
+            if any(first <= line <= last for line in lines)]  # fmt: skip
+
+
+def sample(keys: list[str], cap: int = CAP, seed: int = SEED) -> list[str]:
+    """``keys``, or a seeded sample of ``cap`` of them when there are more.
+
+    Args:
+        keys: The mutants' full names.
+        cap: The most to keep.
+        seed: The sample's seed, so a rerun tests the same mutants.
+
+    Returns:
+        The names, sorted.
+
+    Examples:
+        >>> sample(["b", "a"]), len(sample([str(i) for i in range(5)], cap=2))
+        (['a', 'b'], 2)
+    """
+    keys = sorted(keys)
+    return keys if len(keys) <= cap else sorted(random.Random(seed).sample(keys, cap))
+
+
+def selected(paths: list[str], base: str, root: Path = Path(".")) -> tuple[list[str], int]:
+    """The mutants to run: those in the changed functions of ``paths``, at most :data:`CAP`.
+
+    Args:
+        paths: The changed package files.
+        base: The git ref to compare with.
+        root: The repository's root.
+
+    Returns:
+        The mutants' full names, and how many the changed functions hold before the cap.
+    """
+    from mutmut.mutation.file_mutation import mutate_file_contents
+    from mutmut.utils.format_utils import get_mutant_name
+
+    keys = []
+    for path in paths:
+        source = (root / path).read_text(encoding="utf-8")
+        names = mutate_file_contents(path, source).mutant_names
+        lines = changed_lines(base, path, root)
+        keys += [get_mutant_name(Path(path), n)
+                 for n in touched(names, function_spans(source), lines)]  # fmt: skip
+    return sample(keys), len(keys)
 
 
 def module_name(path: str) -> str:
@@ -218,7 +344,16 @@ def main(argv: list[str]) -> int:
     if command:
         cli(command, standalone_mode=False)
         return 0
-    cli(["run"], standalone_mode=False)
+    run = ["run"]
+    if argv[:1] == ["--base"]:
+        names, total = selected(paths, base)
+        if not names:
+            print("No mutant in the changed functions: nothing to run.")
+            return 0
+        print(f"Running {len(names)} of the {total} mutants in the changed functions"
+              f" (at most {CAP}, sampled with seed {SEED}).")  # fmt: skip
+        run += names
+    cli(run, standalone_mode=False)
     out = io.StringIO()
     with contextlib.redirect_stdout(out):
         cli(["results"], standalone_mode=False)
