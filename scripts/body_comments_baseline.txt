@@ -25,7 +25,6 @@ openinterpretability/builder/explanation_figures.py::ablation
 openinterpretability/builder/feeds.py::feed
 openinterpretability/builder/learned_baseline.py::_comparison
 openinterpretability/builder/pii.py::_scrub_attribution
-openinterpretability/builder/sister_graph.py::_panel
 openinterpretability/builder/stopped.py::add_stopped
 openinterpretability/builder/tree.py::_add_experiment
 openinterpretability/builder/wiki.py::_page_meta
@@ -143,7 +142,6 @@ openinterpretability/revision.py::_attempt
 openinterpretability/show.py::_metrics
 openinterpretability/show.py::show_evidence
 openinterpretability/sisters.py::sisters
-openinterpretability/sisters.py::sister_view
 openinterpretability/takedown_checks.py::check_takedowns
 openinterpretability/verdict_regression.py::verdict_drift
 openinterpretability/wiring_backfill.py::wire

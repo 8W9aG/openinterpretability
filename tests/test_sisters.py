@@ -367,13 +367,14 @@ def test_the_sister_graph_joins_both_searches_by_relative_depth():
     rows["org--a/L3/N1-positive"][0] = rows["org--a/L3/N1-positive"][0].model_copy(
         update={"layers": 4, "other_layers": 7}
     )
-    model = type("M", (), {"name": a, "n_layers": 4})()
+    model = type("M", (), {"name": a, "slug": "org--a", "n_layers": 4})()
     (g,) = sister_graphs(model, rows, studied=set())
     assert (g["other"], g["n_edges"], g["n_sisters"]) == (b, 2, 1)
     assert g["depth_gap"] == 0.0  # L3 of 4 and L6 of 7 are both the last layer
     (sister,) = g["sisters"]
     assert sister["a"]["y"] == sister["b"]["y"] and sister["a"]["label"] == "L3/N1+"
     assert g["lines"][-1]["sister"]  # drawn on top
+    assert g["lines"][-1]["href"].startswith("sisters/org--a-L3-N1-positive~")  # #6639
 
 
 def test_the_sister_graph_layout_does_not_depend_on_set_order():
