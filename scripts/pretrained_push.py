@@ -207,8 +207,8 @@ def pythia(corpus, steps, batches, device, out):
 @click.option("--condition", "name", required=True, type=click.Choice(sorted(CONDITIONS)))
 @click.option("--seed", type=int, default=0, show_default=True)
 @click.option("--save-dir", type=click.Path(path_type=Path, exists=True), required=True)
-@click.option("--step", "only", multiple=True, type=int,
-              help="Read only these steps' checkpoints, such as Pythia's spacing (#4093).")  # fmt: skip
+# --step reads one densely saved run at several spacings, such as Pythia's (#4093).
+@click.option("--step", "only", multiple=True, type=int, help="Read only these checkpoints.")
 @click.option("--part", default="small_push", show_default=True, help="The rows' label.")
 @batches_option
 @device_option
