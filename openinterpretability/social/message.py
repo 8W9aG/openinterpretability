@@ -6,8 +6,8 @@
 X counts a post's length its own way. Every link counts as :data:`LINK` characters. Most
 characters outside the Latin, Greek and Cyrillic ranges (CJK, emoji) count as two.
 The sentence or the paragraph is cut at a word boundary, with an ellipsis, so the post
-fits :data:`LIMIT`. The text passes the site's search for personal data and taken-down
-passages (``builder.pii.redact_text``) before it is posted, as every page does.
+fits :data:`LIMIT`. Before the post goes out, ``labinacan.site.pii.redact_text`` removes
+personal data and taken-down passages from it. Every page does the same.
 """
 
 from __future__ import annotations
@@ -98,7 +98,7 @@ def compose(head: str, body: str, link: str, separator: str = " ") -> str:
         >>> compose("L3/N7+ VERIFIED:", "Fires on dates.", "https://x.org/u")
         'L3/N7+ VERIFIED: Fires on dates.\nhttps://x.org/u'
     """
-    from openinterpretability.builder.pii import redact_text
+    from labinacan.site.pii import redact_text
 
     head, body = redact_text(head), redact_text(body)
     budget = LIMIT - LINK - 1 - weight(head) - weight(separator)

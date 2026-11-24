@@ -144,9 +144,9 @@ def test_the_repo_map_has_regions_neighbours_and_the_queue():
 
 
 def test_index_rows_credits_and_queued_titles_are_redacted(tmp_path):
+    from labinacan.site.pii import REMOVED_TEXT
     from openinterpretability.builder.literature_map_view import map_view
     from openinterpretability.builder.literature_pages import credits, review_rows
-    from openinterpretability.builder.pii import REMOVED_TEXT
 
     mail = "jane.doe@somemail.org"  # an address the site's redaction removes (test_pii.py)
     folder = tmp_path / "literature"
