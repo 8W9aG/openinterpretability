@@ -234,7 +234,8 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           BODY: ${{ github.event.pull_request.body }}  # read here, never in the script text
         run: |
-          changed=$(git diff --name-only "origin/$BASE_REF...HEAD" -- 'openinterpretability/*.py')
+          changed=$(git diff --name-only "origin/$BASE_REF...HEAD" -- \
+            'openinterpretability/*.py' 'labinacan/*.py')
           if [ -z "$changed" ]; then
             echo "No package file changes: no local run needed."
             exit 0

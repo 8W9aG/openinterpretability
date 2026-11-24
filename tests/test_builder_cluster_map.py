@@ -1,6 +1,6 @@
 """Cluster map badges and region outlines in the edge cases."""
 
-from openinterpretability.builder.cluster_map import Badge, hull, place_badges, region_outline
+from labinacan.site.cluster_map import Badge, hull, place_badges, region_outline
 
 
 def test_a_badge_with_no_free_spot_stays_at_its_centre():
@@ -20,7 +20,7 @@ def test_points_on_one_line_get_no_outline():
 
 
 def test_touching_clusters_never_share_a_family_and_clash_on_the_lightest_borders():
-    from openinterpretability.builder.cluster_map import CLASH, FAMILY, SLOTS, touching_slots
+    from labinacan.site.cluster_map import CLASH, FAMILY, SLOTS, touching_slots
 
     numbers = list(range(1, SLOTS + 1))
     # A ring: each cluster touches the next. The border from 1 to 2 is the heaviest.
@@ -36,7 +36,7 @@ def test_touching_clusters_never_share_a_family_and_clash_on_the_lightest_border
 
 
 def test_too_many_clusters_or_no_fit_falls_back_to_the_order():
-    from openinterpretability.builder.cluster_map import SLOTS, colour_slots, touching_slots
+    from labinacan.site.cluster_map import SLOTS, colour_slots, touching_slots
 
     many = list(range(1, SLOTS + 2))
     assert touching_slots(many, {}) == colour_slots(many)

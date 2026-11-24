@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from openinterpretability.builder.parallel import in_background, render_in_parallel
+from labinacan.site.parallel import in_background, render_in_parallel
 
 pytestmark = pytest.mark.skipif(
     "fork" not in multiprocessing.get_all_start_methods(), reason="needs fork"
@@ -34,7 +34,7 @@ def test_pool_workers_are_frozen_and_the_parent_unfrozen():
 
 
 def test_a_build_in_the_suite_takes_one_job_unless_it_asks_for_more(monkeypatch):  # #6507
-    from openinterpretability.builder.parallel import JOBS_ENV, default_jobs
+    from labinacan.site.parallel import JOBS_ENV, default_jobs
 
     assert default_jobs() == 1  # tests/conftest.py sets it
     monkeypatch.setenv(JOBS_ENV, "3")
@@ -44,7 +44,7 @@ def test_a_build_in_the_suite_takes_one_job_unless_it_asks_for_more(monkeypatch)
 
 
 def test_with_no_cap_a_build_takes_one_job_per_cpu(monkeypatch):
-    from openinterpretability.builder import parallel
+    from labinacan.site import parallel
 
     monkeypatch.setattr(parallel.os, "cpu_count", lambda: 8)
     assert parallel.default_jobs({}) == 8 and parallel.default_jobs({parallel.JOBS_ENV: ""}) == 8

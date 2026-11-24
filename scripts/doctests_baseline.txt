@@ -25,10 +25,10 @@ openinterpretability/builder/charts.py
 openinterpretability/builder/circuit_pages.py
 openinterpretability/builder/circuit_units.py
 openinterpretability/builder/circuits.py
-openinterpretability/builder/cluster_map.py
+labinacan/site/cluster_map.py
 openinterpretability/builder/compiler.py
 openinterpretability/builder/concept_map_view.py
-openinterpretability/builder/contents.py
+labinacan/site/contents.py
 openinterpretability/builder/corpora.py
 openinterpretability/builder/coverage.py
 openinterpretability/builder/css.py
@@ -44,12 +44,12 @@ openinterpretability/builder/hrefs.py
 openinterpretability/builder/learned_baseline.py
 openinterpretability/builder/literature_map_view.py
 openinterpretability/builder/literature_pages.py
-openinterpretability/builder/maths.py
+labinacan/site/maths.py
 openinterpretability/builder/model_facts.py
 openinterpretability/builder/neuronpedia_export.py
 openinterpretability/builder/palette.py
 openinterpretability/builder/paper_pdf.py
-openinterpretability/builder/parallel.py
+labinacan/site/parallel.py
 openinterpretability/builder/parquet_export.py
 openinterpretability/builder/pending.py
 openinterpretability/builder/pieces.py
@@ -215,7 +215,7 @@ openinterpretability/harness/patcher.py
 openinterpretability/harness/patchscope.py
 openinterpretability/harness/prepare.py
 openinterpretability/harness/probing.py
-openinterpretability/harness/progress.py
+labinacan/progress.py
 openinterpretability/harness/scan.py
 openinterpretability/harness/scan_backend.py
 openinterpretability/harness/sister_passes.py
