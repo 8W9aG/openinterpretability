@@ -31,3 +31,22 @@ def test_pool_workers_are_frozen_and_the_parent_unfrozen():
     counts = [int(p.split(":")[1]) for p in render.report.pages]
     assert gc.get_freeze_count() == 0
     assert len(counts) == 2 and all(c > before for c in counts)
+
+
+def test_a_build_in_the_suite_takes_one_job_unless_it_asks_for_more(monkeypatch):  # #6507
+    from openinterpretability.builder.parallel import JOBS_ENV, default_jobs
+
+    assert default_jobs() == 1  # tests/conftest.py sets it
+    monkeypatch.setenv(JOBS_ENV, "3")
+    assert default_jobs() == 3
+    monkeypatch.delenv(JOBS_ENV)
+    assert default_jobs() >= 1
+
+
+def test_with_no_cap_a_build_takes_one_job_per_cpu(monkeypatch):
+    from openinterpretability.builder import parallel
+
+    monkeypatch.setattr(parallel.os, "cpu_count", lambda: 8)
+    assert parallel.default_jobs({}) == 8 and parallel.default_jobs({parallel.JOBS_ENV: ""}) == 8
+    monkeypatch.setattr(parallel.os, "cpu_count", lambda: None)  # unknown: one job
+    assert parallel.default_jobs({}) == 1

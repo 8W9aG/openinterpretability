@@ -237,7 +237,6 @@ openinterpretability/builder/paper_pdf.py::raise_superscripts
 openinterpretability/builder/paper_pdf.py::print_svg
 openinterpretability/builder/paper_pdf.py::print_body
 openinterpretability/builder/paper_pdf.py::write_pdf
-openinterpretability/builder/parallel.py::default_jobs
 openinterpretability/builder/parallel.py::in_background
 openinterpretability/builder/parquet_export.py::record_to_row
 openinterpretability/builder/parquet_export.py::experiment_row

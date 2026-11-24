@@ -235,6 +235,18 @@ def _no_real_browser(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _one_build_job(monkeypatch):
+    """A build in a test runs in its own process: no fork of a process that runs torch's threads.
+
+    A forked child of a multithreaded process can crash, which once killed an xdist worker
+    (#6507). A test of the parallel build passes its own job count.
+    """
+    from openinterpretability.builder.parallel import JOBS_ENV
+
+    monkeypatch.setenv(JOBS_ENV, "1")
+
+
+@pytest.fixture(autouse=True)
 def _fixed_memory_budget(monkeypatch):
     """Plan for 64 GB free, whatever the machine has free now (tests opt into less).
 
