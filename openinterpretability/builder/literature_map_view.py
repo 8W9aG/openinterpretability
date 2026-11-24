@@ -22,7 +22,7 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from openinterpretability.builder.cluster_map import Badge, place_badges, touching_slots
+from labinacan.site.cluster_map import Badge, place_badges, touching_slots
 from openinterpretability.builder.literature_pages import (
     MAP,
     credits,

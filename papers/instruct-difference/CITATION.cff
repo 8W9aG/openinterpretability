@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: If you use this paper, please cite it as below.
+type: article
+title: Which MLP neurons carry the base-to-instruct difference?
+authors:
+- given-names: Will
+  family-names: Sackfield
+- name: Open Interpretability
+date-released: '2026-11-24'
+version: preprint
+url: https://open-interpretability.com/research/instruct-difference/index.html
+repository-code: https://github.com/8W9aG/openinterpretability
