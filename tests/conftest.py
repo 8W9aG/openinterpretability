@@ -45,6 +45,25 @@ def pytest_configure(config):
         faulthandler.enable(file=config.crash_log, all_threads=True)
 
 
+@pytest.fixture(autouse=True)
+def _dump_before_timeout(request):
+    """Dump every stack to the worker's crash log 5 s before pytest-timeout ends the worker.
+
+    pytest-timeout's thread method writes its dump to stderr, which a worker loses, and then
+    exits the process. So a test that runs too long would leave no trace (#6561).
+    """
+    log = getattr(request.config, "crash_log", None)
+    limit = request.config.getini("timeout")
+    if log is None or not limit:
+        yield
+        return
+    log.write(f"-- {request.node.nodeid}\n")
+    log.flush()
+    faulthandler.dump_traceback_later(float(limit) - 5, file=log)
+    yield
+    faulthandler.cancel_dump_traceback_later()
+
+
 VOCAB, D_MODEL, D_MLP, N_LAYERS = 16, 8, 12, 3
 
 
