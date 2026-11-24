@@ -111,7 +111,7 @@ def test_the_issue_template_is_not_embedded():
 
 def test_the_repo_map_has_compact_regions_one_per_colour_and_no_queued_region():
     """#5798: at most one region per colour, every one named, queued papers in topics."""
-    from openinterpretability.builder.cluster_map import SLOTS
+    from labinacan.site.cluster_map import SLOTS
 
     data = json.loads(MAP.read_text())
     regions = data["regions"]

@@ -26,7 +26,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, TypeVar
 
-from openinterpretability.harness.progress import Progress
+from labinacan.progress import Progress
 
 T = TypeVar("T")
 

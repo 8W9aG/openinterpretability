@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from openinterpretability.builder.cluster_map import (
+from labinacan.site.cluster_map import (
     Badge,
     colour_slots,
     place_badges,

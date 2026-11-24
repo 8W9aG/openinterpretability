@@ -95,7 +95,7 @@ def test_the_index_draws_the_map_and_the_reviews_not_placed(tmp_path):
 
 def test_callouts_and_badges_never_overlap():
     """Cards stack in the margins; badges overlap no badge and no card (#4577)."""
-    from openinterpretability.builder.cluster_map import overlaps
+    from labinacan.site.cluster_map import overlaps
     from openinterpretability.builder.literature_map_view import Point, badges, callouts
 
     title = "A long title for one paper that wraps onto more than one line"
@@ -114,7 +114,7 @@ def test_callouts_and_badges_never_overlap():
 
 def test_the_repo_map_covers_every_review():
     # Run scripts/literature_map.py after adding or changing a review (#3294).
-    from openinterpretability.builder.cluster_map import overlaps
+    from labinacan.site.cluster_map import overlaps
     from openinterpretability.builder.literature_map_view import literature_map, map_view
     from openinterpretability.builder.literature_pages import LITERATURE
 
