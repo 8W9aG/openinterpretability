@@ -134,16 +134,44 @@ def thirds(n_layers: int) -> list[list[int]]:
     return [list(range(0, k)), list(range(k, 2 * k)), list(range(2 * k, n_layers))]
 
 
-def swap_blocks(target, source, layers: list[int]) -> None:
+def swap_blocks(target, source, layers: list[int]) -> dict[int, dict]:
     """Copy ``source``'s blocks at ``layers`` into ``target``, in place.
+
+    A model that accelerate offloaded reads its weights from disk on each pass, so a copy
+    would change nothing. The function checks that every weight changed, and raises if not.
 
     Args:
         target: The runner whose blocks are replaced.
         source: The runner whose blocks are copied.
         layers: The block indices.
+
+    Returns:
+        ``target``'s blocks as they were, on the CPU, to restore with :func:`restore_blocks`.
+
+    Raises:
+        RuntimeError: A block didn't take the copy.
     """
+    kept = {}
     for layer in layers:
-        target.layers[layer].load_state_dict(source.layers[layer].state_dict())
+        block = target.layers[layer]
+        kept[layer] = {k: v.detach().cpu().clone() for k, v in block.state_dict().items()}
+        block.load_state_dict(source.layers[layer].state_dict())
+        wanted = source.layers[layer].state_dict()
+        for name, got in block.state_dict().items():
+            if not torch.equal(got, wanted[name].to(got.device)):
+                raise RuntimeError(f"layer {layer}'s {name} didn't take the copy")
+    return kept
+
+
+def restore_blocks(target, kept: dict[int, dict]) -> None:
+    """Put back the blocks that :func:`swap_blocks` replaced.
+
+    Args:
+        target: The runner whose blocks were replaced.
+        kept: What :func:`swap_blocks` returned.
+    """
+    for layer, state in kept.items():
+        target.layers[layer].load_state_dict(state)
 
 
 def swap_row(block: list[int], stats: dict, records, n_layers: int) -> dict:
@@ -197,15 +225,16 @@ def main(wiki_dir: Path, out: Path, device: str, base_name: str) -> None:
         by_layer.setdefault(r.submission.identifier.layer, []).append(r.submission.identifier.slug)
     rows = layer_rows(base, instruct, null, batches, stats, by_layer)
     rows.append(swap_row([], stats, records, base.n_layers))  # the instruct model as it is
+    # Each swap goes into the loaded instruct model and is undone after. A fresh load can
+    # be offloaded on a full GPU, and then the copy would be lost (#5127).
     for block in thirds(base.n_layers):
-        swapped = _load_runner(instruct_name, device, "float32", None)
-        swap_blocks(swapped, base, block)
-        moved = sample_stats(base, swapped, batches, records)
+        kept = swap_blocks(instruct, base, block)
+        moved = sample_stats(base, instruct, batches, records)
+        restore_blocks(instruct, kept)
         first = list(moved)[:3]  # in the log, so a swap that changed nothing shows at once
         print(f"swap {block[0]}-{block[-1]}:", {k: (stats[k]["pearson"], moved[k]["pearson"])
                                                  for k in first}, file=sys.stderr)  # fmt: skip
         rows.append(swap_row(block, moved, records, base.n_layers))
-        del swapped
     summary = {"table": "summary", "base": base_name, "instruct": instruct_name,
                "poles": len(records), "sample_tokens": SAMPLE_TOKENS,
                "null_seed": NULL_SEED}  # fmt: skip

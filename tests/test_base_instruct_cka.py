@@ -58,3 +58,17 @@ def test_a_swap_copies_the_blocks_and_the_row_reads_each_third(tiny_gpt2):
     row = cka.swap_row([1], stats, records, n_layers=3)
     assert row["median_pole_pearson_by_third"] == [0.9, None, 0.5]
     assert row["pole_pearson"] == {"x": 0.9, "y": 0.5, "z": None}
+
+
+def test_a_swap_is_undone_and_a_lost_copy_raises(tiny_gpt2, monkeypatch):
+    import pytest
+    from transformers import GPT2LMHeadModel
+
+    torch.manual_seed(1)
+    target, source = _runner(GPT2LMHeadModel(tiny_gpt2.config).eval()), _runner(tiny_gpt2)
+    before = target.layers[0].mlp.c_fc.weight.detach().clone()
+    cka.restore_blocks(target, cka.swap_blocks(target, source, [0]))
+    assert torch.equal(target.layers[0].mlp.c_fc.weight, before)
+    monkeypatch.setattr(torch.nn.Module, "load_state_dict", lambda self, state: None)
+    with pytest.raises(RuntimeError, match="didn't take the copy"):
+        cka.swap_blocks(target, source, [0])
