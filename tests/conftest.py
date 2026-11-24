@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import faulthandler
+import os
 from datetime import UTC, datetime
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -23,6 +26,21 @@ from openinterpretability.core.schemas import (
 # Tiny models gain nothing from threads, and competing for CPU with other jobs has
 # hung the suite. Covers bare `pytest` and CI too, not just `make test`.
 torch.set_num_threads(1)
+
+# Where each xdist worker writes faulthandler's stack dump (#6561). A worker's stderr is
+# lost when it dies, so a crash that killed one left no trace. CI prints these on failure.
+CRASH_LOGS = Path(__file__).parents[1] / "logs"
+
+
+@pytest.hookimpl(trylast=True)  # after pytest's own faulthandler, which writes to stderr
+def pytest_configure(config):
+    """In an xdist worker, send faulthandler's dump to ``logs/faulthandler-<worker>.log``."""
+    worker = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker:
+        CRASH_LOGS.mkdir(exist_ok=True)
+        config.crash_log = (CRASH_LOGS / f"faulthandler-{worker}.log").open("w")
+        faulthandler.enable(file=config.crash_log, all_threads=True)
+
 
 VOCAB, D_MODEL, D_MLP, N_LAYERS = 16, 8, 12, 3
 

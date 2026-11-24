@@ -136,6 +136,17 @@ jobs:
         # Side by side, one process per core (#3266). It fails if the total is below
         # [tool.coverage.report] fail_under (#3166).
         run: pytest -n auto --cov --cov-report=xml --cov-report=term
+      - name: Why a test worker died
+        # A crashed xdist worker loses its stderr. Each worker's faulthandler dump goes to
+        # logs/faulthandler-<worker>.log (tests/conftest.py), and the kernel log names an
+        # out-of-memory kill (#6561).
+        if: failure()
+        run: |
+          for log in logs/faulthandler-*.log; do
+            [ -s "$log" ] && { echo "== $log"; cat "$log"; }
+          done
+          sudo dmesg | grep -i -E "out of memory|oom-kill|killed process" \
+            || echo "No out-of-memory kill in the kernel log."
       - name: Coverage of the changed lines (diff-cover)
         # [tool.diff_cover] fail_under of the lines that the pull request changes must be
         # tested (#3166, #5855).
