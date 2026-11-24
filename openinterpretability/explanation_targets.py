@@ -180,6 +180,7 @@ class TargetedDraws:
     max_attempts: int = MAX_ATTEMPTS
     attempts: dict[str, int] = field(default_factory=dict)
     done: dict[str, str] = field(default_factory=dict)  # slug → why it left the list
+    claimed: set[str] = field(default_factory=set)  # targets skipped for an open PR's claim
     meter: ShareMeter | None = None  # with it, the run stops at ``target``
     target: float = 1.0
     limit: int = 0  # experiments to start at most; 0 for no limit
@@ -204,6 +205,7 @@ class TargetedDraws:
                 self.done[t.slug] = why
                 continue
             if any(claim_key(t.slug) in c for c in claimed):
+                self.claimed.add(t.slug)
                 continue  # an open PR studies it now: wait for it to land
             choice = self._choice(t, state, set(states), claims, now)
             if choice is None:
@@ -281,8 +283,33 @@ class TargetedDraws:
             return c
         return None
 
+    def unstart(self, slug: str) -> None:
+        """Give back the attempt and the run's count of a draw whose session ran nothing (#6066).
+
+        Args:
+            slug: The drawn target's slug.
+        """
+        if self.attempts.get(slug, 0) > 0:
+            self.attempts[slug] -= 1
+            self.started = max(0, self.started - 1)
+
     def summary(self) -> str:
-        """Each target's outcome, for the loop's last line."""
-        parts = [f"{t.label} {self.done.get(t.slug, 'waiting on an open PR')}"
-                 for t in self.targets]  # fmt: skip
+        """Each target's outcome, for the loop's last line.
+
+        A target that an open PR claims, or that this run attempted, waits on that PR. Any
+        other target that hasn't left the list was not reached.
+        """
+        parts = [f"{t.label} {self.done.get(t.slug, self._open(t.slug))}" for t in self.targets]
         return "; ".join(parts)
+
+    def _open(self, slug: str) -> str:
+        """Why a target that hasn't left the list is still on it.
+
+        Args:
+            slug: The target's slug.
+
+        Returns:
+            The reason, for the summary.
+        """
+        waiting = self.attempts.get(slug) or slug in self.claimed
+        return "waiting on an open PR" if waiting else "not reached"

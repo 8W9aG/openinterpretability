@@ -11,6 +11,8 @@ never waits for CI (#5826).
 
 from __future__ import annotations
 
+import json
+import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -97,29 +99,88 @@ def session_iteration(options: el.Options, plan_next, claims) -> el.Result:
     run.log_dir.mkdir(parents=True, exist_ok=True)
     result, log = run.log_dir / f"{stamp}.json", run.log_dir / f"{stamp}.log"
     prompt = session_prompt(slug, plan.choice.kind, render(steps))
+    started = datetime.now(UTC)
     code = run.session.run(prompt, Path.cwd(), result, log, run.log_dir / f"{stamp}.costs.jsonl")
     if code:
         raise el.LoopError(f"claude exited {code} (a usage limit?); see {log}")
-    return _result(result_line(session_text(result)), log, options)
+    return _result(result_line(session_text(result)), log, options, slug, started)
 
 
-def _result(line: str | None, log: Path, options: el.Options) -> el.Result:
+class NothingRan(el.LoopError):
+    """A session ran no experiment, so the run gives back the draw's attempt (#6066)."""
+
+    def __init__(self, message: str, slug: str) -> None:
+        """Keep the reason, and the drawn unit whose attempt the run gives back.
+
+        Args:
+            message: Why the session counts as having run nothing.
+            slug: The drawn unit's slug.
+        """
+        super().__init__(message)
+        self.nothing_ran = slug
+
+
+def landed_pr(slug: str, since: datetime, prs=None) -> tuple[str, bool] | None:
+    """A PR on ``slug``'s unit opened since ``since``, when a session printed no result line.
+
+    A session can land its record and still end without a ``RESULT:`` line (#6066, #6069).
+
+    Args:
+        slug: The unit's slug.
+        since: When the session started.
+        prs: ``gh pr list`` rows, for a test; read from GitHub when None.
+
+    Returns:
+        The PR's URL and whether it merged, or None.
+
+    Examples:
+        >>> rows = [{"headRefName": "experiment/m-L1-N2-positive-revise-1124010203",
+        ...          "createdAt": "2026-11-24T01:02:30Z", "url": "u", "state": "MERGED"}]
+        >>> start = datetime(2026, 11, 24, 1, 2, tzinfo=UTC)
+        >>> landed_pr("m/L1/N2-positive", start, rows), landed_pr("m/L1/N3-positive", start, rows)
+        (('u', True), None)
+    """
+    from openinterpretability.planner import claim_key
+
+    if prs is None:
+        listed = ["gh", "pr", "list", "--state", "all", "--limit", "100",
+                  "--json", "headRefName,createdAt,url,state"]  # fmt: skip
+        done = subprocess.run(listed, capture_output=True, text=True, check=False)
+        prs = json.loads(done.stdout or "[]") if done.returncode == 0 else []
+    head = f"experiment/{claim_key(slug)}"
+    for pr in prs:
+        opened = datetime.fromisoformat(pr["createdAt"])  # Python 3.11 reads the Z
+        if pr["headRefName"].startswith(head) and opened >= since:
+            return pr["url"], pr["state"] == "MERGED"
+    return None
+
+
+def _result(line: str | None, log: Path, options: el.Options, slug: str,
+            since: datetime | None, find=landed_pr) -> el.Result:  # fmt: skip
     """The iteration's result from the session's ``RESULT:`` line; its PR's records kept.
 
     Args:
         line: The line, without its prefix, or None.
         log: The session's log, for the error.
         options: The loop's options, whose pending records keep the PR's files.
+        slug: The drawn unit, to find a PR that the session landed without a line.
+        since: When the session started.
+        find: Finds that PR (:func:`landed_pr`).
 
     Returns:
         The result.
 
     Raises:
-        el.LoopError: The session gave no line, or ran no experiment.
+        NothingRan: The session gave no line, or ran no experiment, and opened no PR.
     """
     parts = (line or "").split()
     if len(parts) < 4 or parts[0] == "none":
-        raise el.LoopError(f"the session ran no experiment ({line or 'no RESULT line'}); see {log}")
+        found = find(slug, since) if slug and since else None
+        if found is None:
+            why = f"the session ran no experiment ({line or 'no RESULT line'}); see {log}"
+            raise NothingRan(why, slug)
+        options.pending.keep()
+        return el.Result(slug, "unknown", found[0], found[1])
     slug, verdict, url, state = parts[:4]
     options.pending.keep()  # the session's branch is checked out: keep what its PR adds
     return el.Result(slug, verdict, url, state == "merged")
