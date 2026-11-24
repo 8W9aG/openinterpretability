@@ -41,3 +41,12 @@ def test_auto_merge_waits_for_the_run_that_leaving_draft_starts():
     assert "actions/workflows/ci.yml/runs" in steps[wait]["run"]
     names = [str(job["name"]) for job in _load("ci.yml")["jobs"].values()]
     assert set(REQUIRED) <= set(names)  # static, so a skipped job still reports its name
+
+
+def test_a_draft_time_run_cannot_cancel_the_ready_run():
+    # #6179: the push and ready_for_review runs arrive a second apart. A shared group with
+    # cancel-in-progress let the push's skipped run cancel the real one.
+    for name in ("ci.yml", "codeql.yml"):
+        group = _load(name)["concurrency"]
+        assert group["group"].endswith("-${{ github.event.pull_request.draft }}"), name
+        assert group["cancel-in-progress"] is True, name
