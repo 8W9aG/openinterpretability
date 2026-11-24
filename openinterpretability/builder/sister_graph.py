@@ -17,6 +17,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from statistics import median
 
+from openinterpretability.builder.hrefs import sister_index_href, sister_match_href
 from openinterpretability.core.identifiers import model_slug
 from openinterpretability.sisters import pole_href
 
@@ -138,7 +139,8 @@ def sister_graphs(model, rows: dict, studied: set) -> list[dict]:
     for other, edges in _edges(model.name, rows).items():
         n_a = depths.get(model.name) or model.n_layers
         n_b = depths.get(other) or 1 + max(_layer(e.b) for e in edges.values())
-        panels.append(_panel(other, list(edges.values()), (n_a, n_b), studied))
+        panel = _panel(other, list(edges.values()), (n_a, n_b), studied)
+        panels.append(panel | {"index": sister_index_href(model.slug)})  # its matches (#6639)
     return sorted(panels, key=lambda p: (-p["n_sisters"], p["other"]))
 
 
@@ -157,6 +159,7 @@ def _panel(other: str, edges: list[_Edge], depth: tuple[int, int], studied) -> d
             "sister": e.sister,
             "opacity": round(min(max(e.pearson, 0.05), 1.0), 2),
             "label": f"{nodes[e.a]['label']} ↔ {nodes[e.b]['label']}: r {e.pearson:.2f}",
+            "href": sister_match_href(e.a, e.b) if e.sister else None,  # its page (#6639)
         }
         for e in edges
     ]
@@ -177,4 +180,5 @@ def _panel(other: str, edges: list[_Edge], depth: tuple[int, int], studied) -> d
 
 
 def _sister_line(e: _Edge, nodes: dict) -> dict:
-    return {"a": nodes[e.a], "b": nodes[e.b], "pearson": e.pearson, "rotated": e.rotated}
+    return {"a": nodes[e.a], "b": nodes[e.b], "pearson": e.pearson, "rotated": e.rotated,
+            "href": sister_match_href(e.a, e.b)}  # fmt: skip
