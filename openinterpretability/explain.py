@@ -33,10 +33,10 @@ from pathlib import Path
 
 import torch
 
+from labinacan.progress import Progress
 from openinterpretability.core.cache_dirs import cache_root
 from openinterpretability.explain_groups import HEAD, GroupAttribution, GroupDef
 from openinterpretability.harness.hooks import NeuronHookRunner
-from openinterpretability.harness.progress import Progress
 
 MEANS_ENV = "OPENINTERPRETABILITY_MEANS"  # the cache of per-neuron means, or "off"
 WINDOW = 128  # tokens per window of the mean's corpus sample

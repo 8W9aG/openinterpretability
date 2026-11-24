@@ -15,6 +15,7 @@ from types import SimpleNamespace
 
 import click
 
+from labinacan.progress import Stages
 from openinterpretability import explain_plan
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
 from openinterpretability.cli_patch import patch_options, patch_target
@@ -30,7 +31,6 @@ from openinterpretability.explain_print import print_result
 from openinterpretability.explain_reuse import look_first
 from openinterpretability.explain_run import run_plan
 from openinterpretability.explain_stopped import lines as stopped_lines
-from openinterpretability.harness.progress import Stages
 from openinterpretability.hubs import mark_hubs
 from openinterpretability.patches.session import patched
 
@@ -157,7 +157,7 @@ def _quiet(on: bool) -> Iterator[None]:
     Yields:
         Nothing. The quiet setting is put back as it was when the block ends.
     """
-    from openinterpretability.harness.progress import QUIET_ENV
+    from labinacan.progress import QUIET_ENV
 
     before = os.environ.get(QUIET_ENV)
     if on:
@@ -290,7 +290,7 @@ def _analyse(  # long-function: one line per step of the analysis
     """Attribute, label, mark hubs, measure the coverage and plan, from the registry now.
 
     ``explain --run`` calls it twice: to plan the run, and after it (#4474). ``stages``
-    (:class:`~openinterpretability.harness.progress.Stages`) says each of its four stages;
+    (:class:`~labinacan.progress.Stages`) says each of its four stages;
     the second call passes none.
     """
     say = stages.next if stages is not None else (lambda _: None)

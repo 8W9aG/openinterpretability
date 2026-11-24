@@ -17,6 +17,8 @@ from tempfile import TemporaryDirectory
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
 from pydantic import ValidationError
 
+from labinacan.site.contents import add_contents
+from labinacan.site.parallel import in_background, render_in_parallel
 from openinterpretability import __version__
 from openinterpretability import sisters as sister_lib
 from openinterpretability.builder import charts, palette, pieces, statuses
@@ -29,14 +31,12 @@ from openinterpretability.builder.agents import (
 from openinterpretability.builder.aligned import aligned_latents
 from openinterpretability.builder.circuit_pages import render_circuits
 from openinterpretability.builder.circuits import circuits_and_hubs, wiring_view
-from openinterpretability.builder.contents import add_contents
 from openinterpretability.builder.corpora import language_mix
 from openinterpretability.builder.dashboard import dashboard
 from openinterpretability.builder.feeds import write_feeds
 from openinterpretability.builder.heat import HeatToken, heat_html, token_heat, values_rows
 from openinterpretability.builder.model_facts import ModelFacts, model_page_extras, render_models
 from openinterpretability.builder.neuronpedia_export import export_neuronpedia
-from openinterpretability.builder.parallel import in_background, render_in_parallel
 from openinterpretability.builder.parquet_export import export_draws, export_registry
 from openinterpretability.builder.pii import save_spans, scrub, scrub_experiments
 from openinterpretability.builder.recent import recent_experiments
@@ -336,7 +336,7 @@ def compile_site(
     hand_over(records, experiments, archive and archive.paths)  # each slim record's file
     # Statistics read the true text: build_tree counts near-duplicate probes, and the queries
     # group readings by explanation. Only what the site publishes is scrubbed. The two
-    # exports run in the background while the pages render (builder/parallel.py).
+    # exports run in the background while the pages render (labinacan/site/parallel.py).
     stats_result = in_background(lambda: _true_text_stats(experiments, draws, corpus_sources), jobs)
     scrub_experiments(experiments)  # what the pages show: the record and its errata notes
     parquet = in_background(lambda: export_registry(experiments, output_dir, corpus_sources), jobs)
@@ -437,7 +437,7 @@ class _Renderer:
     output_dir: Path
     common: dict
     report: BuildReport
-    jobs: int = 1  # worker processes for the unit pages (builder/parallel.py)
+    jobs: int = 1  # worker processes for the unit pages (labinacan/site/parallel.py)
 
     def __call__(self, rel: str, template: str, **context) -> None:
         out = self.output_dir / rel
