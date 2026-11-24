@@ -28,11 +28,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-PACKAGE = "openinterpretability"
+PACKAGES = ("openinterpretability", "labinacan")  # labinacan: the template part (#6628)
 FAILING = ("survived", "no tests", "timeout", "suspicious")
 # Left out of mutmut's copy of the repository. mutmut copies the package and the tests itself.
 # No unit test reads the 840 MB of experiment records.
-NOT_COPIED = {PACKAGE, "tests", "wiki/experiments"}
+NOT_COPIED = {*PACKAGES, "tests", "wiki/experiments"}
 # With --base, at most this many mutants run, a seeded sample of those in the changed
 # functions. So a large change still takes minutes, not most of an hour (#5857).
 CAP = 100
@@ -67,7 +67,9 @@ def changed_files(base: str, root: Path = Path(".")) -> list[str]:
     names = set(_git(root, "diff", "--name-only", "--diff-filter=d", f"{base}...HEAD"))
     names |= set(_git(root, "diff", "--name-only", "--diff-filter=d", "HEAD"))
     names |= set(_git(root, "ls-files", "--others", "--exclude-standard"))
-    ours = (n for n in names if n.startswith(f"{PACKAGE}/") and n.endswith(".py"))
+    ours = (
+        n for n in names if n.startswith(tuple(f"{p}/" for p in PACKAGES)) and n.endswith(".py")
+    )
     return sorted(n for n in ours if (root / n).exists())
 
 
@@ -88,12 +90,31 @@ def changed_lines(base: str, path: str, root: Path = Path(".")) -> set[int] | No
     if not _git(root, "ls-files", path):
         return None
     merge_base = _git(root, "merge-base", base, "HEAD")[0]
-    diff = "\n".join(_git(root, "diff", "-U0", merge_base, "--", path))
+    old = renamed_from(merge_base, path, root)  # a moved file: only its edits count (#6628)
+    diff = "\n".join(_git(root, "diff", "-U0", "-M", merge_base, "--", *old, path))
     lines: set[int] = set()
     for start, count in HUNK.findall(diff):
         first, n = int(start), int(count or 1)
         lines |= set(range(first, first + n)) if n else {first + 1}  # +c,0 follows line c
     return lines
+
+
+def renamed_from(merge_base: str, path: str, root: Path = Path(".")) -> list[str]:
+    """The path that git sees ``path`` renamed from since ``merge_base``, if any.
+
+    Args:
+        merge_base: The commit to compare with.
+        path: A path relative to ``root``.
+        root: The repository's root.
+
+    Returns:
+        The old path, in a list, or an empty list for a file that wasn't moved.
+    """
+    for line in _git(root, "diff", "-M", "--name-status", "--diff-filter=R", merge_base):
+        _, old, new = line.split("\t")
+        if new == path:
+            return [old]
+    return []
 
 
 def function_spans(source: str) -> dict[str, tuple[int, int]]:

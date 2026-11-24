@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / "scripts" / "docstring_args_baseline.txt"
-FOLDERS = ("openinterpretability/", "scripts/")
+FOLDERS = ("openinterpretability/", "labinacan/", "scripts/")
 SKIPPED = frozenset({"self", "cls"})
 SECTION = re.compile(r"^(\s*)(Args|Arguments|Parameters):\s*$")
 ENTRY = re.compile(r"^\s*\**([A-Za-z_][\w.]*)\s*(?:\([^)]*\))?\s*:")

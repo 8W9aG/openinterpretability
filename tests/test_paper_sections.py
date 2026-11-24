@@ -1,6 +1,6 @@
 """Section ids and the contents list of a paper page (builder/research.py, #3139)."""
 
-from openinterpretability.builder.contents import anchor as _anchor
+from labinacan.site.contents import anchor as _anchor
 from openinterpretability.builder.research import _read_paper
 
 PAPER = """# A title

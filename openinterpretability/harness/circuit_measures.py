@@ -162,7 +162,7 @@ def null_necessity(runner, task, means, members, sets: int = 64, seed: int = 0) 
 
     Each set is a pass over every pair, so a :class:`~.progress.Progress` reports the count.
     """
-    from openinterpretability.harness.progress import Progress
+    from labinacan.progress import Progress
 
     rng, progress, found = random.Random(seed), Progress("random member sets", sets), []
     for _ in range(sets):
