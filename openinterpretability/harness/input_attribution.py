@@ -253,7 +253,7 @@ def input_attribution(
     example keeps its ``top_k`` most attributed tokens; the ablation check covers those,
     the peak and the ``near`` tokens before it.
     """
-    from openinterpretability.harness.progress import Progress
+    from labinacan.progress import Progress
 
     if runner.tokenizer is None:
         raise ValueError("input_attribution requires a tokenizer")

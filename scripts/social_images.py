@@ -5,7 +5,7 @@ writes three files in the folder's ``media/``:
 
 - ``social.png``: the final frame, drawn with reduced motion.
 - ``social.mp4``: one loop, only when the figure animates.
-- ``social.json``: the hash that :func:`openinterpretability.builder.social_media.stale`
+- ``social.json``: the hash that :func:`labinacan.site.social_media.stale`
   checks.
 
 It needs Playwright's Chromium and ``ffmpeg``. The files are committed, so the deploy needs
@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from openinterpretability.builder.social_media import (  # noqa: E402
+from labinacan.site.social_media import (  # noqa: E402
     IMAGE,
     SIZE,
     VIDEO,

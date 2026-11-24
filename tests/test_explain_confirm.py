@@ -6,8 +6,8 @@ from pathlib import Path
 import click
 import pytest
 
+from labinacan.progress import QUIET_ENV, Progress
 from openinterpretability.explain_confirm import Estimate, confirm, estimate, warning
-from openinterpretability.harness.progress import QUIET_ENV, Progress
 
 
 def _experiment(wiki: Path, name: str, calls: list[dict] | None) -> None:
