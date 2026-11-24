@@ -17,7 +17,8 @@ from openinterpretability.core.schemas import Histogram
 CHART_TEXT_PX = 12
 # A hand-drawn diagram (the About page's taxonomy) keeps the text sizes it was drawn with,
 # 9 to 14. It draws at this multiple of its viewBox, so its 9 px labels read at about 11 px.
-# Its widest part, 760 wide, then fits the 960 px content column (css.COLUMN_REM, #5726).
+# Its widest part, 760 wide, then fits the 960 px content column
+# (labinacan/site/css.py's COLUMN_REM, #5726).
 DIAGRAM_SCALE = 1.26
 
 

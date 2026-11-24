@@ -1,0 +1,1 @@
+- The site's Tailwind build now lives in `labinacan/site/css.py`, and the colour maths (`luminance`, `badge_text` and `rgb`) in `labinacan/site/palette.py` (#6628). The project passes its colours to the build. This repo keeps its status, pole and brand colours in `builder/palette.py`. `python -m openinterpretability.builder.css` still builds the stylesheet in them.

@@ -31,7 +31,7 @@ openinterpretability/builder/concept_map_view.py
 labinacan/site/contents.py
 openinterpretability/builder/corpora.py
 openinterpretability/builder/coverage.py
-openinterpretability/builder/css.py
+labinacan/site/css.py
 openinterpretability/builder/dashboard.py
 openinterpretability/builder/disk_memo.py
 openinterpretability/builder/draws_export.py
