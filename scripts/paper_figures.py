@@ -19,6 +19,7 @@ import figures_depth
 import figures_development
 import figures_dormant
 import figures_fisher_keep
+import figures_instruct_difference
 import figures_native_learned
 import figures_pruning_keep
 import figures_sequential_tuning
@@ -69,6 +70,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
             [r for r in _rows("copy-first-unit") if "prompt" in r]
         ),
         "conformal-line": figures_conformal.build(_rows("conformal-line")),
+        "instruct-difference": figures_instruct_difference.build(_rows("instruct-difference")),
         "neuron-development": {
             **figures_development.build(_rows("neuron-development")),
             "dormant.svg": figures_dormant.figure(
