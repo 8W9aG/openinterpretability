@@ -1,8 +1,8 @@
-"""Tables of contents on long pages, built from their headings (builder/contents.py, #3756)."""
+"""Tables of contents on long pages, from their headings (labinacan/site/contents.py, #3756)."""
 
 import re
 
-from openinterpretability.builder.contents import MIN_SECTIONS, add_contents, anchor
+from labinacan.site.contents import MIN_SECTIONS, add_contents, anchor
 
 
 def _page(level, titles, extra=""):

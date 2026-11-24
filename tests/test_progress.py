@@ -1,6 +1,6 @@
-"""Progress lines for long steps (openinterpretability/harness/progress.py, issue #3971)."""
+"""Progress lines for long steps (labinacan/progress.py, issue #3971)."""
 
-from openinterpretability.harness.progress import Progress
+from labinacan.progress import Progress
 
 
 class Clock:

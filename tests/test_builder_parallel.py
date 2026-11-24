@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from openinterpretability.builder import parallel
+from labinacan.site import parallel
 
 
 def test_a_worker_renders_every_jobs_th_item_and_returns_what_it_wrote(monkeypatch):

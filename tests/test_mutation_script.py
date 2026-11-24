@@ -213,3 +213,24 @@ def test_function_spans_name_functions_as_mutmut_names_their_mutants():
     names = mutate_file_contents("pkg/mod.py", source).mutant_names
     spans = _script().function_spans(source)
     assert names and {n.partition("__mutmut_")[0] for n in names} == set(spans)
+
+
+def test_a_moved_file_counts_only_the_lines_it_changed(repo):
+    # #6628: a module that moves to labinacan/ is not new code.
+    m = _script()
+    stats = repo / "openinterpretability" / "core" / "stats.py"
+    stats.write_text("".join(f"V{i} = {i}\n" for i in range(12)))
+    _git(repo, "commit", "-qam", "longer")
+    _git(repo, "checkout", "-qb", "move")
+    (repo / "labinacan").mkdir()
+    _git(repo, "mv", "openinterpretability/core/stats.py", "labinacan/stats.py")
+    moved = repo / "labinacan" / "stats.py"
+    moved.write_text(moved.read_text().replace("V3 = 3", "V3 = 30"))
+    _git(repo, "add", "labinacan/stats.py")
+    merge_base = m._git(repo, "merge-base", "main", "HEAD")[0]
+    assert m.renamed_from(merge_base, "labinacan/stats.py", repo) == [
+        "openinterpretability/core/stats.py"
+    ]
+    assert m.renamed_from(merge_base, "scripts/tool.py", repo) == []
+    assert m.changed_lines("main", "labinacan/stats.py", repo) == {4}
+    assert "labinacan/stats.py" in m.changed_files("main", repo)

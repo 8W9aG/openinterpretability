@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from openinterpretability.builder.social_media import stale
+from labinacan.site.social_media import stale
 from openinterpretability.social.feed import Media, read_feed
 from openinterpretability.social.poster import SEGMENT, XPoster
 
@@ -31,7 +31,7 @@ def test_every_drawn_head_figure_is_up_to_date():
 
 
 def test_a_changed_figure_is_stale(tmp_path):
-    from openinterpretability.builder.social_media import write_manifest
+    from labinacan.site.social_media import write_manifest
 
     (tmp_path / "media").mkdir()
     (tmp_path / "media" / "c.svg").write_text("<svg/>")
