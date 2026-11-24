@@ -1,6 +1,6 @@
 """Part of check 5 of ``open-interpretability check``: the takedown file.
 
-The file's format is in :mod:`openinterpretability.core.takedowns`.
+The file's format is in :mod:`labinacan.site.takedowns`.
 
 The file parses and has unique ids. A key in the allowed signers (from ``base_ref`` if
 given) signed it, so a branch can't add a takedown of its own. With ``base_ref`` the file
@@ -17,8 +17,8 @@ import subprocess
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from openinterpretability.core.takedowns import all_hashes, load_takedowns, parse_takedowns, redact
-from openinterpretability.core.takedowns import takedowns_path as path_of
+from labinacan.site.takedowns import all_hashes, load_takedowns, parse_takedowns, redact
+from labinacan.site.takedowns import takedowns_path as path_of
 from openinterpretability.errata_checks import changed_file, check_signature
 from openinterpretability.signing import allowed_signers_text, signature_path
 

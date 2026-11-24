@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
+from labinacan.site import takedowns as td
 from openinterpretability.builder import pii
 from openinterpretability.builder.wiki import write_experiment_page
 from openinterpretability.checks import check_registry
-from openinterpretability.core import takedowns as td
 from openinterpretability.signing import sign_record
 from openinterpretability.takedown_checks import page_redaction_ok
 from tests.test_errata import git, repo  # noqa: F401  (fixture)

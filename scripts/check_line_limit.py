@@ -27,7 +27,7 @@ EXEMPT_MARKER = re.compile(r"#\s*long-function:\s*\S")
 
 EXEMPT = (
     # A copy of publicsuffix.org's list, not code.
-    "openinterpretability/data/public_suffix_list.dat",
+    "labinacan/data/public_suffix_list.dat",
     "tests/*",
     "wiki/*",  # generated experiment pages
     "docs/analyses/*.jsonl",  # generated analysis rows

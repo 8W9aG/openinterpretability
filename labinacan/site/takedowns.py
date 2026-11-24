@@ -1,14 +1,13 @@
-"""Takedowns: passages that the project stops publishing on request (``SECURITY.md``).
+"""Takedowns: passages that a project stops publishing on request.
 
-A takedown is one line of ``wiki/takedowns.jsonl``. It names a passage by the hashes of
+A takedown is one line of a project's ``takedowns.jsonl``. It names a passage by the hashes of
 its *shingles*: each run of :data:`SHINGLE_WORDS` consecutive words, lowercased. The file
 never holds the text, because that would publish the text again. One passage can appear
 in many records and fields, and the hashes find it in each one.
 
-The build removes the text that the shingles cover from everything it publishes
-(:mod:`openinterpretability.builder.pii`). An experiment page may change outside its Discussion
-section only by that removal (:func:`redact`). The record files and their signatures
-don't change. So a takedown hides the text without breaking reproduction.
+A site build removes the text that the shingles cover from everything it publishes
+(:func:`redact`). The project's record files and their signatures don't change. So a
+takedown hides the text without breaking reproduction.
 """
 
 from __future__ import annotations
@@ -22,8 +21,7 @@ from pathlib import Path
 
 from pydantic import Field, ValidationError
 
-from openinterpretability.core.paths import DEFAULT_WIKI_DIR
-from openinterpretability.core.strict import StrictModel
+from labinacan.strict import StrictModel
 
 SHINGLE_WORDS = 8  # a run this long is rare enough to name one passage
 WORD = re.compile(r"\w+")
@@ -45,7 +43,7 @@ class Takedown(StrictModel):
     )
 
 
-def takedowns_path(wiki_dir: Path | str = DEFAULT_WIKI_DIR) -> Path:
+def takedowns_path(wiki_dir: Path | str) -> Path:
     """The takedown file of ``wiki_dir``."""
     return Path(wiki_dir) / "takedowns.jsonl"
 
@@ -63,7 +61,7 @@ def parse_takedowns(text: str) -> list[Takedown]:
     return out
 
 
-def load_takedowns(wiki_dir: Path | str = DEFAULT_WIKI_DIR) -> list[Takedown]:
+def load_takedowns(wiki_dir: Path | str) -> list[Takedown]:
     """Every takedown of ``wiki_dir``; none if there is no takedown file."""
     path = takedowns_path(wiki_dir)
     return parse_takedowns(path.read_text(encoding="utf-8")) if path.exists() else []

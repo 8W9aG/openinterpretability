@@ -1,18 +1,16 @@
 """Find personal data and offensive words in text, for scan labels and the site.
 
-Experiments read this text unchanged. A scan labels what it finds
-(:class:`~openinterpretability.harness.annotations.MatchTagger`). So a record can say how much of a
-unit's activation personal data explains. Separately, the site build
-removes personal data and masks offensive examples in what it publishes
-(``openinterpretability/builder``).
+A project's experiments read text unchanged. A project can label what this module finds,
+for example to say how much of a unit's activation personal data explains. Separately, a
+site build removes personal data and masks offensive examples in what it publishes.
 
 The search for personal data uses Microsoft Presidio's pattern recognisers, with rules of
 our own on top. They need no model and no network. It finds emails, phone numbers, payment
 cards, IBANs, US SSNs and ITINs, UK NHS numbers, crypto wallets and public IP addresses. It
-does NOT find names or postal addresses. Names and addresses are separate scan labels, which
-the site does not remove: :mod:`openinterpretability.names` and :func:`address_matches`.
+does NOT find names or postal addresses. :func:`address_matches` finds postal addresses
+as a separate label, which a site does not remove.
 
-The search for offensive words is a short list (``openinterpretability/data/offensive_words.txt``),
+The search for offensive words is a short list (``labinacan/data/offensive_words.txt``),
 not a classifier. It must be fast for a site build, and needs no model. The list holds only
 words that are rarely innocent. It includes words for sexual violence, so news reports can
 match. A general profanity list flagged 12% of distinct examples, on words such as "god",
@@ -114,7 +112,7 @@ def _domains():
     """
     import tldextract
 
-    with as_file(files("openinterpretability.data").joinpath(_SUFFIX_LIST)) as path:
+    with as_file(files("labinacan.data").joinpath(_SUFFIX_LIST)) as path:
         url = path.resolve().as_uri()
     # fallback_to_snapshot=False: fail, not silently read the list in the installed package.
     return tldextract.TLDExtract(
@@ -217,7 +215,7 @@ def address_matches(text: str) -> tuple[tuple[int, int, str], ...]:
 
 
 def _data(name: str) -> str:
-    return files("openinterpretability.data").joinpath(name).read_text(encoding="utf-8")
+    return files("labinacan.data").joinpath(name).read_text(encoding="utf-8")
 
 
 @cache
@@ -232,11 +230,24 @@ def is_offensive(text: str) -> bool:
     return _offensive_pattern().search(text) is not None
 
 
-def detector() -> str:
-    """Name the package versions and the suffix list that fix what a search finds."""
+def detector(name: str) -> str:
+    """Name the package versions and the suffix list that fix what a search finds.
+
+    Records store this string, so a project keeps one name for the search (#6628).
+
+    Args:
+        name: The project's name for this search, such as ``openinterpretability.sensitive``.
+
+    Returns:
+        The name, then the package versions and the suffix list's SHA-256 prefix.
+
+    Examples:
+        >>> detector("lab.sensitive").startswith("lab.sensitive (presidio-analyzer ")
+        True
+    """
     names = ("presidio-analyzer", "phonenumbers", "tldextract")
     packages = ", ".join(f"{p} {version(p)}" for p in names)
-    return f"openinterpretability.sensitive ({packages}; suffix list {_sha12(_data(_SUFFIX_LIST))})"
+    return f"{name} ({packages}; suffix list {_sha12(_data(_SUFFIX_LIST))})"
 
 
 def _sha12(text: str) -> str:

@@ -77,7 +77,7 @@ What the maintainer does:
 2. Sign the file: `open-interpretability sign wiki/takedowns.jsonl`. Open a pull request with the file, its signature and the pages. Don't name the requester or quote the passage in the pull request.
 3. After it merges, build and deploy the site. Reply in the advisory.
 
-The takedown file holds no text. It names a passage by a hash of each run of 8 words, lowercased (`openinterpretability/core/takedowns.py`). So it finds the passage in every record and field, even where punctuation or case differs. A passage needs at least 8 words.
+The takedown file holds no text. It names a passage by a hash of each run of 8 words, lowercased (`labinacan/site/takedowns.py`). So it finds the passage in every record and field, even where punctuation or case differs. A passage needs at least 8 words.
 
 What changes:
 

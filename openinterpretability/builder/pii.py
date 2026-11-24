@@ -1,7 +1,7 @@
 """Remove personal data, and passages under a takedown, from the text that the site shows.
 
 Records keep their text unchanged, because experiments study this text, and records are
-signed. Only the build's output changes. :mod:`openinterpretability.sensitive` does the search.
+signed. Only the build's output changes. :mod:`labinacan.sensitive` does the search.
 
 The search is most of a build's time, and records never change. So the matches of each
 text are kept on disk, in ``$XDG_CACHE_HOME/openinterpretability/pii``
@@ -22,11 +22,12 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from openinterpretability import sensitive
-from openinterpretability.core import takedowns
+from labinacan import sensitive
+from labinacan.sensitive import pii_matches
+from labinacan.site import takedowns
 from openinterpretability.core.cache_dirs import cache_root
+from openinterpretability.core.confounds import PII_DETECTOR
 from openinterpretability.core.schemas import AuditRecord
-from openinterpretability.sensitive import pii_matches
 
 REMOVED_TEXT = "[removed]"  # replaces a match in free text
 REMOVED_TOKEN = "█"  # noqa: S105  (a model token, not a password). Replaces each token of a match, so a heatmap keeps its shape
@@ -44,7 +45,7 @@ def _cache_file() -> Path | None:
     if root is None:
         return None
     code = Path(sensitive.__file__).read_bytes() + Path(__file__).read_bytes()
-    key = hashlib.sha256(sensitive.detector().encode() + code).hexdigest()[:16]
+    key = hashlib.sha256(sensitive.detector(PII_DETECTOR).encode() + code).hexdigest()[:16]
     return root / f"spans-{key}.sqlite"
 
 
@@ -79,7 +80,7 @@ def find_spans(text: str) -> tuple[Span, ...]:
     """Return the ``(start, end)`` of each match in ``text``, sorted and merged.
 
     A match is personal data, or a passage that a takedown names
-    (:mod:`openinterpretability.core.takedowns`).
+    (:mod:`labinacan.site.takedowns`).
     """
     return _merge((*_personal_spans(text), *takedowns.covered(text, takedowns.active_hashes())))
 
