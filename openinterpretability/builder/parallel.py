@@ -20,7 +20,7 @@ from __future__ import annotations
 import gc
 import multiprocessing
 import os
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
@@ -43,9 +43,26 @@ def _frozen() -> Iterator[None]:
         gc.unfreeze()
 
 
-def default_jobs() -> int:
-    """Return the number of worker processes to use: one for each CPU."""
-    return os.cpu_count() or 1
+# Caps a build's worker processes. The test suite sets it to 1. A test process may already
+# run torch's threads, and then a fork can crash its child (#6507).
+JOBS_ENV = "OPENINTERPRETABILITY_BUILD_JOBS"
+
+
+def default_jobs(env: Mapping[str, str] = os.environ) -> int:
+    """Return the number of build worker processes: :data:`JOBS_ENV` if set, else one per CPU.
+
+    Args:
+        env: The environment, the process's by default.
+
+    Returns:
+        At least 1.
+
+    Examples:
+        >>> default_jobs({JOBS_ENV: "1"}), default_jobs({JOBS_ENV: "0"}) >= 1
+        (1, True)
+    """
+    jobs = int(env.get(JOBS_ENV) or 0)
+    return jobs if jobs >= 1 else (os.cpu_count() or 1)
 
 
 def render_in_parallel(render, page: Callable[..., None], items: Sequence[tuple]) -> None:
