@@ -234,3 +234,22 @@ def test_a_moved_file_counts_only_the_lines_it_changed(repo):
     assert m.renamed_from(merge_base, "scripts/tool.py", repo) == []
     assert m.changed_lines("main", "labinacan/stats.py", repo) == {4}
     assert "labinacan/stats.py" in m.changed_files("main", repo)
+
+
+def test_a_file_moved_with_a_new_module_at_its_old_path_counts_only_its_edits(repo):
+    # #6628: builder/css.py moved to labinacan/, and a thin entry point took its place.
+    m = _script()
+    stats = repo / "openinterpretability" / "core" / "stats.py"
+    stats.write_text("".join(f"V{i} = {i}\n" for i in range(12)))
+    _git(repo, "commit", "-qam", "longer")
+    _git(repo, "checkout", "-qb", "move")
+    (repo / "labinacan").mkdir()
+    moved = repo / "labinacan" / "stats.py"
+    moved.write_text(stats.read_text().replace("V3 = 3", "V3 = 30"))
+    stats.write_text("from labinacan.stats import V1\n")
+    _git(repo, "add", "labinacan/stats.py", "openinterpretability/core/stats.py")
+    merge_base = m._git(repo, "merge-base", "main", "HEAD")[0]
+    assert m.renamed_from(merge_base, "labinacan/stats.py", repo) == [
+        "openinterpretability/core/stats.py"
+    ]
+    assert m.changed_lines("main", "labinacan/stats.py", repo) == {4}

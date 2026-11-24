@@ -9,12 +9,13 @@ and that badge text stays readable on each fill.
 The pole colours are Tailwind's orange-600 and sky-600, already a safe pair.
 
 Templates use them as Tailwind colours (``status-verified``, ``pole-positive``,
-``brand-700``), which
-``builder/css.py`` adds to Tailwind's config from :func:`tailwind_colors`. The token heatmaps use
-:data:`POLE_RGB`.
+``brand-700``). ``labinacan/site/css.py`` adds them to Tailwind's config from
+:func:`tailwind_colors`. The token heatmaps use :data:`POLE_RGB`.
 """
 
 from __future__ import annotations
+
+from labinacan.site.palette import rgb
 
 STATUS_HEX = {
     "VERIFIED": "#1D4ED8",
@@ -47,24 +48,6 @@ SURFACES = {"light": "#FFFFFF", "dark": "#020617"}
 def token(status: str) -> str:
     """The Tailwind colour name of ``status``: ``status-needs-revision``."""
     return "status-" + status.lower().replace("_", "-")
-
-
-def luminance(hex_colour: str) -> float:
-    """The WCAG relative luminance of a hex colour."""
-    channels = (int(hex_colour.lstrip("#")[i : i + 2], 16) / 255 for i in (0, 2, 4))
-    r, g, b = (c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels)
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-
-
-def badge_text(hex_colour: str) -> str:
-    """The text colour for a badge filled with ``hex_colour``: near-black or white."""
-    return "#111111" if luminance(hex_colour) > 0.25 else "#FFFFFF"
-
-
-def rgb(hex_colour: str) -> str:
-    """``"234 88 12"``: a hex colour as the space-separated triplet CSS ``rgb()`` takes."""
-    h = hex_colour.lstrip("#")
-    return " ".join(str(int(h[i : i + 2], 16)) for i in (0, 2, 4))
 
 
 POLE_RGB = {pole: rgb(hex_colour) for pole, hex_colour in POLE_HEX.items()}
