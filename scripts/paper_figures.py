@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import figures_concept_space
+import figures_conformal
 import figures_copy_first_unit
 import figures_default_on
 import figures_default_on_decoding
@@ -67,6 +68,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         "copy-first-unit": figures_copy_first_unit.build(
             [r for r in _rows("copy-first-unit") if "prompt" in r]
         ),
+        "conformal-line": figures_conformal.build(_rows("conformal-line")),
         "neuron-development": {
             **figures_development.build(_rows("neuron-development")),
             "dormant.svg": figures_dormant.figure(
