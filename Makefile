@@ -31,14 +31,15 @@ coverage:
 
 # Mutation testing (scripts/mutation.py). With BASE, for example BASE=origin/main, it mutates
 # the package files that the branch changes and runs the tests that import them (#5856).
+# It runs only the mutants in the changed functions, at most 100 of them (#5857).
 # Without BASE, it mutates the verdict code of [tool.mutmut] in pyproject.toml (#5763), in
-# about 5 minutes. It fails when a mutant survives or no test reaches it. Not in CI. mutmut is
-# pinned here, so the lockfile doesn't carry it. `mutmut show <name>` gives a mutant's diff.
-MUTMUT ?= mutmut==3.8.1
+# about 5 minutes. It fails when a mutant survives or no test reaches it. CI runs it with BASE
+# on PRs from authors other than the maintainer (#5857). mutmut is
+# pinned in the dev group (pyproject.toml). `mutmut show <name>` gives a mutant's diff.
 BASE ?=
 mutation:
 	rm -rf mutants
-	uv run --with $(MUTMUT) python scripts/mutation.py $(if $(BASE),--base $(BASE))
+	uv run python scripts/mutation.py $(if $(BASE),--base $(BASE))
 
 # Wall time, CPU time and peak memory of fixed workloads, checked against
 # docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.

@@ -18,6 +18,12 @@ def test_the_client_talks_to_the_accounts_endpoint():
     assert client.meta.region_name == "auto"
 
 
+def test_the_client_waits_out_a_slow_response_and_retries_it():  # #6101
+    config = make_client(R2Config("acct", "key", "secret")).meta.config
+    assert config.read_timeout == 300
+    assert config.retries == {"mode": "standard", "total_max_attempts": 6}
+
+
 def test_a_missing_build_directory_is_an_error(tmp_path, mocker):
     with pytest.raises(SyncError, match="is not a directory; run `open-interpretability build`"):
         sync_directory(tmp_path / "dist", "bucket", mocker.Mock())

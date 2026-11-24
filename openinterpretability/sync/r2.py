@@ -101,9 +101,16 @@ class R2Config:
         return cls(*(env[n] for n in names))
 
 
+# A slow R2 response once failed a deploy: DeleteObjects of up to 1,000 keys passed boto's
+# 60 s read timeout (#6101). Standard retries also retry a timeout.
+READ_TIMEOUT_S = 300
+MAX_ATTEMPTS = 6  # the first try and 5 retries
+
+
 def make_client(config: R2Config) -> Any:
-    """An S3 client for R2, made with ``config``."""
+    """An S3 client for R2, made with ``config``, that waits and retries on a slow response."""
     import boto3
+    from botocore.config import Config
 
     return boto3.client(
         "s3",
@@ -111,6 +118,10 @@ def make_client(config: R2Config) -> Any:
         aws_access_key_id=config.access_key_id,
         aws_secret_access_key=config.secret_access_key,
         region_name="auto",
+        config=Config(
+            read_timeout=READ_TIMEOUT_S,
+            retries={"mode": "standard", "total_max_attempts": MAX_ATTEMPTS},
+        ),
     )
 
 

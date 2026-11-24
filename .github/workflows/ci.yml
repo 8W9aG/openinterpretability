@@ -143,6 +143,97 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: diff-cover coverage.xml -c pyproject.toml --compare-branch="origin/$BASE_REF"
 
+  mutation:
+    name: Mutation testing
+    # Mutation testing of the package files that a PR changes (scripts/mutation.py, #5857).
+    # The maintainer runs `make mutation BASE=origin/main` before opening a PR (#5856), so
+    # the maintainer's PRs skip it. The repository's owner is the maintainer's login, and
+    # agents that run under it open PRs as the maintainer too. Wiki-only PRs skip it, as
+    # "Lint and tests" does.
+    needs: code-changes
+    if: >-
+      ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft
+      && needs.code-changes.outputs.code == 'true'
+      && github.event.pull_request.user.login != github.repository_owner }}
+    runs-on: ubuntu-latest
+    # Measured on the package files of #6459 (#5857); a hung run fails here.
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0  # the script diffs against the PR's base branch
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Install dependencies (CPU-only torch)
+        run: |
+          ./scripts/ci-install.sh
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Mutate the changed package files
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        # A surviving mutant, or one that no test reaches, fails the step (scripts/mutation.py).
+        run: |
+          set -o pipefail
+          make mutation BASE="origin/$BASE_REF" 2>&1 | tee mutation.log
+      - name: Surviving mutants in the job summary
+        if: ${{ !cancelled() }}
+        run: |
+          [ -f mutation.log ] || exit 0  # the run failed before it started
+          {
+            echo "### Mutation testing"
+            echo
+            if grep -qE ': (survived|no tests|timeout|suspicious)$' mutation.log; then
+              echo "These mutants survived. Each one's diff:"
+              show="uv run python scripts/mutation.py --base origin/main"
+              echo "\`$show show <name>\`"
+              echo
+              grep -E ': (survived|no tests|timeout|suspicious)$' mutation.log | sed 's/^/- /'
+            else
+              tail -n 1 mutation.log
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  mutation-ran:
+    name: Mutation testing ran locally
+    # The maintainer's PRs skip the mutation job above, so the maintainer and the agents run
+    # it before they push (work-an-issue, step 6). A PR from the owner that changes package
+    # code must say so in its body: "**Mutation testing:** No mutant survived" (#5857).
+    needs: code-changes
+    if: >-
+      ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft
+      && needs.code-changes.outputs.code == 'true'
+      && github.event.pull_request.user.login == github.repository_owner }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: The body records a local run with no survivor
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BODY: ${{ github.event.pull_request.body }}  # read here, never in the script text
+        run: |
+          changed=$(git diff --name-only "origin/$BASE_REF...HEAD" -- 'openinterpretability/*.py')
+          if [ -z "$changed" ]; then
+            echo "No package file changes: no local run needed."
+            exit 0
+          fi
+          if printf '%s' "$BODY" | grep -qF '**Mutation testing:** No mutant survived'; then
+            echo "The body records a local mutation run with no survivor."
+            exit 0
+          fi
+          echo "::error::This PR changes package code. Run 'make mutation BASE=origin/main'"
+          echo "::error::until no mutant survives, then add to the body:"
+          echo "::error::**Mutation testing:** No mutant survived (<n> files)."
+          exit 1
+
   accessibility:
     name: Accessibility (axe-core)
     # axe-core over five pages of the sample site, in light and dark (scripts/a11y_check.py,
