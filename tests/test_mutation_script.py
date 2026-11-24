@@ -134,8 +134,11 @@ def test_main_with_a_base_mutates_the_changed_files(monkeypatch, capsys):
     monkeypatch.setattr(script, "changed_files", lambda base: ["openinterpretability/x.py"])
     monkeypatch.setattr(script, "tests_for", lambda paths: ["tests/test_x.py"])
     monkeypatch.setattr(script, "copied", lambda: ["scripts"])
+    monkeypatch.setattr(script, "selected", lambda paths, base: (["x.x_f__mutmut_1"], 7))
     assert script.main(["--base", "origin/main"]) == 0
-    assert "Mutating 1 files with 1 test files" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "Mutating 1 files with 1 test files" in out and "Running 1 of the 7 mutants" in out
+    assert ["run", "x.x_f__mutmut_1"] in calls
     assert configuration._config_reader()("only_mutate", []) == ["openinterpretability/x.py"]
     script.main(["--base", "origin/main", "show", "m"])  # a command runs under the selection
     assert calls[-1] == ["show", "m"]
@@ -148,3 +151,65 @@ def test_main_with_no_change_does_nothing(monkeypatch, capsys):
     monkeypatch.setattr(script, "changed_files", lambda base: [])
     assert script.main(["--base", "origin/main"]) == 0
     assert calls == [] and "nothing to mutate" in capsys.readouterr().out
+
+
+def test_changed_lines_are_the_branchs_added_and_changed_lines(repo):
+    m = _script()
+    stats = repo / "openinterpretability" / "core" / "stats.py"
+    stats.write_text("X = 1\nY = 2\nZ = 3\n")
+    _git(repo, "commit", "-qam", "more")
+    _git(repo, "checkout", "-qb", "work")
+    stats.write_text("X = 1\nY = 20\nZ = 3\n")  # uncommitted counts too
+    assert m.changed_lines("main", "openinterpretability/core/stats.py", repo) == {2}
+    stats.write_text("X = 1\nZ = 3\n")  # a deletion marks the line after it
+    assert m.changed_lines("main", "openinterpretability/core/stats.py", repo) == {2}
+    new = repo / "openinterpretability" / "core" / "new.py"
+    new.write_text("A = 1\n")
+    assert m.changed_lines("main", "openinterpretability/core/new.py", repo) is None
+
+
+def test_selected_runs_only_the_changed_functions_mutants_and_caps_them(repo, monkeypatch):
+    m = _script()
+    stats = repo / "openinterpretability" / "core" / "stats.py"
+    stats.write_text("def f():\n    return 1\n\n\ndef g():\n    return 2\n")
+    _git(repo, "commit", "-qam", "functions")
+    _git(repo, "checkout", "-qb", "work")
+    stats.write_text("def f():\n    return 1\n\n\ndef g():\n    return 3\n")
+    names = [f"x_{fn}__mutmut_{i}" for fn in "fg" for i in range(1, 4)]
+    mutation = types.ModuleType("mutmut.mutation.file_mutation")
+    mutation.mutate_file_contents = lambda path, source: types.SimpleNamespace(mutant_names=names)
+    utils = types.ModuleType("mutmut.utils.format_utils")
+    utils.get_mutant_name = lambda path, name: f"{str(path)[:-3].replace('/', '.')}.{name}"
+    monkeypatch.setitem(sys.modules, "mutmut.mutation.file_mutation", mutation)
+    monkeypatch.setitem(sys.modules, "mutmut.utils.format_utils", utils)
+    keys, total = m.selected(["openinterpretability/core/stats.py"], "main", repo)
+    assert total == 3 and all(".x_g__mutmut_" in k for k in keys)
+    monkeypatch.setattr(m, "CAP", 2)
+    assert m.sample(keys, cap=m.CAP) == m.sample(keys, cap=2) and len(m.sample(keys, cap=2)) == 2
+
+
+def test_main_with_no_mutant_in_the_changed_functions_runs_nothing(monkeypatch, capsys):
+    calls: list = []
+    _fake_mutmut(monkeypatch, "", calls)
+    script = _script()
+    monkeypatch.setattr(script, "changed_files", lambda base: ["openinterpretability/x.py"])
+    monkeypatch.setattr(script, "tests_for", lambda paths: [])
+    monkeypatch.setattr(script, "copied", lambda: [])
+    monkeypatch.setattr(script, "selected", lambda paths, base: ([], 0))
+    assert script.main(["--base", "origin/main"]) == 0
+    assert "nothing to run" in capsys.readouterr().out and not any(
+        c[:1] == ["run"] for c in calls if isinstance(c, list)
+    )
+
+
+def test_function_spans_name_functions_as_mutmut_names_their_mutants():
+    # The selection matches mutmut's mutant names to these, so a renaming in a new mutmut
+    # version would make it run nothing. mutmut is in the dev group (#5857).
+    from mutmut.mutation.file_mutation import mutate_file_contents
+
+    source = (
+        "def f(a):\n    return a + 1\n\n\nclass C:\n    def m(self, b):\n        return b * 2\n"
+    )
+    names = mutate_file_contents("pkg/mod.py", source).mutant_names
+    spans = _script().function_spans(source)
+    assert names and {n.partition("__mutmut_")[0] for n in names} == set(spans)
