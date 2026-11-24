@@ -135,7 +135,8 @@ jobs:
       - name: Tests, with branch coverage
         # Side by side, one process per core (#3266). It fails if the total is below
         # [tool.coverage.report] fail_under (#3166).
-        run: pytest -n auto --cov --cov-report=xml --cov-report=term
+        # --durations shows the slowest tests, so a creep toward the timeout shows early.
+        run: pytest -n auto --cov --cov-report=xml --cov-report=term --durations=15
       - name: Why a test worker died
         # A crashed xdist worker loses its stderr. Each worker's faulthandler dump goes to
         # logs/faulthandler-<worker>.log (tests/conftest.py), and the kernel log names an
