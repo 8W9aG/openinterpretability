@@ -31,7 +31,7 @@ openinterpretability/builder/concept_map_view.py
 labinacan/site/contents.py
 openinterpretability/builder/corpora.py
 openinterpretability/builder/coverage.py
-openinterpretability/builder/css.py
+labinacan/site/css.py
 openinterpretability/builder/dashboard.py
 openinterpretability/builder/disk_memo.py
 openinterpretability/builder/draws_export.py
@@ -53,7 +53,8 @@ labinacan/site/parallel.py
 openinterpretability/builder/parquet_export.py
 openinterpretability/builder/pending.py
 openinterpretability/builder/pieces.py
-openinterpretability/builder/pii.py
+labinacan/site/pii.py
+openinterpretability/builder/registry_pii.py
 openinterpretability/builder/recent.py
 openinterpretability/builder/registry_stats.py
 openinterpretability/builder/research.py
@@ -145,7 +146,7 @@ openinterpretability/core/record_kinds.py
 openinterpretability/core/rivals.py
 openinterpretability/core/schemas.py
 openinterpretability/core/stats.py
-openinterpretability/core/takedowns.py
+labinacan/site/takedowns.py
 openinterpretability/core/taxonomy.py
 openinterpretability/core/transcripts.py
 openinterpretability/corpus.py
@@ -270,7 +271,7 @@ openinterpretability/reproduce_policy.py
 openinterpretability/revision.py
 openinterpretability/runner_cache.py
 openinterpretability/score_controls.py
-openinterpretability/sensitive.py
+labinacan/sensitive.py
 openinterpretability/show.py
 openinterpretability/signing.py
 openinterpretability/sisters.py

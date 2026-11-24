@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from labinacan.site.cluster_map import Badge, place_badges, touching_slots
+from labinacan.site.pii import redact_text
 from openinterpretability.builder.literature_pages import (
     MAP,
     credits,
@@ -30,7 +31,6 @@ from openinterpretability.builder.literature_pages import (
     review_rows,
     sections,
 )
-from openinterpretability.builder.pii import redact_text
 
 WIDTH, HEIGHT = 1000, 720  # the map's viewBox, in SVG units
 LEFT, RIGHT, TOP, BOTTOM = 230, 770, 40, 680  # where the dots go; the cards take the margins

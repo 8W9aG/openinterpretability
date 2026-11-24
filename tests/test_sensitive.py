@@ -5,8 +5,9 @@ from types import SimpleNamespace
 import pytest
 import torch
 
+from labinacan.sensitive import address_matches, detector, pii_matches
+from labinacan.site.pii import redact_text
 from openinterpretability.agents.proposer import format_confounds, label_note
-from openinterpretability.builder.pii import redact_text
 from openinterpretability.core.confounds import (
     HATE_SPEECH,
     MATCH_LABEL_SETS,
@@ -14,6 +15,7 @@ from openinterpretability.core.confounds import (
     NO_MATCH,
     PART_OF_SPEECH,
     PERSONAL_DATA,
+    PII_DETECTOR,
     POSTAL_ADDRESSES,
 )
 from openinterpretability.core.schemas import ConfoundProfile, LabelConfound, LabelStat
@@ -23,7 +25,6 @@ from openinterpretability.harness.scan import Piece
 from openinterpretability.names import MODEL_SHA256, PERSON, _download
 from openinterpretability.names import person_matches as real_person_matches
 from openinterpretability.names import pos_matches as real_pos_matches
-from openinterpretability.sensitive import address_matches, detector, pii_matches
 from tests.test_annotations import CharTokenizer
 
 TEXT = "Mail jane@somemail.org or call (415) 555-2671 now"
@@ -98,7 +99,10 @@ def test_every_scan_labels_matches_after_the_corpus_labels():
 
 
 def test_the_detector_names_what_fixes_the_labels():
-    assert "phonenumbers" in detector() and "suffix list " in detector()
+    found = detector(PII_DETECTOR)
+    assert "phonenumbers" in found and "suffix list " in found
+    # Records name the search as they did before it moved to labinacan (#6628).
+    assert found.startswith("openinterpretability.sensitive (presidio-analyzer ")
 
 
 def _confound(*levels):
@@ -143,7 +147,7 @@ def test_an_examples_note_leaves_out_no_match_labels():
 
 
 def test_the_detector_string_survives_the_sites_scrub():
-    assert redact_text(detector()) == detector()
+    assert redact_text(detector(PII_DETECTOR)) == detector(PII_DETECTOR)
 
 
 def test_the_export_gives_each_match_set_its_measures():
@@ -267,7 +271,7 @@ def test_the_site_never_removes_an_address():
     ],
 )
 def test_only_public_ip_addresses_count(address, public):
-    from openinterpretability.sensitive import _is_public_ip
+    from labinacan.sensitive import _is_public_ip
 
     assert _is_public_ip(address) is public
 
@@ -286,19 +290,19 @@ def test_a_public_ip_is_found_and_a_private_one_is_left():
     ],
 )
 def test_short_numbers_need_a_phone_word_and_a_phone_shape(text):
-    from openinterpretability.sensitive import _context_phones
+    from labinacan.sensitive import _context_phones
 
     assert list(_context_phones(text)) == []
 
 
 def test_a_short_number_after_a_phone_word_is_a_phone():
-    from openinterpretability.sensitive import _context_phones
+    from labinacan.sensitive import _context_phones
 
     assert list(_context_phones("Tel: 555 0101 234")) == [(5, 17, "phone")]
 
 
 def test_an_email_cut_by_the_end_of_the_text_is_found_unless_reserved():
-    from openinterpretability.sensitive import _cut_email
+    from labinacan.sensitive import _cut_email
 
     assert list(_cut_email("mail bob@exa")) == [(5, 12, "email")]
     assert pii_matches("mail bob@exa") == ((5, 12, "email"),)

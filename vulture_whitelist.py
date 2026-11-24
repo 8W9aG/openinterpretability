@@ -211,7 +211,7 @@ encoder_attention_mask  # unused variable (scripts/resting_modules.py:147)
 _.allow_tf32  # unused attribute (scripts/train_spd.py:395)
 
 # Called by a library (for example Presidio's validate_result) or kept on purpose.
-_.validate_result  # unused method (openinterpretability/sensitive.py:131)
+_.validate_result  # unused method (labinacan/sensitive.py:131)
 corrupted_gap  # a stored answer measure, shown in the record (core/answer_records.py)
 _.understood  # used by the template _answer_verdict.html (builder/explanation_pages.py)
 _.standing_answer  # used by the template _answer_verdict.html (builder/explanation_pages.py)

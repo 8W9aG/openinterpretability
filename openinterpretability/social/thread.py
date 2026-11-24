@@ -136,7 +136,7 @@ def problems(folder: Path, tweets: list[Tweet], anchors: dict[str, str],
         >>> problems(folder, [Tweet("Method", "Hello")], {"Method": "method"}, {})
         ['a thread has 2 to 10 tweets, not 1', 'tweet 1 must link to the page: {link}']
     """
-    from openinterpretability.builder.pii import redact_text
+    from labinacan.site.pii import redact_text
 
     found = [] if FEWEST <= len(tweets) <= MOST else [
         f"a thread has {FEWEST} to {MOST} tweets, not {len(tweets)}"]  # fmt: skip

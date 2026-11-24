@@ -17,8 +17,10 @@ from tempfile import TemporaryDirectory
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
 from pydantic import ValidationError
 
+from labinacan.sensitive import is_offensive
 from labinacan.site.contents import add_contents
 from labinacan.site.parallel import in_background, render_in_parallel
+from labinacan.site.pii import save_spans, scrub
 from openinterpretability import __version__
 from openinterpretability import sisters as sister_lib
 from openinterpretability.builder import charts, palette, pieces, statuses
@@ -38,12 +40,12 @@ from openinterpretability.builder.heat import HeatToken, heat_html, token_heat, 
 from openinterpretability.builder.model_facts import ModelFacts, model_page_extras, render_models
 from openinterpretability.builder.neuronpedia_export import export_neuronpedia
 from openinterpretability.builder.parquet_export import export_draws, export_registry
-from openinterpretability.builder.pii import save_spans, scrub, scrub_experiments
 from openinterpretability.builder.recent import recent_experiments
+from openinterpretability.builder.registry_pii import scrub_experiments
 from openinterpretability.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterpretability.builder.sections import render_reference_pages, stats_for_pages
 from openinterpretability.builder.significance import P_USEFUL, evidence_strength
-from openinterpretability.builder.sister_graph import sister_graphs
+from openinterpretability.builder.sister_pages import render_sister_pages, sister_graphs
 from openinterpretability.builder.slim import SlimArchive, full_records, hand_over
 from openinterpretability.builder.standing import ROLES, contested_units, reviewer_agreement
 from openinterpretability.builder.stopped import add_stopped, explore_focus, stopped_unit
@@ -64,7 +66,6 @@ from openinterpretability.core.explanation import is_broad
 from openinterpretability.core.project import project_links
 from openinterpretability.core.schemas import ActivatingExample, AuditRecord
 from openinterpretability.planner import configured_licenses
-from openinterpretability.sensitive import is_offensive
 from openinterpretability.wiring_backfill import record_wiring
 
 
@@ -323,8 +324,7 @@ def compile_site(
     who made records that name no contributor, each with a page under ``users/``.
     ``coverage_rows`` (``builder.coverage.load_rows``) give each model page its coverage.
     """
-    rows = wiring_rows or {}
-    output_dir = Path(output_dir)
+    rows, output_dir = wiring_rows or {}, Path(output_dir)
     _clean_owned_paths(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -349,9 +349,10 @@ def compile_site(
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))
     stats = stats_for_pages(render, stats_result(), explanations)  # the model pages use it
+    sisters = (sister_rows or {}, sister_lib.sister_tests(experiments))  # once, for every model
     for model in models:
-        sisters = (sister_rows or {}, sister_lib.sister_tests(experiments))
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
+    render_sister_pages(render, models, sister_rows or {}, experiments, studied)  # #6639
     render_models(render, models, model_facts or {}, _render_model, (*draws, *stops))
     agents = _render_agents(render, experiments, output_dir, report)
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members

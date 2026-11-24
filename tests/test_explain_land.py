@@ -67,8 +67,8 @@ def test_no_land_writes_locally_and_a_second_run_updates_one_page(tmp_path):
 
 def test_explanation_pages_are_scrubbed_of_personal_data(tmp_path):
     """The site publishes explanations scrubbed, as it does experiments (#4750)."""
+    from labinacan.site.pii import REMOVED_TEXT
     from openinterpretability.builder.explanation_pages import load_views
-    from openinterpretability.builder.pii import REMOVED_TEXT
 
     record = _record(WHEN)
     told = record.narration.model_copy(update={"paragraph": "Login from 8.8.4.4 failed."})

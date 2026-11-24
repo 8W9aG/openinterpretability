@@ -7,8 +7,8 @@ from dataclasses import dataclass, field
 
 from markupsafe import Markup, escape
 
+from labinacan.sensitive import is_offensive
 from openinterpretability.core.examples import ActivatingExample
-from openinterpretability.sensitive import is_offensive
 
 
 @dataclass(frozen=True, slots=True)

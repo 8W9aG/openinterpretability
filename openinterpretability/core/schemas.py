@@ -153,7 +153,7 @@ class ExperimentProvenance(StrictModel):
     corpus_source: CorpusSource | None = None
     label_detector: str | None = Field(
         default=None,
-        description="What fixes the scan's match labels (openinterpretability.sensitive.detector, "
+        description="What fixes the scan's match labels (labinacan.sensitive.detector, "
         "openinterpretability.names.DETECTOR, openinterpretability.toxicity.DETECTOR). None: the "
         "scan predates those labels.",
     )

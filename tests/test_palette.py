@@ -15,6 +15,7 @@ import math
 
 import pytest
 
+from labinacan.site.palette import badge_text
 from openinterpretability.builder import palette
 
 CVD = {
@@ -88,7 +89,7 @@ def test_every_status_stands_out_on_the_dark_page():
 
 def test_badge_text_is_readable_on_each_fill():
     for status, hex_colour in palette.STATUS_HEX.items():
-        assert contrast(hex_colour, palette.badge_text(hex_colour)) >= MIN_TEXT, status
+        assert contrast(hex_colour, badge_text(hex_colour)) >= MIN_TEXT, status
 
 
 def test_the_old_green_and_red_would_fail():
