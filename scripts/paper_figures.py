@@ -16,6 +16,7 @@ import figures_default_on
 import figures_default_on_decoding
 import figures_depth
 import figures_development
+import figures_dormant
 import figures_fisher_keep
 import figures_native_learned
 import figures_pruning_keep
@@ -66,7 +67,12 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         "copy-first-unit": figures_copy_first_unit.build(
             [r for r in _rows("copy-first-unit") if "prompt" in r]
         ),
-        "neuron-development": figures_development.build(_rows("neuron-development")),
+        "neuron-development": {
+            **figures_development.build(_rows("neuron-development")),
+            "dormant.svg": figures_dormant.figure(
+                _rows("neuron-development", "results.dormant.jsonl")
+            ),
+        },
         "fisher-keep": figures_fisher_keep.build(_rows("fisher-keep")),
         "explanations-across-models": figures_transfer.build(_rows("explanations-across-models")),
         "native-vs-learned": figures_native_learned.build(_rows("native-vs-learned")),

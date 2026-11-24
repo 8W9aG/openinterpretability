@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 500" width="760" height="500" role="img">
+<title>Two panels of six lines each, one for each layer of Pythia-70m, over 20 training checkpoints. Dormant poles rise to 11.6% in layer 5 at step 32 and are gone by step 512. Effective rank dips at steps 32 to 64, peaks near step 4,000, then falls slowly in layers 2 to 5.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="500" rx="10"/>
+<text x="20.0" y="30.0" class="title">Pythia-70m&#x27;s deep MLP layers collapse early, recover, then slowly lose rank</text>
+<text x="20.0" y="50.0" class="sub">Left: the share of each layer&#x27;s 4,096 poles that are active (by the sign of the</text>
+<text x="20.0" y="68.0" class="sub">activation) on under 1% of 18,782 tokens. Right: the effective rank of each</text>
+<text x="20.0" y="86.0" class="sub">layer&#x27;s activations, on a seeded sample of 2,000 tokens. One line for each</text>
+<text x="20.0" y="104.0" class="sub">layer, labelled at its peak (left) or at its right end (right).</text>
+<text x="64.0" y="148.0" class="head">Dormant poles (%)</text>
+<path class="grid" d="M80.9 156.0L80.9 416.0"/>
+<text x="80.9" y="431.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M122.3 156.0L122.3 416.0"/>
+<text x="122.3" y="431.0" class="small" text-anchor="middle">10</text>
+<path class="grid" d="M176.3 156.0L176.3 416.0"/>
+<text x="176.3" y="431.0" class="small" text-anchor="middle">100</text>
+<path class="grid" d="M232.1 156.0L232.1 416.0"/>
+<text x="232.1" y="431.0" class="small" text-anchor="middle">1k</text>
+<path class="grid" d="M288.1 156.0L288.1 416.0"/>
+<text x="288.1" y="431.0" class="small" text-anchor="middle">10k</text>
+<path class="grid" d="M344.1 156.0L344.1 416.0"/>
+<text x="344.1" y="431.0" class="small" text-anchor="middle">100k</text>
+<text x="209.0" y="447.0" class="small" text-anchor="middle">training step (log scale)</text>
+<path class="grid" d="M64.0 416.0L354.0 416.0"/>
+<text x="57.0" y="420.0" class="small" text-anchor="end">0</text>
+<path class="grid" d="M64.0 364.0L354.0 364.0"/>
+<text x="57.0" y="368.0" class="small" text-anchor="end">3</text>
+<path class="grid" d="M64.0 312.0L354.0 312.0"/>
+<text x="57.0" y="316.0" class="small" text-anchor="end">6</text>
+<path class="grid" d="M64.0 260.0L354.0 260.0"/>
+<text x="57.0" y="264.0" class="small" text-anchor="end">9</text>
+<path class="grid" d="M64.0 208.0L354.0 208.0"/>
+<text x="57.0" y="212.0" class="small" text-anchor="end">12</text>
+<path class="grid" d="M64.0 156.0L354.0 156.0"/>
+<text x="57.0" y="160.0" class="small" text-anchor="end">15</text>
+<text x="440.0" y="148.0" class="head">Effective rank</text>
+<path class="grid" d="M455.7 156.0L455.7 416.0"/>
+<text x="455.7" y="431.0" class="small" text-anchor="middle">1</text>
+<path class="grid" d="M494.3 156.0L494.3 416.0"/>
+<text x="494.3" y="431.0" class="small" text-anchor="middle">10</text>
+<path class="grid" d="M544.6 156.0L544.6 416.0"/>
+<text x="544.6" y="431.0" class="small" text-anchor="middle">100</text>
+<path class="grid" d="M596.5 156.0L596.5 416.0"/>
+<text x="596.5" y="431.0" class="small" text-anchor="middle">1k</text>
+<path class="grid" d="M648.7 156.0L648.7 416.0"/>
+<text x="648.7" y="431.0" class="small" text-anchor="middle">10k</text>
+<path class="grid" d="M700.8 156.0L700.8 416.0"/>
+<text x="700.8" y="431.0" class="small" text-anchor="middle">100k</text>
+<text x="575.0" y="447.0" class="small" text-anchor="middle">training step (log scale)</text>
+<path class="grid" d="M440.0 416.0L710.0 416.0"/>
+<text x="433.0" y="420.0" class="small" text-anchor="end">0</text>
+<path class="grid" d="M440.0 351.0L710.0 351.0"/>
+<text x="433.0" y="355.0" class="small" text-anchor="end">350</text>
+<path class="grid" d="M440.0 286.0L710.0 286.0"/>
+<text x="433.0" y="290.0" class="small" text-anchor="end">700</text>
+<path class="grid" d="M440.0 221.0L710.0 221.0"/>
+<text x="433.0" y="225.0" class="small" text-anchor="end">1050</text>
+<path class="grid" d="M440.0 156.0L710.0 156.0"/>
+<text x="433.0" y="160.0" class="small" text-anchor="end">1400</text>
+<path class="curve" d="M64.0 416.0L80.9 416.0L90.7 416.0L103.2 416.0L117.5 416.0L132.9 416.0L149.1 416.0L165.6 416.0L182.2 416.0L199.0 416.0L215.8 416.0L232.1 416.0L249.0 416.0L265.8 416.0L282.7 416.0L299.5 416.0L316.4 416.0L333.3 416.0L350.1 415.6L352.8 415.6"/>
+<path class="curve" d="M64.0 416.0L80.9 416.0L90.7 416.0L103.2 416.0L117.5 416.0L132.9 416.0L149.1 416.0L165.6 416.0L182.2 416.0L199.0 416.0L215.8 416.0L232.1 416.0L249.0 416.0L265.8 415.2L282.7 415.2L299.5 415.2L316.4 415.6L333.3 415.2L350.1 415.2L352.8 415.2"/>
+<path class="curve" d="M64.0 416.0L80.9 416.0L90.7 416.0L103.2 416.0L117.5 416.0L132.9 416.0L149.1 409.2L165.6 415.2L182.2 416.0L199.0 415.6L215.8 416.0L232.1 416.0L249.0 416.0L265.8 416.0L282.7 416.0L299.5 415.2L316.4 415.2L333.3 415.2L350.1 415.2L352.8 414.7"/>
+<path class="curve" d="M64.0 416.0L80.9 416.0L90.7 416.0L103.2 416.0L117.5 416.0L132.9 416.0L149.1 351.3L165.6 403.3L182.2 416.0L199.0 416.0L215.8 416.0L232.1 416.0L249.0 416.0L265.8 416.0L282.7 416.0L299.5 416.0L316.4 416.0L333.3 416.0L350.1 412.2L352.8 411.8"/>
+<path class="axis" d="M152.1 351.3L205.8 351.3"/>
+<text x="209.8" y="355.3" class="small">L3, 3.7%</text>
+<path class="curve" d="M64.0 416.0L80.9 416.0L90.7 416.0L103.2 416.0L117.5 416.0L132.9 415.6L149.1 305.6L165.6 363.9L182.2 415.6L199.0 416.0L215.8 416.0L232.1 416.0L249.0 416.0L265.8 416.0L282.7 416.0L299.5 416.0L316.4 416.0L333.3 416.0L350.1 414.7L352.8 414.7"/>
+<path class="axis" d="M152.1 305.6L205.8 305.6"/>
+<text x="209.8" y="309.6" class="small">L4, 6.4%</text>
+<path class="curve" d="M64.0 416.0L80.9 416.0L90.7 416.0L103.2 416.0L117.5 416.0L132.9 410.9L149.1 215.0L165.6 302.2L182.2 402.0L199.0 415.6L215.8 416.0L232.1 415.2L249.0 414.7L265.8 415.2L282.7 415.2L299.5 415.2L316.4 414.7L333.3 413.5L350.1 410.9L352.8 409.7"/>
+<path class="axis" d="M152.1 215.0L205.8 215.0"/>
+<text x="209.8" y="219.0" class="small">L5, 11.6%</text>
+<text x="209.8" y="174.2" class="small">L0, L1, L2: under 1% throughout</text>
+<path class="curve" d="M440.0 278.4L455.7 278.4L464.9 278.4L476.5 278.4L489.8 278.4L504.2 278.4L519.2 278.4L534.6 278.5L550.1 278.2L565.7 277.9L581.4 276.9L596.5 268.4L612.2 263.8L627.9 267.8L643.6 273.2L659.3 276.8L675.0 277.4L690.7 274.7L706.4 277.8L708.9 278.1"/>
+<path class="curve" d="M440.0 251.8L455.7 251.8L464.9 251.8L476.5 251.8L489.8 251.8L504.2 252.3L519.2 256.9L534.6 256.1L550.1 246.2L565.7 242.8L581.4 234.6L596.5 224.4L612.2 207.4L627.9 189.1L643.6 181.2L659.3 177.6L675.0 175.4L690.7 174.9L706.4 181.2L708.9 181.8"/>
+<path class="curve" d="M440.0 250.3L455.7 250.3L464.9 250.3L476.5 250.3L489.8 250.4L504.2 253.0L519.2 273.0L534.6 272.4L550.1 250.9L565.7 245.0L581.4 223.6L596.5 206.9L612.2 186.9L627.9 186.1L643.6 195.7L659.3 212.0L675.0 229.8L690.7 261.4L706.4 250.7L708.9 247.6"/>
+<path class="curve" d="M440.0 248.4L455.7 248.4L464.9 248.4L476.5 248.4L489.8 248.8L504.2 254.6L519.2 291.8L534.6 293.7L550.1 263.4L565.7 247.2L581.4 219.9L596.5 196.3L612.2 177.1L627.9 173.5L643.6 176.6L659.3 181.8L675.0 187.3L690.7 193.2L706.4 218.9L708.9 219.4"/>
+<path class="curve" d="M440.0 249.7L455.7 249.7L464.9 249.7L476.5 249.7L489.8 250.4L504.2 259.8L519.2 306.3L534.6 316.4L550.1 282.4L565.7 252.1L581.4 220.3L596.5 190.9L612.2 176.2L627.9 176.1L643.6 179.7L659.3 183.3L675.0 188.1L690.7 193.8L706.4 228.7L708.9 229.3"/>
+<path class="curve" d="M440.0 249.7L455.7 249.7L464.9 249.7L476.5 249.7L489.8 250.6L504.2 264.1L519.2 319.1L534.6 335.7L550.1 311.4L565.7 266.6L581.4 225.4L596.5 190.8L612.2 178.1L627.9 179.5L643.6 186.7L659.3 194.5L675.0 202.0L690.7 214.4L706.4 248.2L708.9 252.2"/>
+<text x="716.0" y="185.8" class="small">L1</text>
+<text x="716.0" y="223.4" class="small">L3</text>
+<text x="716.0" y="234.4" class="small">L4</text>
+<text x="716.0" y="251.6" class="small">L2</text>
+<text x="716.0" y="262.6" class="small">L5</text>
+<text x="716.0" y="282.1" class="small">L0</text>
+</svg>
