@@ -145,7 +145,7 @@ openinterpretability/core/record_kinds.py
 openinterpretability/core/rivals.py
 openinterpretability/core/schemas.py
 openinterpretability/core/stats.py
-openinterpretability/core/takedowns.py
+labinacan/site/takedowns.py
 openinterpretability/core/taxonomy.py
 openinterpretability/core/transcripts.py
 openinterpretability/corpus.py
@@ -270,7 +270,7 @@ openinterpretability/reproduce_policy.py
 openinterpretability/revision.py
 openinterpretability/runner_cache.py
 openinterpretability/score_controls.py
-openinterpretability/sensitive.py
+labinacan/sensitive.py
 openinterpretability/show.py
 openinterpretability/signing.py
 openinterpretability/sisters.py

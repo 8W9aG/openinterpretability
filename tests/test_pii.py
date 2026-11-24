@@ -5,6 +5,7 @@ import json
 import pyarrow.parquet as pq
 import pytest
 
+from labinacan.sensitive import is_offensive
 from openinterpretability.builder.compiler import compile_site
 from openinterpretability.builder.pii import (
     REMOVED_TEXT,
@@ -15,7 +16,6 @@ from openinterpretability.builder.pii import (
     scrub_record,
 )
 from openinterpretability.core.schemas import AuditRecord
-from openinterpretability.sensitive import is_offensive
 
 EMAIL = "jane.doe@somemail.org"
 
@@ -82,7 +82,7 @@ def test_an_address_cut_by_the_end_of_a_window_is_removed(cut):
 
 
 def test_the_search_opens_no_network_connection(monkeypatch):
-    from openinterpretability import sensitive
+    from labinacan import sensitive
 
     def no_network(*args, **kwargs):
         raise AssertionError("the search opened a network connection")
@@ -96,13 +96,11 @@ def test_the_search_opens_no_network_connection(monkeypatch):
 
 
 def test_email_domains_use_our_suffix_list_not_the_installed_one():
-    from openinterpretability import sensitive
+    from labinacan import sensitive
 
     assert sensitive._domains()("someone.co.uk").suffix == "co.uk"
     extractor = sensitive._domains()
-    assert extractor.suffix_list_urls[0].endswith(
-        "openinterpretability/data/public_suffix_list.dat"
-    )
+    assert extractor.suffix_list_urls[0].endswith("labinacan/data/public_suffix_list.dat")
     assert extractor.fallback_to_snapshot is False
 
 

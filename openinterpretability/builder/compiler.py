@@ -17,6 +17,7 @@ from tempfile import TemporaryDirectory
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
 from pydantic import ValidationError
 
+from labinacan.sensitive import is_offensive
 from labinacan.site.contents import add_contents
 from labinacan.site.parallel import in_background, render_in_parallel
 from openinterpretability import __version__
@@ -64,7 +65,6 @@ from openinterpretability.core.explanation import is_broad
 from openinterpretability.core.project import project_links
 from openinterpretability.core.schemas import ActivatingExample, AuditRecord
 from openinterpretability.planner import configured_licenses
-from openinterpretability.sensitive import is_offensive
 from openinterpretability.wiring_backfill import record_wiring
 
 
