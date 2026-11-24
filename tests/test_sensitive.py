@@ -6,8 +6,8 @@ import pytest
 import torch
 
 from labinacan.sensitive import address_matches, detector, pii_matches
+from labinacan.site.pii import redact_text
 from openinterpretability.agents.proposer import format_confounds, label_note
-from openinterpretability.builder.pii import redact_text
 from openinterpretability.core.confounds import (
     HATE_SPEECH,
     MATCH_LABEL_SETS,

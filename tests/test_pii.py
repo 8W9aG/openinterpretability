@@ -6,15 +6,9 @@ import pyarrow.parquet as pq
 import pytest
 
 from labinacan.sensitive import is_offensive
+from labinacan.site.pii import REMOVED_TEXT, REMOVED_TOKEN, redact_text, redact_tokens
 from openinterpretability.builder.compiler import compile_site
-from openinterpretability.builder.pii import (
-    REMOVED_TEXT,
-    REMOVED_TOKEN,
-    _scrub_attribution,
-    redact_text,
-    redact_tokens,
-    scrub_record,
-)
+from openinterpretability.builder.registry_pii import _scrub_attribution, scrub_record
 from openinterpretability.core.schemas import AuditRecord
 
 EMAIL = "jane.doe@somemail.org"
@@ -262,7 +256,7 @@ def test_offensive_examples_are_masked_and_kept_out_of_search(tmp_path, record):
 
 
 def test_matches_are_stored_on_disk_and_reused(tmp_path, monkeypatch):
-    from openinterpretability.builder import pii
+    from labinacan.site import pii
 
     def fresh():
         for f in (pii._cache_file, pii._stored, pii.find_spans):
@@ -287,7 +281,7 @@ def test_matches_are_stored_on_disk_and_reused(tmp_path, monkeypatch):
 
 
 def test_no_cache_when_turned_off(tmp_path, monkeypatch):
-    from openinterpretability.builder import pii
+    from labinacan.site import pii
 
     monkeypatch.setenv("OPENINTERPRETABILITY_PII_CACHE", "off")
     pii._cache_file.cache_clear()
@@ -298,7 +292,7 @@ def test_no_cache_when_turned_off(tmp_path, monkeypatch):
 def test_errata_notes_are_scrubbed_like_the_record():
     import datetime
 
-    from openinterpretability.builder.pii import scrub_errata
+    from openinterpretability.builder.registry_pii import scrub_errata
     from openinterpretability.core.errata import AppliedEdit, Erratum
 
     erratum = Erratum(
@@ -391,7 +385,7 @@ def test_a_web_page_that_is_not_utf8_stops_the_build(tmp_path):
     ],
 )
 def test_erratum_edits_to_token_lists_are_searched_joined(path, before):
-    from openinterpretability.builder.pii import scrub_errata
+    from openinterpretability.builder.registry_pii import scrub_errata
     from openinterpretability.core.errata import AppliedEdit
 
     _, changes = scrub_errata([], [AppliedEdit("e1", path, before, before)])

@@ -270,9 +270,9 @@ def _location(model, members: list[str]) -> tuple[float | None, float | None]:
 
 def circuit_views(model, data: CircuitData, edges: list) -> list[CircuitView]:
     """The model's registry circuits, by id, with ``edges`` (``circuit_edges``) among members."""
+    from labinacan.site.pii import scrub
     from openinterpretability.builder.circuits import _layout
     from openinterpretability.builder.hrefs import circuit_experiment_href, circuit_href
-    from openinterpretability.builder.pii import scrub
     from openinterpretability.circuit_ids import load_events
 
     circuits = _kept(data.lineage, load_events(data.lineage))

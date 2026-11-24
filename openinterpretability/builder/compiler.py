@@ -20,6 +20,7 @@ from pydantic import ValidationError
 from labinacan.sensitive import is_offensive
 from labinacan.site.contents import add_contents
 from labinacan.site.parallel import in_background, render_in_parallel
+from labinacan.site.pii import save_spans, scrub
 from openinterpretability import __version__
 from openinterpretability import sisters as sister_lib
 from openinterpretability.builder import charts, palette, pieces, statuses
@@ -39,8 +40,8 @@ from openinterpretability.builder.heat import HeatToken, heat_html, token_heat, 
 from openinterpretability.builder.model_facts import ModelFacts, model_page_extras, render_models
 from openinterpretability.builder.neuronpedia_export import export_neuronpedia
 from openinterpretability.builder.parquet_export import export_draws, export_registry
-from openinterpretability.builder.pii import save_spans, scrub, scrub_experiments
 from openinterpretability.builder.recent import recent_experiments
+from openinterpretability.builder.registry_pii import scrub_experiments
 from openinterpretability.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterpretability.builder.sections import render_reference_pages, stats_for_pages
 from openinterpretability.builder.significance import P_USEFUL, evidence_strength

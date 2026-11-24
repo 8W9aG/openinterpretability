@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from openinterpretability.builder.pii import redact_text
+from labinacan.site.pii import redact_text
 from openinterpretability.builder.research import _MARKDOWN
 
 CHANGELOG = Path(__file__).resolve().parents[2] / "CHANGELOG.md"  # absent in an install

@@ -53,7 +53,8 @@ labinacan/site/parallel.py
 openinterpretability/builder/parquet_export.py
 openinterpretability/builder/pending.py
 openinterpretability/builder/pieces.py
-openinterpretability/builder/pii.py
+labinacan/site/pii.py
+openinterpretability/builder/registry_pii.py
 openinterpretability/builder/recent.py
 openinterpretability/builder/registry_stats.py
 openinterpretability/builder/research.py

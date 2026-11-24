@@ -1,10 +1,10 @@
-"""Overlapping matches in ``builder.pii``, and attribution that names no top example."""
+"""Overlapping matches in ``labinacan.site.pii``, and attribution that names no top example."""
 
 import pytest
 
-from labinacan.site import takedowns
-from openinterpretability.builder import pii
-from openinterpretability.builder.pii import REMOVED_TEXT
+from labinacan.site import pii, takedowns
+from labinacan.site.pii import REMOVED_TEXT
+from openinterpretability.builder import registry_pii
 from openinterpretability.core.attribution import AttributedToken, ContextExample, InputAttribution
 
 # The phone and the payment card recognisers both match here, and their spans overlap.
@@ -45,5 +45,24 @@ def test_attribution_of_an_example_past_the_top_examples_is_kept(record):
     )
     attribution = InputAttribution.model_construct(examples=[context])
     sub = record.submission.model_copy(update={"input_attribution": attribution})
-    (found,) = pii._scrub_attribution(sub).input_attribution.examples
+    (found,) = registry_pii._scrub_attribution(sub).input_attribution.examples
     assert found.peak_token == "@" and [t.token for t in found.top] == [" jane"]
+
+
+def test_with_no_settings_the_core_keeps_nothing_on_disk():
+    from labinacan.site.pii import _Settings
+
+    assert _Settings().cache_dir() is None and _Settings().name == "labinacan.sensitive"
+
+
+def test_the_registry_gives_the_core_its_cache_folder_and_the_frozen_name(monkeypatch, tmp_path):
+    """Records' label_detector and the cache key name the search as before (#6628)."""
+    from labinacan.site import pii as core
+    from openinterpretability.builder import registry_pii
+    from openinterpretability.core.confounds import PII_DETECTOR
+
+    assert core._settings.name == PII_DETECTOR
+    monkeypatch.setenv(registry_pii.CACHE_ENV, str(tmp_path))
+    assert core._settings.cache_dir() == tmp_path
+    monkeypatch.setenv(registry_pii.CACHE_ENV, "off")
+    assert core._settings.cache_dir() is None

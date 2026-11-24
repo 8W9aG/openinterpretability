@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 
+from labinacan.site import pii
 from labinacan.site import takedowns as td
-from openinterpretability.builder import pii
+from openinterpretability.builder import registry_pii
 from openinterpretability.builder.wiki import write_experiment_page
 from openinterpretability.checks import check_registry
 from openinterpretability.signing import sign_record
@@ -55,7 +56,7 @@ def test_the_build_removes_the_passage_from_text_and_tokens(active, record):
     redacted = pii.redact_tokens(tokens)
     assert redacted[0] == "A " and redacted[-1] == "end"
     assert set(redacted[1:-1]) == {pii.REMOVED_TOKEN}
-    published = pii.scrub_record(record)
+    published = registry_pii.scrub_record(record)
     assert PASSAGE not in published.model_dump_json()
     assert record.submission.natural_language_explanation == PASSAGE  # on disk, unchanged
 

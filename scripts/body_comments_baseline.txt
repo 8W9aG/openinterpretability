@@ -24,7 +24,7 @@ openinterpretability/builder/explanation_figures.py::reading
 openinterpretability/builder/explanation_figures.py::ablation
 openinterpretability/builder/feeds.py::feed
 openinterpretability/builder/learned_baseline.py::_comparison
-openinterpretability/builder/pii.py::_scrub_attribution
+openinterpretability/builder/registry_pii.py::_scrub_attribution
 openinterpretability/builder/stopped.py::add_stopped
 openinterpretability/builder/tree.py::_add_experiment
 openinterpretability/builder/wiki.py::_page_meta
