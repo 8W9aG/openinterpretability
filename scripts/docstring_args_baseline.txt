@@ -259,10 +259,8 @@ openinterpretability/builder/corpora.py::language_mix
 openinterpretability/builder/coverage.py::load_rows
 openinterpretability/builder/coverage.py::model_summary
 openinterpretability/builder/coverage.py::coverage_view
-openinterpretability/builder/css.py::candidates
-openinterpretability/builder/css.py::config
-openinterpretability/builder/css.py::binary
-openinterpretability/builder/css.py::build
+labinacan/site/css.py::candidates
+labinacan/site/css.py::binary
 openinterpretability/builder/dashboard.py::dashboard
 openinterpretability/builder/dashboard.py::_counts_line
 openinterpretability/builder/dashboard.py::_stack
@@ -374,9 +372,6 @@ openinterpretability/builder/neuronpedia_export.py::export_row
 openinterpretability/builder/neuronpedia_export.py::exported
 openinterpretability/builder/neuronpedia_export.py::export_neuronpedia
 openinterpretability/builder/palette.py::token
-openinterpretability/builder/palette.py::luminance
-openinterpretability/builder/palette.py::badge_text
-openinterpretability/builder/palette.py::rgb
 openinterpretability/builder/paper_pdf.py::print_pdf
 openinterpretability/builder/paper_pdf.py::font_faces
 openinterpretability/builder/paper_pdf.py::_plain
