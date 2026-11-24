@@ -9,7 +9,7 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
-from pretrained_push import ConvMLP, move_stats, write_checkpoint_rows  # noqa: E402
+from pretrained_push import ConvMLP, move_stats, pick_steps, write_checkpoint_rows  # noqa: E402
 
 
 def test_conv_mlp_gives_the_gpt_neox_mlps_output():
@@ -46,3 +46,11 @@ def test_each_checkpoint_row_but_the_last_gets_the_move_to_the_next(tmp_path):
     assert [row["step"] for row in rows] == [0, 1, 2]
     assert rows[0]["layers"][0]["share_push_sign_moved"] == 1.0
     assert "share_push_sign_moved" not in rows[2]["layers"][0]
+
+
+def test_a_subset_of_checkpoints_must_have_been_saved():  # #4093
+    import click
+
+    assert pick_steps([0, 250, 500], (500, 0, 0)) == [0, 500]
+    with pytest.raises(click.UsageError, match=r"no checkpoint saved at steps \[256\]"):
+        pick_steps([0, 250, 500], (0, 256))

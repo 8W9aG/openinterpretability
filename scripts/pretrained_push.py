@@ -207,14 +207,19 @@ def pythia(corpus, steps, batches, device, out):
 @click.option("--condition", "name", required=True, type=click.Choice(sorted(CONDITIONS)))
 @click.option("--seed", type=int, default=0, show_default=True)
 @click.option("--save-dir", type=click.Path(path_type=Path, exists=True), required=True)
+@click.option("--step", "only", multiple=True, type=int,
+              help="Read only these steps' checkpoints, such as Pythia's spacing (#4093).")  # fmt: skip
+@click.option("--part", default="small_push", show_default=True, help="The rows' label.")
 @batches_option
 @device_option
 @out_option
-def small(corpus, name, seed, save_dir, batches, device, out):
-    """Append one ``small_push`` row for each saved checkpoint of a small model to ``--out``.
+def small(corpus, name, seed, save_dir, only, part, batches, device, out):
+    """Append one row for each saved checkpoint of a small model to ``--out``.
 
     The checkpoints come from ``train_resting.py train --save-every``. This applies the
-    test of the ``pythia`` command to a run whose push during training is known.
+    test of the ``pythia`` command to a run whose push during training is known. With
+    ``--step``, it reads only those checkpoints, so one densely saved run can be read at
+    several spacings.
     """
     from transformers import AutoTokenizer
 
@@ -222,7 +227,7 @@ def small(corpus, name, seed, save_dir, batches, device, out):
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER)
     ids = corpus_windows(tokenizer, corpus)
     files = save_dir.glob(checkpoint_path(Path(), name, seed, "*").name)
-    steps = sorted(int(f.stem.rsplit("step", 1)[1]) for f in files)
+    steps = pick_steps(sorted(int(f.stem.rsplit("step", 1)[1]) for f in files), only)
 
     def checkpoints():
         for step in steps:
@@ -233,10 +238,35 @@ def small(corpus, name, seed, save_dir, batches, device, out):
             model = model.to(device).eval()  # the same as training if dropout is 0
             mlps = [block.mlp for block in model.transformer.h]
             row, neurons = push_row(model, mlps, ids, batches)
-            row = {"part": "small_push", "condition": name, "seed": seed, "step": step, **row}
+            row = {"part": part, "condition": name, "seed": seed, "step": step, **row}
             yield row, neurons
 
     write_checkpoint_rows(out, checkpoints())
+
+
+def pick_steps(saved: list[int], only: tuple[int, ...]) -> list[int]:
+    """The checkpoints to read: ``only`` when given, else every one saved.
+
+    Args:
+        saved: The steps with a saved checkpoint.
+        only: The steps asked for with ``--step``, or none.
+
+    Returns:
+        The steps, sorted.
+
+    Raises:
+        click.UsageError: A step asked for has no checkpoint.
+
+    Examples:
+        >>> pick_steps([0, 50, 100], ()), pick_steps([0, 50, 100], (100, 0))
+        ([0, 50, 100], [0, 100])
+    """
+    if not only:
+        return sorted(saved)
+    missing = sorted(set(only) - set(saved))
+    if missing:
+        raise click.UsageError(f"no checkpoint saved at steps {missing}")
+    return sorted(set(only))
 
 
 def write_checkpoint_rows(out: Path, checkpoints) -> None:
