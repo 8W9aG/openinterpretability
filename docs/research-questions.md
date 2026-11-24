@@ -43,7 +43,7 @@ Every registry-wide claim inherits the noise of single verdicts.
 ## 5. What makes a neuron rest, stay dead or stay on? (#3190)
 
 - **What would answer it.** A cause in training, the activation function or the architecture that predicts which neurons rest below the activation's dip, die or stay on.
-- **So far.** `papers/why-neurons-rest/` shows that the output's push and the final LayerNorm's pull set where GELU neurons rest. `papers/default-on-poles/` describes what default-on negative poles do as a population. Pythia's training setup, one part at a time and all together, does not weaken the push in a small model (2026-11-16).
+- **So far.** `papers/why-neurons-rest/` shows that the output's push and the final LayerNorm's pull set where GELU neurons rest. `papers/default-on-poles/` describes what default-on negative poles do as a population. Pythia's training setup, one part at a time and all together, does not weaken the push in a small model (2026-11-16). By the end of Pythia-70m's training, almost no pole is dormant. At step 32, up to 11.6% of a deep layer's poles are dormant for a short time (`papers/neuron-development/`, 2026-11-24).
 - **Bears on it.** The *Why neurons rest* and *Default-on poles* workstreams in Linear.
 
 ## 6. How much does what a neuron appears to do depend on the scan corpus? (#3191)

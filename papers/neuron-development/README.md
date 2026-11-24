@@ -1,8 +1,8 @@
 # When Pythia-70m's VERIFIED neurons form
 
-Explanations of single neurons are usually written for a finished model, but it is not known whether they describe the model for most of its training. We followed 86 neurons of Pythia-70m back through 20 public training checkpoints. Each one's explanation had passed an adversarial review. The training loss reaches within 1% of its final value by step 16,000. At that step, the neurons' activations correlate with their final form at a median of only 0.62, and they keep changing until the end of training. Between adjacent checkpoints after step 16,000, the median correlation is 0.78 to 0.82, so the late change is real movement and not only an effect of comparing with the end. 38 of the 86 explanations hold without a break from step 16,000 or earlier, and 38 only from step 64,000 or later. Of the 13 explanations that hold at step 16,000 and fail later, 9 pass again before the final step, and 18 of their 23 failures are within two probes of a gate. A first version of this paper studied 9 of these neurons. Its main results hold on the 86. Its claim that the two measures of formation order the neurons in reverse does not hold: they are only weakly related. A neuron's explanation describes one checkpoint, and the loss curve does not show when it becomes true.
+Explanations of single neurons are usually written for a finished model, but it is not known whether they describe the model for most of its training. We followed 86 neurons of Pythia-70m back through 20 public training checkpoints. Each one's explanation had passed an adversarial review. The training loss reaches within 1% of its final value by step 16,000. At that step, the neurons' activations correlate with their final form at a median of only 0.62, and they keep changing until the end of training. Between adjacent checkpoints after step 16,000, the median correlation is 0.78 to 0.82, so the late change is real movement and not only an effect of comparing with the end. 38 of the 86 explanations hold without a break from step 16,000 or earlier, and 38 only from step 64,000 or later. Of the 13 explanations that hold at step 16,000 and fail later, 9 pass again before the final step, and 18 of their 23 failures are within two probes of a gate. A first version of this paper studied 9 of these neurons. Its main results hold on the 86. Its claim that the two measures of formation order the neurons in reverse does not hold: they are only weakly related. A neuron's explanation describes one checkpoint, and the loss curve does not show when it becomes true. Over the whole of each layer, the deeper layers lose effective rank after the loss settles, but almost no pole becomes dormant.
 
-**Status:** Preprint. Work left: #4156 (more checkpoints between steps 64,000 and 143,000, OLMo and the local learning coefficient), #6156 (a second probe set for the 13 explanations that fail after step 16,000).
+**Status:** Preprint. Work left: #4156 (more checkpoints between steps 64,000 and 143,000, OLMo and the local learning coefficient), #6156 (a second probe set for the 13 explanations that fail after step 16,000). Also #6524 (whether the late checkpoints learn new data more slowly).
 
 ## Introduction
 
@@ -17,6 +17,7 @@ The paper's contributions are these:
 - A measurement of 86 reviewed neuron explanations in Pythia-70m, in all six layers, at 20 checkpoints from initialisation to the end of training. It uses the review's own tests.
 - Evidence that the neurons keep changing long after the loss settles. Correlations between adjacent checkpoints show that this is movement, not only an effect of the measure.
 - Evidence that the shape of a neuron's activations and the success of its explanation are two weakly related views of its formation.
+- A measurement of dormant poles and effective rank in every MLP layer at the same checkpoints. It tests whether pretraining shows the signs of lost plasticity that Dohare et al. (2024) report.
 
 ## Related work
 
@@ -142,6 +143,36 @@ Only two poles lose their explanation by a wide margin, and both move back towar
 
 So the 13 do not show that explanations are commonly lost once the loss settles. Most fail by one or two probes and pass again at the next checkpoint, which is what probe noise would produce. The two deep failures show something else. L5/N659+ drifts from its explanation for a stretch of training and then passes again before the final step. L4/N216+ comes back to within one probe by step 128,000, but it passes only at the final step, which the selection guarantees. That return resembles savings more than forgetting, although training here never left the same data.
 
+## Do the layers lose plasticity?
+
+Dohare et al. (2024) find that networks that lose plasticity in continual learning also gain dormant units and lose effective rank. Pretraining on one data stream is not continual learning. Still, the late change above invites the question: do Pythia-70m's MLP layers show either sign? We measured all 4,096 poles of each layer at the same 20 checkpoints, on the same 300 windows, 18,782 tokens in all (#5134).
+
+**Measures.** A positive pole is active on a token when its activation is above 0, and a negative pole when it is below 0. GELU keeps the sign of its input, so this rule matches Dohare et al.'s rule for ReLU units. A pole is *dormant* when it is active on under 1% of tokens, and *never-firing* when it is active on none. A second rule counts a pole as active at 0.25 times its own maximum at that step, which is the review's line. The *effective rank* of a layer is the exponential of the entropy of its activation matrix's normalised singular values (Roy & Vetterli, 2007). We compute it on a seeded sample of 2,000 tokens, the size that Dohare et al. use, and also on all tokens.
+
+![Pythia-70m's deep MLP layers collapse early, recover, then slowly lose rank](media/dormant.svg)
+
+**Figure 4.** Left: the share of each layer's 4,096 poles that are dormant by the sign rule, by training step on a log scale. Right: each layer's effective rank on 2,000 tokens. Step 0 is the random initialisation.
+
+| Step | Dormant L3 / L4 / L5 (%) | Never-firing L5 (%) | Dormant at the line, L0–L5 (%) | Effective rank L0 / L1 / L2 / L3 / L4 / L5 |
+| ---: | --- | ---: | --- | --- |
+| 0 | 0 / 0 / 0 | 0 | 0.0–1.0 | 741 / 884 / 892 / 902 / 895 / 895 |
+| 32 | 3.74 / 6.37 / 11.60 | 1.00 | 0.0–19.5 | 741 / 857 / 770 / 669 / 591 / 522 |
+| 64 | 0.73 / 3.00 / 6.57 | 0.78 | 0.0–10.7 | 741 / 861 / 773 / 659 / 537 / 433 |
+| 512 | 0 / 0 / 0 | 0 | 0.0–0.2 | 749 / 977 / 1,036 / 1,056 / 1,054 / 1,026 |
+| 4,000 | 0 / 0 / 0.05 | 0 | 0.0–0.5 | 798 / 1,222 / 1,238 / 1,306 / 1,292 / 1,273 |
+| 16,000 | 0 / 0 / 0.05 | 0 | 0.3–1.4 | 749 / 1,284 / 1,099 / 1,261 / 1,253 / 1,193 |
+| 143,000 | 0.24 / 0.07 / 0.37 | 0 | 3.1–8.3 | 742 / 1,261 / 907 / 1,058 / 1,005 / 882 |
+
+**Table 4.** Dormant poles and effective rank at seven of the 20 checkpoints. "Dormant at the line" gives the lowest and highest layer. Layers 0 to 2 never have more than 0.4% dormant poles by the sign rule. `results.dormant.jsonl` holds every step and layer.
+
+Figure 4 and Table 4 give the answer, which has three parts.
+
+- **An early collapse that recovers.** From step 16 to step 128, the deeper layers lose rank and gain dormant poles. Layer 5's rank falls from 895 to 433 by step 64. At step 32, 11.6% of its poles are dormant and 1.0% never fire. By step 512 no pole is dormant, and every layer from 1 to 5 has a higher rank than at initialisation.
+- **A slow loss of rank late in training.** Layers 2 to 5 reach their highest rank near steps 2,000 to 4,000. They then lose rank until the end, after the loss has settled. Layer 5 falls from 1,281 at step 2,000 to 882, below its rank at initialisation. Layer 1 keeps its rank, and layer 0 barely moves.
+- **Few dormant poles by the sign rule, more at the line.** Late in training, at most 0.37% of a layer's poles are dormant by the sign rule, and none never fires. At the review's line, the dormant share rises in every layer after step 4,000, to 3.1% to 8.3% at the end. So the poles do not stop firing. Instead, more of them reach a quarter of their maximum on very few tokens, which is sparser firing.
+
+The rank on all 18,782 tokens shows the same shape at each step. So Pythia-70m shows the falling rank of Dohare et al., late and in its deeper layers. It does not show their dormant units, by their own rule. This does not show a loss of plasticity, which would need a test of how well the late checkpoints learn new data. It agrees with the late movement of the VERIFIED poles above.
+
 ## Discussion
 
 The first version found that the two measures of formation order its 9 poles in reverse (Table 1). The poles whose activations take their final shape early, L4/N812+, L4/N216+ and L4/N566+, were the ones whose explanations settled last. The poles whose explanations held early, L5/N655+ and L5/N674+, took their final shape late. Over the 9, the Spearman correlation between the step from which an explanation holds and the first step with $r \geq 0.8$ is −0.73.
@@ -160,6 +191,7 @@ For a registry of explanations, the result means that an explanation describes t
 - **Probe noise.** Each explanation is tested with a few dozen probes. So a pass rate near a gate can change from one checkpoint to the next by chance alone (see the review of Yan, Oikarinen and Weng in [`faithful-stable-explanations.md`](../../docs/literature/faithful-stable-explanations.md)). A single failed checkpoint therefore resets the step from which an explanation holds. Of the 23 failures of the 13 explanations that pass at step 16,000 and fail later, 18 are within two probes of a gate (Table 3). We did not resample the probes, so we cannot give an interval for any one pass rate.
 - **The explanations were written for the last checkpoint.** An earlier form of a pole may have a different good explanation. So the failure of the recorded one does not mean that the pole had no clean function.
 - **The scale is borrowed.** The activation line at each step scales the recorded maximum by the change in the window maximum. A pole whose top activations lie outside the 300 windows gets a less exact line.
+- **Dormancy is measured on one corpus sample.** The 18,782 tokens come from 200 documents. A pole that fires on under 1% of these tokens may fire more on other text. The effective rank is not centred, so a shift in a layer's mean activation also changes it.
 - **Few late checkpoints.** Between steps 64,000 and 143,000 we read only one checkpoint, so the timing of late changes is coarse. The adjacent correlations double their gap at each step, so they compare unequal intervals.
 
 ## Conclusion
@@ -169,17 +201,20 @@ The 86 reviewed neurons of Pythia-70m keep changing for most of training, long a
 - More checkpoints between steps 64,000 and 143,000, to time the late changes.
 - The same measurement on OLMo (Groeneveld et al., 2024), whose training run is also public, once it has VERIFIED poles. Also on the PolyPythias runs of this model.
 - The local learning coefficient at the same checkpoints, to test whether the late changes line up with a change in it, not in the loss.
+- A test of plasticity itself: train the late checkpoints on new data, and compare how fast they learn with the step-4,000 checkpoint, whose rank is highest.
 
 ## References
 
 - Bau, D., Zhou, B., Khosla, A., Oliva, A., & Torralba, A. (2017). *Network dissection: Quantifying interpretability of deep visual representations*. CVPR 2017. [arXiv:1704.05796](https://arxiv.org/abs/1704.05796).
 - Biderman, S., Schoelkopf, H., Anthony, Q., Bradley, H., O'Brien, K., Hallahan, E., Khan, M. A., Purohit, S., Prashanth, U. S. S., Raff, E., Skowron, A., Sutawika, L., & van der Wal, O. (2023). *Pythia: A suite for analyzing large language models across training and scaling*. In Proceedings of the 40th International Conference on Machine Learning (PMLR 202, pp. 2397–2430). [PMLR](https://proceedings.mlr.press/v202/biderman23a.html).
 - Cammarata, N. (2026). *Neural networks are already clean*. Goodfire research essay. [already-clean.goodfire.com](https://already-clean.goodfire.com/).
+- Dohare, S., Hernandez-Garcia, J. F., Lan, Q., Rahman, P., Mahmood, A. R., & Sutton, R. S. (2024). *Loss of plasticity in deep continual learning*. Nature, 632, 768–774. [doi:10.1038/s41586-024-07711-7](https://doi.org/10.1038/s41586-024-07711-7).
 - French, R. M. (1999). *Catastrophic forgetting in connectionist networks*. Trends in Cognitive Sciences, 3(4), 128–135. [doi:10.1016/S1364-6613(99)01294-2](https://doi.org/10.1016/S1364-6613(99)01294-2).
 - Groeneveld, D., Beltagy, I., Walsh, P., Bhagia, A., Kinney, R., Tafjord, O., Jha, A. H., Ivison, H., Magnusson, I., Wang, Y., Arora, S., Atkinson, D., Authur, R., Chandu, K. R., Cohan, A., Dumas, J., Elazar, Y., Gu, Y., Hessel, J., . . . Hajishirzi, H. (2024). *OLMo: Accelerating the science of language models*. ACL 2024. [ACL Anthology](https://aclanthology.org/2024.acl-long.841/).
 - Hoogland, J., Wang, G., Farrugia-Roberts, M., Carroll, L., Wei, S., & Murfet, D. (2025). *Loss landscape degeneracy and stagewise development in transformers*. Transactions on Machine Learning Research. [OpenReview](https://openreview.net/forum?id=45qJyBG8Oj).
 - Lau, E., Furman, Z., Wang, G., Murfet, D., & Wei, S. (2023). *The local learning coefficient: A singularity-aware complexity measure*. Preprint. [arXiv:2308.12108](https://arxiv.org/abs/2308.12108).
 - Olsson, C., Elhage, N., Nanda, N., Joseph, N., DasSarma, N., Henighan, T., Mann, B., Askell, A., Bai, Y., Chen, A., Conerly, T., Drain, D., Ganguli, D., Hatfield-Dodds, Z., Hernandez, D., Johnston, S., Jones, A., Kernion, J., Lovitt, L., . . . Olah, C. (2022). *In-context learning and induction heads*. Transformer Circuits Thread. [transformer-circuits.pub](https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html).
+- Roy, O., & Vetterli, M. (2007). *The effective rank: A measure of effective dimensionality*. 15th European Signal Processing Conference (EUSIPCO 2007), Poznań, 606–610. [EURASIP](https://www.eurasip.org/Proceedings/Eusipco/Eusipco2007/Papers/a5p-h05.pdf).
 - van der Wal, O., Lesci, P., Müller-Eberstein, M., Saphra, N., Schoelkopf, H., Zuidema, W., & Biderman, S. (2025). *PolyPythias: Stability and outliers across fifty language model pre-training runs*. ICLR 2025. [arXiv:2503.09543](https://arxiv.org/abs/2503.09543).
 
 ## Appendices
@@ -190,7 +225,10 @@ The script downloads the 20 checkpoints from Hugging Face. It ran on an M1 Max i
 
 ```bash
 uv run python scripts/neuron_development.py --out papers/neuron-development/results.jsonl
+uv run python scripts/dormant_rank.py --out papers/neuron-development/results.dormant.jsonl
 uv run python scripts/paper_figures.py
 ```
+
+`dormant_rank.py` reads every neuron of each layer, so it needs no registry. It took 15 minutes on the M1 Max's CPU, with the checkpoints already downloaded. The token sample for the effective rank uses seed 0.
 
 The poles that a run selects depend on the registry on the day it runs. The `selection` row of `results.jsonl` gives the date and the count.
