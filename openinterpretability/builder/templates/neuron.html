@@ -119,7 +119,7 @@
         <div class="min-w-0 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-800">
           <div class="text-slate-500">{{ p.pole | capitalize }} pole {{ pole_mark(p.pole) }}</div>
           {% for v in p.rows %}
-          <div class="mt-2 text-xs font-medium">{{ v.row.other }}{% if v.sister %} · <span class="text-brand-700 dark:text-brand-400">sister</span>{% endif %}</div>
+          <div class="mt-2 text-xs font-medium">{{ v.row.other }}{% if v.sister %} · <a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ v.match }}">sister match</a>{% endif %}</div>
           <div class="text-xs text-slate-500">rotated {{ v.row.rotated | num(2) }} · {{ '{:,}'.format(v.row.tokens) }} positions ({{ (100 * v.row.coverage) | round | int }}% coverage)</div>
           <table class="mt-1 w-full font-mono text-xs">
             <tbody>
@@ -138,7 +138,7 @@
           <div class="mt-2 text-xs font-medium">Matched from</div>
           <ul class="mt-1 font-mono text-xs">
             {% for x in p.named_by %}
-            <li>{% if x.href %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ x.href }}">{{ x.row.slug }}</a>{% else %}{{ x.row.slug }}{% endif %} · r {{ '%+.2f' | format(x.m.pearson) }}{% if x.row.sister and x.row.sister.slug(x.row.other) == x.m.slug(x.row.other) %} · sister{% endif %}{% if x.tested %} · tested here: {{ x.tested }}{% endif %}</li>
+            <li>{% if x.href %}<a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ x.href }}">{{ x.row.slug }}</a>{% else %}{{ x.row.slug }}{% endif %} · r {{ '%+.2f' | format(x.m.pearson) }}{% if x.match %} · <a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ x.match }}">sister match</a>{% endif %}{% if x.tested %} · tested here: {{ x.tested }}{% endif %}</li>
             {% endfor %}
           </ul>
           {% endif %}

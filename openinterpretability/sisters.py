@@ -262,6 +262,8 @@ def sister_view(
     links to its page where the registry has one. Each also carries the verdict of a
     sister study between the two (``tests``, from :func:`sister_tests`), if any.
     """
+    from openinterpretability.builder.hrefs import sister_match_href
+
     tests = tests or {}
     if not neuron.is_neuron:
         return []
@@ -281,15 +283,17 @@ def sister_view(
                         "tested": tests.get((m.slug(row.other), slug)),
                     }
                 )
-            out.append({"row": row, "matches": matches, "sister": row.sister})
+            match = row.sister and sister_match_href(slug, row.sister.slug(row.other))
+            out.append({"row": row, "matches": matches, "sister": row.sister, "match": match})
         back = []
         for row in named_by.get(slug, []):
             m = next(m for m in row.matches if m.slug(row.other) == slug)
             href = pole_href(row.slug)
             tested = tests.get((slug, row.slug))
-            back.append(
-                {"row": row, "m": m, "href": href if href in studied else None, "tested": tested}
-            )
+            mine = row.sister is not None and row.sister.slug(row.other) == slug
+            match = mine and sister_match_href(slug, row.slug)  # its page (#6639)
+            back.append({"row": row, "m": m, "href": href if href in studied else None,
+                         "tested": tested, "match": match})  # fmt: skip
         if out or back:
             poles.append({"pole": pole, "rows": out, "named_by": back})
     return poles
