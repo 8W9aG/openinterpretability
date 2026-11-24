@@ -1,6 +1,6 @@
-"""Takedown lines and the spans that their shingles cover (core/takedowns.py)."""
+"""Takedown lines and the spans that their shingles cover (labinacan/site/takedowns.py)."""
 
-from openinterpretability.core import takedowns as td
+from labinacan.site import takedowns as td
 
 
 def test_blank_lines_between_takedowns_are_skipped():

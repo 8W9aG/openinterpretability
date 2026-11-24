@@ -2,9 +2,9 @@
 
 import pytest
 
+from labinacan.site import takedowns
 from openinterpretability.builder import pii
 from openinterpretability.builder.pii import REMOVED_TEXT
-from openinterpretability.core import takedowns
 from openinterpretability.core.attribution import AttributedToken, ContextExample, InputAttribution
 
 # The phone and the payment card recognisers both match here, and their spans overlap.

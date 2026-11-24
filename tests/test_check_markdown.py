@@ -90,6 +90,8 @@ def test_main_returns_one_on_a_problem(tmp_path, monkeypatch, capsys):
     assert check_markdown.main() == 0
 
 
+# mutmut's copy of the repo, mutants/, is git-ignored, so git lists no Markdown file there.
+@pytest.mark.skipif(check_markdown.REPO.name == "mutants", reason="git lists no file in mutants/")
 def test_markdown_files_skips_generated_and_vendored():
     names = {p.relative_to(check_markdown.REPO).as_posix() for p in check_markdown.markdown_files()}
     assert {"README.md", "docs/PROTOCOL.md", ".claude/skills/release/SKILL.md"} <= names
