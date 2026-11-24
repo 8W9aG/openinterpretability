@@ -32,8 +32,7 @@ def render_circuits(render, model, found: list[Circuit], found_hubs: list[Hub]) 
     render(circuits_href(slug), "circuits.html", registry=registry, **view)
     for c, href in circuits:
         render(href, "circuit.html", model=model, c=c)
-    for rc in registry:
-        render(rc.href, "circuit_unit.html", model=model, rc=rc)
+    _render_registry(render, model, registry)
     _render_hubs(render, model, hubs, registry, data.norms)
     real = {href for _, href in circuits + hubs}
     for layer in model.layers:
@@ -43,6 +42,23 @@ def render_circuits(render, model, found: list[Circuit], found_hubs: list[Hub]) 
                 if href not in real:
                     render(href, "redirect.html", target=pages.get(unit.href, unit.href))
     return pages
+
+
+def _render_registry(render, model, registry) -> None:
+    """Each registry circuit's page, and a page for each of its experiments (#6638).
+
+    Args:
+        render: The site's renderer.
+        model: The model's view.
+        registry: The model's registry circuits (``circuit_units.CircuitView``).
+    """
+    for rc in registry:
+        render(rc.href, "circuit_unit.html", model=model, rc=rc)
+        units = {m.label: m.href for m in rc.members}
+        for t in rc.tasks:
+            for e in t.experiments:
+                render(e.href, "circuit_experiment.html", model=model, rc=rc, t=t, e=e,
+                       units=units)  # fmt: skip
 
 
 def _render_hubs(render, model, hubs, registry, norms) -> None:

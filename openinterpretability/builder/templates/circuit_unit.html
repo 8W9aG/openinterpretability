@@ -28,21 +28,21 @@
     <p class="mt-1 text-sm">{{ t.description }}</p>
     <div class="mt-3 overflow-x-auto">
       <table class="w-full text-left text-xs">
-        <thead class="text-slate-500"><tr><th class="py-1 pr-3 font-normal">Verdict</th><th class="py-1 pr-3 font-normal">Date</th><th class="py-1 pr-3 font-normal">Proposer · reviewer</th><th class="py-1 pr-3 text-right font-normal">Necessity</th><th class="py-1 pr-3 text-right font-normal">Random sets</th><th class="py-1 pr-3 text-right font-normal">Specificity</th><th class="py-1 font-normal">Members since</th></tr></thead>
+        <thead class="text-slate-500"><tr><th class="py-1 pr-3 font-normal">Verdict</th><th class="py-1 pr-3 font-normal">Date</th><th class="py-1 pr-3 font-normal">Proposer · reviewer</th><th class="py-1 pr-3 text-right font-normal">Necessity</th><th class="py-1 pr-3 text-right font-normal">Random sets</th><th class="py-1 pr-3 text-right font-normal">Specificity</th><th class="py-1 font-normal">Members since</th><th class="py-1 pl-3 font-normal">Page</th></tr></thead>
         <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
           {% for e in t.experiments %}{% set v = e.record.verdict %}
           <tr class="align-top">
-            <td class="py-1.5 pr-3"><div class="flex flex-wrap items-center gap-1">{{ status_badge(v.status) }}{% if not e.independent %}<span class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600 dark:bg-slate-800 dark:text-slate-400">self-reviewed</span>{% endif %}</div>
+            <td class="py-1.5 pr-3"><div class="flex flex-wrap items-center gap-1">{{ status_badge(v.status) }}<span class="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600 dark:bg-slate-800 dark:text-slate-400">{{ "independent" if e.independent else "self-reviewed" }}</span>{% if e.superseded_by %}<span class="text-slate-500">superseded</span>{% endif %}</div>
               <div class="mt-1 text-slate-500">gates: {% for g, ok in v.gates.items() %}{{ g | replace('_', ' ') }} {{ "✓" if ok else "✗" }}{{ " · " if not loop.last }}{% endfor %}</div></td>
             <td class="whitespace-nowrap py-1.5 pr-3 font-mono"><time datetime="{{ v.timestamp.isoformat() }}">{{ v.timestamp.strftime("%Y-%m-%d") }}</time></td>
             <td class="py-1.5 pr-3 font-mono">{{ agent_name(e.record.hypothesis.submitting_agent_model) }} · {{ agent_name(v.reviewer_agent_model) }}</td>
             <td class="py-1.5 pr-3 text-right font-mono tabular-nums">{{ "%.3f" | format(v.measures.holdout_necessity) }}</td>
             <td class="py-1.5 pr-3 text-right font-mono tabular-nums" title="the {{ (100 * v.policy.null_quantile) | round | int }}th percentile of {{ v.measures.null_necessities | length }} random sets like the members">{{ "%.3f" | format(e.null) }}</td>
             <td class="py-1.5 pr-3 text-right font-mono tabular-nums">{{ "—" if e.specificity is none else "{:.0%}".format(e.specificity) }}</td>
-            <td class="py-1.5">{% if e.stale %}<span class="font-semibold">Stale.</span>{% if e.joined %} Joined: <span class="font-mono">{{ e.joined | join(", ") }}</span>.{% endif %}{% if e.left %} Left: <span class="font-mono">{{ e.left | join(", ") }}</span>.{% endif %}{% else %}unchanged{% endif %}
-              <div><a class="underline" href="{{ repo_url }}/blob/main/{{ e.source }}">Record {{ e.id }}</a></div></td>
+            <td class="py-1.5">{% if e.stale %}<span class="font-semibold">Stale.</span>{% if e.joined %} Joined: <span class="font-mono">{{ e.joined | join(", ") }}</span>.{% endif %}{% if e.left %} Left: <span class="font-mono">{{ e.left | join(", ") }}</span>.{% endif %}{% else %}current{% endif %}</td>
+            <td class="whitespace-nowrap py-1.5 pl-3 font-mono">{% if e.href %}<a class="underline" href="{{ root }}{{ e.href }}">Experiment {{ e.id }}</a>{% else %}<a class="underline" href="{{ repo_url }}/blob/main/{{ e.source }}">Record {{ e.id }}</a>{% endif %}</td>
           </tr>
-          <tr><td colspan="7" class="pb-2 text-slate-600 dark:text-slate-400">{{ e.record.hypothesis.explanation | truncate(300) }}</td></tr>
+          <tr><td colspan="8" class="pb-2 text-slate-600 dark:text-slate-400">{{ e.record.hypothesis.explanation | truncate(300) }}</td></tr>
           {% endfor %}
         </tbody>
       </table>
