@@ -49,7 +49,7 @@ perf:
 
 # Unused code: a name vulture finds, and vulture_whitelist.py doesn't keep, fails (#3164).
 vulture:
-	uv run vulture openinterpretability scripts vulture_whitelist.py --min-confidence 60
+	uv run vulture openinterpretability labinacan scripts vulture_whitelist.py --min-confidence 60
 
 # mypy, strict, on the packages in [tool.mypy] files (pyproject.toml).
 typecheck:
@@ -69,7 +69,7 @@ lint:
 	uv run python scripts/papers.py check
 	python3 scripts/ifttt_lint.py
 	python3 scripts/check_old_name.py
-	uv run interrogate openinterpretability scripts
+	uv run interrogate openinterpretability labinacan scripts
 	$(MAKE) vulture
 	$(MAKE) typecheck
 	$(MAKE) markdown
@@ -97,7 +97,7 @@ shell:
 # `make lint` runs it, so a long sentence fails locally as it does in CI.
 # CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
 # non-zero only on errors, so the STE rules that gate are at level `error`.
-VALE_PATHS ?= openinterpretability scripts tests
+VALE_PATHS ?= openinterpretability labinacan scripts tests
 vale:
 	@command -v vale >/dev/null || { echo "vale not found: brew install vale (see vale.sh)"; exit 1; }
 	vale --glob='!tests/fixtures/vale/*' $(VALE_PATHS)

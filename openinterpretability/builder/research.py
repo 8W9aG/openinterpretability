@@ -20,13 +20,13 @@ import yaml  # a dependency of transformers and huggingface_hub
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from openinterpretability.builder.alphaxiv import (
+from labinacan.site.alphaxiv import (
     alphaxiv_url,
 )
-from openinterpretability.builder.contents import anchor as section_anchor
-from openinterpretability.builder.maths import MathsError, enable_maths
+from labinacan.site.contents import anchor as section_anchor
+from labinacan.site.maths import MathsError, enable_maths
+from labinacan.site.social_media import drawn, x_url
 from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
-from openinterpretability.builder.social_media import drawn, x_url
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
 # An entry of papers/README.md: "- 2026-11-16: [Title](slug/README.md)". The date is optional.
@@ -303,7 +303,7 @@ def _thread(folder: Path, sections: tuple[tuple[str, str], ...]) -> tuple:
         ValueError: The thread breaks a rule (:func:`.social.thread.problems`), so the build
             fails.
     """
-    from openinterpretability.builder.social_media import figure_files
+    from labinacan.site.social_media import figure_files
     from openinterpretability.social.thread import THREAD, load_thread, prepare, problems
 
     tweets = load_thread(folder)

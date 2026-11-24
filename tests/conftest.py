@@ -281,7 +281,7 @@ def _one_build_job(monkeypatch):
     A forked child of a multithreaded process can crash, which once killed an xdist worker
     (#6507). A test of the parallel build passes its own job count.
     """
-    from openinterpretability.builder.parallel import JOBS_ENV
+    from labinacan.site.parallel import JOBS_ENV
 
     monkeypatch.setenv(JOBS_ENV, "1")
 

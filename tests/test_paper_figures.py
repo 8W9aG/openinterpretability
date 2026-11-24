@@ -35,7 +35,7 @@ def test_each_figure_appears_in_its_paper(name):
 
 
 def test_each_media_file_is_built():
-    from openinterpretability.builder.social_media import IMAGE, MANIFEST, VIDEO
+    from labinacan.site.social_media import IMAGE, MANIFEST, VIDEO
 
     drawn = {IMAGE, VIDEO, MANIFEST}  # scripts/social_images.py draws these, not this script
     # and each thread figure's social-<id>.png and .mp4 (#5833)

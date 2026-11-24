@@ -26,7 +26,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / "scripts" / "body_comments_baseline.txt"
 MIN_LINES = 20
-FOLDERS = ("openinterpretability/", "scripts/")
+FOLDERS = ("openinterpretability/", "labinacan/", "scripts/")
 
 
 def _comments(source: str) -> set[int]:

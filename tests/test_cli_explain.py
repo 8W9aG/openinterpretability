@@ -209,7 +209,7 @@ def test_a_plain_explain_never_asks_and_says_its_stages(explain_args):
 
 
 def test_quiet_drops_the_stage_lines_and_restores_the_setting(explain_args, monkeypatch):
-    from openinterpretability.harness.progress import QUIET_ENV
+    from labinacan.progress import QUIET_ENV
 
     monkeypatch.setenv(QUIET_ENV, "0")
     result = CliRunner().invoke(cli, [*explain_args, "--quiet"])

@@ -36,7 +36,7 @@ from check_docstring_args import entries
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / "scripts" / "docstring_sections_baseline.txt"
-PACKAGE = "openinterpretability/"
+PACKAGE = ("openinterpretability/", "labinacan/")  # the packages (#6628)
 RETURNS = re.compile(r"^(\s*)Returns:\s*$", re.M)
 YIELDS = re.compile(r"^(\s*)Yields:\s*$", re.M)
 RAISES = re.compile(r"^(\s*)Raises:\s*$")
