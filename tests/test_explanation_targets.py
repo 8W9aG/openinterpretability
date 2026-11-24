@@ -183,3 +183,18 @@ def test_the_meter_counts_the_poles_of_a_verified_superposition(tmp_path, monkey
     sup = GroupDef("superposition", "L2/S0123456789ab", slug, ((2, 1, 1.0),))
     order = [((2, 1, "positive"), 3.0, "", False), ((6, 7, "negative"), 1.0, "", False)]
     assert ShareMeter("m/x", order, [sup], tmp_path)() == pytest.approx(3.0 / 4.0)
+
+
+def test_each_draw_counts_and_reads_the_wiki_it_is_given(registry, tmp_path, monkeypatch):  # #6066
+    asked, slugs = [], []
+    monkeypatch.setattr(planner, "stopped", lambda wiki: asked.append(wiki) or [])
+    monkeypatch.setattr(
+        planner, "candidates_for", lambda state, s, *a: slugs.append(s) or iter(registry.follow)
+    )
+    registry.states = {A.slug: _state("REJECTED")}
+    registry.follow = [_candidate("revise", 0.9)]
+    draws = TargetedDraws([A, B], reviewer="rev/model")
+    plan = draws(tmp_path, claims=[])
+    draws(tmp_path, claims=[])
+    assert draws.started == 2 and asked == [tmp_path, tmp_path] and slugs[0] == {A.slug}
+    assert plan.explored is False and plan.seed == 0

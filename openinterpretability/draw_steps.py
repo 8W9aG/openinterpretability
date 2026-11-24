@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 from openinterpretability.core.paths import DEFAULT_EXCHANGE_DIR
 from openinterpretability.planner import Candidate, Plan, claim_key
@@ -137,8 +138,33 @@ def _api(model: str | None) -> str | None:
     return None if model is None or model.startswith("external/") else model
 
 
+def claim_branch(kind: str, key: str, now: datetime | None = None) -> str:
+    """The branch that a draw claims: ``experiment/<key>``, or for a follow-up ``-<kind>-<time>``.
+
+    A follow-up can repeat a kind on one unit, and the first draw's PR may have merged and kept
+    its branch. The draw's UTC time keeps the second name free (#6066). A draw on a new unit
+    can't repeat, so it keeps the plain name.
+
+    Args:
+        kind: The draw's kind.
+        key: The unit's key.
+        now: The draw's time, by default the clock's.
+
+    Returns:
+        The branch name.
+
+    Examples:
+        >>> t = datetime(2026, 11, 24, 1, 2, 3, tzinfo=UTC)
+        >>> claim_branch("revise", "m-L1-N2", t), claim_branch("explore", "m-L1-N2", t)
+        ('experiment/m-L1-N2-revise-1124010203', 'experiment/m-L1-N2')
+    """
+    if kind in NEW_UNIT_KINDS:
+        return f"experiment/{key}"
+    return f"experiment/{key}-{kind}-{(now or datetime.now(UTC)):%m%d%H%M%S}"
+
+
 def _claim(c: Candidate, key: str, seed: int, known: bool, ledger: str | None = None) -> Step:
-    branch = f"experiment/{key}" if c.kind in NEW_UNIT_KINDS else f"experiment/{key}-{c.kind}"
+    branch = claim_branch(c.kind, key)
     # The claim commits the draw's ledger entry, so the draw reaches main whatever the run does.
     commit = (
         [f"git add {ledger}", f'git commit -m "Claim {key}"']

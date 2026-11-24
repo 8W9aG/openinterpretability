@@ -570,6 +570,11 @@ def test_a_fork_claim_matches_only_an_equal_key(monkeypatch):
     assert planner.claimed("m-L3-H1", ["Study m-L3-H12 and m-L3-H1"])
 
 
+def test_a_fork_claim_with_the_draws_time_still_names_its_unit(monkeypatch):  # #6066
+    claims = _fork_prs(monkeypatch, "experiment/m-L1-N2-positive-revise-1124010203")
+    assert claims == ["m-L1-N2-positive"]
+
+
 def _probes_of_its_own(rec, tag, status):
     """``rec`` with a status and a probe set of its own, so it is not a re-measurement."""
     tests = [t.model_copy(update={"prompt": f"{t.prompt} {tag}"})

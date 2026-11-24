@@ -467,6 +467,8 @@ class Loop:
 
     def _failed(self, exc: Exception, log: Path) -> int | None:
         """Back off on a rate limit, count any other failure, and say when to stop."""
+        if (slug := getattr(exc, "nothing_ran", None)) and hasattr(self.plan_next, "unstart"):
+            self.plan_next.unstart(slug)  # a session that ran nothing uses no attempt (#6066)
         if is_rate_limit(exc):
             if self.backoffs == len(BACKOFF_MINUTES):
                 print(f"RESULT: none rate limited after {self.backoffs} waits ({log})")
