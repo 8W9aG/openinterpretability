@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "_circuit.html" import nav %}
+{% from "_macros.html" import fold %}
+{% from "_record.html" import verdict_block, people, revisions %}
+
+{# One circuit experiment (#6638): its task hypothesis, its probes, its measures and its
+   verdict. Expects `rc` (circuit_units.CircuitView), `t` (TaskView), `e` (ExperimentView)
+   and `units`, each member's page by its label. #}
+{% set h, p, v = e.record.hypothesis, e.record.probes, e.record.verdict %}
+{% macro pairs_table(pairs, caption) -%}
+<div class="overflow-x-auto">
+  <table class="w-full text-left text-xs">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead class="text-slate-500"><tr><th scope="col" class="py-1 pr-3 font-normal">Clean prompt</th><th scope="col" class="py-1 pr-3 font-normal">Corrupted prompt</th><th scope="col" class="py-1 pr-3 font-normal">Clean next</th><th scope="col" class="py-1 font-normal">Corrupted next</th></tr></thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for x in pairs %}<tr class="align-top"><td class="py-1 pr-3">{{ x.clean }}</td><td class="py-1 pr-3">{{ x.corrupted }}</td><td class="py-1 pr-3 font-mono">{{ x.good }}</td><td class="py-1 font-mono">{{ x.bad }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endmacro %}
+
+{% block title %}Circuit {{ rc.id }} · {{ e.id }} · {{ model.name }} · {{ site_title }}{% endblock %}
+
+{% block content %}
+<article data-pagefind-body>
+{{ nav(root, model, "Circuit " ~ rc.id) }}
+<header class="mb-6">
+  <h1 class="font-mono text-2xl font-semibold" data-pagefind-meta="title">{{ model.name }} · circuit {{ rc.id }} · {{ e.id }}</h1>
+  <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">
+    An experiment on task <span class="font-mono">{{ t.name }}</span> of <a class="underline" href="{{ root }}{{ rc.href }}">circuit {{ rc.id }}</a>{% if e.stale %}. <span class="font-semibold">Stale:</span> the circuit's members have changed since it ran.{% else %}, on its current members.{% endif %}
+  </p>
+</header>
+
+<section aria-labelledby="verdict">
+  <h2 id="verdict" class="text-lg font-semibold">Verdict</h2>
+  <div class="mt-2">{{ verdict_block(v.status, v.gates, e.independent, v.timestamp) }}</div>
+  {{ people(agent_name(h.submitting_agent_model), agent_name(v.reviewer_agent_model)) }}
+  {{ revisions(root, e.supersedes, e.superseded_by, repo_url, e.source) }}
+</section>
+
+<section class="mt-8" aria-labelledby="hypothesis">
+  <h2 id="hypothesis" class="text-lg font-semibold">Hypothesis</h2>
+  <p class="mt-2 text-sm"><span class="font-mono">{{ t.name }}</span>: {{ h.task.description }}</p>
+  <p class="mt-2 text-sm">{{ h.explanation }}</p>
+  <h3 class="mt-4 text-sm font-semibold">Members it tested</h3>
+  <ul class="mt-1 space-y-1 text-sm">
+    {% for m in h.members %}<li><span class="font-mono">{% if units.get(m) %}<a class="underline" href="{{ root }}{{ units[m] }}">{{ m }}</a>{% else %}{{ m }}{% endif %}</span>{% if h.roles.get(m) %}: {{ h.roles[m] }}{% endif %}</li>{% endfor %}
+  </ul>
+  {% if e.stale %}<p class="mt-2 text-sm">Since it ran:{% if e.joined %} joined <span class="font-mono">{{ e.joined | join(", ") }}</span>.{% endif %}{% if e.left %} Left <span class="font-mono">{{ e.left | join(", ") }}</span>.{% endif %}</p>{% endif %}
+</section>
+
+<section class="mt-8" aria-labelledby="measures">
+  <h2 id="measures" class="text-lg font-semibold">Measures</h2>
+  <p class="mt-1 text-xs text-slate-500">Each value is relative to ablating every neuron and head of the model.</p>
+  <dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+    <dt class="text-slate-500">Necessity on the holdouts</dt><dd class="font-mono tabular-nums">{{ "%.3f" | format(v.measures.holdout_necessity) }} (floor {{ v.policy.min_necessity }})</dd>
+    <dt class="text-slate-500">Random sets like the members</dt><dd class="font-mono tabular-nums">{{ "%.3f" | format(e.null) }}, the {{ (100 * v.policy.null_quantile) | round | int }}th percentile of {{ v.measures.null_necessities | length }}</dd>
+    <dt class="text-slate-500">Faithfulness on the holdouts</dt><dd class="font-mono tabular-nums">{{ "%.3f" | format(v.measures.holdout_faithfulness) }}</dd>
+    <dt class="text-slate-500">Specificity</dt><dd class="font-mono tabular-nums">{{ "—" if e.specificity is none else "{:.0%}".format(e.specificity) }} (needs {{ "{:.0%}".format(v.policy.min_specificity) }})</dd>
+  </dl>
+  <h3 class="mt-4 text-sm font-semibold">Tasks it should not carry</h3>
+  <div class="overflow-x-auto"><table class="mt-1 w-full text-left text-xs">
+    <caption class="sr-only">Each negative task's necessity, and whether it passes</caption>
+    <thead class="text-slate-500"><tr><th scope="col" class="py-1 pr-3 font-normal">Task</th><th scope="col" class="py-1 pr-3 text-right font-normal">Necessity</th><th scope="col" class="py-1 font-normal">Passes (below {{ v.policy.max_negative_necessity }})</th></tr></thead>
+    <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+      {% for name, n in v.measures.negative_necessities.items() %}<tr><td class="py-1 pr-3 font-mono">{{ name }}</td><td class="py-1 pr-3 text-right font-mono tabular-nums">{{ "%.3f" | format(n) }}</td><td class="py-1">{{ "yes" if n | abs < v.policy.max_negative_necessity else "no" }}</td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {% if v.measures.member_necessities %}
+  <h3 class="mt-4 text-sm font-semibold">Each member alone</h3>
+  <ul class="mt-1 text-xs font-mono">{% for m, n in v.measures.member_necessities.items() %}<li>{{ m }}: {{ "%.3f" | format(n) }}</li>{% endfor %}</ul>
+  {% endif %}
+</section>
+
+<div class="mt-8">
+{% call fold("Task pairs: " ~ h.task.pairs | length, level=2) %}{{ pairs_table(h.task.pairs, "The proposer's prompt pairs") }}{% endcall %}
+{% call fold("Holdout pairs: " ~ p.holdouts | length, level=2) %}{{ pairs_table(p.holdouts, "The reviewer's holdout pairs") }}{% endcall %}
+{% call fold("Negative tasks: " ~ p.negative_tasks | length, level=2) %}
+  {% for nt in p.negative_tasks %}<h3 class="mt-3 font-mono text-sm font-semibold">{{ nt.name }}</h3><p class="text-sm">{{ nt.description }}</p>{{ pairs_table(nt.pairs, "Pairs of " ~ nt.name) }}{% endfor %}
+{% endcall %}
+</div>
+</article>
+{% endblock %}

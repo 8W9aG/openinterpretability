@@ -122,7 +122,6 @@ openinterpretability/builder/circuit_pages.py::render_circuits
 openinterpretability/builder/circuit_units.py::load_circuit_data
 openinterpretability/builder/circuit_units.py::task_standing
 openinterpretability/builder/circuit_units.py::label
-openinterpretability/builder/circuit_units.py::tasks_of
 openinterpretability/builder/circuit_units.py::lineage_of
 openinterpretability/builder/circuit_units.py::family
 openinterpretability/builder/circuit_units.py::circuit_views
