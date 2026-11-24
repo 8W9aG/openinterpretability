@@ -20,6 +20,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from labinacan.site.pii import REMOVED_TEXT
 from labinacan.site.takedowns import (
     Takedown,
     all_hashes,
@@ -30,7 +31,6 @@ from labinacan.site.takedowns import (
     takedowns_path,
     to_line,
 )
-from openinterpretability.builder.pii import REMOVED_TEXT
 from openinterpretability.checks import DISCUSSION_HEADING
 from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 

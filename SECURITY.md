@@ -81,7 +81,7 @@ The takedown file holds no text. It names a passage by a hash of each run of 8 w
 
 What changes:
 
-- **The site and `registry.parquet`.** Each build replaces the passage with `[removed]` in text, and with `█` in each token that it covers, as it does for personal data (`openinterpretability/builder/pii.py`). The same applies to the Neuronpedia export.
+- **The site and `registry.parquet`.** Each build replaces the passage with `[removed]` in text, and with `█` in each token that it covers, as it does for personal data (`labinacan/site/pii.py`). The same applies to the Neuronpedia export.
 - **The experiment pages in `wiki/`.** `open-interpretability check` lets a page change outside its Discussion section only by this removal, and only when an allowed key signed the takedown file. A branch can't add a takedown of its own.
 
 What doesn't change:

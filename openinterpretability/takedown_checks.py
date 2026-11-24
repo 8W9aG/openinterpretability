@@ -70,7 +70,7 @@ def page_redaction_ok(before: str, after: str, wiki_dir: Path) -> bool:
     file is signed is :func:`check_takedowns`, which runs in the same
     ``open-interpretability check``.
     """
-    from openinterpretability.builder.pii import REMOVED_TEXT
+    from labinacan.site.pii import REMOVED_TEXT
 
     hashes = all_hashes(load_takedowns(wiki_dir))
     return before != after and redact(before, hashes, REMOVED_TEXT) == after

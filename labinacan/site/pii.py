@@ -1,12 +1,12 @@
-"""Remove personal data, and passages under a takedown, from the text that the site shows.
+"""Remove personal data, and passages under a takedown, from the text that a site shows.
 
-Records keep their text unchanged, because experiments study this text, and records are
-signed. Only the build's output changes. :mod:`labinacan.sensitive` does the search.
+A project's records keep their text unchanged. Only the build's output changes.
+:mod:`labinacan.sensitive` does the search, and :func:`scrub` walks any value's text.
 
 The search is most of a build's time, and records never change. So the matches of each
-text are kept on disk, in ``$XDG_CACHE_HOME/openinterpretability/pii``
-(``$OPENINTERPRETABILITY_PII_CACHE`` moves it, and ``off`` turns it off). The file's name holds a
-hash of the search's code and package versions, so a change to either starts a new cache.
+text can be kept on disk, in a folder that the project gives to :func:`configure`. The
+file's name holds a hash of the search's code, its name and its package versions. So a
+change to any of them starts a new cache. With no folder, nothing is kept on disk.
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Sequence
-from dataclasses import replace as dc_replace
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from functools import cache, lru_cache
 from pathlib import Path
 from typing import Any
@@ -25,9 +25,6 @@ from pydantic import BaseModel
 from labinacan import sensitive
 from labinacan.sensitive import pii_matches
 from labinacan.site import takedowns
-from openinterpretability.core.cache_dirs import cache_root
-from openinterpretability.core.confounds import PII_DETECTOR
-from openinterpretability.core.schemas import AuditRecord
 
 REMOVED_TEXT = "[removed]"  # replaces a match in free text
 REMOVED_TOKEN = "█"  # noqa: S105  (a model token, not a password). Replaces each token of a match, so a heatmap keeps its shape
@@ -38,14 +35,48 @@ Span = tuple[int, int]
 _found: dict[str, tuple[Span, ...]] = {}  # searched in this run, not yet on disk
 
 
+@dataclass
+class _Settings:
+    """What the project gives the redaction core (:func:`configure`)."""
+
+    cache_dir: Callable[[], Path | None] = lambda: None
+    name: str = "labinacan.sensitive"
+
+
+_settings = _Settings()
+
+
+def configure(cache_dir: Callable[[], Path | None], name: str) -> None:
+    """Set the folder that keeps the matches on disk, and the search's name.
+
+    The folder is a function, read on the first search, so that a setting read from the
+    environment can change before then. With no call, nothing is kept on disk, and the
+    redaction is the same.
+
+    Args:
+        cache_dir: Returns the folder, or ``None`` to keep nothing on disk.
+        name: The project's name for the search (:func:`labinacan.sensitive.detector`).
+
+    Examples:
+        >>> before = (_settings.cache_dir, _settings.name)  # the settings are global
+        >>> configure(lambda: None, "lab.sensitive")
+        >>> _cache_file() is None
+        True
+        >>> configure(*before)
+    """
+    _settings.cache_dir, _settings.name = cache_dir, name
+    _cache_file.cache_clear()
+    _stored.cache_clear()
+
+
 @cache
 def _cache_file() -> Path | None:
     """Return the cache file for this search's code and package versions, or ``None``."""
-    root = cache_root("OPENINTERPRETABILITY_PII_CACHE", "pii")
+    root = _settings.cache_dir()
     if root is None:
         return None
     code = Path(sensitive.__file__).read_bytes() + Path(__file__).read_bytes()
-    key = hashlib.sha256(sensitive.detector(PII_DETECTOR).encode() + code).hexdigest()[:16]
+    key = hashlib.sha256(sensitive.detector(_settings.name).encode() + code).hexdigest()[:16]
     return root / f"spans-{key}.sqlite"
 
 
@@ -154,7 +185,7 @@ def scrub(value: Any) -> Any:
         new = [scrub(item) for item in value]
         return new if any(a is not b for a, b in zip(new, value, strict=True)) else value
     if isinstance(value, dict):
-        new = {key: _scrub_field(key, item) for key, item in value.items()}
+        new = {key: scrub_field(key, item) for key, item in value.items()}
         return new if any(new[key] is not value[key] for key in value) else value
     if isinstance(value, BaseModel):
         updates = {}
@@ -171,90 +202,23 @@ def _is_tokens(field: Any) -> bool:
     return isinstance(field, list) and all(isinstance(token, str) for token in field)
 
 
-def _scrub_field(name: str, value: Any) -> Any:
+def scrub_field(name: str, value: Any) -> Any:
     """Scrub the field ``name`` of a dict, or ``value`` itself if none of it changes.
 
     A list of strings named ``tokens`` is a token list, so the search reads it joined.
+
+    Args:
+        name: The field's name.
+        value: The field's value.
+
+    Returns:
+        The scrubbed value.
+
+    Examples:
+        >>> scrub_field("tokens", ["a", "b"])
+        ['a', 'b']
     """
     if name == "tokens" and _is_tokens(value):
         new = redact_tokens(value)
         return new if new != value else value
     return scrub(value)
-
-
-def _scrub_attribution(submission):
-    """Remove attribution tokens that a match touched in the top example they come from.
-
-    Attribution stores loose tokens, so the search cannot read them as one text.
-    """
-    attribution = submission.input_attribution
-    if attribution is None:
-        return submission
-
-    def at(context, offset: int, token: str) -> str:
-        if context.example >= len(submission.top_examples):
-            return token
-        example = submission.top_examples[context.example]
-        position = example.max_token_index + offset
-        removed = 0 <= position < len(example.tokens) and example.tokens[position] == REMOVED_TOKEN
-        return REMOVED_TOKEN if removed else token
-
-    examples = [
-        context.model_copy(
-            update={
-                "peak_token": at(context, 0, context.peak_token),
-                "top": [
-                    t.model_copy(update={"token": at(context, t.offset, t.token)})
-                    for t in context.top
-                ],
-            }
-        )
-        for context in attribution.examples
-    ]
-    return submission.model_copy(
-        update={"input_attribution": attribution.model_copy(update={"examples": examples})}
-    )
-
-
-def scrub_errata(errata: Sequence[Any], edits: Sequence[Any]) -> tuple[list, list]:
-    """Return what a page shows of its errata, with personal data and taken-down text removed.
-
-    ``errata`` are :class:`openinterpretability.core.errata.Erratum`: their title and bug text are
-    redacted. ``edits`` are :class:`openinterpretability.core.errata.AppliedEdit`. An edit can
-    change a text field of a record, so its values before and after are scrubbed. An edit to a
-    token list (a path that ends in ``.tokens``) gets the joined search of :func:`redact_tokens`.
-    """
-    notes = [
-        e.model_copy(update={"title": redact_text(e.title), "bug": redact_text(e.bug)})
-        for e in errata
-    ]
-    changes = [
-        dc_replace(
-            d,
-            before=_scrub_field(d.path.rpartition(".")[2], d.before),
-            after=_scrub_field(d.path.rpartition(".")[2], d.after),
-        )
-        for d in edits
-    ]
-    return notes, changes
-
-
-def scrub_experiments(experiments: Sequence[Any]) -> None:
-    """Scrub, in place, what each experiment's page shows: its record and its errata notes.
-
-    ``experiments`` are :class:`openinterpretability.builder.tree.Experiment`.
-    """
-    for e in experiments:
-        e.record = scrub_record(e.record)
-        e.scrubbed = True  # a full record loaded later is scrubbed too (builder/slim.py)
-        e.errata, e.edits = scrub_errata(e.errata, e.edits)
-
-
-def scrub_record(record: AuditRecord) -> AuditRecord:
-    """Return a copy of ``record`` to publish, with personal data removed from all its text.
-
-    The copy reaches every page and the Parquet export, including fields added later. Call
-    this after computing anything from probe text. The record on disk does not change.
-    """
-    scrubbed = scrub(record)
-    return scrubbed.model_copy(update={"submission": _scrub_attribution(scrubbed.submission)})
