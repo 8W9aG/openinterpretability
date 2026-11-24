@@ -124,8 +124,24 @@ def test_the_repo_map_has_compact_regions_one_per_colour_and_no_queued_region():
 
 
 def test_the_report_warns_when_the_regions_are_not_compact(capsys, tmp_path):
-    data = {"reviews": [1], "queued": [], "regions": [1, 2], "compactness": 0.5}
+    data = {"reviews": [1], "queued": [], "regions": [1, 2], "compactness": 0.5,
+            "layout": "umap seed 3"}  # fmt: skip
     lm.report(data, tmp_path / "map.json")
     out = capsys.readouterr()
-    assert "1 reviews, 0 queued, 2 regions, compactness 0.5" in out.out
+    assert "1 reviews, 0 queued, 2 regions, compactness 0.5 (umap seed 3)" in out.out
     assert "Compactness is under" in out.err
+
+
+def test_the_most_compact_seed_wins_and_a_tie_keeps_the_earlier():
+    """#6529: one new page can reshuffle one seed's regions, so every seed is tried."""
+    scores = {4577: 0.7, 1: 0.9, 2: 0.9, 3: 0.8}
+    tried = []
+
+    def build(vectors, names, reviewed, seed):
+        tried.append((vectors, names, reviewed, seed))
+        return seed, "points", "regions", "rows", scores[seed]
+
+    best = lm.most_compact("v", ["a"], 1, seeds=(4577, 1, 2, 3), build=build)
+    assert best == (1, "points", "regions", "rows", 0.9)
+    assert tried == [("v", ["a"], 1, seed) for seed in (4577, 1, 2, 3)]
+    assert lm.SEEDS[0] == 4577 and len(set(lm.SEEDS)) == len(lm.SEEDS)  # today's seed first

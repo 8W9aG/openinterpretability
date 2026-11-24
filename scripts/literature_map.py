@@ -3,7 +3,7 @@
 Each review in docs/literature/ is embedded from its title and its *Summary* section. Each
 queued paper (an open `area: literature` issue) is embedded from its title and the first
 paragraph of the issue. The model is all-MiniLM-L6-v2, which did best in the concept-map study
-(#3290). UMAP, with a fixed seed, lays every paper out in two dimensions. Close points are
+(#3290). UMAP lays every paper out in two dimensions. Close points are
 papers about similar things. The axes themselves have no meaning.
 
 The papers' :data:`KNN`-nearest-neighbour graph is split into Leiden communities. This is
@@ -11,7 +11,8 @@ the method of Alexander Coulton's map of cancer research, which issue #4577 cite
 model. A community with fewer than :data:`MIN_REVIEWS` reviews merges into its closest one.
 So queued papers join their topic, and there is no "queued" region (#5798). There are at most
 :data:`SLOTS` regions, one per palette colour. Each point then takes the most common region
-of its :data:`LOCAL` nearest points on the map, so that each region is one cloud.
+of its :data:`LOCAL` nearest points on the map, so that each region is one cloud. Each of
+:data:`SEEDS` gives a layout, and the most compact one is kept (#6529).
 
 Regions are numbered from 1, biggest first. Each is named by the section of
 docs/literature/README.md that most of its reviews are under. ``map.json`` also gives the
@@ -31,13 +32,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
-import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from literature_map_io import MIN_COMPACT, plain_lead, queued, report  # noqa: E402, F401
 
 from openinterpretability.builder.cluster_map import SLOTS  # noqa: E402
 from openinterpretability.builder.literature_pages import (  # noqa: E402
@@ -48,62 +50,28 @@ from openinterpretability.builder.literature_pages import (  # noqa: E402
 )
 
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-SEED = 4577
+# UMAP's and Leiden's seeds, tried in order: one page can reshuffle one seed's map (#6529).
+SEEDS = (4577, 1, 2, 3, 4, 5, 6, 7)
 RESOLUTIONS = [round(0.8 + 0.1 * i, 1) for i in range(15)]  # 0.8 to 2.2, searched in order
 KNN = 10  # neighbours per paper in the graph that Leiden clusters
 MIN_REVIEWS = 3  # a community with fewer reviews merges into its closest one (#5798)
 LOCAL = 8  # neighbours on the 2-D map that smooth a point's region and say which regions touch
-MIN_COMPACT = 0.8  # the least compactness the map may have (tests/test_literature_map.py)
 NEIGHBOURS = 3
-REPO = "8W9aG/openinterpretability"
 
 
-# Words that every queued issue shares, which would pull the queue into one cluster (#5798).
-BOILERPLATE = re.compile(
-    r"\*\*(Off-topic|Bears on):\*\*|Write a short not-applicable page\.", re.IGNORECASE
-)
-
-
-def plain_lead(text: str) -> str:
-    """``text`` without the issue template's markers and stock sentence.
+def layout(vectors, seed: int):
+    """UMAP coordinates of ``vectors``, scaled into [0, 1] on each axis.
 
     Args:
-        text: The issue's lead paragraph.
+        vectors: The papers' embeddings.
+        seed: UMAP's seed.
 
     Returns:
-        The paragraph's own words.
-
-    Examples:
-        >>> plain_lead("**Off-topic:** World models. Write a short not-applicable page.")
-        'World models.'
+        The points.
     """
-    return " ".join(BOILERPLATE.sub("", text).split())
-
-
-def queued() -> list[dict]:
-    """The open `area: literature` issues: number, title and the text to embed."""
-    try:
-        out = subprocess.run(
-            ["gh", "issue", "list", "--repo", REPO, "--label", "area: literature", "--state",
-             "open", "--limit", "500", "--json", "number,title,body"],
-            capture_output=True, text=True, check=True,
-        ).stdout  # fmt: skip
-    except (OSError, subprocess.CalledProcessError):
-        return []
-    rows = []
-    for issue in json.loads(out):
-        title = re.sub(r"^Review\s+", "", issue["title"]).strip()
-        lead = (issue["body"] or "").split("\n\n")[1:2]  # the paragraph after the source line
-        rows.append({"number": issue["number"], "title": title,
-                     "text": f"{title}\n\n{plain_lead(' '.join(lead))}".strip()})  # fmt: skip
-    return sorted(rows, key=lambda r: r["number"])
-
-
-def layout(vectors):
-    """UMAP coordinates of ``vectors``, scaled into [0, 1] on each axis."""
     import umap
 
-    reducer = umap.UMAP(n_neighbors=15, min_dist=0.08, metric="cosine", random_state=SEED)
+    reducer = umap.UMAP(n_neighbors=15, min_dist=0.08, metric="cosine", random_state=seed)
     points = reducer.fit_transform(vectors)
     return (points - points.min(0)) / (points.max(0) - points.min(0))
 
@@ -183,16 +151,17 @@ def _dissolve(labels: list[int], edges: dict, k: int) -> list[int]:
     return labels
 
 
-def communities(vectors, reviewed: int) -> list[int]:
+def communities(vectors, reviewed: int, seed: int) -> list[int]:
     """Leiden communities of the papers' graph, merged until each can be named.
 
     A fixed resolution gave 10 regions, then 13 once one review was added. So each of
     :data:`RESOLUTIONS` is tried. The first count nearest :data:`SLOTS`, but not over it,
-    wins, so that every region gets a palette colour (#5798). Leiden's seed is fixed.
+    wins, so that every region gets a palette colour (#5798).
 
     Args:
         vectors: The papers' normalised embeddings.
         reviewed: The number of reviews, which come first.
+        seed: Leiden's seed.
 
     Returns:
         Each paper's community.
@@ -207,7 +176,7 @@ def communities(vectors, reviewed: int) -> list[int]:
     for resolution in RESOLUTIONS:
         part = leidenalg.find_partition(graph, leidenalg.RBConfigurationVertexPartition,
                                         weights="weight", resolution_parameter=resolution,
-                                        seed=SEED)  # fmt: skip
+                                        seed=seed)  # fmt: skip
         labels = merge_small(list(part.membership), edges, reviewed)
         if len(set(labels)) <= SLOTS and (
             best is None or SLOTS - len(set(labels)) < SLOTS - len(set(best))
@@ -440,6 +409,48 @@ def neighbours(vectors, names: list[str]) -> list[list[str]]:
     return [[names[j] for j in np.argsort(-row)[:NEIGHBOURS]] for row in similar]
 
 
+def arrange(vectors, names: list[str], reviewed: int, seed: int) -> tuple:
+    """One layout of the papers with ``seed``.
+
+    Args:
+        vectors: The papers' normalised embeddings, the reviews first.
+        names: The reviews' names.
+        reviewed: The number of reviews.
+        seed: The seed of UMAP and Leiden.
+
+    Returns:
+        The seed, the points, each paper's region, the regions' rows and the compactness.
+    """
+    import numpy as np
+
+    points = layout(vectors, seed)
+    labels = smooth(points, communities(np.asarray(vectors), reviewed, seed))
+    labels = absorb_small(points, labels, reviewed)  # smoothing can empty a region
+    region_of, region_rows = named_regions(points, labels, names, reviewed)
+    return seed, points, region_of, region_rows, compactness(points, region_of)
+
+
+def most_compact(vectors, names: list[str], reviewed: int, seeds=SEEDS, build=arrange) -> tuple:
+    """The most compact of the layouts that :data:`SEEDS` give; a tie keeps the earlier seed.
+
+    Args:
+        vectors: The papers' normalised embeddings, the reviews first.
+        names: The reviews' names.
+        reviewed: The number of reviews.
+        seeds: The seeds, in order.
+        build: Makes one layout (:func:`arrange`).
+
+    Returns:
+        The kept layout, as :func:`arrange` returns it.
+    """
+    best = None
+    for seed in seeds:
+        tried = build(vectors, names, reviewed, seed)
+        if best is None or tried[-1] > best[-1]:
+            best = tried
+    return best
+
+
 def main() -> None:
     """Embed the reviews and the queue, lay them out, group them, and write the map."""
     import numpy as np
@@ -450,11 +461,8 @@ def main() -> None:
     queue = queued()
     model = SentenceTransformer(MODEL, device="cpu")
     vectors = model.encode(texts + [q["text"] for q in queue], normalize_embeddings=True)
-    points = layout(vectors)
     names = [p.stem for p in reviews]
-    labels = smooth(points, communities(np.asarray(vectors), len(reviews)))
-    labels = absorb_small(points, labels, len(reviews))  # smoothing can empty a region
-    region_of, region_rows = named_regions(points, labels, names, len(reviews))
+    seed, points, region_of, region_rows, compact = most_compact(vectors, names, len(reviews))
     near = neighbours(np.asarray(vectors[: len(reviews)]), names)
     rows = [
         {"name": name, "x": round(float(x), 4), "y": round(float(y), 4),
@@ -470,30 +478,11 @@ def main() -> None:
         zip(queue, points[len(reviews):], region_of[len(reviews):], strict=True)
     ]  # fmt: skip
     out = LITERATURE / MAP
-    data = {"model": MODEL, "layout": f"umap seed {SEED}",
-            "compactness": compactness(points, region_of), "regions": region_rows,
+    data = {"model": MODEL, "layout": f"umap seed {seed}",
+            "compactness": compact, "regions": region_rows,
             "reviews": rows, "queued": queue_rows}  # fmt: skip
     out.write_text(json.dumps(data, indent=1) + "\n")
     report(data, out)
-
-
-def report(data: dict, out: Path) -> None:
-    """Print what the map holds, and warn when its regions are not compact enough.
-
-    Args:
-        data: The map, as written.
-        out: Where it was written.
-    """
-    print(
-        f"{len(data['reviews'])} reviews, {len(data['queued'])} queued, "
-        f"{len(data['regions'])} regions, compactness {data['compactness']} → {out}"
-    )
-    if data["compactness"] < MIN_COMPACT:
-        print(
-            f"Compactness is under {MIN_COMPACT}, so tests/test_literature_map.py fails. "
-            "Look at the layout before you commit it.",
-            file=sys.stderr,
-        )
 
 
 if __name__ == "__main__":

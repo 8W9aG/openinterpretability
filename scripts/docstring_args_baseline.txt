@@ -2985,7 +2985,6 @@ scripts/linear_sync.py::apply_labels
 scripts/linear_sync.py::apply_roadmap
 scripts/linear_sync.py::plan_relations
 scripts/linear_sync.py::sync_relations
-scripts/literature_map.py::layout
 scripts/literature_map.py::neighbours
 scripts/ln_offset.py::Offset.__init__
 scripts/ln_offset.py::Offset.forward
