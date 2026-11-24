@@ -119,6 +119,29 @@ Issue #5127 asks whether the change in Qwen2.5-0.5B's middle third changes the w
 - **The middle third's change is not only local.** Base blocks 8–15 raise the middle third's median r from 0.962 to 0.976. Base blocks 0–7 raise it as far, to 0.977, with the middle blocks still the instruct model's. So part of the change reaches the middle third through its input from earlier layers. The two parts overlap, because either swap alone recovers most of the gap.
 - **The early blocks don't fit the instruct model's embeddings.** With base blocks 0–7, the first third's poles correlate 0.0028 higher at the median, but some L0 poles fall. L0/N532+ goes from 0.990 to 0.978. The base blocks then read the instruct model's embeddings, which instruction tuning also changed.
 
+## The weight change at each pole (#5133)
+
+Issue #5133 asks whether the weight change of instruction tuning at a pole predicts whether its explanation keeps. Δ is instruct − base for each MLP matrix. The analysis reads the weights only, with `scripts/base_instruct_delta.py`, on 2026-11-24, and the rows are in `base-instruct-delta.jsonl`. The poles, and whether each keeps, come from the plain-probe runs above. Qwen2.5-0.5B has 311 poles, of which 59 fail, and Qwen2.5-1.5B has 43, of which 5 fail.
+
+- **Measures.** Δ's norm in the pole's `gate_proj` and `up_proj` rows and `down_proj` column, over the base weight's norm there, for each matrix and for all three. Also the share of the pole's base weights in Δ's top-r singular directions. Here r is Δ's rank for 90% of its variance ([Biderman et al., 2024](../literature/lora-learns-less-forgets-less.md), §4.6, and [Hu et al., 2021](../literature/lora-low-rank-adaptation.md), Table 7).
+- **Test.** Each measure as an AUROC for predicting a failure. The null shuffles the keep labels within each layer, 10,000 times. A measure that only tracks depth then gets no credit.
+- **Rotation.** The share of Δ's energy on the top 5% of neurons. The null is the same share after a Haar-random rotation of the neuron axis ([Li et al., 2018](../literature/intrinsic-dimension-objective-landscapes.md)). A spread update gives the rotated share.
+
+**Answer: no.** Neither measure predicts which explanations keep, beyond what depth predicts.
+
+| Measure | AUROC, 0.5B | p, 0.5B | AUROC, 1.5B | p, 1.5B |
+| --- | --- | --- | --- | --- |
+| Δ's size in `gate_proj` | 0.60 | 0.82 | 0.58 | 0.25 |
+| Δ's size in `up_proj` | 0.62 | 0.36 | 0.61 | 0.04 |
+| Δ's size in `down_proj` | 0.61 | 0.32 | 0.42 | 0.46 |
+| Δ's size, all three | 0.61 | 0.66 | 0.57 | 0.16 |
+| Share of the weights in Δ's top-r directions | 0.44 | 0.76 | 0.42 | 0.19 |
+
+- **The raw AUROCs are depth.** On Qwen2.5-0.5B, Δ's size gives AUROCs of 0.60 to 0.62. But shuffles within each layer reach them as often, with p from 0.32 to 0.82. Failures fall in the layers where Δ is larger overall, the middle third, and inside a layer Δ's size says nothing. The median relative change at a pole is 0.078 for poles that keep and 0.084 for poles that fail.
+- **1.5B can't test it.** It has 5 failures. One measure, `up_proj`, reaches p = 0.04, but it is one of five measures. With five failures, that is not evidence.
+- **Δ is high-rank and spread out.** Its 90% rank is 668 to 701 of 896 in 0.5B, and 679 to 1105 of 1,536 in 1.5B. The top 5% of neurons hold 6.6% of its energy in 0.5B, against 5.3% after a rotation. In 1.5B they hold 6.7% against 5.4%. So instruction tuning moves almost every neuron a little, not a few neurons a lot.
+- **0.5B changed more.** Its weights moved about 8% at a pole, at the median, and 1.5B's about 1.2%.
+
 ## Reading it
 
 Instruction tuning leaves these neurons in place. A neuron's activation pattern is almost the same after tuning, and its explanation still predicts its probes in eight or nine cases in ten. So a VERIFIED explanation of a base model is a good first guess for its instruct model, at the same index.
@@ -130,5 +153,6 @@ The chat template matters more than the tuning. Inside it, the same neurons fire
 - **Two pairs, one family.** Qwen2.5-0.5B adds 311 poles, and its interval is 76–85%. Both pairs are Qwen2.5, so another family could differ.
 - **The base model's own probes.** The reviewer wrote them to break the base model's hypothesis. Probes written against the instruct model could find differences these miss. That would need a review of the instruct model itself, which would make it a registry model.
 - **One template, one turn.** The chat runs put each probe in one user turn. A system prompt, earlier turns or the assistant's side of the template were not tested. The scale ratio comes from plain text, so a template that shifts a pole's whole range would show up as lost sensitivity here.
+- **The weight change is one test.** Five measures, one null, and the 1.5B pair has only 5 failures.
 - **CKA and swaps on one pair.** The CKA and the block swaps cover only Qwen2.5-0.5B, on one sample, and one null seed. The swaps read correlations, not the probes' gates.
 - **Not a crosscoder.** This compares neuron to neuron at one index. A learned shared basis, the crosscoder of Lindsey et al. (2024), could also find features that moved between neurons. That needs training, and it is a follow-up.
