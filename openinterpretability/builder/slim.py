@@ -97,7 +97,7 @@ def full_record(e: Experiment) -> AuditRecord:
     """Return ``e``'s record in full, as the build holds it, or the record itself if not slim."""
     if e.source is None:
         return e.record
-    from openinterpretability.builder.pii import scrub_record
+    from openinterpretability.builder.registry_pii import scrub_record
 
     record, _ = apply_errata(AuditRecord.model_validate_json(e.source.read_bytes()), e.errata)
     return scrub_record(record) if e.scrubbed else record

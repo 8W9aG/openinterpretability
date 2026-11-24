@@ -37,8 +37,8 @@ from collections.abc import Iterable
 
 import torch
 
+from labinacan.progress import Progress
 from openinterpretability.explain_groups import HEAD
-from openinterpretability.harness.progress import Progress
 
 DRAWS = 4  # random sets for the baseline
 SEED = 0  # their seed, which a record stores (#4793)

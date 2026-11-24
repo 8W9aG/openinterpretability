@@ -163,7 +163,7 @@ def test_the_atlas_fills_in_by_first_study(record):
 
 
 def test_a_region_outline_is_convex_holds_the_core_and_leaves_out_a_stray():
-    from openinterpretability.builder.cluster_map import hull, region_outline
+    from labinacan.site.cluster_map import hull, region_outline
 
     square = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0), (5.0, 5.0)]
     assert sorted(hull(square)) == sorted(square[:4])  # the centre point is inside
@@ -176,7 +176,7 @@ def test_a_region_outline_is_convex_holds_the_core_and_leaves_out_a_stray():
 
 
 def test_the_map_draws_outlines_and_a_card_line(tmp_path, record):
-    from openinterpretability.builder.cluster_map import overlaps
+    from labinacan.site.cluster_map import overlaps
     from openinterpretability.builder.compiler import compile_site
     from openinterpretability.builder.tree import build_tree
 

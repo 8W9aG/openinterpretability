@@ -232,10 +232,10 @@ def batches(
 
     After a GPU ran out of memory, the batches are smaller (:func:`devices.batch_scale`).
     A pass that runs long prints its progress
-    (:class:`~openinterpretability.harness.progress.Progress`).
+    (:class:`~labinacan.progress.Progress`).
     """
+    from labinacan.progress import Progress
     from openinterpretability.harness.devices import batch_scale
-    from openinterpretability.harness.progress import Progress
 
     if not pieces:
         return

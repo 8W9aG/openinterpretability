@@ -24,7 +24,7 @@ def _row(slug, other, matches, rotated=0.1):
 
 def test_a_row_without_matches_draws_no_edge():
     rows = {"org--a/L1/N1-positive": [_row("org--a/L1/N1-positive", "org/b", [])]}
-    model = type("M", (), {"name": "org/a", "n_layers": 2})()
+    model = type("M", (), {"name": "org/a", "slug": "org--a", "n_layers": 2})()
     assert sister_graphs(model, rows, studied=set()) == []
 
 
@@ -37,7 +37,9 @@ def test_a_weaker_match_for_the_same_pair_keeps_the_stronger_edge():
             _row(slug, b, [(2, 3, "positive", 0.4, "org--b/L0/N0-positive", 0.4)]),
         ]
     }
-    model = type("M", (), {"name": a, "n_layers": 2})()
+    model = type("M", (), {"name": a, "slug": "org--a", "n_layers": 2})()
     (g,) = sister_graphs(model, rows, studied=set())
     assert g["n_edges"] == 1 and g["n_sisters"] == 0
     assert g["lines"][0]["label"].endswith("r 0.70")
+    assert g["index"] == "models/org--a/sisters.html"  # #6639
+    assert g["lines"][0]["href"] is None  # a best match that isn't a sister has no page

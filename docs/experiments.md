@@ -282,8 +282,9 @@ git switch -c experiment/Qwen--Qwen2.5-0.5B-L11-N4255-positive
 gh pr create --draft --title "experiment: Qwen--Qwen2.5-0.5B-L11-N4255-positive (explore)"
 # …run the experiment, then:
 make check                                # lint and tests too (make check lint test) if you change code
-git add wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)" && git push
-gh pr ready
+git add wiki && git commit -m "Experiment: L11/N4255+ (NEEDS_REVISION)"
+gh pr ready                               # before the push, so the push runs the full CI (#6179)
+git push
 ```
 
 To be credited, set `OPENINTERPRETABILITY_CONTRIBUTOR` to a public handle such as your GitHub username (never an email), or pass `--contributor` to `audit` and `verify`. It is recorded beside the agent model, as the proposer's contributor on the submission and the reviewer's on the verdict. The site's Users page gives each person a page with their experiments and reviews, and the Agents page ranks them. Nothing is recorded without it: git config is never read. A record without a contributor is credited on the site to the GitHub user who opened the pull request that merged it. That handle is never written to the record. The loop script's sessions inherit the variable.

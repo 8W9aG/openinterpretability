@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import figures_concept_space
+import figures_conformal
 import figures_copy_first_unit
 import figures_default_on
 import figures_default_on_decoding
@@ -18,6 +19,7 @@ import figures_depth
 import figures_development
 import figures_dormant
 import figures_fisher_keep
+import figures_instruct_difference
 import figures_native_learned
 import figures_pruning_keep
 import figures_sequential_tuning
@@ -67,6 +69,8 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         "copy-first-unit": figures_copy_first_unit.build(
             [r for r in _rows("copy-first-unit") if "prompt" in r]
         ),
+        "conformal-line": figures_conformal.build(_rows("conformal-line")),
+        "instruct-difference": figures_instruct_difference.build(_rows("instruct-difference")),
         "neuron-development": {
             **figures_development.build(_rows("neuron-development")),
             "dormant.svg": figures_dormant.figure(

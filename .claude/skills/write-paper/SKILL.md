@@ -67,7 +67,7 @@ long after the loss settles.
 
 ## Mathematics
 
-Write maths in LaTeX. The site typesets it at build time (`openinterpretability/builder/maths.py`), and GitHub renders it too. A formula that the site can't read stops the build.
+Write maths in LaTeX. The site typesets it at build time (`labinacan/site/maths.py`), and GitHub renders it too. A formula that the site can't read stops the build.
 
 - **Write each equation, formula and maths symbol in LaTeX.** Use `$...$` inline: `$\mathrm{silu}(g) \cdot u$`, `$1.3 \times 10^{-5}$`, `$\sigma$`, `$R^2$`, `$\alpha = -0.5$`.
 - **Give each definition that the method depends on a block equation of its own**, such as the pole, the clamp or the KL metric. Put `$$` on its own line before and after the formula.

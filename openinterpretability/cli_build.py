@@ -146,13 +146,13 @@ def build(  # noqa: PLR0913 (one option per input file)
     jobs,
 ):
     """Compile every archived experiment into static pages and data/registry.parquet."""
+    from labinacan.site.parallel import default_jobs
+    from labinacan.site.takedowns import activate, load_takedowns
     from openinterpretability.builder.compiler import compile_site
     from openinterpretability.builder.coverage import load_rows as load_coverage
     from openinterpretability.builder.model_facts import load_model_facts
-    from openinterpretability.builder.parallel import default_jobs
     from openinterpretability.builder.users import load_users
     from openinterpretability.core.project import project_links
-    from openinterpretability.core.takedowns import activate, load_takedowns
     from openinterpretability.corpus import load_sources
     from openinterpretability.crossref import load_rows as load_alignment
     from openinterpretability.planner import configured_models

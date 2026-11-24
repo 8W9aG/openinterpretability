@@ -12,8 +12,12 @@ private (``_``) path. Its docstring must hold a ``>>>`` example, which pytest ru
 import ast
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = ROOT / "openinterpretability"
+PACKAGES = (ROOT / "openinterpretability", ROOT / "labinacan")  # labinacan: #6628
+# mutmut runs the tests from its copy, mutants/, whose modules hold its generated functions.
+pytestmark = pytest.mark.skipif(ROOT.name == "mutants", reason="mutmut's copy of the package")
 BASELINE = ROOT / "scripts" / "doctests_baseline.txt"
 EXEMPT = ROOT / "scripts" / "doctests_exempt.txt"
 
@@ -43,7 +47,7 @@ def missing(path: Path, source: str) -> list[str]:
 def every_missing() -> dict[str, list[str]]:
     """Each public module file's functions with no doctest, by file."""
     out = {}
-    for path in sorted(PACKAGE.rglob("*.py")):
+    for path in sorted(p for package in PACKAGES for p in package.rglob("*.py")):
         rel = path.relative_to(ROOT)
         if any(part.startswith("_") and part != "__init__.py" for part in rel.parts):
             continue

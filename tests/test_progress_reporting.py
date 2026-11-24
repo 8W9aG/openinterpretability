@@ -1,10 +1,10 @@
-"""Long loops report their progress (harness/progress.py, #3142)."""
+"""Long loops report their progress (labinacan/progress.py, #3142)."""
 
 from types import SimpleNamespace
 
-from openinterpretability.builder import parallel
+from labinacan import progress
+from labinacan.site import parallel
 from openinterpretability.harness import circuit_measures as cm
-from openinterpretability.harness import progress
 
 
 class Recorder:
@@ -45,3 +45,17 @@ def test_a_line_names_the_count_and_the_time_left():
     p = progress.Progress("things", 4, interval=0.0, clock=lambda: float(next(ticks)))
     p.step()
     assert p.step() == "things: 2/4, 2 min so far, about 2 min left"
+
+
+def test_random_sets_take_the_task_and_seed_0_by_default(monkeypatch):
+    import random
+
+    monkeypatch.setattr(progress, "Progress", Recorder)
+    draws, tasks = [], []
+    monkeypatch.setattr(cm, "random_like", lambda runner, members, rng: draws.append(rng.random()))
+    monkeypatch.setattr(
+        cm, "measures", lambda r, task, m, s: tasks.append(task) or {"necessity": 0.2}
+    )
+    assert cm.null_necessity("runner", "task", "means", [], sets=2) == [0.2, 0.2]
+    expected = random.Random(0)
+    assert draws == [expected.random(), expected.random()] and tasks == ["task", "task"]

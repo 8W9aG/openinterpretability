@@ -1,0 +1,1 @@
+- A test that runs past its timeout now leaves evidence. Five seconds before pytest-timeout ends it, every stack goes to the worker's crash log under the test's name. Before, the timeout's own dump went to stderr, which a worker loses (#6561).

@@ -2,7 +2,7 @@
 
 A maintainer runs this for a request to remove text (``SECURITY.md``, *A request to remove
 text*). It reads the passage from a file that stays out of the repository. It hashes the
-passage into shingles (:mod:`openinterpretability.core.takedowns`), and lists the records and pages
+passage into shingles (:mod:`labinacan.site.takedowns`), and lists the records and pages
 whose text the shingles match. It appends the takedown to ``wiki/takedowns.jsonl``. Then it
 removes the matched text from each page, above its Discussion section.
 
@@ -20,10 +20,8 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-from openinterpretability.builder.pii import REMOVED_TEXT
-from openinterpretability.checks import DISCUSSION_HEADING
-from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir
-from openinterpretability.core.takedowns import (
+from labinacan.site.pii import REMOVED_TEXT
+from labinacan.site.takedowns import (
     Takedown,
     all_hashes,
     covered,
@@ -33,6 +31,8 @@ from openinterpretability.core.takedowns import (
     takedowns_path,
     to_line,
 )
+from openinterpretability.checks import DISCUSSION_HEADING
+from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 
 
 def strings(value) -> list[str]:

@@ -14,6 +14,7 @@ from pathlib import Path
 
 import click
 
+from labinacan import sensitive  # cheap: Presidio loads only on the first search
 from openinterpretability.audit_options import selection as chosen_selection
 
 
@@ -110,7 +111,7 @@ class _Texts:
         There is one document tagger per label set that the corpus carries. The syntax
         taggers run only on a corpus that records programming languages.
         """
-        from openinterpretability import names, sensitive, syntax, toxicity
+        from openinterpretability import names, syntax, toxicity
         from openinterpretability.core.confounds import (
             HATE_SPEECH,
             NAMES,
@@ -335,8 +336,8 @@ def _scan_environment(runner):
 
 def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_scanned: int):
     """Where and how the scan ran, for the evidence's provenance."""
-    from openinterpretability import __version__, names, sensitive, syntax, toxicity
-    from openinterpretability.core.confounds import PROGRAMMING_LANGUAGE
+    from openinterpretability import __version__, names, syntax, toxicity
+    from openinterpretability.core.confounds import PII_DETECTOR, PROGRAMMING_LANGUAGE
     from openinterpretability.core.schemas import ExperimentProvenance
     from openinterpretability.harness.environment import run_environment
 
@@ -357,7 +358,7 @@ def scan_provenance(runner, request: ScanRequest, seed, corpus: _Texts, tokens_s
         environment=_scan_environment(runner),
         corpus_source=corpus.source,
         corpus_sample=corpus.sample,
-        label_detector=f"{sensitive.detector()}; {names.DETECTOR}; {toxicity.DETECTOR}"
+        label_detector=f"{sensitive.detector(PII_DETECTOR)}; {names.DETECTOR}; {toxicity.DETECTOR}"
         + (f"; {syntax.detector()}" if PROGRAMMING_LANGUAGE in corpus.labels else ""),
     )
 

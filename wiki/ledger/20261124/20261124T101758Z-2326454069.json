@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-24T10:17:58Z","seed":2326454069,"kind":"explore","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L3/H2","record":null,"audit":"--model Qwen/Qwen2.5-0.5B --random --seed 3373076216 --unit head","pole_forced":false,"until_verified":false,"max_turns":null,"harness_version":"0.4.2"}

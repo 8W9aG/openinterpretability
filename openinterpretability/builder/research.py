@@ -20,13 +20,13 @@ import yaml  # a dependency of transformers and huggingface_hub
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
-from openinterpretability.builder.alphaxiv import (
+from labinacan.site.alphaxiv import (
     alphaxiv_url,
 )
-from openinterpretability.builder.contents import anchor as section_anchor
-from openinterpretability.builder.maths import MathsError, enable_maths
-from openinterpretability.builder.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
-from openinterpretability.builder.social_media import drawn, x_url
+from labinacan.site.contents import anchor as section_anchor
+from labinacan.site.maths import MathsError, enable_maths
+from labinacan.site.pii import REMOVED_TEXT, find_spans, redact_text, redact_tokens
+from labinacan.site.social_media import drawn, x_url
 
 _LISTED = re.compile(r"\]\(([\w-]+)/README\.md\)")
 # An entry of papers/README.md: "- 2026-11-16: [Title](slug/README.md)". The date is optional.
@@ -303,7 +303,7 @@ def _thread(folder: Path, sections: tuple[tuple[str, str], ...]) -> tuple:
         ValueError: The thread breaks a rule (:func:`.social.thread.problems`), so the build
             fails.
     """
-    from openinterpretability.builder.social_media import figure_files
+    from labinacan.site.social_media import figure_files
     from openinterpretability.social.thread import THREAD, load_thread, prepare, problems
 
     tweets = load_thread(folder)
@@ -375,7 +375,7 @@ def _in_number(text: str, start: int, end: int) -> bool:
 def redact_asset(text: str) -> str:
     """Return a paper's data or code file with personal data and taken-down text removed.
 
-    It is :func:`redact_text` (:mod:`openinterpretability.builder.pii`) without the matches inside
+    It is :func:`redact_text` (:mod:`labinacan.site.pii`) without the matches inside
     numbers, which would break the file and hold no personal data. Before that, it reads each
     JSON array of strings as a token list (:func:`redact_tokens`), because a match can span
     several tokens.

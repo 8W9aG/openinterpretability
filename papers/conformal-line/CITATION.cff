@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: If you use this paper, please cite it as below.
+type: article
+title: What error rate does the review's activation line imply? A conformal line for 784 VERIFIED poles
+authors:
+- given-names: Will
+  family-names: Sackfield
+- name: Open Interpretability
+date-released: '2026-11-24'
+version: preprint
+url: https://open-interpretability.com/research/conformal-line/index.html
+repository-code: https://github.com/8W9aG/openinterpretability

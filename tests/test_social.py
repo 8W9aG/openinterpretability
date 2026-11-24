@@ -176,6 +176,19 @@ def test_posts_fit_and_are_cut_at_a_word_boundary():
     assert post == f"T\n\nOne paragraph. All of it.\n{SITE}s.html"
 
 
+def test_the_separator_counts_toward_the_limit():
+    long = "Fires on the closing bracket of a nested call " * 20
+    text = compose("Post 4", long, _post(4).link, separator="-" * 60)
+    assert length(text) <= LIMIT and "-" * 60 in text
+
+
+def test_a_post_with_no_body_cuts_the_head_to_fit():
+    head = "Fires on the closing bracket of a nested call " * 20
+    text = compose(head, "", _post(4).link)
+    assert length(text) <= LIMIT and text.startswith("Fires on the")
+    assert text.splitlines()[0].endswith("…")
+
+
 def test_the_oauth_header_is_signed_and_stable():
     keys = {
         "X_API_KEY": "ck",

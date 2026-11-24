@@ -21,6 +21,11 @@ from openinterpretability import experiment_loop as el
 from openinterpretability.claude_sessions import Session, result_line, session_text
 
 SUBAGENTS = "external/claude-code"  # the proposer and reviewer: the session's subagents
+# A prefix rule in ALLOWED_TOOLS matches only a command that starts with it, and an
+# unattended session denies the rest (#6145).
+COMMANDS = """- Run each step's command as given, one command per Bash call. Don't add `cd`,
+  `&&`, `;`, pipes or `env` prefixes: you already run in the worktree. An unattended run
+  denies a command of any other shape, and the run stops (#6145)."""
 
 
 @dataclass(frozen=True)
@@ -59,6 +64,7 @@ the PR description.
 - The proposer and the reviewer are Claude Code subagents: use the neuron-proposer,
   neuron-reviewer and explanation-judge subagents, as the steps say. Record the model IDs
   that they report.
+{COMMANDS}
 - Post the result whatever the verdict. Then mark the PR ready and stop. Don't wait for CI
   and don't merge: auto-merge.yml merges it once CI passes (#5826).
 - Finish on a clean working tree. End your reply with one line:
@@ -155,8 +161,81 @@ def landed_pr(slug: str, since: datetime, prs=None) -> tuple[str, bool] | None:
     return None
 
 
+def _git(*args: str) -> str:
+    """The output of one ``git`` command, or "" when it fails.
+
+    Args:
+        *args: The command's arguments, after ``git``.
+
+    Returns:
+        Its output.
+    """
+    done = subprocess.run(["git", *args], capture_output=True, text=True)  # a failure is ""
+    return done.stdout if done.returncode == 0 else ""
+
+
+def stranded_branch(slug: str, since: datetime, git=_git) -> tuple[str, bool] | None:
+    """A branch on ``slug``'s unit that a session pushed since ``since`` with no PR (#6145).
+
+    Args:
+        slug: The unit's slug.
+        since: When the session started.
+        git: Runs one ``git`` command and returns its output.
+
+    Returns:
+        The branch, and whether it adds a record, or None.
+
+    Examples:
+        >>> out = {"ls-remote": "abc refs/heads/experiment/m-L1-N2-positive",
+        ...        "log": "2026-11-24T01:05:00+00:00", "diff": "wiki/experiments/r.json"}
+        >>> git = lambda *args: out.get(args[0], "")
+        >>> stranded_branch("m/L1/N2-positive", datetime(2026, 11, 24, 1, 0, tzinfo=UTC), git)
+        ('experiment/m-L1-N2-positive', True)
+    """
+    from openinterpretability.planner import claim_key
+
+    listed = git("ls-remote", "--heads", "origin", f"refs/heads/experiment/{claim_key(slug)}*")
+    for row in listed.splitlines():
+        branch = row.split()[-1].removeprefix("refs/heads/")
+        git("fetch", "--quiet", "origin", branch)
+        stamp = git("log", "-1", "--format=%cI", "FETCH_HEAD").strip()
+        if not stamp or datetime.fromisoformat(stamp) < since:
+            continue  # an older branch: not this session's
+        added = git("diff", "--name-only", "--diff-filter=A", "origin/main...FETCH_HEAD").split()
+        record = any(p.startswith("wiki/experiments/") and p.endswith(".json") for p in added)
+        return branch, record
+    return None
+
+
+def _nothing_landed(slug: str, since: datetime | None, why: str, log: Path, strand) -> None:
+    """Raise for a session that opened no PR, naming any branch that it left (#6145).
+
+    Args:
+        slug: The drawn unit.
+        since: When the session started.
+        why: What the session printed.
+        log: The session's log.
+        strand: Finds a branch that it pushed with no PR (:func:`stranded_branch`).
+
+    Raises:
+        el.LoopError: It pushed a record with no PR. The experiment ran, so the attempt counts.
+        NothingRan: It ran nothing. A branch with only its claim is named, to delete.
+    """
+    left = strand(slug, since) if slug and since else None
+    if left and left[1]:
+        raise el.LoopError(f"the session pushed a record on {left[0]} but opened no PR: "
+                           f"open it with `gh pr create --head {left[0]}`; see {log}")  # fmt: skip
+    note = (
+        f"; it left {left[0]} with only its claim: `git push origin --delete {left[0]}`"
+        if left
+        else ""
+    )
+    raise NothingRan(f"the session ran no experiment ({why}){note}; see {log}", slug)
+
+
 def _result(line: str | None, log: Path, options: el.Options, slug: str,
-            since: datetime | None, find=landed_pr) -> el.Result:  # fmt: skip
+            since: datetime | None, find=landed_pr,
+            strand=stranded_branch) -> el.Result:  # fmt: skip
     """The iteration's result from the session's ``RESULT:`` line; its PR's records kept.
 
     Args:
@@ -166,19 +245,20 @@ def _result(line: str | None, log: Path, options: el.Options, slug: str,
         slug: The drawn unit, to find a PR that the session landed without a line.
         since: When the session started.
         find: Finds that PR (:func:`landed_pr`).
+        strand: Finds a branch that the session pushed with no PR (:func:`stranded_branch`).
 
     Returns:
         The result.
 
     Raises:
         NothingRan: The session gave no line, or ran no experiment, and opened no PR.
+        el.LoopError: The session pushed a record but opened no PR.
     """
-    parts = (line or "").split()
+    parts = (line or "").split()  # pragma: no mutate, equivalent: any one word is under 4 parts
     if len(parts) < 4 or parts[0] == "none":
         found = find(slug, since) if slug and since else None
         if found is None:
-            why = f"the session ran no experiment ({line or 'no RESULT line'}); see {log}"
-            raise NothingRan(why, slug)
+            _nothing_landed(slug, since, line or "no RESULT line", log, strand)
         options.pending.keep()
         return el.Result(slug, "unknown", found[0], found[1])
     slug, verdict, url, state = parts[:4]

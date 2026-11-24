@@ -20,6 +20,7 @@ from __future__ import annotations
 import re
 from collections import Counter
 from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 
 from openinterpretability.circuit_ids import CIRCUITS_DIR, jaccard
@@ -65,6 +66,9 @@ class ExperimentView:
     source: str  # the record's path in the repository
     joined: list[str] = field(default_factory=list)  # members since it ran
     left: list[str] = field(default_factory=list)
+    href: str = ""  # its page (hrefs.circuit_experiment_href), set with the circuit's slug
+    superseded_by: list[ExperimentView] = field(default_factory=list)  # later revisions
+    supersedes: ExperimentView | None = None  # the record it revises, when on this site
 
     @property
     def id(self) -> str:
@@ -126,20 +130,48 @@ def label(href: str) -> str:
     return f"L{found[1]}/{found[2]}{found[3]}" if found else href
 
 
-def tasks_of(records, members: frozenset[str]) -> list[TaskView]:
-    """The circuit's tasks, each with its experiments against the ``members`` now."""
+def tasks_of(records, members: frozenset[str], page=None) -> list[TaskView]:
+    """The circuit's tasks, each with its experiments against the ``members`` now.
+
+    Args:
+        records: ``(source, record)`` pairs of the circuit's experiments.
+        members: The circuit's members now.
+        page: Gives an experiment's page from its record's name, or None for no pages.
+
+    Returns:
+        The tasks, each with its experiments, newest first.
+    """
     by_task: dict[str, list[ExperimentView]] = {}
     for source, record in sorted(records, key=lambda sr: sr[1].verdict.timestamp, reverse=True):
         then = frozenset(record.hypothesis.cluster_members)
         joined = sorted(label(m) for m in members - then) if then else []
         left = sorted(label(m) for m in then - members)
         view = ExperimentView(record, source, joined, left)
+        view.href = page(view.id) if page else ""
         by_task.setdefault(record.hypothesis.task.name, []).append(view)
+    link_revisions([e for views in by_task.values() for e in views])
     out = []
     for name, views in by_task.items():
         description = views[0].record.hypothesis.task.description
         out.append(TaskView(name, description, task_standing(views), views))
     return out
+
+
+def link_revisions(views: list[ExperimentView]) -> None:
+    """Link each experiment to the one it supersedes, and to those that supersede it.
+
+    A record names the one it revises by its name or by its path (``task_standing``).
+
+    Args:
+        views: The circuit's experiments. Each is changed in place.
+    """
+    by_name = {key: v for v in views for key in (v.id, v.source)}
+    for view in views:
+        named = view.record.hypothesis.supersedes
+        older = by_name.get(named) if named else None
+        if older is not None and older is not view:
+            view.supersedes = older
+            older.superseded_by.append(view)
 
 
 @dataclass
@@ -238,8 +270,9 @@ def _location(model, members: list[str]) -> tuple[float | None, float | None]:
 
 def circuit_views(model, data: CircuitData, edges: list) -> list[CircuitView]:
     """The model's registry circuits, by id, with ``edges`` (``circuit_edges``) among members."""
+    from labinacan.site.pii import scrub
     from openinterpretability.builder.circuits import _layout
-    from openinterpretability.builder.hrefs import circuit_href
+    from openinterpretability.builder.hrefs import circuit_experiment_href, circuit_href
     from openinterpretability.circuit_ids import load_events
 
     circuits = _kept(data.lineage, load_events(data.lineage))
@@ -247,13 +280,15 @@ def circuit_views(model, data: CircuitData, edges: list) -> list[CircuitView]:
     out = []
     for cid, members in sorted(circuits.items(), key=lambda kv: int(kv[0][1:])):
         inside = [e for e in edges if e.source.href in members and e.target.href in members]
-        records = [(s, r) for s, r in data.records if r.hypothesis.circuit_id == cid]
+        # The pages show the records' text, so personal data is removed as on unit pages.
+        records = [(s, scrub(r)) for s, r in data.records if r.hypothesis.circuit_id == cid]
+        page = partial(circuit_experiment_href, model.slug, cid)
         steps, stability = lineage_of(cid, data.lineage)
         subs, parents = family(cid, data.lineage)
         ordered = sorted(members, key=lambda h: (_sort_key(label(h)), h))
         out.append(CircuitView(
             cid, circuit_href(model.slug, cid), [_member(h, units) for h in ordered],
-            *_location(model, ordered), steps, stability, tasks_of(records, members),
+            *_location(model, ordered), steps, stability, tasks_of(records, members, page),
             subs, parents, _layout(inside) if inside else None,
         ))  # fmt: skip
     return out

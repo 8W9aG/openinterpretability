@@ -17,6 +17,10 @@ from tempfile import TemporaryDirectory
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
 from pydantic import ValidationError
 
+from labinacan.sensitive import is_offensive
+from labinacan.site.contents import add_contents
+from labinacan.site.parallel import in_background, render_in_parallel
+from labinacan.site.pii import save_spans, scrub
 from openinterpretability import __version__
 from openinterpretability import sisters as sister_lib
 from openinterpretability.builder import charts, palette, pieces, statuses
@@ -29,21 +33,19 @@ from openinterpretability.builder.agents import (
 from openinterpretability.builder.aligned import aligned_latents
 from openinterpretability.builder.circuit_pages import render_circuits
 from openinterpretability.builder.circuits import circuits_and_hubs, wiring_view
-from openinterpretability.builder.contents import add_contents
 from openinterpretability.builder.corpora import language_mix
 from openinterpretability.builder.dashboard import dashboard
 from openinterpretability.builder.feeds import write_feeds
 from openinterpretability.builder.heat import HeatToken, heat_html, token_heat, values_rows
 from openinterpretability.builder.model_facts import ModelFacts, model_page_extras, render_models
 from openinterpretability.builder.neuronpedia_export import export_neuronpedia
-from openinterpretability.builder.parallel import in_background, render_in_parallel
 from openinterpretability.builder.parquet_export import export_draws, export_registry
-from openinterpretability.builder.pii import save_spans, scrub, scrub_experiments
 from openinterpretability.builder.recent import recent_experiments
+from openinterpretability.builder.registry_pii import scrub_experiments
 from openinterpretability.builder.registry_stats import registry_stats  # noqa: F401  (re-exported)
 from openinterpretability.builder.sections import render_reference_pages, stats_for_pages
 from openinterpretability.builder.significance import P_USEFUL, evidence_strength
-from openinterpretability.builder.sister_graph import sister_graphs
+from openinterpretability.builder.sister_pages import render_sister_pages, sister_graphs
 from openinterpretability.builder.slim import SlimArchive, full_records, hand_over
 from openinterpretability.builder.standing import ROLES, contested_units, reviewer_agreement
 from openinterpretability.builder.stopped import add_stopped, explore_focus, stopped_unit
@@ -64,7 +66,6 @@ from openinterpretability.core.explanation import is_broad
 from openinterpretability.core.project import project_links
 from openinterpretability.core.schemas import ActivatingExample, AuditRecord
 from openinterpretability.planner import configured_licenses
-from openinterpretability.sensitive import is_offensive
 from openinterpretability.wiring_backfill import record_wiring
 
 
@@ -323,8 +324,7 @@ def compile_site(
     who made records that name no contributor, each with a page under ``users/``.
     ``coverage_rows`` (``builder.coverage.load_rows``) give each model page its coverage.
     """
-    rows = wiring_rows or {}
-    output_dir = Path(output_dir)
+    rows, output_dir = wiring_rows or {}, Path(output_dir)
     _clean_owned_paths(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -336,7 +336,7 @@ def compile_site(
     hand_over(records, experiments, archive and archive.paths)  # each slim record's file
     # Statistics read the true text: build_tree counts near-duplicate probes, and the queries
     # group readings by explanation. Only what the site publishes is scrubbed. The two
-    # exports run in the background while the pages render (builder/parallel.py).
+    # exports run in the background while the pages render (labinacan/site/parallel.py).
     stats_result = in_background(lambda: _true_text_stats(experiments, draws, corpus_sources), jobs)
     scrub_experiments(experiments)  # what the pages show: the record and its errata notes
     parquet = in_background(lambda: export_registry(experiments, output_dir, corpus_sources), jobs)
@@ -349,9 +349,10 @@ def compile_site(
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))
     stats = stats_for_pages(render, stats_result(), explanations)  # the model pages use it
+    sisters = (sister_rows or {}, sister_lib.sister_tests(experiments))  # once, for every model
     for model in models:
-        sisters = (sister_rows or {}, sister_lib.sister_tests(experiments))
         _render_model(render, model, rows, studied, alignment_rows or {}, sisters, by_unit)
+    render_sister_pages(render, models, sister_rows or {}, experiments, studied)  # #6639
     render_models(render, models, model_facts or {}, _render_model, (*draws, *stops))
     agents = _render_agents(render, experiments, output_dir, report)
     count_pageless_neurons(stats["totals"], models)  # stopped ones, and superposition members
@@ -437,7 +438,7 @@ class _Renderer:
     output_dir: Path
     common: dict
     report: BuildReport
-    jobs: int = 1  # worker processes for the unit pages (builder/parallel.py)
+    jobs: int = 1  # worker processes for the unit pages (labinacan/site/parallel.py)
 
     def __call__(self, rel: str, template: str, **context) -> None:
         out = self.output_dir / rel

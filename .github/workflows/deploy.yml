@@ -99,7 +99,7 @@ jobs:
           # `open-interpretability check` checks the errata file's signature at the time it landed,
           # which needs main's history (openinterpretability/signing.py landing_times).
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -124,7 +124,7 @@ jobs:
       - name: Check registry consistency
         run: open-interpretability check
       # The personal-data matches of each text that earlier builds searched
-      # (openinterpretability/builder/pii.py), so this build searches only new text.
+      # (labinacan/site/pii.py), so this build searches only new text.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: ~/.cache/openinterpretability/pii
@@ -252,7 +252,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: main
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock

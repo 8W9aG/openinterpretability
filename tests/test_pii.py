@@ -5,17 +5,11 @@ import json
 import pyarrow.parquet as pq
 import pytest
 
+from labinacan.sensitive import is_offensive
+from labinacan.site.pii import REMOVED_TEXT, REMOVED_TOKEN, redact_text, redact_tokens
 from openinterpretability.builder.compiler import compile_site
-from openinterpretability.builder.pii import (
-    REMOVED_TEXT,
-    REMOVED_TOKEN,
-    _scrub_attribution,
-    redact_text,
-    redact_tokens,
-    scrub_record,
-)
+from openinterpretability.builder.registry_pii import _scrub_attribution, scrub_record
 from openinterpretability.core.schemas import AuditRecord
-from openinterpretability.sensitive import is_offensive
 
 EMAIL = "jane.doe@somemail.org"
 
@@ -82,7 +76,7 @@ def test_an_address_cut_by_the_end_of_a_window_is_removed(cut):
 
 
 def test_the_search_opens_no_network_connection(monkeypatch):
-    from openinterpretability import sensitive
+    from labinacan import sensitive
 
     def no_network(*args, **kwargs):
         raise AssertionError("the search opened a network connection")
@@ -96,13 +90,11 @@ def test_the_search_opens_no_network_connection(monkeypatch):
 
 
 def test_email_domains_use_our_suffix_list_not_the_installed_one():
-    from openinterpretability import sensitive
+    from labinacan import sensitive
 
     assert sensitive._domains()("someone.co.uk").suffix == "co.uk"
     extractor = sensitive._domains()
-    assert extractor.suffix_list_urls[0].endswith(
-        "openinterpretability/data/public_suffix_list.dat"
-    )
+    assert extractor.suffix_list_urls[0].endswith("labinacan/data/public_suffix_list.dat")
     assert extractor.fallback_to_snapshot is False
 
 
@@ -264,7 +256,7 @@ def test_offensive_examples_are_masked_and_kept_out_of_search(tmp_path, record):
 
 
 def test_matches_are_stored_on_disk_and_reused(tmp_path, monkeypatch):
-    from openinterpretability.builder import pii
+    from labinacan.site import pii
 
     def fresh():
         for f in (pii._cache_file, pii._stored, pii.find_spans):
@@ -289,7 +281,7 @@ def test_matches_are_stored_on_disk_and_reused(tmp_path, monkeypatch):
 
 
 def test_no_cache_when_turned_off(tmp_path, monkeypatch):
-    from openinterpretability.builder import pii
+    from labinacan.site import pii
 
     monkeypatch.setenv("OPENINTERPRETABILITY_PII_CACHE", "off")
     pii._cache_file.cache_clear()
@@ -300,7 +292,7 @@ def test_no_cache_when_turned_off(tmp_path, monkeypatch):
 def test_errata_notes_are_scrubbed_like_the_record():
     import datetime
 
-    from openinterpretability.builder.pii import scrub_errata
+    from openinterpretability.builder.registry_pii import scrub_errata
     from openinterpretability.core.errata import AppliedEdit, Erratum
 
     erratum = Erratum(
@@ -393,7 +385,7 @@ def test_a_web_page_that_is_not_utf8_stops_the_build(tmp_path):
     ],
 )
 def test_erratum_edits_to_token_lists_are_searched_joined(path, before):
-    from openinterpretability.builder.pii import scrub_errata
+    from openinterpretability.builder.registry_pii import scrub_errata
     from openinterpretability.core.errata import AppliedEdit
 
     _, changes = scrub_errata([], [AppliedEdit("e1", path, before, before)])

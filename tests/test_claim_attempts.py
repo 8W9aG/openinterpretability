@@ -21,6 +21,9 @@ def test_two_follow_ups_of_a_kind_on_a_unit_get_two_branches():
     assert claim_branch("revise", "k").startswith("experiment/k-revise-")  # the clock's time
 
 
+NO_BRANCH = lambda slug, since: None  # noqa: E731  (the session left no branch)
+
+
 def _options():
     kept = []
     return SimpleNamespace(pending=SimpleNamespace(keep=lambda: kept.append(True))), kept
@@ -28,9 +31,11 @@ def _options():
 
 def test_a_session_with_no_line_that_landed_a_pr_counts():
     options, kept = _options()
-    found = lambda slug, since: ("https://x/pull/9", True)  # noqa: E731
+    asked = []
+    found = lambda slug, since: asked.append((slug, since)) or ("https://x/pull/9", True)  # noqa: E731
     result = ls._result(None, Path("log"), options, "m/L1/N2-positive", START, found)
     assert (result.url, result.merged, result.verdict) == ("https://x/pull/9", True, "unknown")
+    assert result.slug == "m/L1/N2-positive" and asked == [("m/L1/N2-positive", START)]
     assert kept == [True]
 
 
@@ -38,7 +43,7 @@ def test_a_session_that_ran_nothing_names_its_unit():
     options, _ = _options()
     with pytest.raises(ls.NothingRan) as raised:
         ls._result("none claimed", Path("log"), options, "m/L1/N2-positive", START,
-                   lambda slug, since: None)  # fmt: skip
+                   lambda slug, since: None, NO_BRANCH)  # fmt: skip
     assert raised.value.nothing_ran == "m/L1/N2-positive"
     assert "ran no experiment" in str(raised.value)
 
@@ -130,17 +135,18 @@ def test_a_long_none_line_still_means_the_session_ran_nothing():
     options, _ = _options()
     with pytest.raises(ls.NothingRan):
         ls._result("none claim taken by #6064", Path("log"), options, "m/L1/N2-positive", START,
-                   lambda slug, since: None)  # fmt: skip
+                   lambda slug, since: None, NO_BRANCH)  # fmt: skip
 
 
 def test_a_session_with_no_unit_or_start_looks_for_no_pr():
     options, _ = _options()
     asked = []
     find = lambda slug, since: asked.append(slug) or ("u", True)  # noqa: E731
+    strand = lambda slug, since: asked.append(since) or ("b", True)  # noqa: E731
     with pytest.raises(ls.NothingRan):
-        ls._result(None, Path("log"), options, "", START, find)
+        ls._result(None, Path("log"), options, "", START, find, strand)
     with pytest.raises(ls.NothingRan):
-        ls._result(None, Path("log"), options, "m/L1/N2-positive", None, find)
+        ls._result(None, Path("log"), options, "m/L1/N2-positive", None, find, strand)
     assert asked == []
 
 
@@ -193,3 +199,112 @@ def test_a_session_runs_the_draws_steps_on_its_unit(tmp_path, monkeypatch):
     assert seen["cwd"] == Path.cwd()
     assert "a revise draw on m/L1/N2-positive" in seen["prompt"] and "STEPS" in seen["prompt"]
     assert seen["result"][3] == "m/L1/N2-positive" and seen["result"][4] is not None
+
+
+def test_the_session_prompt_asks_for_one_plain_command_per_call():
+    # #6145: a prefix rule matches only a command that starts with it.
+    prompt = ls.session_prompt("m/L1/N2-positive", "revise", "1. Claim")
+    assert "one command per Bash call" in prompt
+    assert all(f"`{shape}`" in prompt for shape in ("cd", "&&", ";", "env"))
+    assert "pipes" in prompt and "(#6145)" in prompt
+
+
+BRANCH = "experiment/m-L1-N2-positive-revise-1124010203"
+
+
+def _git(stamps, added):
+    """A fake ``git``: two remote branches, each with its last commit's time and added files."""
+    calls, fetched = [], []
+
+    def git(*args):
+        calls.append(args)
+        if args[0] == "ls-remote":
+            return "".join(f"abc\trefs/heads/{b}\n" for b in stamps)
+        if args[0] == "fetch":
+            fetched.append(args[-1])
+            return ""
+        if args[0] == "log":
+            return stamps[fetched[-1]] + "\n"
+        return added[fetched[-1]]
+
+    return git, calls
+
+
+def test_a_branch_pushed_since_the_start_is_found_with_its_record():
+    old = "experiment/m-L1-N2-positive"
+    git, calls = _git(
+        {old: "2026-11-23T00:00:00+00:00", BRANCH: "2026-11-24T01:03:00+00:00"},
+        {old: "", BRANCH: "wiki/experiments/m/L1/N2-positive/r.json\nr.json.sig"},
+    )
+    assert ls.stranded_branch("m/L1/N2-positive", START, git) == (BRANCH, True)
+    assert calls[0] == ("ls-remote", "--heads", "origin",
+                        "refs/heads/experiment/m-L1-N2-positive*")  # fmt: skip
+    assert ("fetch", "--quiet", "origin", old) in calls
+    assert ("log", "-1", "--format=%cI", "FETCH_HEAD") in calls
+    assert calls[-1] == ("diff", "--name-only", "--diff-filter=A", "origin/main...FETCH_HEAD")
+
+
+def test_a_branch_with_only_its_claim_has_no_record():
+    for added in ("wiki/ledger/m.jsonl", "wiki/experiments/m/L1/N2-positive/r.json.sig",
+                  "docs/wiki/experiments/r.json"):  # fmt: skip
+        git, _ = _git({BRANCH: "2026-11-24T01:02:00+00:00"}, {BRANCH: added})
+        assert ls.stranded_branch("m/L1/N2-positive", START, git) == (BRANCH, False)
+
+
+def test_an_older_or_unreadable_branch_is_not_the_sessions():
+    git, _ = _git({BRANCH: "2026-11-24T00:59:59+00:00"}, {BRANCH: ""})
+    assert ls.stranded_branch("m/L1/N2-positive", START, git) is None
+    git, _ = _git({BRANCH: "2026-11-24T01:00:00+00:00"}, {BRANCH: ""})  # pushed at the start
+    assert ls.stranded_branch("m/L1/N2-positive", START, git) == (BRANCH, False)
+    git, _ = _git({BRANCH: ""}, {BRANCH: ""})
+    assert ls.stranded_branch("m/L1/N2-positive", START, git) is None
+    git, _ = _git({}, {})
+    assert ls.stranded_branch("m/L1/N2-positive", START, git) is None
+
+
+def test_a_stranded_record_is_a_loop_error_that_names_the_branch():
+    options, _ = _options()
+    strand = lambda slug, since: (BRANCH, True)  # noqa: E731
+    with pytest.raises(el.LoopError) as raised:
+        ls._result(None, Path("s.log"), options, "m/L1/N2-positive", START, NO_BRANCH, strand)
+    assert not isinstance(raised.value, ls.NothingRan)  # the experiment ran: the attempt counts
+    expected = (f"the session pushed a record on {BRANCH} but opened no PR: "
+                f"open it with `gh pr create --head {BRANCH}`; see s.log")  # fmt: skip
+    assert str(raised.value) == expected
+
+
+def test_a_stranded_claim_gives_back_the_attempt_and_names_the_branch():
+    options, _ = _options()
+    seen = []
+    strand = lambda slug, since: seen.append((slug, since)) or (BRANCH, False)  # noqa: E731
+    with pytest.raises(ls.NothingRan) as raised:
+        ls._result("none paused", Path("s.log"), options, "m/L1/N2-positive", START, NO_BRANCH,
+                   strand)  # fmt: skip
+    assert seen == [("m/L1/N2-positive", START)]
+    assert raised.value.nothing_ran == "m/L1/N2-positive"
+    assert str(raised.value) == (
+        f"the session ran no experiment (none paused); it left {BRANCH} with "
+        f"only its claim: `git push origin --delete {BRANCH}`; see s.log"
+    )
+    with pytest.raises(ls.NothingRan) as raised:
+        ls._result(None, Path("s.log"), options, "m/L1/N2-positive", START, NO_BRANCH, NO_BRANCH)
+    assert str(raised.value) == "the session ran no experiment (no RESULT line); see s.log"
+
+
+def test_git_gives_its_output_or_nothing(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert ls._git("--version").startswith("git version")
+    assert ls._git("log", "-1") == ""  # not a repository: git fails
+
+
+def test_git_runs_git_and_drops_a_failed_commands_output(monkeypatch):
+    calls = []
+
+    def run(args, **kwargs):
+        calls.append((args, kwargs))
+        return SimpleNamespace(returncode=len(calls) - 1, stdout="out")
+
+    monkeypatch.setattr(ls.subprocess, "run", run)
+    assert ls._git("ls-remote", "origin") == "out"  # exit 0
+    assert ls._git("log") == ""  # exit 1: its output is dropped
+    assert calls[0] == (["git", "ls-remote", "origin"], {"capture_output": True, "text": True})
