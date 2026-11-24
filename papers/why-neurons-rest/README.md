@@ -2,7 +2,7 @@
 
 Training moves most of GPT-2's neurons to a median pre-activation $h$ of about −1, as [the paper on default-on negative poles](../default-on-poles/README.md) found. That is below GELU's minimum at −0.75. That paper also found that the input weights do this. It did not find why. This paper trains small GPT-2s and changes one thing at a time. It finds a small push on each neuron's rest that is steady over many steps, and that the optimizer's step size sets how far the push takes the rest.
 
-**Status:** Preprint. Work left: #4093 and #6465 (the causes of the push that are still open).
+**Status:** Preprint. Work left: #6465 and #6499 (the causes of the push that are still open).
 
 ## Introduction
 
@@ -515,6 +515,17 @@ for C in pythia_warmup pythia_adam pythia_parallel pythia_lr pythia_batch pythia
       --part training_pythia --push-part push_pythia --save-every 250 --save-dir ckpt $T
   uv run python scripts/pretrained_push.py small --condition $C --save-dir ckpt --out $OUT
 done
+for SEED in 0 1; do  # Table 24, on an NVIDIA GPU (#4093)
+  uv run python scripts/train_resting.py train --seed $SEED --condition dropout_0 --steps 2000 \
+      --part training_thinned --push-part push_thinned --save-every 50 --save-dir ckpt $T
+  uv run python scripts/pretrained_push.py small --condition dropout_0 --seed $SEED --save-dir ckpt \
+      --step 0 --step 250 --step 500 --step 1000 --step 2000 --part thinned_pythia --out $OUT
+  uv run python scripts/pretrained_push.py small --condition dropout_0 --seed $SEED --save-dir ckpt \
+      $(for S in 0 250 500 750 1000 1250 1500 1750 2000; do echo --step $S; done) \
+      --part thinned_every_250 --out $OUT
+  uv run python scripts/pretrained_push.py small --condition dropout_0 --seed $SEED --save-dir ckpt \
+      --part thinned_every_50 --out $OUT
+done
 uv run python scripts/ln_offset.py gpt2 --out $OUT
 uv run python scripts/ln_offset.py small --checkpoint ckpt/gelu_seed0_step4000.pt --out $OUT
 for F in ckpt/gelu_seed1_step*.pt ckpt/relu_seed0_step*.pt ckpt/gelu_seed0_step0.pt; do
@@ -853,5 +864,22 @@ Pythia's push is weaker or less steady. Its push points down in fewer than half 
 No part of Pythia's setup makes the push look like Pythia's, and neither do all of them together (Table 20). Each condition stays inside or near the range of the two no-dropout seeds. The push points down in 19 to 24 of 27 checkpoints and layers, against 13 of 30 in Pythia-70m. Its correlation with the next move is +0.10 to +0.15, against +0.07. Pythia's AdamW comes closest on that correlation. With all the parts, the push in training still points down in 21 of 24 intervals.
 
 So the setup, at the sizes tested here, does not explain Pythia's weak push. What is left is Pythia's scale: its size, its batch of 500 times ours, and its far-apart checkpoints. These runs cannot tell those apart. Each condition has one seed. The two no-dropout seeds differ by 6 of 27 in the first row, so a difference that size between conditions is noise.
+
+**The gaps between checkpoints don't explain it either** (#4093). Runs labelled `training_thinned` train the no-dropout GELU model on seeds 0 and 1 for 2,000 steps, and save a checkpoint every 50 steps. `pretrained_push.py small --step` then reads each run at three spacings, in rows labelled `thinned_every_250`, `thinned_pythia` and `thinned_every_50`. These runs were on an NVIDIA GPU.
+
+- **Every 250 steps** is Table 19's spacing, and it reproduces Table 19 exactly on both seeds.
+- **Pythia's spacing** reads steps 0, 250, 500, 1,000 and 2,000. Those are Pythia's checkpoints 0, 512, 1,000, 2,000 and 4,000, scaled from its first 4,000 steps onto our 2,000, with 256 rounded to the nearest saved step.
+- **Every 50 steps** is the densest that the runs allow.
+
+| Test, L1–L3 | Every 250, seed 0 | Every 250, seed 1 | Pythia's spacing, seed 0 | Pythia's spacing, seed 1 | Every 50, seed 0 | Every 50, seed 1 | Pythia-70m |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Checkpoints and layers with the push down | 24 of 27 | 18 of 27 | 13 of 15 | 10 of 15 | 104 of 123 | 93 of 123 | 13 of 30 |
+| Push against the next move, median | +0.16 | +0.14 | +0.15 | +0.13 | +0.20 | +0.20 | +0.07 |
+| Push against the next move, above 0 | 23 of 24 | 24 of 24 | 10 of 12 | 12 of 12 | 119 of 120 | 114 of 120 | 27 of 30 |
+| Neurons whose push has the sign of their move, median | 58% | 55% | 58% | 56% | 58% | 57% | 51% |
+
+**Table 24.** The checkpoint test on one densely saved run per seed, read at three spacings, against Pythia-70m.
+
+Thinning the checkpoints to Pythia's spacing leaves the test where it was (Table 24). The push points down in 67%–87% of checkpoints and layers, against 43% in Pythia-70m. Its correlation with the next move is +0.13 to +0.15, against +0.07. Denser checkpoints make the correlation stronger, at +0.20, but thinner ones don't bring it near Pythia's. So, at this relative spacing, the gaps don't explain Pythia's weak push. The scaling is a choice: Pythia's gaps hold far more tokens, at 2 million a step. The full batch and the size are left, and #6499 holds them.
 
 The warm-up deepens the rest, as a higher rate does. At step 2,000, L1 rests at −1.48, against −0.66 for the no-dropout run at 3e-4 (Table 4). Pythia's rate without the warm-up deepens the rest further. At step 2,000, L1 rests at −2.63, against −1.48 with the warm-up. With all of Pythia's parts, it rests at −0.93.
