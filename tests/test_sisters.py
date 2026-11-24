@@ -438,7 +438,7 @@ def test_the_staged_search_over_many_pairs_equals_the_search_per_pair(
 def test_the_sister_graphs_are_no_wider_than_the_text_above_them():
     # #4579, #5660: the graph draws at its natural width. #5726: it fits the one content
     # column that the text also fills, so the graph never runs past the text.
-    from openinterpretability.builder.css import COLUMN_REM
+    from labinacan.site.css import COLUMN_REM
     from openinterpretability.builder.sister_graph import WIDTH
 
     assert WIDTH <= COLUMN_REM * 16

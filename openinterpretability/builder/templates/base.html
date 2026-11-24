@@ -21,7 +21,7 @@
   {% if canonical %}<meta property="og:url" content="{{ canonical }}">{% endif %}
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="{{ x_handle }}">
-  {# Built once with the site (openinterpretability/builder/css.py, `make build`), not in the browser. #}
+  {# Built once with the site (labinacan/site/css.py, `make build`), not in the browser. #}
   <link href="{{ root }}assets/site.css" rel="stylesheet">
   {# Pagefind's UI (`make search-index`) loads on the first use of the search box, at the end of the body. #}
   <style>

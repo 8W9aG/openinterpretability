@@ -9,7 +9,8 @@ stopped, dead or default-on, so that it has no experiment
 same cell wins.
 """
 
-from openinterpretability.builder.palette import STATUS_HEX, badge_text, token
+from labinacan.site.palette import badge_text
+from openinterpretability.builder.palette import STATUS_HEX, token
 
 STOPPED = "STOPPED"  # a neuron whose scans all stopped
 

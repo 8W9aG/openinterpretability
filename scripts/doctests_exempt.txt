@@ -24,3 +24,4 @@ openinterpretability/harness/ov_lens.py::mappings  needs a loaded model's weight
 openinterpretability/harness/ov_lens.py::ov_circuit  needs a loaded model's weights
 openinterpretability/harness/ov_lens.py::ov_lens  needs a loaded model's weights
 openinterpretability/harness/ov_lens.py::unembedding  needs a loaded model's weights
+openinterpretability/builder/css.py::main  downloads the Tailwind CLI and builds the site's stylesheet from argv
