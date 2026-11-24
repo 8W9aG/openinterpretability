@@ -31,15 +31,16 @@ def claimed(key: str, claims: Sequence[str]) -> bool:
 
 
 def _fork_claim(branch: str) -> ForkClaim | None:
-    """Return the unit key of the fork branch ``experiment/<key>[-<kind>]``, or ``None``.
+    """Return the unit key of the fork branch ``experiment/<key>[-<kind>[-<time>]]``, or ``None``.
 
-    The key must name one unit, so it holds exactly one layer part (``-L3-``).
+    The key must name one unit, so it holds exactly one layer part (``-L3-``). A follow-up's
+    branch ends in the draw's time (``draw_steps.claim_branch``, #6066), which goes first.
     """
     from openinterpretability.planner import SKILLS  # here, because the planner imports this module
 
     if not FORK_CLAIM.match(branch):
         return None
-    key = branch.removeprefix("experiment/")
+    key = re.sub(r"-\d{10}$", "", branch.removeprefix("experiment/"))  # the draw's time
     for kind in SKILLS:
         if key.endswith(f"-{kind}"):
             key = key.removesuffix(f"-{kind}")

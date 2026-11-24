@@ -14,8 +14,9 @@ on:
 permissions:
   contents: read
 
+# The draft flag keeps a draft-time run from cancelling the ready run (#6179).
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.event.pull_request.draft }}
   cancel-in-progress: true
 
 env:
@@ -74,7 +75,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # the IFTTT lint diffs against the PR's base branch
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -134,7 +135,20 @@ jobs:
       - name: Tests, with branch coverage
         # Side by side, one process per core (#3266). It fails if the total is below
         # [tool.coverage.report] fail_under (#3166).
-        run: pytest -n auto --cov --cov-report=xml --cov-report=term
+        # --durations shows the slowest tests, so a creep toward the timeout shows early.
+        run: pytest -n auto --cov --cov-report=xml --cov-report=term --durations=15
+      - name: Why a test worker died
+        # A crashed xdist worker loses its stderr. Each worker's faulthandler dump goes to
+        # logs/faulthandler-<worker>.log (tests/conftest.py), and the kernel log names an
+        # out-of-memory kill (#6561).
+        if: failure()
+        run: |
+          # Each worker's file starts with a "== worker" line; a dump follows only a crash.
+          for log in logs/faulthandler-*.log; do
+            [ -f "$log" ] && { echo "=== $log"; cat "$log"; }
+          done
+          sudo dmesg | grep -i -E "out of memory|oom-kill|killed process" \
+            || echo "No out-of-memory kill in the kernel log."
       - name: Coverage of the changed lines (diff-cover)
         # [tool.diff_cover] fail_under of the lines that the pull request changes must be
         # tested (#3166, #5855).
@@ -164,7 +178,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # the script diffs against the PR's base branch
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -249,7 +263,7 @@ jobs:
       PLAYWRIGHT_VERSION: 1.65.2
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -276,7 +290,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # the write-once check diffs against the PR's base branch
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -385,7 +399,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0  # diff against the PR's base branch to find its records
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
@@ -446,7 +460,7 @@ jobs:
         with:
           path: ~/.cache/huggingface/hub
           key: ${{ steps.key.outputs.key }}
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2  # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
         if: steps.cache.outputs.cache-hit != 'true'
       - name: Download models
         if: steps.cache.outputs.cache-hit != 'true'

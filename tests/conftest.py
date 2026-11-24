@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import faulthandler
+import os
 from datetime import UTC, datetime
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -23,6 +26,43 @@ from openinterpretability.core.schemas import (
 # Tiny models gain nothing from threads, and competing for CPU with other jobs has
 # hung the suite. Covers bare `pytest` and CI too, not just `make test`.
 torch.set_num_threads(1)
+
+# Where each xdist worker writes faulthandler's stack dump (#6561). A worker's stderr is
+# lost when it dies, so a crash that killed one left no trace. CI prints these on failure.
+CRASH_LOGS = Path(__file__).parents[1] / "logs"
+
+
+@pytest.hookimpl(trylast=True)  # after pytest's own faulthandler, which writes to stderr
+def pytest_configure(config):
+    """In an xdist worker, send faulthandler's dump to ``logs/faulthandler-<worker>.log``."""
+    worker = os.environ.get("PYTEST_XDIST_WORKER")
+    if worker:
+        CRASH_LOGS.mkdir(exist_ok=True)
+        # Append: xdist gives a replacement worker the dead one's name, so "w" erased its dump.
+        config.crash_log = (CRASH_LOGS / f"faulthandler-{worker}.log").open("a")
+        config.crash_log.write(f"== worker {worker}, pid {os.getpid()}\n")
+        config.crash_log.flush()
+        faulthandler.enable(file=config.crash_log, all_threads=True)
+
+
+@pytest.fixture(autouse=True)
+def _dump_before_timeout(request):
+    """Dump every stack to the worker's crash log 5 s before pytest-timeout ends the worker.
+
+    pytest-timeout's thread method writes its dump to stderr, which a worker loses, and then
+    exits the process. So a test that runs too long would leave no trace (#6561).
+    """
+    log = getattr(request.config, "crash_log", None)
+    limit = request.config.getini("timeout")
+    if log is None or not limit:
+        yield
+        return
+    log.write(f"-- {request.node.nodeid}\n")
+    log.flush()
+    faulthandler.dump_traceback_later(float(limit) - 5, file=log)
+    yield
+    faulthandler.cancel_dump_traceback_later()
+
 
 VOCAB, D_MODEL, D_MLP, N_LAYERS = 16, 8, 12, 3
 
@@ -232,6 +272,18 @@ def _no_real_browser(monkeypatch):
     from openinterpretability.builder.paper_pdf import CHROME_ENV
 
     monkeypatch.setenv(CHROME_ENV, "/nonexistent/chrome-for-tests")
+
+
+@pytest.fixture(autouse=True)
+def _one_build_job(monkeypatch):
+    """A build in a test runs in its own process: no fork of a process that runs torch's threads.
+
+    A forked child of a multithreaded process can crash, which once killed an xdist worker
+    (#6507). A test of the parallel build passes its own job count.
+    """
+    from openinterpretability.builder.parallel import JOBS_ENV
+
+    monkeypatch.setenv(JOBS_ENV, "1")
 
 
 @pytest.fixture(autouse=True)
