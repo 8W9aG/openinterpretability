@@ -250,6 +250,53 @@ def move(rows: list[dict]) -> Figure:
     return fig
 
 
+KL_RANGE = (0.3, 0.9)  # the AUROC axis of the KL figure
+PAIR = {"Qwen/Qwen2.5-0.5B": "0.5B", "Qwen/Qwen2.5-1.5B": "1.5B"}
+
+
+def kl(rows: list[dict]) -> Figure:
+    """Each output-KL measure's AUROC for a failure, with its within-layer shuffle p (#5141).
+
+    Args:
+        rows: The paper's results.
+
+    Returns:
+        The figure.
+    """
+    tests = [r for r in rows if r["table"] == "kl_test"]
+    best = max(tests, key=lambda r: r["auroc"])
+    fig = Figure(
+        ["The output KL at a pole's own texts does not", "tell whether its explanation keeps"],
+        [
+            "Each dot is one measure's AUROC for predicting that a VERIFIED pole fails on the "
+            "instruct model.",
+            "KL(instruct ‖ base) at the pole's probes or top contexts, on plain text or in the "
+            "chat template. 0.5 is chance.",
+        ],
+        f"A dot plot of {len(tests)} AUROCs, one per model, measure and mode. On Qwen2.5-0.5B "
+        "all four lie between 0.49 and 0.55. On Qwen2.5-1.5B they lie between 0.58 and "
+        f"{number(best['auroc'], 2)}, from {best['fails']} failures at most; the highest has a "
+        f"within-layer shuffle p of {number(best['p_within_layer_shuffle'], 3)}, one of "
+        f"{len(tests)} tests.",
+    )
+    panel = Panel(fig, (200, fig.body_top + 20, 420, 24 * len(tests)), KL_RANGE,
+                  (0, len(tests)))  # fmt: skip
+    panel.grid_x([0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], 1)
+    panel.vertical(0.5, "line sneutral dash")
+    panel.x_title("AUROC for a failure (0.5 is chance)")
+    for i, t in enumerate(tests):
+        y = panel.y(len(tests) - i - 0.5)
+        label = f"{PAIR[t['base']]} {t['measure']}, {t['mode']}"
+        fig.text(panel.left - 10, y + 4, f"{label} ({t['fails']} of {t['poles']} fail)",
+                 "small", "end")  # fmt: skip
+        fig.dot(panel.x(t["auroc"]), y, 4.5, "fc1")
+        fig.text(panel.left + panel.width + 10, y + 4,
+                 f"p = {number(t['p_within_layer_shuffle'], 3)}", "small")  # fmt: skip
+    fig.motion += ".dash{stroke-dasharray:6 4}"
+    fig.bottom = panel.top + panel.height + 44
+    return fig
+
+
 def build(rows: list[dict]) -> dict[str, Figure]:
     """Return the paper's figures by file name.
 
@@ -259,4 +306,5 @@ def build(rows: list[dict]) -> dict[str, Figure]:
     Returns:
         Each figure by its file name in ``media/``.
     """
-    return {"keep.svg": keep(rows), "shuffles.svg": null(rows), "move.svg": move(rows)}
+    return {"keep.svg": keep(rows), "shuffles.svg": null(rows), "move.svg": move(rows),
+            "kl.svg": kl(rows)}  # fmt: skip
