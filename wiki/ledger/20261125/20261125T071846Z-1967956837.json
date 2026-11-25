@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-25T07:18:46Z","seed":1967956837,"kind":"explore","model":"Qwen/Qwen2.5-0.5B","slug":"Qwen--Qwen2.5-0.5B/L2/N813-negative","record":null,"audit":"--model Qwen/Qwen2.5-0.5B --layer 2 --neuron 813 --pole negative --selection attribution","pole_forced":null,"until_verified":false,"max_turns":null,"harness_version":"0.5.0"}
