@@ -507,10 +507,7 @@ openinterpretability/builder/users.py::merged_prs
 openinterpretability/builder/users.py::merged_prs.git
 openinterpretability/builder/users.py::pr_authors
 openinterpretability/builder/users.py::load_users
-openinterpretability/builder/users.py::_fetch
 openinterpretability/builder/users.py::_get
-openinterpretability/builder/users.py::_read_cache
-openinterpretability/builder/users.py::_write_cache
 openinterpretability/builder/wiki.py::experiment_id
 openinterpretability/builder/wiki.py::unit_label
 openinterpretability/builder/wiki.py::neuron_dir
