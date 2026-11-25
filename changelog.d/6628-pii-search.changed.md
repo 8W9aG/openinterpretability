@@ -1,1 +1,0 @@
-- The personal-data and offensive-word search, its two data files, takedowns and `StrictModel` now live in `labinacan/` (#6628). `labinacan/sensitive.py` takes the search's name as an argument. This repo passes `openinterpretability.sensitive` (`core/confounds.py`), so new records write the same `label_detector` as before. The takedown functions now need the wiki folder.
