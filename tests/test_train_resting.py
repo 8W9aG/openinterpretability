@@ -9,19 +9,21 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 
-from train_resting import (  # noqa: E402
+from resting_conditions import (  # noqa: E402
     BATCH,
     CONDITIONS,
     INIT_MEAN_GELU,
     INIT_MEAN_RELU,
     LEAKY_SLOPE,
-    PUSH_BINS,
     PYTHIA_70M_LAYERS,
     PYTHIA_70M_WIDTH,
     PYTHIA_BETAS,
     PYTHIA_FULL_BATCH_FACTOR,
     PYTHIA_WEIGHT_DECAY,
     SGD_MOMENTUM,
+)
+from train_resting import (  # noqa: E402
+    PUSH_BINS,
     Activation,
     PushRecorder,
     _layer_stats,
