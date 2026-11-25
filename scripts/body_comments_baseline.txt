@@ -33,7 +33,6 @@ openinterpretability/builder/wiki.py::rebuild_indexes
 openinterpretability/checks.py::check_registry
 openinterpretability/checks.py::_check_records
 openinterpretability/circuit_ids.py::update
-openinterpretability/cli.py::deploy
 openinterpretability/cli_baseline.py::paired_row
 openinterpretability/cli_baseline.py::_readouts
 openinterpretability/cli_baseline.py::_task

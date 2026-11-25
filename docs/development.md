@@ -120,7 +120,7 @@ A step that can run for minutes reports its progress, so a slow run doesn't look
 | `posts/` | Posts, one folder each, in the form of a paper with no fixed sections ([`posts.md`](posts.md)). The site publishes them as its Posts section |
 | `openinterpretability/benchmark.py`, `benchmark/` | The explainer benchmark ([benchmark.md](benchmark.md)): freezing, sealing and scoring, and its frozen versions |
 | `openinterpretability/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
-| `openinterpretability/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
+| `labinacan/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
 
 ## Static site and data
 

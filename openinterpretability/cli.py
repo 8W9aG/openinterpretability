@@ -6,6 +6,8 @@ from pathlib import Path
 
 import click
 
+from labinacan.cli import site_commands
+from labinacan.errors import LabinacanError
 from openinterpretability import DISTRIBUTION, runner_cache
 from openinterpretability.cli_memory import memory_option
 from openinterpretability.core.contributors import CONTRIBUTOR_ENV, contributor_problem
@@ -377,57 +379,9 @@ def reevaluate(record, out, scores_file, wiki_dir, device, dtype):
     _write_wiki(new, wiki_dir, kind="reevaluation", previous_status=old.verdict.status)
 
 
-@cli.command()
-@click.option(
-    "--dist-dir",
-    default=Path("dist"),
-    show_default=True,
-    type=click.Path(exists=True, file_okay=False, path_type=Path),
-)
-@click.option("--bucket", required=True, help="R2 bucket name.")
-@click.option("--prefix", default="", help="Key prefix inside the bucket.")
-@click.option("--delete", is_flag=True, help="Delete remote objects missing locally.")
-@click.option("--dry-run", is_flag=True, help="Show what would change without uploading.")
-@click.option(
-    "--site-url",
-    envvar="OPENINTERPRETABILITY_SITE_URL",
-    default=project_site_url,
-    help="Public URL of the bucket root (default: [project.urls] Homepage). With CF_ZONE_ID "
-    "and CF_API_TOKEN set, the changed URLs are purged from Cloudflare's cache.",
-)
-def deploy(dist_dir, bucket, prefix, delete, dry_run, site_url):
-    """Delta-sync the built site to Cloudflare R2 (a no-op when nothing changed)."""
-    import os
-
-    from openinterpretability.sync.r2 import (
-        R2Config,
-        make_client,
-        purge_cloudflare_cache,
-        purge_targets,
-        sync_directory,
-    )
-
-    client = make_client(R2Config.from_env())
-    plan = sync_directory(
-        dist_dir, bucket, client, prefix=prefix, delete=delete, dry_run=dry_run, log=click.echo
-    )
-    verb = "Would upload" if dry_run else "Uploaded"
-    click.echo(
-        f"{verb} {len(plan.uploads)}, unchanged {len(plan.unchanged)}, "
-        f"deleted {len(plan.deletes)}, derived skipped {len(plan.skipped_derived)}"
-    )
-
-    zone, token = os.environ.get("CF_ZONE_ID"), os.environ.get("CF_API_TOKEN")
-    if not (site_url and zone and token):
-        return
-    urls = purge_targets(plan, site_url, prefix)
-    if not urls:
-        click.echo("Nothing changed; no cache purge.")
-    elif dry_run:
-        click.echo(f"Would purge {len(urls)} URLs")
-    else:
-        purge_cloudflare_cache(zone, token, urls)
-        click.echo(f"Purged {len(urls)} URLs from the Cloudflare cache")
+# deploy and social: the commands that labinacan gives every project's site (#6628).
+for _command in site_commands("OPENINTERPRETABILITY_SITE_URL", project_site_url):
+    cli.add_command(_command)
 
 
 # Registers the registry-maintenance commands on `cli`.
@@ -465,7 +419,6 @@ from openinterpretability import (  # noqa: E402, F401
     cli_scan,
     cli_score,
     cli_sisters,
-    cli_social,
     cli_superpositions,
     cli_wiring,
     mcp_server,
@@ -473,7 +426,7 @@ from openinterpretability import (  # noqa: E402, F401
 
 
 def main() -> None:
-    """The console entry point: run the CLI, and print an ``OpenInterpretabilityError`` as text.
+    """The console entry point: run the CLI, and print this repo's or labinacan's error as text.
 
     If the GPU (MPS or CUDA) fails, it runs the command again (``harness/devices.py``). After
     a CUDA out-of-memory error that is on the GPU with smaller batches. Else it is on the CPU.
@@ -482,7 +435,7 @@ def main() -> None:
 
     try:
         cli(standalone_mode=True)
-    except OpenInterpretabilityError as exc:
+    except (OpenInterpretabilityError, LabinacanError) as exc:
         raise SystemExit(f"error: {exc}") from exc
     except Exception as exc:
         if gpu := devices.gpu_failed(exc):

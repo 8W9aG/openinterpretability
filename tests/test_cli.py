@@ -221,7 +221,7 @@ def test_a_record_whose_page_exists_is_not_written_again(record, tmp_path, capsy
 @pytest.fixture
 def r2(tmp_path, monkeypatch, mocker):
     """A built site, R2 credentials, and a fake bucket and cache in place of Cloudflare's."""
-    from openinterpretability.sync import r2 as sync_r2
+    from labinacan.sync import r2 as sync_r2
 
     dist = tmp_path / "dist"
     dist.mkdir()
@@ -274,7 +274,7 @@ def test_a_dry_run_deploy_only_says_what_it_would_purge(r2, monkeypatch):
 
 
 def test_deploy_with_nothing_changed_purges_nothing(r2, monkeypatch):
-    from openinterpretability.sync.r2 import file_md5
+    from labinacan.sync.r2 import file_md5
 
     dist, client, purged, args = r2
     _cache_keys(monkeypatch)
@@ -299,6 +299,33 @@ def test_main_prints_a_package_error_as_text(monkeypatch):
     with pytest.raises(SystemExit) as exit_:
         cli_module.main()
     assert exit_.value.code == "error: the registry is locked"
+
+
+def test_main_runs_the_cli_in_standalone_mode(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(cli_module, "cli", lambda **kw: seen.update(kw))
+    cli_module.main()
+    assert seen == {"standalone_mode": True}  # click prints usage errors and sets the exit code
+
+
+def test_main_prints_a_labinacan_error_as_text(monkeypatch):
+    from labinacan.errors import SyncError
+
+    def fails(**_kwargs):
+        raise SyncError("the bucket is gone")  # a deploy's error, raised in labinacan (#6628)
+
+    monkeypatch.setattr(cli_module, "cli", fails)
+    with pytest.raises(SystemExit) as exit_:
+        cli_module.main()
+    assert exit_.value.code == "error: the bucket is gone"
+
+
+def test_the_site_commands_are_mounted_with_this_repos_site_url():
+    deploy = cli_module.cli.commands["deploy"]
+    site_url = next(p for p in deploy.params if p.name == "site_url")
+    assert site_url.envvar == "OPENINTERPRETABILITY_SITE_URL"
+    assert site_url.default is cli_module.project_site_url
+    assert set(cli_module.cli.commands["social"].commands) == {"post", "link"}
 
 
 def test_main_reraises_an_error_that_no_gpu_caused(monkeypatch):

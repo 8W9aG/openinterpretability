@@ -1,7 +1,7 @@
 import pytest
 
-from openinterpretability.core.exceptions import SyncError
-from openinterpretability.sync.r2 import (
+from labinacan.errors import SyncError
+from labinacan.sync.r2 import (
     IMMUTABLE_CACHE,
     SHORT_CACHE,
     R2Config,
@@ -162,7 +162,7 @@ def test_derived_follows_source_changes(site, mocker):
 
 
 def test_purge_targets_only_short_cache():
-    from openinterpretability.sync.r2 import SyncPlan, purge_targets
+    from labinacan.sync.r2 import SyncPlan, purge_targets
 
     plan = SyncPlan(
         uploads=[
@@ -187,7 +187,7 @@ def test_purge_batches_and_errors(mocker):
     import io
     import json
 
-    from openinterpretability.sync.r2 import purge_cloudflare_cache
+    from labinacan.sync.r2 import purge_cloudflare_cache
 
     responses = []
 
