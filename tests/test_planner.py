@@ -640,3 +640,354 @@ def test_an_explore_draw_can_be_weighted_by_effect(tmp_path):
     plan = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW)
     assert plan.explored and plan.choice.slug.endswith("L2/N9-negative")
     assert "--selection attribution" in plan.choice.commands[0]
+
+
+# Mutation testing of planner.py (#6359): what each draw says and how it is weighted.
+
+VERIFY_NEW = "open-interpretability verify --audit-file <new submission> --corpus <scan corpus>"
+
+
+def _candidate(plan, kind, unit):
+    return next(c for c in plan.candidates if (c.kind, c.slug.rsplit("/", 1)[-1]) == (kind, unit))
+
+
+def test_each_follow_up_says_why_it_was_drawn_and_how_to_run_it(tmp_path, record):
+    gates = {"sensitivity": False, "specificity": False}
+    wiki = _registry(
+        tmp_path,
+        _record(record, status="NEEDS_REVISION", idx=1, gates=gates),
+        _record(record, status="NEEDS_REVISION", idx=2, gates={}),
+        _record(record, status="REJECTED", idx=3, gates={}),
+        _record(record, status="VERIFIED", idx=4, gates={}),
+        _record(record, status="VERIFIED", idx=5, policy=False),
+        _record(record, status="VERIFIED", idx=6, gates={"independent_review": False}),
+        _record(record, status="VERIFIED", idx=7, pole="negative", gates={}),
+    )
+    plan = plan_next(wiki, seed=1, epsilon=0.0, now=NOW)
+    expected = {
+        ("revise", "N1-positive"): "failed gates: sensitivity, specificity",
+        ("revise", "N2-positive"): "failed gates: unknown",
+        ("new_hypothesis", "N3-positive"): "rejected; the null result stands, so try another idea",
+        ("replicate", "N4-positive"): "verified by only one reviewer model",
+        ("reevaluate", "N5-positive"): "verdict predates the current protocol",
+        ("independent_review", "N6-positive"): "the proposer reviewed its own hypothesis",
+        ("opposite_pole", "N4-negative"): "the negative pole is unstudied",
+        ("opposite_pole", "N7-positive"): "the positive pole is unstudied",
+    }
+    for (kind, unit), why in expected.items():
+        c = _candidate(plan, kind, unit)
+        assert c.rationale == why
+        assert (c.skills, c.layer, c.model) == (planner.SKILLS[kind], 3, "Qwen/Qwen2.5-0.5B")
+    for kind, unit in (("revise", "N1-positive"), ("new_hypothesis", "N3-positive")):
+        assert _candidate(plan, kind, unit).commands[-1] == VERIFY_NEW
+    replicate = _candidate(plan, "replicate", "N4-positive")
+    assert replicate.commands == [
+        f"open-interpretability verify --audit-file {replicate.record} --corpus <scan corpus> "
+        "--agent-model <model other than openai/gpt-test>"
+    ]
+    reevaluate = _candidate(plan, "reevaluate", "N5-positive")
+    assert reevaluate.commands == [f"open-interpretability reevaluate --record {reevaluate.record}"]
+    other = _candidate(plan, "opposite_pole", "N7-positive")
+    assert other.commands == [
+        "open-interpretability audit --model Qwen/Qwen2.5-0.5B --layer 3 --neuron 7 --pole positive"
+    ]
+
+
+def test_a_rescan_says_why_and_verifies_the_new_submission(tmp_path, record):
+    rec = _scanned_on(_record(record, status="VERIFIED", idx=7, gates={}), BUILTIN_CORPUS)
+    plan = plan_next(_registry(tmp_path, rec), seed=1, epsilon=0.0, now=NOW)
+    rescan = _candidate(plan, "rescan", "N7-positive")
+    assert rescan.rationale == "scanned on the 552-token built-in sample; rescan on the corpus"
+    assert rescan.commands[-1] == VERIFY_NEW
+
+
+def test_contested_and_replicated_follow_ups_say_why(tmp_path, record):
+    rec = _record(record, status="VERIFIED", idx=1, gates={})
+    proposer = rec.submission.submitting_agent_model
+    split = [
+        _probes_of_its_own(_reviewed_by(rec, "x/a"), "a", "VERIFIED"),
+        _probes_of_its_own(_reviewed_by(rec, "x/b", hours=1), "b", "REJECTED"),
+    ]
+    plan = plan_next(_registry(tmp_path / "split", *split), seed=1, now=NOW)
+    assert _candidate(plan, "resolve", "N1-positive").rationale == (
+        "its reviews split evenly between VERIFIED and not; one more settles it; "
+        "2 experiments so far"
+    )
+    sub = rec.submission.model_copy(update={"natural_language_explanation": "A rival."})
+    verdict = rec.verdict.model_copy(
+        update={"status": "REJECTED", "timestamp": rec.verdict.timestamp + timedelta(hours=2)}
+    )
+    rival = _probes_of_its_own(rec.model_copy(update={"submission": sub, "verdict": verdict}),
+                               "r", "REJECTED")  # fmt: skip
+    plan = plan_next(_registry(tmp_path / "rival", rec, rival), seed=1, now=NOW)
+    revise = _candidate(plan, "revise", "N1-positive")
+    assert revise.rationale == "contested; submit one that addresses both; 2 experiments so far"
+    assert revise.commands[-1] == VERIFY_NEW
+    other = rec.model_copy(
+        update={
+            "submission": rec.submission.model_copy(update={"submitting_agent_model": "other/m"})
+        }
+    )
+    selves = [_reviewed_by(rec, proposer), _reviewed_by(other, "other/m", hours=1)]
+    plan = plan_next(_registry(tmp_path / "selves", *selves), seed=1, now=NOW)
+    assert _candidate(plan, "replicate", "N1-positive").rationale == (
+        "every review so far was a self-review; 2 experiments so far"
+    )
+    crossed = [_reviewed_by(rec, proposer), _reviewed_by(rec, "other/m", hours=1)]
+    plan = plan_next(_registry(tmp_path / "crossed", *crossed), seed=1, now=NOW)
+    assert _candidate(plan, "challenge", "N1-positive").rationale == (
+        "verified and replicated; look for counterexamples; 2 experiments so far"
+    )
+
+
+def _studied(record, hours_ago, n=1, idx=7):
+    """``n`` REJECTED experiments on one pole, the newest ``hours_ago`` before NOW."""
+    rec = _record(record, status="REJECTED", idx=idx, gates={})
+    return [
+        _probes_of_its_own(
+            rec.model_copy(update={"verdict": rec.verdict.model_copy(
+                update={"timestamp": NOW - timedelta(hours=hours_ago + i)})}),
+            f"t{i}", "REJECTED",
+        )
+        for i in range(n)
+    ]  # fmt: skip
+
+
+@pytest.mark.parametrize(
+    ("hours_ago", "factor", "note"),
+    [(1, 0.2, "studied in the last 6h"), (6, 0.5, "studied in the last 24h"), (24, 1.0, None)],
+)
+def test_recent_study_decays_the_weight_from_its_boundaries(tmp_path, record, hours_ago, factor,
+                                                            note):  # fmt: skip
+    plan = plan_next(_registry(tmp_path, *_studied(record, hours_ago, n=4)), seed=1,
+                     epsilon=0.0, now=NOW)  # fmt: skip
+    c = _candidate(plan, "new_hypothesis", "N7-positive")
+    assert c.weight == pytest.approx(BASE_WEIGHTS["new_hypothesis"] * factor / 2)  # 1/sqrt(4)
+    notes = ["4 experiments so far", *([note] if note else [])]
+    assert c.rationale == "; ".join(["rejected; the null result stands, so try another idea",
+                                     *notes])  # fmt: skip
+
+
+def test_one_old_experiment_has_full_weight_and_no_notes(tmp_path, record):
+    plan = plan_next(_registry(tmp_path, *_studied(record, 48)), seed=1, epsilon=0.0, now=NOW)
+    c = _candidate(plan, "new_hypothesis", "N7-positive")
+    assert c.weight == BASE_WEIGHTS["new_hypothesis"]
+    assert c.rationale == "rejected; the null result stands, so try another idea"
+
+
+def test_a_claim_that_names_the_slug_itself_decays_the_weight(tmp_path, record):
+    (rec,) = _studied(record, 48)
+    slug = rec.submission.identifier.slug
+    assert claim_key(slug) != slug
+    plan = plan_next(_registry(tmp_path, rec), seed=1, epsilon=0.0, now=NOW,
+                     claims=[f"Audit {slug}"])  # fmt: skip
+    c = _candidate(plan, "new_hypothesis", "N7-positive")
+    assert c.weight == pytest.approx(BASE_WEIGHTS["new_hypothesis"] * 0.05)
+    assert c.rationale.endswith("; an open PR already claims it")
+
+
+def test_a_share_exactly_at_the_limit_is_default_on(tmp_path, record):
+    rec = _default_on_histogram(_record(record, status="REJECTED", idx=8, gates={}), active=50)
+    assert ReviewPolicy().max_active_share == 0.5
+    plan = plan_next(_registry(tmp_path, rec), seed=1, epsilon=0.0, now=NOW)
+    assert _kinds(plan) == {("opposite_pole", "N8-negative")}
+
+
+def test_follow_up_commands_name_the_unit_as_it_was_scanned(record):
+    from types import SimpleNamespace
+
+    from openinterpretability.core.identifiers import FeatureIdentifier, HeadIdentifier
+
+    def target(identifier=None, provenance=None):
+        sub = record.submission
+        if identifier is not None:
+            sub = sub.model_copy(update={"identifier": identifier})
+        if provenance is not None:
+            sub = sub.model_copy(update={"provenance": provenance})
+        state = SimpleNamespace(record=record.model_copy(update={"submission": sub}),
+                                record_path=Path("wiki/x.json"))  # fmt: skip
+        return planner._commands(state)
+
+    where = "--model Qwen/Qwen2.5-0.5B --layer 3"
+    head = HeadIdentifier(model_name="Qwen/Qwen2.5-0.5B", layer=3, head_idx=2)
+    assert target(head).target == f"{where} --head 2"
+    feature = FeatureIdentifier(model_name="Qwen/Qwen2.5-0.5B", layer=3, dictionary="d",
+                                feature_idx=5)  # fmt: skip
+    assert target(feature).target == f"{where} --dictionary d --feature 5"
+    windowed = ExperimentProvenance(dtype="float32", corpus="c.jsonl", n_snippets=1,
+                                    tokens_scanned=64, selection="random", harness_version="t",
+                                    snippet_tokens=64)  # fmt: skip
+    commands = target(provenance=windowed)
+    assert commands.target == f"{where} --neuron 117 --window-tokens 64"
+    assert commands.path == "wiki/x.json" and "--audit-file wiki/x.json " in commands.review
+
+
+def _pole_counts(wiki, n, **kwargs):
+    return Counter(plan_next(wiki, seed=s, epsilon=0.0, now=NOW, **kwargs).choice.kind
+                   for s in range(n))  # fmt: skip
+
+
+def test_follow_ups_are_drawn_in_proportion_to_weight_to_the_power_of_one_over_t(tmp_path, record):
+    # Weights 2.5 (independent_review), 2.0 (revise) and 1.0 (opposite_pole).
+    gates = {"independent_review": False}
+    wiki = _registry(tmp_path, _record(record, status="NEEDS_REVISION", idx=1, gates=gates))
+    n = 1000
+    share = _pole_counts(wiki, n)["opposite_pole"] / n  # temperature 1 by default
+    assert share == pytest.approx(1.0 / 5.5, abs=0.035)
+    share = _pole_counts(wiki, n, temperature=0.5)["opposite_pole"] / n
+    assert share == pytest.approx(1.0 / 11.25, abs=0.03)
+
+
+def test_a_follow_up_plan_still_reports_the_explore_weights_and_coverage(tmp_path, record):
+    rec = _record(record, status="VERIFIED", gates={})
+    sized = rec.submission.model_copy(update={"model_num_layers": 24, "model_mlp_width": 4864})
+    wiki = _registry(tmp_path, rec.model_copy(update={"submission": sized}))
+    followed = plan_next(wiki, seed=1, epsilon=0.0, now=NOW)
+    explored = plan_next(wiki, seed=1, epsilon=1.0, now=NOW)
+    assert not followed.explored and explored.explored
+    assert followed.explore_models == explored.explore_models == {"Qwen/Qwen2.5-0.5B": 1.0}
+    assert followed.coverage == explored.coverage and "Qwen/Qwen2.5-0.5B" in followed.coverage
+    assert followed.focus == explored.focus == "Qwen/Qwen2.5-0.5B"
+
+
+def test_dead_and_stopped_units_count_in_the_plans_coverage(tmp_path, monkeypatch):
+    from openinterpretability.core.identifiers import NeuronIdentifier
+
+    units = [NeuronIdentifier(model_name="a/x", layer=0, neuron_idx=i, pole="positive")
+             for i in range(3)]  # fmt: skip
+    monkeypatch.setattr(planner, "dead", lambda wiki: units[:1])
+    monkeypatch.setattr(planner, "stopped", lambda wiki: units)
+    coverage = plan_next(tmp_path / "wiki", seed=1, models=["a/x"], now=NOW).coverage["a/x"]
+    assert (coverage.covered, coverage.verified) == (3, 1)
+
+
+def test_a_seed_is_drawn_from_32_bits_when_none_is_given(tmp_path):
+    assert all(plan_next(tmp_path / "wiki", now=NOW).seed < 2**32 for _ in range(64))
+
+
+def test_a_plan_is_written_as_json_indented_by_two(tmp_path):
+    text = plan_next(tmp_path / "wiki", seed=1, now=NOW).to_json()
+    assert text.startswith('{\n  "seed": 1,\n  "choice": {\n    "kind": ')
+
+
+def _explore_project(tmp_path, *lines):
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.openinterpretability]\nmodels = ["toy/model"]\n'
+        + "".join(f"{x}\n" for x in lines)
+        + '[tool.openinterpretability.window_tokens]\n"toy/model" = 64\n'
+    )
+
+
+def test_an_explore_draw_of_one_model_gives_no_share_and_keeps_the_window(tmp_path):
+    _explore_project(tmp_path, "head_share = 0.0", "effect_share = 0.0")
+    choice = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW).choice
+    assert "--window-tokens 64" in choice.commands[0]
+    assert "drawn with probability" not in choice.rationale
+
+
+def test_a_head_draw_keeps_the_models_window(tmp_path):
+    _explore_project(tmp_path, "head_share = 1.0")
+    choice = plan_next(tmp_path / "wiki", seed=1, epsilon=1.0, now=NOW).choice
+    assert "--head" in choice.commands[0] or "--unit head" in choice.commands[0]
+    assert "--window-tokens 64" in choice.commands[0]
+
+
+def test_an_effect_draw_keeps_the_window_and_skips_claimed_poles(tmp_path):
+    from openinterpretability.planner_effects import table_path, unit_slug
+
+    _explore_project(tmp_path, "head_share = 0.0", "effect_share = 1.0")
+    rows = [{"layer": 2, "neuron": n, "pole": "negative", "effect": 0.5} for n in (8, 9)]
+    table = table_path(tmp_path, "toy/model")
+    table.parent.mkdir(parents=True)
+    table.write_text(json.dumps({"poles": rows}))
+    claims = [claim_key(unit_slug("toy/model", rows[1]))]
+    for seed in range(12):
+        choice = plan_next(tmp_path / "wiki", seed=seed, epsilon=1.0, now=NOW,
+                           claims=claims).choice  # fmt: skip
+        assert choice.slug.endswith("L2/N8-negative") and "--window-tokens 64" in choice.commands[0]
+
+
+def test_settings_are_read_from_the_projects_table(tmp_path):
+    from openinterpretability.planner import (
+        configured_reproduce_floors,
+        coverage_target,
+        signed_models,
+    )
+
+    path = tmp_path / "pyproject.toml"
+    path.write_text(
+        '[tool.openinterpretability]\nsigned_models = ["big/model"]\ncoverage_target = 0.5\n'
+        '[tool.openinterpretability.reproduce_floor]\n"toy/model" = 1\n'
+    )
+    assert signed_models(path) == ("big/model",)
+    assert coverage_target(path) == 0.5
+    floors = configured_reproduce_floors(path)
+    assert floors == {"toy/model": 1.0} and isinstance(floors["toy/model"], float)
+    empty = tmp_path / "empty.toml"
+    empty.write_text("[project]\nname = 'x'\n")  # no [tool] table at all
+    assert (signed_models(empty), configured_reproduce_floors(empty)) == ((), {})
+    assert coverage_target(empty) == planner_models.DEFAULT_COVERAGE_TARGET
+    assert configured_models(empty) == ()
+
+
+def test_the_working_directorys_table_is_read_and_else_the_clones(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "pyproject.toml").write_text('[tool.openinterpretability]\nmodels = ["x/y"]\n')
+    assert configured_models() == ("x/y",)
+    (tmp_path / "pyproject.toml").write_text("[project]\nname = 'x'\n")
+    clone = configured_models(planner.CLONE_PYPROJECT)
+    assert clone and configured_models() == clone
+
+
+def test_a_sister_draws_seed_comes_from_the_plans_seed(tmp_path, record):
+    from tests.test_sisters import _sister_registry
+
+    wiki = _sister_registry(tmp_path, record)
+
+    def random_audits(seed):
+        plan = plan_next(wiki, seed=seed, epsilon=0.0, now=NOW)
+        return {c.audit for c in plan.candidates if c.kind == "sister" and "--random" in c.audit}
+
+    assert random_audits(1) and random_audits(1) != random_audits(2)
+
+
+def test_explanation_and_circuit_draws_follow_the_seed_and_the_claims(tmp_path):
+    from openinterpretability.planner_explanations import explanation_candidates
+    from tests.test_planner_circuits import NOW as MEMBERS
+    from tests.test_planner_circuits import SLUG
+    from tests.test_planner_circuits import _root as circuit_root
+    from tests.test_planner_explanations import MODEL
+    from tests.test_planner_explanations import _root as explanation_root
+
+    root = explanation_root(tmp_path)
+    circuit_root(tmp_path, {"C1": MEMBERS})
+    wiki = root / "wiki"
+
+    def drawn(seed, claims=()):
+        plan = plan_next(wiki, seed=seed, epsilon=0.0, now=NOW, claims=list(claims))
+        return {c.kind: c.slug for c in plan.candidates if c.kind in ("explanation", "circuit")}
+
+    for seed in range(8):
+        (direct,) = [c.slug for c in explanation_candidates({}, [], root, [MODEL], seed)
+                     if c.kind == "explanation"]  # fmt: skip
+        assert drawn(seed)["explanation"] == direct
+    found = drawn(1)
+    assert found["circuit"] == f"{SLUG}/circuits/C1"
+    assert drawn(1, [claim_key(found["explanation"]), claim_key(found["circuit"])]) == {}
+
+
+def test_an_explained_unit_already_studied_gets_follow_ups_not_an_audit(tmp_path, record):
+    from openinterpretability.core.identifiers import NeuronIdentifier
+    from tests.test_planner_explanations import POLE, _explained
+    from tests.test_planner_explanations import _root as explanation_root
+
+    root = explanation_root(tmp_path)
+    _explained(root, "A prompt")
+    ident = NeuronIdentifier(model_name="openai-community/gpt2", layer=10, neuron_idx=2931,
+                             pole="negative")  # fmt: skip
+    rec = _record(record, status="REJECTED", gates={})
+    sub = rec.submission.model_copy(update={"identifier": ident})
+    write_experiment_page(rec.model_copy(update={"submission": sub}), root / "wiki")
+    plan = plan_next(root / "wiki", seed=1, epsilon=0.0, now=NOW)
+    assert ("new_hypothesis", POLE) in {(c.kind, c.slug) for c in plan.candidates}
+    assert ("explore", POLE) not in {(c.kind, c.slug) for c in plan.candidates}
