@@ -49,9 +49,9 @@ def folder_of(entry_id: str, root: Path = Path(".")) -> Path | None:
         ``papers/<slug>`` or ``posts/<slug>`` under ``root``, or None for another page.
 
     Examples:
-        >>> folder_of("https://open-interpretability.com/research/a-paper/index.html")
+        >>> folder_of("https://example.org/research/a-paper/index.html")
         PosixPath('papers/a-paper')
-        >>> folder_of("https://open-interpretability.com/models/x/index.html") is None
+        >>> folder_of("https://example.org/models/x/index.html") is None
         True
     """
     found = _PAGE.search(entry_id)

@@ -13,15 +13,17 @@ import sys
 import time
 from dataclasses import dataclass, field
 
-INTERVAL = float(os.environ.get("OPENINTERPRETABILITY_PROGRESS_SECONDS", "60"))
-"""Seconds between two progress lines (``$OPENINTERPRETABILITY_PROGRESS_SECONDS``)."""
+from labinacan.config import env
+
+INTERVAL = float(os.environ.get(env("PROGRESS_SECONDS"), "60"))
+"""Seconds between two progress lines (``$<prefix>_PROGRESS_SECONDS``, :func:`env`)."""
 TTY_INTERVAL = 0.2  # seconds between two redraws of a bar on a terminal
 BAR_WIDTH = 20
-QUIET_ENV = "OPENINTERPRETABILITY_QUIET"  # set by `explain --quiet`: no bars, no stage lines
+QUIET_ENV = env("QUIET")  # a project's quiet option sets it: no bars, no stage lines
 
 
 def quiet() -> bool:
-    """Whether ``$OPENINTERPRETABILITY_QUIET`` turns progress off (#5830).
+    """Whether ``$<prefix>_QUIET`` (:data:`QUIET_ENV`) turns progress off (#5830).
 
     Returns:
         True when the variable is set to anything but "" or "0".

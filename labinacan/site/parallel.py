@@ -7,7 +7,7 @@ build then records them in the same order as one process does. With one job, or 
 ``fork`` on the platform, the pages render in this process, one by one.
 
 A fork is safe while the build runs no other thread, and the build starts none. If that
-changes, Python warns at the fork, and ``open-interpretability build --jobs 1`` avoids it.
+changes, Python warns at the fork, and a build with one job avoids it.
 
 Each fork happens under ``gc.freeze()`` (#4592). A child shares its parent's memory until
 it writes to a page. The garbage collector writes to every object that it visits, so
@@ -26,6 +26,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, TypeVar
 
+from labinacan.config import env
 from labinacan.progress import Progress
 
 T = TypeVar("T")
@@ -45,7 +46,7 @@ def _frozen() -> Iterator[None]:
 
 # Caps a build's worker processes. The test suite sets it to 1. A test process may already
 # run torch's threads, and then a fork can crash its child (#6507).
-JOBS_ENV = "OPENINTERPRETABILITY_BUILD_JOBS"
+JOBS_ENV = env("BUILD_JOBS")
 
 
 def default_jobs(env: Mapping[str, str] = os.environ) -> int:
