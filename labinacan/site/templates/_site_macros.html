@@ -1,0 +1,6 @@
+{# Macros that labinacan's templates use (#6628). #}
+
+{# A paper's status (#3150): a preprint with the issues still open on it, or published on a day. Text says it, not colour. #}
+{% macro paper_status(status, repo_url) -%}
+{% if status %}{% if status.preprint %}<span class="rounded border border-slate-400 px-1.5 py-0.5 font-medium text-slate-700 dark:border-slate-500 dark:text-slate-300">Preprint</span> work left: {% for n in status.issues %}<a class="underline" href="{{ repo_url }}/issues/{{ n }}">#{{ n }}</a>{{ ", " if not loop.last }}{% endfor %}{% else %}<span class="rounded bg-slate-800 px-1.5 py-0.5 font-medium text-white dark:bg-slate-200 dark:text-slate-900">Published</span> <time datetime="{{ status.published }}">{{ status.published }}</time>; changes since are addenda{% endif %}{% endif %}
+{%- endmacro %}
