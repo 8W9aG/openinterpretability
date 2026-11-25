@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_circuit.html" import nav, wiring_svg %}
-{% from "_macros.html" import status_badge, fold, read_more %}
+{% from "_macros.html" import status_badge %}
+{% from "_site_macros.html" import fold, read_more %}
 
 {# One registry circuit (builder/circuit_units.py, #4287): its members, lineage, tasks and sub-circuits. #}
 {% block title %}Circuit {{ rc.id }} · {{ model.name }} · {{ site_title }}{% endblock %}

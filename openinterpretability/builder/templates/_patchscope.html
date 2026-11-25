@@ -1,5 +1,5 @@
 {# Patchscope readout for _experiment.html. Expects `sub`. #}
-{% from "_macros.html" import fold, read_more %}
+{% from "_site_macros.html" import fold, read_more %}
   {% if sub.patchscope and sub.patchscope.readings %}
   {% set ps = sub.patchscope %}
   {% call fold("Patchscope", "Ghandeharioun et al., 2024; Chen et al., 2024 (SelfIE)") %}<div data-pagefind-ignore>

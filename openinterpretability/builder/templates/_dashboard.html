@@ -1,5 +1,6 @@
 {# The home page's registry dashboard. Expects `dashboard` (builder/dashboard.py) and `map_fill`. #}
-{% from "_macros.html" import read_more, chart %}
+{% from "_macros.html" import chart %}
+{% from "_site_macros.html" import read_more %}
 {% set tl = dashboard.timeline %}{% set mb = dashboard.models %}
 <section class="mb-10" id="dashboard" data-pagefind-ignore>
   <h2 class="mb-1 text-lg font-semibold">Registry dashboard</h2>

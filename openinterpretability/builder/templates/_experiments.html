@@ -1,5 +1,6 @@
 {# Every experiment on a unit, and the scans that stopped on it. Included from neuron.html and superposition.html. Expects `neuron` and `stops`. #}
-{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome, read_more %}
+{% from "_macros.html" import status_badge, evidence_badge, self_review_badge, pole_mark, stop_outcome %}
+{% from "_site_macros.html" import read_more %}
   {% if neuron.experiments or stops %}
   <section aria-labelledby="experiments">
     <h2 id="experiments" class="text-base font-semibold">Experiments</h2>
