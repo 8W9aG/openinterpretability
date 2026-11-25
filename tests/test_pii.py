@@ -314,8 +314,8 @@ def test_errata_notes_are_scrubbed_like_the_record():
 def test_paper_files_are_redacted_but_numbers_and_libraries_stay(tmp_path, monkeypatch):
     import hashlib
 
-    from openinterpretability.builder import research
-    from openinterpretability.builder.research import Paper, copy_assets
+    from labinacan.site import research
+    from labinacan.site.research import Paper, copy_assets
 
     library = b"/* a vendored library */ var a = 'jane.doe@somemail.org';"
     monkeypatch.setitem(research.VENDORED, "three.min.js", hashlib.sha256(library).hexdigest())
@@ -339,7 +339,7 @@ def test_paper_files_are_redacted_but_numbers_and_libraries_stay(tmp_path, monke
 
 @pytest.mark.parametrize("name", ["page.HTML", "page.htm", "lib.mjs", "vendor.min.js"])
 def test_paper_files_are_redacted_whatever_their_suffix(tmp_path, name):
-    from openinterpretability.builder.research import Paper, copy_assets
+    from labinacan.site.research import Paper, copy_assets
 
     folder = tmp_path / "papers" / "p"
     folder.mkdir(parents=True)
@@ -350,7 +350,7 @@ def test_paper_files_are_redacted_whatever_their_suffix(tmp_path, name):
 
 
 def test_a_token_list_in_a_paper_file_is_searched_joined(tmp_path):
-    from openinterpretability.builder.research import Paper, copy_assets
+    from labinacan.site.research import Paper, copy_assets
 
     folder = tmp_path / "papers" / "p"
     folder.mkdir(parents=True)
@@ -365,7 +365,7 @@ def test_a_token_list_in_a_paper_file_is_searched_joined(tmp_path):
 
 
 def test_a_web_page_that_is_not_utf8_stops_the_build(tmp_path):
-    from openinterpretability.builder.research import Paper, copy_assets
+    from labinacan.site.research import Paper, copy_assets
 
     folder = tmp_path / "papers" / "p"
     folder.mkdir(parents=True)

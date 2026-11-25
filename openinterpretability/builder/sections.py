@@ -6,13 +6,10 @@ from collections.abc import Set as AbstractSet
 from importlib.metadata import metadata
 from pathlib import Path
 
+from labinacan.site.sections import render_sections
 from openinterpretability import DISTRIBUTION
 from openinterpretability.builder.brand import write_brand
-from openinterpretability.builder.changelog_page import load_versions
 from openinterpretability.builder.explanation_pages import render_explanations
-from openinterpretability.builder.literature_pages import LITERATURE, load_reviews, render_reviews
-from openinterpretability.builder.research import copy_assets, load_papers
-from openinterpretability.builder.research_feeds import POSTS_FEED, posts_feed, write_research_feeds
 from openinterpretability.builder.taxonomy_view import taxonomy_rows
 from openinterpretability.core.licenses import DATA_TERMS
 from openinterpretability.core.schemas import ReviewPolicy
@@ -65,6 +62,9 @@ def render_reference_pages(
 ) -> None:
     """Write About, Changelog, Research, its literature review, the explanations and Posts.
 
+    labinacan writes the sections that any project has (:func:`render_sections`). This
+    repo adds About, with the brand's images, and the explanations (#6628).
+
     Args:
         render: The site's renderer.
         papers_dir: The folder of the papers, or None for an empty Research section.
@@ -76,68 +76,28 @@ def render_reference_pages(
         unit_pages: The unit pages that the build writes, so that an explanation or an
             answer links only those (#5727). None links every unit.
     """
-    license = metadata(DISTRIBUTION)["License-Expression"]
-    taxonomy = taxonomy_rows(render.common["repo_url"])
-    render("about.html", "about.html", policy=ReviewPolicy(), license=license, taxonomy=taxonomy,
-           **DATA_TERMS)  # fmt: skip
-    report.pages.extend(write_brand(render.output_dir))  # the mark, favicon and social image
-    versions = load_versions(render.common["repo_url"])
-    if versions:  # an install has no CHANGELOG.md
-        render("changelog.html", "changelog.html", versions=versions)
-    reviews = load_reviews(render.common["repo_url"])
-    render_reviews(render, reviews)
-    papers = _render_research(render, papers_dir, report, pdfs, bool(explanations), bool(reviews))
-    write_research_feeds(render.output_dir, papers, reviews, LITERATURE, render.common)
-    render_explanations(render, list(explanations), unit_pages)
-    _render_posts(render, posts_dir, report)
+    views = list(explanations)
 
+    def about(render) -> None:
+        """Write About, and the mark, favicon and social image.
 
-def _render_posts(render, posts_dir: Path | None, report) -> None:
-    """Write the Posts section: its index, each post, their media and their feed (#4650).
+        Args:
+            render: The site's renderer.
+        """
+        license = metadata(DISTRIBUTION)["License-Expression"]
+        taxonomy = taxonomy_rows(render.common["repo_url"])
+        render("about.html", "about.html", policy=ReviewPolicy(), license=license,
+               taxonomy=taxonomy, **DATA_TERMS)  # fmt: skip
+        report.pages.extend(write_brand(render.output_dir))
 
-    A post has the form of a paper (``papers/``), so the paper loader reads it, with its
-    Markdown, maths and redaction. Only the section folder and the templates differ. A draft
-    (#5529, #5551) builds at its own URL under ``posts/drafts/``, and no index, feed or
-    sitemap lists it.
+    def explained(render) -> None:
+        """Write the explanations' pages.
 
-    Args:
-        render: The site's renderer.
-        posts_dir: The folder of the posts, or None for an index with no posts.
-        report: The build's report, which collects the pages written.
-    """
-    posts = load_papers(posts_dir, render.common["repo_url"], source="posts")
-    listed = [post for post in posts if not post.draft]  # a draft is built, never listed (#5551)
-    render("posts/index.html", "posts.html", posts=listed)
-    for post in posts:
-        report.pages.extend(copy_assets(posts_dir, post, render.output_dir, section="posts"))
-        if not post.interactive:
-            render(f"posts/{post.href}", "post.html", post=post)
-    feed = posts_feed(listed, render.common["site_url"], render.common["site_title"])
-    (render.output_dir / POSTS_FEED).write_text(feed, encoding="utf-8")
+        Args:
+            render: The site's renderer.
+        """
+        render_explanations(render, views, unit_pages)
 
-
-def _render_research(
-    render, papers_dir: Path | None, report, pdfs: bool, explained: bool, reviewed: bool
-) -> list:
-    """Write the Research section: its index, each paper, their media and their PDFs.
-
-    Return the papers, for the section's feed.
-
-    A paper's PDF is printed before its page, so the page links it only if it exists.
-    """
-    from openinterpretability.builder.paper_pdf import chrome, write_pdf
-
-    papers = load_papers(papers_dir, render.common["repo_url"])
-    render("research/index.html", "research.html", papers=papers, explained=explained,
-           reviewed=reviewed)  # fmt: skip
-    browser = chrome() if pdfs else None
-    if pdfs and browser is None:
-        print("No Chrome found ($OPENINTERPRETABILITY_CHROME): the papers get no PDFs.")
-    for paper in papers:
-        report.pages.extend(copy_assets(papers_dir, paper, render.output_dir))
-        if not paper.interactive:
-            folder = render.output_dir / "research" / paper.slug
-            folder.mkdir(parents=True, exist_ok=True)
-            pdf = write_pdf(render.env, folder, paper, render.common, browser)
-            render(f"research/{paper.href}", "paper.html", paper=paper, pdf=pdf)
-    return papers
+    index = {"explained": bool(views)}  # the Research index links the explanations
+    render_sections(render, report, (about, explained), papers_dir=papers_dir,
+                    posts_dir=posts_dir, pdfs=pdfs, research_index=index)  # fmt: skip

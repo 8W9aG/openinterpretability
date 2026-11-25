@@ -14,4 +14,4 @@ They come from the npm package [`computer-modern`](https://www.npmjs.com/package
 
 `latinmodern-math.otf` is Latin Modern Math, the OpenType version of Computer Modern's maths fonts, from CTAN (`fonts/lm-math/opentype/`), under the GUST Font License ([GUST-FONT-LICENSE.txt](GUST-FONT-LICENSE.txt)). It is unmodified too. It gives the symbols that the CMU text faces lack, such as ≈, ↔ and ′. No Computer Modern face has superscript digits, so the print page raises plain digits, as LaTeX does.
 
-`openinterpretability/builder/paper_pdf.py` embeds them in the print page as `data:` URIs, so the PDF depends on no system font.
+`labinacan/site/paper_pdf.py` embeds them in the print page as `data:` URIs, so the PDF depends on no system font.

@@ -3,7 +3,7 @@
 import pytest
 
 from labinacan.site.maths import MathsError, to_mathml
-from openinterpretability.builder.research import _read_paper
+from labinacan.site.research import _read_paper
 
 PAPER = """# A paper
 

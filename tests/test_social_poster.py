@@ -1,11 +1,11 @@
-"""Posting to X: refused figures, video processing and text-only posts (social/poster.py)."""
+"""Posting to X: refused figures, video and text-only posts (labinacan/social/poster.py)."""
 
 import io
 
 import pytest
 
-from openinterpretability.social import poster
-from openinterpretability.social.poster import XPoster
+from labinacan.social import poster
+from labinacan.social.poster import XPoster
 
 KEYS = {"X_API_KEY": "ck", "X_API_SECRET": "cs", "X_ACCESS_TOKEN": "at", "X_ACCESS_SECRET": "as"}
 

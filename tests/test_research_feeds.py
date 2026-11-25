@@ -1,14 +1,13 @@
-"""Atom feeds of the papers and the literature reviews (builder/research_feeds.py, #4256)."""
+"""Atom feeds of the papers and the literature reviews (labinacan/site/research_feeds.py, #4256)."""
 
 import os
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from openinterpretability.builder.compiler import compile_site
-from openinterpretability.builder.literature_pages import LITERATURE, load_reviews
-from openinterpretability.builder.research import load_papers
-from openinterpretability.builder.research_feeds import (
+from labinacan.site.literature_pages import LITERATURE, load_reviews
+from labinacan.site.research import load_papers
+from labinacan.site.research_feeds import (
     LITERATURE_FEED,
     NO_DATE,
     PAPERS_FEED,
@@ -18,6 +17,7 @@ from openinterpretability.builder.research_feeds import (
     papers_feed,
     write_research_feeds,
 )
+from openinterpretability.builder.compiler import compile_site
 
 ATOM = "{http://www.w3.org/2005/Atom}"
 SITE = "https://example.org/"
@@ -103,3 +103,53 @@ def test_with_no_reviews_the_build_writes_no_literature_feed(tmp_path):
     assert _entries((tmp_path / PAPERS_FEED).read_text(encoding="utf-8")) == []
     assert _entries((tmp_path / PUBLISHED_FEED).read_text(encoding="utf-8")) == []
     assert not (tmp_path / LITERATURE_FEED).exists()
+
+
+def test_the_posts_feed_links_each_posts_page_figure_and_thread():
+    from types import SimpleNamespace
+
+    from labinacan.site.research_feeds import posts_feed
+    from labinacan.social.thread import Prepared
+
+    tweet = Prepared("See {section_link}", "m", (("social-c.png", "image/png", "A"),))
+    post = SimpleNamespace(published="2026-11-20", title="Hello", href="hello/index.html",
+                           summary="Hi.", social_image="media/social.png", social_video=None,
+                           hero_alt="A curve", thread=(tweet,))  # fmt: skip
+    xml = posts_feed([post], "https://example.org/", "Site")
+    assert "https://example.org/posts/hello/media/social.png" in xml  # the head figure
+    assert "https://example.org/posts/hello/index.html#m" in xml  # the thread's link
+    assert "https://example.org/posts/hello/media/social-c.png" in xml  # the thread's figure
+    assert 'href="https://example.org/posts/index.html"' in xml  # the section's page
+
+
+def test_an_unpublished_paper_or_post_takes_the_no_date_date():
+    from types import SimpleNamespace
+
+    from labinacan.site.research_feeds import NO_DATE, papers_feed, posts_feed
+
+    blank = dict(social_image=None, social_video=None, hero_alt="", thread=())
+    item = SimpleNamespace(published=None, title="T", href="t/index.html", summary="S.", **blank)
+    for xml in (
+        papers_feed([item], "https://x.org/", "X"),
+        posts_feed([item], "https://x.org/", "X"),
+    ):
+        assert f"<updated>{NO_DATE}</updated>" in xml
+
+
+def test_the_literature_feed_dates_and_sums_up_each_review(monkeypatch, tmp_path):
+    from types import SimpleNamespace
+
+    from labinacan.site import research_feeds as rf
+
+    read = []
+    monkeypatch.setattr(rf, "review_rows", lambda folder: {"a": ("used", "it fits")})
+    times = {"a": "2026-11-01T00:00:00Z"}
+    monkeypatch.setattr(rf, "added_times", lambda folder: read.append(folder) or times)
+    reviews = [SimpleNamespace(name=n, title=n.upper(), href=f"l/{n}.html") for n in "ab"]
+    xml = rf.literature_feed(reviews, tmp_path, "https://x.org/", "X")
+    assert read == [tmp_path]
+    a, b = xml.split("<entry>")[1:]
+    assert (
+        "<updated>2026-11-01T00:00:00Z</updated>" in a and "<summary>Used: it fits</summary>" in a
+    )
+    assert f"<updated>{rf.NO_DATE}</updated>" in b and "<summary></summary>" in b
