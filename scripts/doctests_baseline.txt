@@ -33,7 +33,7 @@ openinterpretability/builder/corpora.py
 openinterpretability/builder/coverage.py
 labinacan/site/css.py
 openinterpretability/builder/dashboard.py
-openinterpretability/builder/disk_memo.py
+labinacan/site/disk_memo.py
 openinterpretability/builder/draws_export.py
 openinterpretability/builder/experiment.py
 openinterpretability/builder/explanation_figures.py

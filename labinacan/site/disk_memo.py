@@ -1,10 +1,9 @@
 """A small on-disk memo for slow, pure results that a site build computes again each time.
 
-Records never change once written, so most of what a build computes from them is the
-same as last time. A memo keeps such results in an SQLite file under
-``$XDG_CACHE_HOME/openinterpretability/build``. ``$OPENINTERPRETABILITY_BUILD_CACHE`` moves it, and
-``off`` turns it off. The file's name holds a hash of ``version``. Pass the source of the code
-that computes the results, so that a change to it starts a new file.
+A project's records never change once written, so most of what a build computes from
+them is the same as last time. A memo keeps such results in an SQLite file, in a folder that
+the project gives (#6628). The file's name holds a hash of ``version``. Pass the source of
+the code that computes the results, so that a change to it starts a new file.
 """
 
 from __future__ import annotations
@@ -12,23 +11,22 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
-
-from openinterpretability.core.cache_dirs import cache_root
 
 
 class DiskMemo:
     """Results by key, read from disk at the first lookup and added to by :meth:`save`."""
 
-    def __init__(self, name: str, version: bytes) -> None:
-        self.name, self.version = name, version
+    def __init__(self, name: str, version: bytes, cache_dir: Callable[[], Path | None]) -> None:
+        self.name, self.version, self.cache_dir = name, version, cache_dir
         self._stored: dict[str, Any] | None = None
         self._new: dict[str, Any] = {}
 
     def path(self) -> Path | None:
         """Return the memo's file, or ``None`` when the cache is turned off."""
-        root = cache_root("OPENINTERPRETABILITY_BUILD_CACHE", "build")
+        root = self.cache_dir()  # read at each use, so the setting can change
         if root is None:
             return None
         return root / f"{self.name}-{hashlib.sha256(self.version).hexdigest()[:16]}.sqlite"

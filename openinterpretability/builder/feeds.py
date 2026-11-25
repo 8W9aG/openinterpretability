@@ -1,42 +1,20 @@
-"""The site's sitemap, its feed of new VERIFIED units and its ``robots.txt`` (#3285).
+"""The site's feed of new VERIFIED units, beside labinacan's sitemap and ``robots.txt`` (#3285).
 
-Each file comes from the data, never the clock. So an unchanged registry rebuilds them
-byte for byte, and the deploy uploads (and purges) nothing.
+The feed comes from the records, never the clock. So an unchanged registry rebuilds it byte
+for byte, and the deploy uploads (and purges) nothing. ``labinacan/site/feeds.py`` writes
+the sitemap and ``robots.txt`` (#6628).
 """
 
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from datetime import UTC
-from pathlib import Path
 from xml.sax.saxutils import escape
 
+from labinacan.site.feeds import write_site_files
 from openinterpretability.builder.experiment import Experiment
 
 FEED_ENTRIES = 50
-# The sitemap protocol allows at most this many URLs in one file.
-SITEMAP_LIMIT = 50_000
-# Any robots meta that says noindex: a redirect's, or a draft post's "noindex, nofollow".
-NOINDEX = re.compile(r'<meta name="robots" content="[^"]*\bnoindex\b')
-
-
-def sitemap(pages: Sequence[Path], output_dir: Path, site_url: str) -> str:
-    """The sitemap of ``pages``, the HTML files the build wrote, without the redirects."""
-    urls = []
-    for page in sorted({p for p in pages if p.suffix == ".html"}):
-        if NOINDEX.search(page.read_text(encoding="utf-8", errors="replace")):
-            continue  # a redirect to a page that moved, or a draft post (#5551)
-        rel = page.relative_to(output_dir).as_posix()
-        urls.append(site_url + ("" if rel == "index.html" else rel))
-    if len(urls) > SITEMAP_LIMIT:
-        raise ValueError(f"{len(urls)} pages: split the sitemap, which holds {SITEMAP_LIMIT}")
-    body = "".join(f"  <url><loc>{escape(url)}</loc></url>\n" for url in urls)
-    return (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        f"{body}</urlset>\n"
-    )
 
 
 def _when(experiment: Experiment) -> str:
@@ -75,6 +53,5 @@ def feed(experiments: Sequence[Experiment], site_url: str, site_title: str) -> s
 def write_feeds(report, experiments: Sequence[Experiment], common: dict) -> None:
     """Write ``sitemap.xml``, ``feed.xml`` and ``robots.txt`` in the build's output dir."""
     out, url = report.output_dir, common["site_url"]
-    (out / "sitemap.xml").write_text(sitemap(report.pages, out, url), encoding="utf-8")
-    (out / "feed.xml").write_text(feed(experiments, url, common["site_title"]), encoding="utf-8")
-    (out / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {url}sitemap.xml\n")
+    write_site_files(out, report.pages, url)
+    (out / "feed.xml").write_bytes(feed(experiments, url, common["site_title"]).encode())

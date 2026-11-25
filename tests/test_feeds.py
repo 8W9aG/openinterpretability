@@ -1,12 +1,11 @@
-"""The site's sitemap, feed and robots.txt (``openinterpretability/builder/feeds.py``, #3285)."""
+"""The site's sitemap, feed and robots.txt (``builder/feeds.py``, ``labinacan/site/feeds.py``)."""
 
 import xml.etree.ElementTree as ET
 
 import pytest
 
-from openinterpretability.builder import feeds
+from labinacan.site.feeds import NOINDEX
 from openinterpretability.builder.compiler import compile_site
-from openinterpretability.builder.feeds import NOINDEX
 from openinterpretability.core.project import site_url
 from tests.test_compiler import experiment
 
@@ -59,9 +58,22 @@ def test_every_page_links_the_feed(tmp_path, record):
 
 
 def test_a_sitemap_with_more_pages_than_it_holds_is_an_error(tmp_path, monkeypatch):
-    monkeypatch.setattr(feeds, "SITEMAP_LIMIT", 1)
+    from labinacan.site import feeds as site_feeds
+
+    monkeypatch.setattr(site_feeds, "SITEMAP_LIMIT", 1)
     pages = [tmp_path / "index.html", tmp_path / "about.html"]
     for page in pages:
         page.write_text("<html></html>", encoding="utf-8")
     with pytest.raises(ValueError, match="2 pages: split the sitemap, which holds 1"):
-        feeds.sitemap(pages, tmp_path, "https://example.org/")
+        site_feeds.sitemap(pages, tmp_path, "https://example.org/")
+
+
+def test_the_feed_file_is_named_exactly(tmp_path, record):
+    from types import SimpleNamespace
+
+    from openinterpretability.builder import feeds
+
+    feeds.write_feeds(SimpleNamespace(output_dir=tmp_path, pages=[]), [],
+                      {"site_url": "https://x.org/", "site_title": "X"})  # fmt: skip
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["feed.xml", "robots.txt", "sitemap.xml"]
+    assert (tmp_path / "feed.xml").read_bytes() == feeds.feed([], "https://x.org/", "X").encode()

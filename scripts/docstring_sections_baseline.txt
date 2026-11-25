@@ -157,8 +157,8 @@ openinterpretability/builder/dashboard.py::dashboard
 openinterpretability/builder/dashboard.py::timeline
 openinterpretability/builder/dashboard.py::model_bars
 openinterpretability/builder/dashboard.py::layer_columns
-openinterpretability/builder/disk_memo.py::DiskMemo.path
-openinterpretability/builder/disk_memo.py::DiskMemo.get
+labinacan/site/disk_memo.py::DiskMemo.path
+labinacan/site/disk_memo.py::DiskMemo.get
 openinterpretability/builder/draws_export.py::export_draws
 openinterpretability/builder/experiment.py::unit_side
 openinterpretability/builder/explanation_figures.py::figures
@@ -175,7 +175,6 @@ openinterpretability/builder/explanation_pages.py::by_model
 openinterpretability/builder/explanation_pages.py::write_space
 openinterpretability/builder/explanation_pages.py::write_routes
 openinterpretability/builder/explanation_pages.py::write_figures
-openinterpretability/builder/feeds.py::sitemap
 openinterpretability/builder/feeds.py::feed
 openinterpretability/builder/heat.py::token_heat
 openinterpretability/builder/heat.py::heat_html
