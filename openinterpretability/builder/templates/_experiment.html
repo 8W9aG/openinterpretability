@@ -1,6 +1,7 @@
 {% from "_macros.html" import chart %}
 {# One experiment, on its own page (experiment.html). Expects `v` from compiler._experiment_view and `rank`. The top shows the hypothesis, the verdict and the values that decide it. Every other section is a closed fold, in order of importance, and a section with no data is left out (#5566). #}
-{% from "_macros.html" import status_badge, broad_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, errata_notes, fold, read_more, chevron %}
+{% from "_macros.html" import status_badge, broad_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, errata_notes %}
+{% from "_site_macros.html" import fold, read_more, chevron %}
 {% set e = v.e %}{% set sub = v.sub %}{% set verdict = v.verdict %}{% set ident = v.ident %}
 {% set c = v.c %}{% set bars = v.bars %}{% set examples = v.examples %}
 {% set is_head = ident.kind == "attn_head" %}

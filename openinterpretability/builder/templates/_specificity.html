@@ -1,5 +1,5 @@
 {# The WordNet specificity check for _experiment.html. Expects `sub` and `what`. #}
-{% from "_macros.html" import fold, read_more %}
+{% from "_site_macros.html" import fold, read_more %}
   {% if sub.wordnet_specificity %}
   {% set sp = sub.wordnet_specificity %}
   {% macro words(label, items, hint) %}

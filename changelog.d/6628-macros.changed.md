@@ -1,0 +1,1 @@
+- The `chevron`, `read_more` and `fold` macros now live in labinacan's `_site_macros.html`, beside `paper_status` (#6628). This repo's templates import them from there, and its `_macros.html` keeps the registry's badges, marks, tables and charts. `about.html` and `user.html` stay: their content is the registry's.
