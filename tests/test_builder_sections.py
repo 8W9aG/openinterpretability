@@ -1,11 +1,12 @@
 """Pages outside the model tree: About, Changelog, Research and Posts (builder/sections.py)."""
 
-from openinterpretability.builder import sections
 from openinterpretability.builder.compiler import compile_site
 
 
 def test_an_install_without_a_changelog_builds_no_changelog_page(tmp_path, monkeypatch):
-    monkeypatch.setattr(sections, "load_versions", lambda repo_url: [])
+    from labinacan.site import sections as generic
+
+    monkeypatch.setattr(generic, "load_versions", lambda repo_url: [])
     compile_site([], tmp_path)
     assert (tmp_path / "about.html").exists()
     assert not (tmp_path / "changelog.html").exists()
@@ -24,56 +25,44 @@ def test_an_interactive_post_is_copied_as_it_is_and_not_rendered(tmp_path):
     assert "Live post" in (out / "posts" / "index.html").read_text()
 
 
-def test_research_reads_its_papers_with_the_repo_url_and_makes_each_folder(
-    tmp_path, monkeypatch, capsys
-):
+def test_this_repos_own_sections_are_about_and_the_explanations(tmp_path, monkeypatch):
     from types import SimpleNamespace
 
-    from labinacan.site import paper_pdf
+    from openinterpretability import DISTRIBUTION
+    from openinterpretability.builder import sections
+    from openinterpretability.core.licenses import DATA_TERMS
+    from openinterpretability.core.schemas import ReviewPolicy
 
-    paper, seen, pages = SimpleNamespace(slug="p", href="p/index.html", interactive=False), {}, []
-    monkeypatch.setattr(sections, "load_papers", lambda d, url: seen.update(url=url) or [paper])
-    monkeypatch.setattr(sections, "copy_assets", lambda *a: [])
-    monkeypatch.setattr(paper_pdf, "write_pdf", lambda env, folder, *a: seen.update(pdf=folder))
+    seen = {}
+    monkeypatch.setattr(sections, "metadata", lambda dist: {"License-Expression": f"L:{dist}"})
+    monkeypatch.setattr(sections, "taxonomy_rows", lambda url: f"taxonomy:{url}")
+    monkeypatch.setattr(sections, "write_brand", lambda out: [f"brand:{out}"])
+    explain = lambda r, views, units: seen.update(explained=(r, views, units))  # noqa: E731
+    monkeypatch.setattr(sections, "render_explanations", explain)
 
-    class Render:  # writes no file, so research/ doesn't exist before the paper's folder
-        common, output_dir, env = {"repo_url": "https://x.org/r"}, tmp_path / "out", None
+    def common(render, report, own, **kw):
+        seen["kw"] = kw
+        for section in own:
+            section(render)
 
-        def __call__(self, href, template, **kw):
-            pages.append((href, template))
-
-    found = sections._render_research(Render(), tmp_path, SimpleNamespace(pages=[]), False, 0, 0)
-    assert found == [paper] and seen["url"] == "https://x.org/r"  # repo links in the papers
-    assert seen["pdf"] == tmp_path / "out" / "research" / "p" and seen["pdf"].is_dir()
-    assert pages == [
-        ("research/index.html", "research.html"),
-        ("research/p/index.html", "paper.html"),
-    ]
-    assert capsys.readouterr().out == ""  # no PDFs asked for: no warning about Chrome
-
-
-def test_research_tells_the_index_what_exists_and_warns_without_chrome(
-    tmp_path, monkeypatch, capsys
-):
-    from types import SimpleNamespace
-
-    from labinacan.site import paper_pdf
-
-    monkeypatch.setattr(sections, "load_papers", lambda d, url: [])
-    monkeypatch.setattr(paper_pdf, "chrome", lambda: None)
-    calls = []
+    monkeypatch.setattr(sections, "render_sections", common)
 
     class Render:
-        common, output_dir, env = {"repo_url": "r"}, tmp_path, None
+        common, output_dir, pages = {"repo_url": "R"}, tmp_path, []
 
         def __call__(self, href, template, **kw):
-            calls.append((href, template, kw))
+            self.pages.append((href, template, kw))
 
-    sections._render_research(Render(), tmp_path, SimpleNamespace(pages=[]), True, True, False)
-    assert calls == [("research/index.html", "research.html",
-                      {"papers": [], "explained": True, "reviewed": False})]  # fmt: skip
-    warning = "No Chrome found ($OPENINTERPRETABILITY_CHROME): the papers get no PDFs.\n"
-    assert capsys.readouterr().out == warning
-    monkeypatch.setattr(paper_pdf, "chrome", lambda: "/bin/chrome")
-    sections._render_research(Render(), tmp_path, SimpleNamespace(pages=[]), True, True, False)
-    assert capsys.readouterr().out == ""  # a browser: no warning
+    render, report = Render(), SimpleNamespace(pages=[])
+    sections.render_reference_pages(render, tmp_path / "p", report, True, iter(["view"]),
+                                    tmp_path / "q", {"u"})  # fmt: skip
+    about = {"policy": ReviewPolicy(), "license": f"L:{DISTRIBUTION}",
+             "taxonomy": "taxonomy:R", **DATA_TERMS}  # fmt: skip
+    assert render.pages == [("about.html", "about.html", about)]
+    assert report.pages == [f"brand:{tmp_path}"]
+    assert seen["explained"] == (render, ["view"], {"u"})
+    assert seen["kw"] == {"papers_dir": tmp_path / "p", "posts_dir": tmp_path / "q", "pdfs": True,
+                          "research_index": {"explained": True}}  # fmt: skip
+    sections.render_reference_pages(render, None, report)  # the defaults: no PDFs, no explanations
+    assert seen["kw"] == {"papers_dir": None, "posts_dir": None, "pdfs": False,
+                          "research_index": {"explained": False}}  # fmt: skip
