@@ -67,3 +67,12 @@ def test_get_sends_no_token_when_none_is_set(monkeypatch):
     monkeypatch.delenv("GH_TOKEN", raising=False)
     assert real_get("https://api.github.com/x") == [{"number": 1}]
     assert seen[0][0].get_header("Authorization") is None
+
+
+def test_this_repo_reads_github_with_its_own_user_agent(monkeypatch):
+    from labinacan.site import github
+
+    seen = []
+    monkeypatch.setattr(github, "get_json", lambda url, agent: seen.append((url, agent)) or [])
+    assert real_get("https://api.github.com/x") == []
+    assert seen == [("https://api.github.com/x", "openinterpretability")]

@@ -17,20 +17,17 @@ record: the build reads this again each time.
 
 from __future__ import annotations
 
-import json
-import os
 import re
 import subprocess
-import urllib.request
 from collections.abc import Iterable
 from pathlib import Path
 
+from labinacan.site import github
 from openinterpretability.core.cache_dirs import cache_root
 from openinterpretability.core.contributors import contributor_problem
 from openinterpretability.core.paths import DEFAULT_WIKI_DIR, experiments_dir
 
 CACHE_ENV = "OPENINTERPRETABILITY_PR_AUTHORS_CACHE"
-API = "https://api.github.com"
 PR_NUMBER = re.compile(r"^Merge pull request #(\d+) |\(#(\d+)\)$")
 
 
@@ -66,14 +63,11 @@ def pr_authors(numbers: Iterable[int], repo: str) -> dict[int, str]:
     """The login of each PR in ``numbers`` that a person opened, from the cache or GitHub.
 
     ``repo`` is ``owner/name``. A PR that a bot opened, or that GitHub can't give, is absent.
+    labinacan reads them (:func:`labinacan.site.github.pr_authors`), with this repo's cache
+    and its rule for handles (#6628).
     """
-    path = _cache_path()
-    cache = _read_cache(path)
-    missing = {n for n in numbers if str(n) not in cache}
-    if missing:
-        cache |= _fetch(repo, missing)
-        _write_cache(path, cache)
-    return {n: cache[str(n)] for n in numbers if cache.get(str(n))}
+    valid = lambda login: contributor_problem(login) is None  # noqa: E731
+    return github.pr_authors(numbers, repo, cache=_cache_path(), get=_get, valid=valid)
 
 
 def load_users(repo_url: str, wiki_dir: Path | str = DEFAULT_WIKI_DIR) -> dict[str, str]:
@@ -89,55 +83,11 @@ def load_users(repo_url: str, wiki_dir: Path | str = DEFAULT_WIKI_DIR) -> dict[s
     return {ref: authors[n] for ref, n in prs.items() if n in authors}
 
 
-def _fetch(repo: str, wanted: set[int]) -> dict[str, str]:
-    """Logins of the PRs in ``wanted``, newest first, a page of 100 at a time.
-
-    A bot's PR, or a login that isn't a valid handle, maps to "". So the cache knows it,
-    and doesn't ask again. Stops when it has every PR in ``wanted``, or at the last page.
-    """
-    found: dict[str, str] = {}
-    page = 1
-    while wanted - {int(n) for n in found}:
-        query = f"state=closed&sort=created&direction=desc&per_page=100&page={page}"
-        try:
-            pulls = _get(f"{API}/repos/{repo}/pulls?{query}")
-        except OSError as exc:
-            print(f"warning: can't read PR authors from GitHub ({exc}); some users are unknown")
-            break
-        if not pulls:
-            break
-        for pull in pulls:
-            user = pull.get("user") or {}
-            login = user.get("login", "")
-            human = user.get("type") == "User" and contributor_problem(login) is None
-            found[str(pull["number"])] = login if human else ""
-        page += 1
-    return found
-
-
 def _get(url: str) -> list[dict]:
-    headers = {"Accept": "application/vnd.github+json", "User-Agent": "openinterpretability"}
-    token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    request = urllib.request.Request(url, headers=headers)  # noqa: S310  (https API URL)
-    with urllib.request.urlopen(request, timeout=30) as response:  # noqa: S310
-        return json.load(response)
+    """GitHub's JSON at ``url``, sent with this repo's User-Agent. Tests replace it."""
+    return github.get_json(url, "openinterpretability")
 
 
 def _cache_path() -> Path | None:
     root = cache_root(CACHE_ENV, "pr-authors")
     return None if root is None else root / "pr-authors.json"
-
-
-def _read_cache(path: Path | None) -> dict[str, str]:
-    try:
-        return json.loads(path.read_text(encoding="utf-8")) if path else {}
-    except (OSError, ValueError):
-        return {}
-
-
-def _write_cache(path: Path | None, cache: dict[str, str]) -> None:
-    if path is not None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(cache, sort_keys=True), encoding="utf-8")
