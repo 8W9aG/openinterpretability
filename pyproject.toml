@@ -116,6 +116,13 @@ packages = ["openinterpretability", "labinacan"]
 [tool.hatch.build.targets.sdist]
 include = ["/openinterpretability", "/labinacan", "/README.md", "/LICENSE", "/CHANGELOG.md", "/CITATION.cff", "/pyproject.toml"]
 
+[tool.labinacan]
+# This project's values for the generic code in labinacan/ (labinacan/config.py, #6629).
+# [project] above gives the rest: the command, the description, the URLs and the maintainer.
+name = "Open Interpretability"
+package = "openinterpretability"
+env_prefix = "OPENINTERPRETABILITY"  # environment variables are OPENINTERPRETABILITY_<NAME>
+
 [tool.openinterpretability]
 # Models `open-interpretability next` explores: most draws go to the smallest model whose share is
 # below `coverage_target` verified (default 80%), the rest to the others (`others_share`, default 0.2;

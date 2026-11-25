@@ -39,7 +39,12 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from openinterpretability.core.licenses import ModelLicense
-from openinterpretability.core.paths import DEFAULT_WIKI_DIR
+from openinterpretability.core.paths import (  # noqa: F401 - the pyproject paths are re-exported
+    CLONE_PYPROJECT,
+    DEFAULT_PYPROJECT,
+    DEFAULT_WIKI_DIR,
+    PACKAGED_PYPROJECT,
+)
 from openinterpretability.core.schemas import (
     PROTOCOL_VERSION,
     AuditRecord,
@@ -110,13 +115,6 @@ class Candidate:
 def claim_key(slug: str) -> str:
     """Branch-safe form of a neuron slug; PR branches and titles should contain it."""
     return slug.replace("/", "-")
-
-
-DEFAULT_PYPROJECT = Path("pyproject.toml")
-# The repository's pyproject.toml, as an install holds it (the wheel's force-include), and
-# as a clone holds it beside the package.
-PACKAGED_PYPROJECT = Path(__file__).parent / "data" / "pyproject.toml"
-CLONE_PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
 
 
 def _table(path: Path) -> dict | None:

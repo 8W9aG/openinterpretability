@@ -6,8 +6,10 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 
+from labinacan.site.research_feeds import THREAD_NS
+
 ATOM = "{http://www.w3.org/2005/Atom}"
-THREAD = "{https://open-interpretability.com/ns/social}thread"  # research_feeds.THREAD_NS
+THREAD = f"{{{THREAD_NS}}}thread"
 
 
 @dataclass(frozen=True)

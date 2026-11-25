@@ -97,3 +97,10 @@ def test_nothing_posted_writes_no_record(tmp_path):
             str(record)]  # fmt: skip
     assert CliRunner().invoke(cli, args).exit_code == 0
     assert not Path(record).exists()
+
+
+def test_a_page_that_is_no_paper_or_post_has_no_folder(tmp_path):
+    assert folder_of("https://example.org/models/x/index.html", tmp_path) is None
+    assert folder_of("https://example.org/posts/a-post/index.html", tmp_path) == (
+        tmp_path / "posts" / "a-post"
+    )

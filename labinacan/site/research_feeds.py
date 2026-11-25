@@ -1,7 +1,7 @@
 """Atom feeds of the Research section: one of the papers, one of the literature reviews (#4256).
 
-``feed.xml`` (:mod:`openinterpretability.builder.feeds`) lists new VERIFIED units. These two
-feeds let a reader follow the papers and the reviews apart from it. As there, each date comes
+A project's own ``feed.xml`` lists its other news. These two feeds let a reader follow the
+papers and the reviews apart from it. As there, each date comes
 from the repository, never the clock, so an unchanged repository rebuilds them byte for byte:
 
 - a paper's date is the one before its entry in ``papers/README.md``;
@@ -18,6 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+from labinacan.config import site_url
 from labinacan.site.literature_pages import review_rows
 
 PAPERS_FEED = "research/papers.xml"
@@ -26,7 +27,7 @@ PUBLISHED_FEED = "research/published.xml"  # published papers only, for posts (#
 POSTS_FEED = "posts/posts.xml"  # the Posts section (#4650)
 NO_DATE = "1970-01-01T00:00:00Z"  # a date the repository can't give
 NOT_REVIEWS = ("README", "queue")  # pages of docs/literature/ that review no source
-THREAD_NS = "https://open-interpretability.com/ns/social"  # an entry's X thread (#5833)
+THREAD_NS = site_url() + "ns/social"  # an entry's X thread (#5833)
 
 
 def _feed(

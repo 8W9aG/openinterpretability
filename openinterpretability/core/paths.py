@@ -9,6 +9,11 @@ from __future__ import annotations
 from pathlib import Path
 
 DEFAULT_WIKI_DIR = Path("wiki")
+DEFAULT_PYPROJECT = Path("pyproject.toml")
+# The repository's pyproject.toml, as an install holds it (the wheel's force-include), and
+# as a clone holds it beside the package.
+PACKAGED_PYPROJECT = Path(__file__).parents[1] / "data" / "pyproject.toml"
+CLONE_PYPROJECT = Path(__file__).resolve().parents[2] / "pyproject.toml"
 DEFAULT_SUBMISSIONS_DIR = Path("submissions")
 DEFAULT_EXCHANGE_DIR = Path("exchange")
 """Where the CLI writes agent prompts and answers. ``$OPENINTERPRETABILITY_EXCHANGE_DIR`` changes
