@@ -224,7 +224,7 @@ def test_probe_activations_match_one_text_at_a_time():
     for (text, layer, neuron), acts in cache.items():
         alone = _CausalRunner().layer_activations(runner.encode(text), [layer])[layer][0, :, neuron]
         assert torch.equal(acts, alone)
-    # "ab" and "xyz" share a padded pass of 2 x 3 tokens; the long text runs alone.
+    # "ab" and "xyz" share a padded pass of 2 x 3 tokens. The long text runs alone.
     assert runner.passes == [(2, 3), (1, 18)]
 
 

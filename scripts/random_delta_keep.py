@@ -221,10 +221,12 @@ def probe_activations(runner, records, max_tokens: int | None = None) -> dict:
         ident = record.submission.identifier
         for text in probe_texts(record):
             wanted[text].add((ident.layer, ident.neuron_idx))
+    # Each text is tokenized alone, so that its tokens are the ones readings would use.
     ids = {t: runner.encode(t)["input_ids"][0].cpu() for t in wanted}
     texts = sorted(wanted, key=lambda t: len(ids[t]))
     out = {}
     start = 0
+    # Texts of about one length share a pass, so that little of the pass is padding.
     while start < len(texts):
         end = start + 1
         while end < len(texts) and (end - start + 1) * len(ids[texts[end]]) <= max_tokens:
@@ -265,6 +267,7 @@ def first_position_activations(runner, records, batch_size: int | None = None) -
         ident = record.submission.identifier
         by_layer[ident.layer].add(ident.neuron_idx)
     neurons = {layer: sorted(n) for layer, n in by_layer.items()}
+    # One pass reads every layer, so the vocabulary runs once for all the neurons.
     vocab, parts = vocabulary(runner), defaultdict(list)
     for start in range(0, len(vocab), batch_size):
         ids = torch.tensor(vocab[start : start + batch_size], device=runner.device).unsqueeze(1)
@@ -272,7 +275,7 @@ def first_position_activations(runner, records, batch_size: int | None = None) -
         acts = runner.layer_activations(inputs, sorted(neurons))
         for layer, ns in neurons.items():
             parts[layer].append(acts[layer][:, 0, ns].float().cpu())
-    out = {}
+    out = {}  # one vector for each neuron, as strengths_of gives it for that neuron alone
     for layer, ns in neurons.items():
         column = torch.cat(parts[layer])
         for i, neuron in enumerate(ns):
