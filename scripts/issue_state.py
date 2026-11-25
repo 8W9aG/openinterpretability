@@ -9,6 +9,10 @@ integration links each issue, and this script finds the Linear issue from that l
     python3 scripts/issue_state.py --muse-check 5300
     python3 scripts/issue_state.py --release v0.0.20 [--dry-run]
     python3 scripts/issue_state.py --blocked-by 3372 3371
+    python3 scripts/issue_state.py --claim 3371 [--reply 20261124T194025Z]
+    python3 scripts/issue_state.py --claim-release v0.5.0
+    python3 scripts/issue_state.py --unclaim 3371
+    python3 scripts/issue_state.py --whoami
 
 An agent may work only on an eligible issue. It refuses "In Progress" for any other.
 An issue is eligible when one of these holds:
@@ -30,6 +34,14 @@ The `muse-label` workflow removes the label from any other issue (docs/muse.md).
 `--blocked-by <issue> <blocker>` records that ``<issue>`` can't start until ``<blocker>``
 closes (#3842). It adds Linear's "blocks" relation and GitHub's native dependency at once.
 `scripts/linear_sync.py` keeps the two the same after that.
+`--claim <number>` lets several agents work at once (#6725). It checks eligibility, then
+pushes a new empty commit to the branch ``claim/issue-<number>``. GitHub refuses a push
+that is not a fast-forward, so when two agents claim one issue, only one push succeeds.
+The winner's issue moves to In Progress. The loser gets exit code 3 and the holder's name,
+and takes the next issue. ``--reply <time>`` claims the resume of an answered issue: each
+reply has its own branch, so one agent resumes it. `--claim-release <tag>` claims the
+release that follows ``<tag>``. `--unclaim <number>` deletes the issue's claim branches
+after its PR merges. `--whoami` prints this agent's ID, which each claim and comment names.
 Setting a state needs LINEAR_API_KEY. The check needs the GitHub CLI (`gh`). The
 `work-an-issue` skill says when to call this script.
 """
@@ -43,6 +55,15 @@ import subprocess
 import sys
 import urllib.request
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+from claims import (  # noqa: E402
+    CLAIMED,
+    agent_id,
+    claim,
+    reply_key,
+    unclaim,
+)
 
 REPO = "8W9aG/openinterpretability"
 TEAM_KEY = "OPE"
@@ -267,6 +288,48 @@ def block(number: str, blocker: str) -> str:
     return f"#{number} is blocked by #{blocker}, in {where}"
 
 
+def claim_issue(number: str, reply: str | None = None) -> int:
+    """Claim issue ``number``, or the resume after ``reply``, and set it In Progress.
+
+    Args:
+        number: The issue's number.
+        reply: The time of the reply to resume after. None claims the issue.
+
+    Returns:
+        The exit code: 0 when claimed, 1 when ineligible, 3 when another agent has it.
+    """
+    if not check([number], eligibility):
+        print("Refused: work only on eligible issues (see the docstring).")
+        return 1
+    won, detail = claim(reply_key(number, reply))
+    if not won:
+        print(f"#{number}: claimed by another agent ({detail}). Take the next issue.")
+        return CLAIMED
+    print(f"#{number}: claimed as {detail} by {agent_id()}")
+    if not os.environ.get("LINEAR_API_KEY"):
+        print(f"#{number}: no LINEAR_API_KEY, so comment that you work on it")
+        return 0
+    print(set_state(number, "In Progress"))
+    return 0
+
+
+def claim_release(tag: str) -> int:
+    """Claim the release that follows ``tag``.
+
+    Args:
+        tag: The last release's tag, for example ``v0.5.0``.
+
+    Returns:
+        The exit code: 0 when claimed, 3 when another agent has it.
+    """
+    won, detail = claim(f"release-after-{tag}")
+    if not won:
+        print(f"The release after {tag} is claimed by another agent ({detail}). Work an issue.")
+        return CLAIMED
+    print(f"Release after {tag}: claimed as {detail} by {agent_id()}")
+    return 0
+
+
 def check(numbers: list[str], rule=eligibility) -> bool:
     """Print each issue's eligibility under ``rule``. Return True when every one is eligible."""
     ok = True
@@ -330,6 +393,16 @@ def main() -> None:
     if args[:1] == ["--blocked-by"] and len(args) == 3:
         print(block(args[1], args[2]))
         return
+    if args[:1] == ["--whoami"]:
+        print(agent_id())
+        return
+    if args[:1] == ["--claim"] and len(args) in (2, 4) and args[2:3] in ([], ["--reply"]):
+        sys.exit(claim_issue(args[1], args[3] if len(args) == 4 else None))
+    if args[:1] == ["--claim-release"] and len(args) == 2:
+        sys.exit(claim_release(args[1]))
+    if args[:1] == ["--unclaim"] and len(args) == 2:
+        print("\n".join(unclaim(args[1])) or f"#{args[1]}: no claim branch")
+        return
     if args[:1] == ["--release"] and len(args) >= 2:
         sys.exit(0 if release(args[1], "--dry-run" in args[2:]) else 1)
     *numbers, state = args or [""]
@@ -338,6 +411,8 @@ def main() -> None:
             f"usage: issue_state.py <number>... <{'|'.join(STATES)}> | --check <number>..."
             " | --muse-check <number>..."
             " | --release <tag> [--dry-run] | --blocked-by <issue> <blocker>"
+            " | --claim <number> [--reply <time>] | --claim-release <tag> | --unclaim <number>"
+            " | --whoami"
         )
     if state == "In Progress" and not check(numbers):
         sys.exit("Refused: work only on eligible issues (see the docstring).")

@@ -94,7 +94,7 @@ def test_set_priority_sets_the_label_and_linear(monkeypatch):
 
 
 def _comments(*bodies):
-    return [{"author": ME, "body": b} for b in bodies]
+    return [{"author": ME, "body": b, "createdAt": "2026-11-24T19:40:25Z"} for b in bodies]
 
 
 def test_a_reply_after_an_agent_comment_is_an_answer():
@@ -188,3 +188,24 @@ def test_muse_issues_are_never_picked_ranked_or_answered(monkeypatch):
     monkeypatch.setattr(next_issue, "gh_json", lambda *args: dict(views[args[2]]))
     states = {"1": {"state": "In Progress"}, "2": {"state": "In Progress"}}
     assert [i["number"] for i in next_issue.answered(states)] == [1]
+
+
+def test_an_answered_pick_claims_its_reply_and_a_new_pick_claims_the_issue():
+    """A resume claims the reply's own branch, so a later reply can be resumed again (#6725)."""
+    replied = [*_comments("**Question**\n\nWhich?"), {"author": ME, "body": "1",
+               "createdAt": "2026-11-25T08:01:02Z"}]  # fmt: skip
+    assert next_issue.reply_time(replied) == "20261125T080102Z"
+    resume = {"number": 4, "reply_at": "20261125T080102Z"}
+    assert next_issue.claim_command(resume) == (
+        "python3 scripts/issue_state.py --claim 4 --reply 20261125T080102Z"
+    )
+    assert next_issue.claim_command({"number": 5}) == "python3 scripts/issue_state.py --claim 5"
+
+
+def test_answered_issues_carry_the_time_of_the_reply(monkeypatch):
+    replied = [*_comments("**Question**\n\nWhich?"), {"author": ME, "body": "1",
+               "createdAt": "2026-11-25T08:01:02Z"}]  # fmt: skip
+    view = _issue(1, "a") | {"state": "OPEN", "comments": replied}
+    monkeypatch.setattr(next_issue, "gh_json", lambda *args: dict(view))
+    (issue,) = next_issue.answered({"1": {"state": "In Progress"}})
+    assert issue["answer"] == "1" and issue["reply_at"] == "20261125T080102Z"

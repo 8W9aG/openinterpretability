@@ -49,6 +49,15 @@ gh issue create --title "..." --body "..." --label "area: pipeline" --label "pri
 
 A pull request that does an issue says `Closes #<number>`. Its changelog entry is a fragment named for the issue, `changelog.d/<number>.<type>.md` (`changelog.d/README.md`).
 
+## Several agents at once
+
+Several agents can work on the repository at the same time (#6725). Experiments were made for this: `choose-next-experiment` claims each neuron with a draft PR. Issues and releases use claim branches:
+
+- **Claim before you start.** `python3 scripts/issue_state.py --claim <number>` pushes the branch `claim/issue-<number>`. GitHub refuses a push to a branch that holds another commit, so only one agent gets the claim. The other gets exit code 3 and takes the next issue. `next_issue.py` prints the claim command for each pick. A resume of an answered issue claims `claim/issue-<number>-reply-<time>`, and a release claims `claim/release-after-<last tag>`. `--unclaim <number>` drops an issue's claims after its PR merges. CI runs only on pushes to `main`, so a claim starts no workflow.
+- **Name the agent.** `python3 scripts/issue_state.py --whoami` prints the agent's ID, a hash of the host and the checkout, or `$OPENINTERPRETABILITY_AGENT` when it is set. Each claim names it, and each comment gives it after its marker, for example `**Plan** (agent agent-3f9a1c2b)`.
+- **Give each agent its own checkout.** Use a separate clone or a `git worktree`. Two agents in one working tree change each other's branch and files.
+- **Share a machine with care.** On one machine, the agents share the GPU, the memory and the local evidence store. Only one agent at a time does training or work that measures speed. Pause the others (`open-interpretability pause`), or run that work on a second machine. Two `make test` runs at once can each take more than two minutes.
+
 ## Pull requests
 
 [CI](../.github/workflows/ci.yml) runs three required jobs on every PR:

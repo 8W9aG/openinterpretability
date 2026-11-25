@@ -33,6 +33,7 @@ Needs `gh` and LINEAR_API_KEY. The `work-an-issue` skill takes over from the pic
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from collections import Counter
@@ -212,10 +213,39 @@ def answered(states: dict) -> list[dict]:
             continue
         issue = gh_json("issue", "view", number, "--repo", issue_state.REPO, "--json",
                         "number,title,labels,createdAt,milestone,state,comments")  # fmt: skip
-        reply = waiting_answer(issue.pop("comments")) if issue["state"] == "OPEN" else None
+        comments = issue.pop("comments")
+        reply = waiting_answer(comments) if issue["state"] == "OPEN" else None
         if reply is not None and not for_muse(issue):
-            out.append(issue | {"answer": reply})
+            out.append(issue | {"answer": reply, "reply_at": reply_time(comments)})
     return out
+
+
+def reply_time(comments: list[dict]) -> str:
+    """The time of the newest of the maintainer's login's comments.
+
+    The resume of an answered issue claims a branch named with this time (#6725). So each
+    reply is resumed by one agent, and a later reply can be resumed again.
+
+    Args:
+        comments: The issue's comments, oldest first, with an answer as the newest.
+
+    Returns:
+        The time, for example ``20261124T194025Z``.
+    """
+    return re.sub(r"[-:]", "", own(comments)[-1]["createdAt"])
+
+
+def claim_command(issue: dict) -> str:
+    """The command that claims ``issue`` (#6725).
+
+    Args:
+        issue: A pick or a runner-up. An answered one has ``reply_at``.
+
+    Returns:
+        The ``issue_state.py --claim`` command, with ``--reply`` for an answered issue.
+    """
+    reply = f" --reply {issue['reply_at']}" if issue.get("reply_at") else ""
+    return f"python3 scripts/issue_state.py --claim {issue['number']}{reply}"
 
 
 def for_muse(issue: dict) -> bool:
@@ -402,8 +432,11 @@ def main() -> None:
     print(f"Next ({where}): {describe(result['pick'])}")
     if result["resume"]:
         print(f"  The maintainer's reply: {result['pick']['answer'][:300]}")
+    print(f"  Claim it: {claim_command(result['pick'])}")
+    print("  Exit 3 means another agent has it: claim the next runner-up.")
     for issue in result["runners_up"]:
         print(f"  then: {describe(issue)}")
+        print(f"    {claim_command(issue)}")
     for number, by in result.get("blocked", {}).items():
         print(f"  skipped #{number}: blocked by {', '.join(f'#{b}' for b in by)}")
     if result["pulled"] and "--pull" in sys.argv and result["milestone"]:
