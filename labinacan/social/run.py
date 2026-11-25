@@ -23,8 +23,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from openinterpretability.social.feed import Entry, Media
-from openinterpretability.social.message import paper_post, site_post
+from labinacan.social.feed import Entry, Media
+from labinacan.social.message import paper_post, site_post
 
 # Each feed that posts, by name, and how its entries become posts. Papers go first.
 MESSAGES: dict[str, Callable[[Entry], str]] = {"papers": paper_post, "posts": site_post}
@@ -149,7 +149,7 @@ def preview(tweets: list[tuple]) -> str:
         would post (29 of 280):
         Hello https://x.org/p
     """
-    from openinterpretability.social.message import LIMIT, length
+    from labinacan.social.message import LIMIT, length
 
     if len(tweets) == 1:
         text, media = tweets[0]

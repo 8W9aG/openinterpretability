@@ -304,7 +304,7 @@ def _thread(folder: Path, sections: tuple[tuple[str, str], ...]) -> tuple:
             fails.
     """
     from labinacan.site.social_media import figure_files
-    from openinterpretability.social.thread import THREAD, load_thread, prepare, problems
+    from labinacan.social.thread import THREAD, load_thread, prepare, problems
 
     tweets = load_thread(folder)
     if tweets is None:

@@ -1,9 +1,9 @@
-"""The PDF of each paper (openinterpretability/builder/paper_pdf.py, #3140), with a fake Chrome."""
+"""The PDF of each paper (labinacan/site/paper_pdf.py, #3140), with a fake Chrome."""
 
 import stat
 import sys
 
-from openinterpretability.builder import paper_pdf
+from labinacan.site import paper_pdf
 from openinterpretability.builder.compiler import compile_site
 
 PAPER = "# A title\n\nThe abstract.\n\n## Introduction\n\nText.\n\n## References\n\n- A.\n"

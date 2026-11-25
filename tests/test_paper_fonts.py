@@ -3,8 +3,7 @@
 import base64
 import re
 
-from openinterpretability.builder.compiler import _environment
-from openinterpretability.builder.paper_pdf import (
+from labinacan.site.paper_pdf import (
     FONT_FACES,
     FONTS,
     MATH_FACE,
@@ -13,6 +12,7 @@ from openinterpretability.builder.paper_pdf import (
     print_svg,
     raise_superscripts,
 )
+from openinterpretability.builder.compiler import _environment
 
 SYSTEM_FONTS = ("Times", "Liberation", "Nimbus", "Courier", "Menlo", "Helvetica", "Arial")
 

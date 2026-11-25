@@ -1,6 +1,6 @@
-"""The literature map's callout cards and citations (builder/literature_map_view.py, #5798)."""
+"""The literature map's callout cards and citations (labinacan/site/literature_map_view.py)."""
 
-from openinterpretability.builder.literature_map_view import (
+from labinacan.site.literature_map_view import (
     CARDS_PER_SIDE,
     EDGE,
     HEIGHT,
@@ -90,13 +90,13 @@ def test_a_card_for_a_dot_at_the_bottom_moves_up_into_the_map():
 
 
 def test_a_side_with_no_candidate_has_no_card():
-    from openinterpretability.builder.literature_map_view import _side
+    from labinacan.site.literature_map_view import _side
 
     assert _side([], 14) == []
 
 
 def test_a_side_drops_its_least_cited_cards_until_the_rest_fit():
-    from openinterpretability.builder.literature_map_view import _side
+    from labinacan.site.literature_map_view import _side
 
     chosen = [_used(f"p{i}", 300, 360, cites=20 - i) for i in range(11)]  # most-cited first
     cards = _side(chosen, 14)

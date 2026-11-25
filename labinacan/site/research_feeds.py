@@ -18,7 +18,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-from openinterpretability.builder.literature_pages import review_rows
+from labinacan.site.literature_pages import review_rows
 
 PAPERS_FEED = "research/papers.xml"
 LITERATURE_FEED = "research/literature.xml"
@@ -91,7 +91,7 @@ def media(section: str, item) -> tuple[str, str, str] | None:
 
     Args:
         section: The site folder: ``research`` or ``posts``.
-        item: The :class:`~openinterpretability.builder.research.Paper`.
+        item: The :class:`~labinacan.site.research.Paper`.
 
     Returns:
         ``(path, type, alt)``, or None when nothing was drawn.
@@ -119,7 +119,7 @@ def thread_json(section: str, item, site_url: str) -> str | None:
 
     Args:
         section: The site folder: ``research`` or ``posts``.
-        item: The :class:`~openinterpretability.builder.research.Paper`.
+        item: The :class:`~labinacan.site.research.Paper`.
         site_url: The site's URL, with a trailing slash.
 
     Returns:
@@ -127,7 +127,7 @@ def thread_json(section: str, item, site_url: str) -> str | None:
 
     Examples:
         >>> from types import SimpleNamespace as Paper
-        >>> from openinterpretability.social.thread import Prepared
+        >>> from labinacan.social.thread import Prepared
         >>> tweet = Prepared("See {section_link}", "m", (("social-c.png", "image/png", "A"),))
         >>> item = Paper(href="p/index.html", thread=(tweet,))
         >>> thread_json("research", item, "https://x.org/")[:63]
@@ -135,9 +135,9 @@ def thread_json(section: str, item, site_url: str) -> str | None:
     """
     import json
 
-    from openinterpretability.social.thread import resolve
+    from labinacan.social.thread import resolve
 
-    if not getattr(item, "thread", ()):
+    if not getattr(item, "thread", ()):  # pragma: no mutate, equivalent: None is falsy too
         return None
     page = f"{site_url}{section}/{item.href}"
     folder = f"{site_url}{section}/{posixpath.dirname(item.href)}/media/"
@@ -149,7 +149,7 @@ def thread_json(section: str, item, site_url: str) -> str | None:
 
 
 def papers_feed(papers: Sequence, site_url: str, site_title: str) -> str:
-    """The feed of the papers (:class:`~openinterpretability.builder.research.Paper`)."""
+    """The feed of the papers (:class:`~labinacan.site.research.Paper`)."""
     entries = [
         (f"{p.published}T00:00:00Z" if p.published else NO_DATE, p.title,
          f"research/{p.href}", p.summary)
@@ -175,7 +175,7 @@ def posts_feed(posts: Sequence, site_url: str, site_title: str) -> str:
     """The feed of the posts, each dated by its line in ``posts/README.md`` (#4650).
 
     Args:
-        posts: The posts, as :class:`~openinterpretability.builder.research.Paper`.
+        posts: The posts, as :class:`~labinacan.site.research.Paper`.
         site_url: The site's URL, with a trailing slash.
         site_title: The site's name, which starts the feed's title.
 
@@ -222,14 +222,17 @@ def added_times(folder: Path) -> dict[str, str]:
     return times
 
 
+NO_ROW = ("", "")  # a review missing from the index table: no status, so no summary
+
+
 def literature_feed(reviews: Sequence, folder: Path, site_url: str, site_title: str) -> str:
-    """The feed of the reviews (:class:`~openinterpretability.builder.literature_pages.Review`)."""
+    """The feed of the reviews (:class:`~labinacan.site.literature_pages.Review`)."""
     rows, times = review_rows(folder), added_times(folder)
     entries = []
     for review in reviews:
         if review.name in NOT_REVIEWS:
             continue
-        status, why = rows.get(review.name, ("", ""))
+        status, why = rows.get(review.name, NO_ROW)
         summary = f"{status.capitalize()}: {why}" if status else ""
         entries.append((times.get(review.name, NO_DATE), review.title, review.href, summary))
     return _feed(f"{site_title}: literature reviews", LITERATURE_FEED, site_url, entries)
