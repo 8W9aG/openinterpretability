@@ -18,6 +18,14 @@ gh release view --json tagName,publishedAt --jq '"\(.tagName) \(.publishedAt)"'
 date -u +%Y-%m-%dT%H:%M:%SZ
 ```
 
+If 24 hours have passed, claim the release before anything else, so that only one agent cuts it (#6725):
+
+```bash
+python3 scripts/issue_state.py --claim-release <the last tag>
+```
+
+Exit 3 means another agent has claimed it: stop, and work issues. The claim branch is `claim/release-after-<the last tag>`, so the next release has a new one. If a claim is over a day old and no release PR is open, the agent that held it has stopped. Ask the maintainer: don't remove another agent's claim.
+
 If less than 24 hours have passed, stop and say when the next release may go out. Until then, keep working issues from the open milestone (`work-an-issue`). Don't skip or postpone an issue because the release might come due while you work on it. If the 24 hours pass during an issue, finish that issue and merge its PR first, then release. When the milestone has no eligible issue left, add more. Choose eligible issues from Linear by priority, across research, engineering, the site and docs. Give each one the milestone and the `release: <version>` label.
 
 ## Before the release
@@ -83,7 +91,7 @@ Do these seven steps first, in order. Each fix goes in its own PR, which merges 
 
 ## Procedure
 
-1. **Start from a fresh `origin/main` on a release branch.** Work in the main checkout, not a worktree. Pick the next version with the `semantic-versioning` skill, unless the user names one. It reads the fragments and the changes since the last tag, and finds the breaking changes. It gives the version with its reasons, which go in the release PR.
+1. **Start from a fresh `origin/main` on a release branch.** Work in this agent's own checkout, a clone or worktree that no other agent uses (`docs/development.md`, *Several agents at once*). Pick the next version with the `semantic-versioning` skill, unless the user names one. It reads the fragments and the changes since the last tag, and finds the breaking changes. It gives the version with its reasons, which go in the release PR.
    ```bash
    git fetch origin --tags && git switch -c release/<version> origin/main
    ```
