@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from itertools import takewhile
+from operator import eq
 
 from pydantic import BaseModel, Field
 
@@ -267,9 +269,9 @@ def repeated_runs(ids: Sequence[int]) -> list[tuple[int, int]]:
     match = [0] * len(ids)
     for j in range(len(ids)):
         for i in range(j):
-            k = 0
-            while k <= i and ids[i - k] == ids[j - k]:
-                k += 1
+            # The length of the common run that ends at i and at j. Read backwards from i and
+            # j, it stops at the first pair that differs, or at the start of ids.
+            k = sum(takewhile(bool, map(eq, ids[i::-1], ids[j::-1])))
             match[j] = max(match[j], k)
     return [
         (j - match[j] + 1, j + 1)

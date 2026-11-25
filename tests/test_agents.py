@@ -285,6 +285,9 @@ def test_review_verifies_accurate_hypothesis(ident, toy_runner, draft):
     kinds = {r.kind for r in verdict.adversarial_test_results}
     assert {"counterfactual", "lookahead_consistency"} <= kinds
     assert verdict.timestamp.tzinfo is not None
+    assert verdict.wiring is not None  # measured by default, reported and not gated
+    unwired = evaluate_submission(sub, toy_runner, probes, "anthropic/reviewer", SMALL, wire=False)
+    assert unwired.wiring is None and unwired.status == verdict.status
 
 
 def test_review_rejects_wrong_hypothesis(ident, toy_runner, draft):

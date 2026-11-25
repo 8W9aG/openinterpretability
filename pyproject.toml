@@ -333,4 +333,12 @@ pytest_add_cli_args_test_selection = [
     "tests/test_planner_claims.py",
     "tests/test_planner_models.py",
     "tests/test_draw_steps.py",
+    "tests/test_agents.py",
+    "tests/test_fence.py",
+    "tests/test_probe_hints.py",
+    "tests/test_length_rule.py",
+    "tests/test_annotations.py",
+    "tests/test_prior_art.py",
+    "tests/test_inverse_claims.py",
+    "tests/test_explanation_scores.py",
 ]
