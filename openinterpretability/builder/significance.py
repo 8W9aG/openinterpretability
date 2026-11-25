@@ -28,8 +28,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from openinterpretability.builder.disk_memo import DiskMemo
+from labinacan.site.disk_memo import DiskMemo
 from openinterpretability.core import stats
+from openinterpretability.core.cache_dirs import build_cache
 from openinterpretability.core.schemas import AuditRecord, ReviewPolicy
 from openinterpretability.core.stats import EffectiveCounts, effective_counts, p_balanced_above
 
@@ -88,7 +89,7 @@ def significance(record: AuditRecord) -> Significance:
 
 # p_balanced_above samples 4,000 draws per record, so its results are kept on disk. The
 # version is the code that computes them: a change to it starts a new memo.
-P_USEFUL = DiskMemo("p-useful", Path(stats.__file__).read_bytes())
+P_USEFUL = DiskMemo("p-useful", Path(stats.__file__).read_bytes(), build_cache)
 
 
 def _p_useful(negatives: EffectiveCounts, holdouts: EffectiveCounts, threshold: float) -> float:
