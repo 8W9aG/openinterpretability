@@ -1,7 +1,7 @@
 """The training conditions of scripts/train_resting.py, and the sizes they share.
 
-Each condition changes one thing about the training of a small GPT-2, or a few things
-that Pythia's training does (papers/why-neurons-rest/README.md).
+Each condition changes one thing about how a small GPT-2 trains. The Pythia conditions
+can change several. The paper is papers/why-neurons-rest/README.md.
 """
 
 from __future__ import annotations
