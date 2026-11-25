@@ -15,18 +15,27 @@ there is one, so the run can gate a pull request. A mutant that changes nothing 
 see is recorded on its line with mutmut's pragma and the reason:
 ``# pragma: no mutate, equivalent: <why>``.
 
+``--runs N`` repeats the run N times, each in its own test order (``mutation_runs.py``,
+#6359). ``make mutation RUNS=5`` installs pytest-randomly for the runs.
+
     uv run python scripts/mutation.py --base origin/main
     uv run python scripts/mutation.py --base origin/main show <mutant>
+    uv run --with pytest-randomly python scripts/mutation.py --runs 5
 """
 
 from __future__ import annotations
 
 import ast
+import contextlib
+import io
 import random
 import re
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mutation_runs import repeat  # noqa: E402  (a script beside this one)
 
 PACKAGES = ("openinterpretability", "labinacan")  # labinacan: the template part (#6628)
 FAILING = ("survived", "no tests", "timeout", "suspicious")
@@ -330,11 +339,31 @@ def override(only_mutate: list[str], selection: list[str], also_copy: list[str])
         selection: The test files to run.
         also_copy: The paths that mutmut copies beside the package and the tests.
     """
+    _override({"only_mutate": only_mutate, "pytest_add_cli_args_test_selection": selection,
+               "also_copy": also_copy})  # fmt: skip
+
+
+def order(seed: int) -> None:
+    """Make mutmut run the tests in the order that pytest-randomly gives for ``seed``.
+
+    Args:
+        seed: The value of ``--randomly-seed``.
+    """
+    from mutmut import configuration
+
+    args = configuration._config_reader()("pytest_add_cli_args", [])
+    _override({"pytest_add_cli_args": [*args, "-p", "randomly", f"--randomly-seed={seed}"]})
+
+
+def _override(values: dict) -> None:
+    """Make mutmut read the keys of ``values`` from here, and every other key from the config.
+
+    Args:
+        values: ``{config key: value}``.
+    """
     from mutmut import configuration
 
     reader = configuration._config_reader
-    values = {"only_mutate": only_mutate, "pytest_add_cli_args_test_selection": selection,
-              "also_copy": also_copy}  # fmt: skip
 
     def patched():
         read = reader()
@@ -361,24 +390,44 @@ def failing(results: str) -> list[str]:
             if line.strip().rpartition(": ")[2] in FAILING]  # fmt: skip
 
 
+def _options(argv: list[str]) -> tuple[dict[str, str], list[str]]:
+    """The leading ``--base``, ``--runs`` and ``--order-seed`` options, and the rest.
+
+    Args:
+        argv: The command line.
+
+    Returns:
+        ``({option: value}, the mutmut command)``.
+
+    Examples:
+        >>> _options(["--runs", "5", "--base", "main", "show", "m"])
+        ({'--runs': '5', '--base': 'main'}, ['show', 'm'])
+    """
+    options = {}
+    while argv[:1] and argv[0] in ("--base", "--runs", "--order-seed"):
+        options[argv[0]], argv = argv[1], argv[2:]
+    return options, argv
+
+
 def main(argv: list[str]) -> int:
     """Run mutmut on the changed files, or on the verdict code, and report.
 
     Args:
-        argv: ``[--base <ref>] [<mutmut command>...]``. With a mutmut command, such as
-            ``show <mutant>``, the script runs that command under the same selection.
+        argv: ``[--base <ref>] [--runs <n> | --order-seed <k>] [<mutmut command>...]``.
+            With a mutmut command, such as ``show <mutant>``, the script runs that command
+            under the same selection. ``--runs`` runs ``mutation_runs.repeat``.
+            ``--order-seed`` sets one run's test order.
 
     Returns:
         The exit status: 1 when a mutant survives or no test reaches it, else 0.
     """
-    import contextlib
-    import io
-
+    options, command = _options(argv)
+    base = options.get("--base")
+    if "--runs" in options:
+        return repeat(int(options["--runs"]), base, Path(__file__), FAILING)
     from mutmut.__main__ import cli
 
-    command = argv
-    if argv[:1] == ["--base"]:
-        base, command = argv[1], argv[2:]
+    if base is not None:
         paths = changed_files(base)
         if not paths:
             print(f"No package file changes against {base}: nothing to mutate.")
@@ -388,11 +437,13 @@ def main(argv: list[str]) -> int:
             print(f"Mutating {len(paths)} files with {len(selection)} test files:", *paths,
                   sep="\n  ")  # fmt: skip
         override(paths, selection, copied())
+    if "--order-seed" in options:
+        order(int(options["--order-seed"]))
     if command:
         cli(command, standalone_mode=False)
         return 0
     run = ["run"]
-    if argv[:1] == ["--base"]:
+    if base is not None:
         names, total = selected(paths, base)
         if not names:
             print("No mutant in the changed functions: nothing to run.")

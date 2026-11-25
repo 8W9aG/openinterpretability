@@ -65,14 +65,16 @@ from claims import (  # noqa: E402
     unclaim,
 )
 
-REPO = "8W9aG/openinterpretability"
-TEAM_KEY = "OPE"
+from labinacan.config import config  # noqa: E402  (claims points it at this repository)
+
+REPO = config().repo
+TEAM_KEY = config().linear_team
 LINEAR_API = "https://api.linear.app/graphql"
 DONE = "Done"
 # The state of an issue that shipped in a published release.
 RELEASED = "Released"
 STATES = ("Todo", "In Progress", "In Review", DONE, RELEASED)
-MAINTAINER = "8W9aG"
+MAINTAINER = config().maintainer
 # Bots whose issues an agent may work on. CodeQL files code-scanning issues as the
 # GitHub Advanced Security app.
 TRUSTED_BOTS = ("dependabot[bot]", "github-advanced-security[bot]")

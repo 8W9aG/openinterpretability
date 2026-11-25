@@ -44,8 +44,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import issue_state  # noqa: E402
 
-REPO = "8W9aG/openinterpretability"
-ROADMAP_OWNER = "8W9aG"
+REPO = issue_state.REPO
+ROADMAP_OWNER = issue_state.MAINTAINER
 ROADMAP_NUMBER = 2
 LINEAR_API = "https://api.linear.app/graphql"
 PRIORITY_LABEL = "priority: "
@@ -364,8 +364,8 @@ LINEAR_RELATIONS = """query($after: String) { issues(first: 100, after: $after) 
   pageInfo { hasNextPage endCursor }
   nodes { id attachments { nodes { url sourceType } }
     relations { nodes { type relatedIssue { id } } } } } }"""
-GITHUB_DEPENDENCIES = """query($after: String) { repository(owner: "8W9aG",
-  name: "openinterpretability") { issues(first: 100, after: $after) {
+GITHUB_DEPENDENCIES = """query($after: String, $owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) { issues(first: 100, after: $after) {
   pageInfo { hasNextPage endCursor }
   nodes { id url blockedBy(first: 50) { nodes { url } } } } } }"""
 RELATE = """mutation($a: String!, $b: String!) { issueRelationCreate(
@@ -405,7 +405,9 @@ def github_dependencies() -> tuple[dict[str, str], Blockers]:
     """Each issue's GitHub node id by URL, and GitHub's blockers of each issue."""
     ids, out, after = {}, {}, ""
     while True:
-        args = ["api", "graphql", "-f", f"query={GITHUB_DEPENDENCIES}"]
+        owner, name = REPO.split("/")
+        args = ["api", "graphql", "-f", f"query={GITHUB_DEPENDENCIES}",
+                "-f", f"owner={owner}", "-f", f"name={name}"]  # fmt: skip
         page = json.loads(gh(*args, *(["-f", f"after={after}"] if after else [])))
         issues = page["data"]["repository"]["issues"]
         for n in issues["nodes"]:

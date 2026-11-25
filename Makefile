@@ -33,13 +33,19 @@ coverage:
 # the package files that the branch changes and runs the tests that import them (#5856).
 # It runs only the mutants in the changed functions, at most 100 of them (#5857).
 # Without BASE, it mutates the verdict code of [tool.mutmut] in pyproject.toml (#5763), in
-# about 5 minutes. It fails when a mutant survives or no test reaches it. CI runs it with BASE
+# about 2 minutes. It fails when a mutant survives or no test reaches it. CI runs it with BASE
 # on PRs from authors other than the maintainer (#5857). mutmut is
 # pinned in the dev group (pyproject.toml). `mutmut show <name>` gives a mutant's diff.
+# RUNS=5 runs it 5 times, each in its own test order (pytest-randomly seeds 1 to 5), and fails
+# when a mutant's result changes between runs (#6359), in about 25 minutes. The plugin is
+# pinned here only.
 BASE ?=
+RUNS ?=
+ORDER_PLUGIN := pytest-randomly==3.16.0
 mutation:
 	rm -rf mutants
-	uv run python scripts/mutation.py $(if $(BASE),--base $(BASE))
+	uv run $(if $(RUNS),--with $(ORDER_PLUGIN)) python scripts/mutation.py \
+		$(if $(BASE),--base $(BASE)) $(if $(RUNS),--runs $(RUNS))
 
 # Wall time, CPU time and peak memory of fixed workloads, checked against
 # docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.

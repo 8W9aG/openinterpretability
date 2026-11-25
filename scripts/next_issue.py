@@ -275,13 +275,16 @@ def unstarted(issues: list[dict], states: dict) -> list[dict]:
     ]
 
 
-BLOCKERS = """query($n: Int!) { repository(owner: "8W9aG", name: "openinterpretability") {
+BLOCKERS = """query($n: Int!, $owner: String!, $name: String!) {
+  repository(owner: $owner, name: $name) {
   issue(number: $n) { blockedBy(first: 50) { nodes { number state } } } } }"""
 
 
 def open_blockers(number: str) -> list[int]:
     """The open issues that block issue ``number`` (GitHub's "blocked by")."""
-    data = gh_json("api", "graphql", "-f", f"query={BLOCKERS}", "-F", f"n={number}")
+    owner, name = issue_state.REPO.split("/")
+    data = gh_json("api", "graphql", "-f", f"query={BLOCKERS}", "-F", f"n={number}",
+                   "-f", f"owner={owner}", "-f", f"name={name}")  # fmt: skip
     nodes = data["data"]["repository"]["issue"]["blockedBy"]["nodes"]
     return [n["number"] for n in nodes if n["state"] == "OPEN"]
 

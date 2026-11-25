@@ -19,7 +19,9 @@ import subprocess
 from functools import cache
 from pathlib import Path
 
-CHROME_ENV = "OPENINTERPRETABILITY_CHROME"
+from labinacan.config import env
+
+CHROME_ENV = env("CHROME")
 # Where Chrome or Chromium usually is: macOS, then Linux (GitHub's runners have google-chrome).
 CHROME_PATHS = (
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -51,7 +53,7 @@ TIMEOUT_S = 120
 
 
 def chrome() -> str | None:
-    """The Chrome to print with: ``$OPENINTERPRETABILITY_CHROME``, else a usual path, else None."""
+    """The Chrome to print with: :data:`CHROME_ENV`, else a usual path, else None."""
     if named := os.environ.get(CHROME_ENV, "").strip():
         return named if Path(named).exists() or shutil.which(named) else None
     for path in CHROME_PATHS:

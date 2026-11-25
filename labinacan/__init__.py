@@ -2,6 +2,6 @@
 
 A project builds its site, papers, posts and literature reviews with this package, and
 keeps its own research code beside it (#6207). This repository is one such project.
-``labinacan/`` sits at the path it has in the template repository, ``8W9aG/labinacan``, so
-that this repository can merge from it. It imports nothing from the project around it.
+``labinacan/`` sits at the path it has in labinacan's own repository, so that this
+repository can merge from it. It imports nothing from the project around it.
 """

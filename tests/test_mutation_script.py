@@ -253,3 +253,83 @@ def test_a_file_moved_with_a_new_module_at_its_old_path_counts_only_its_edits(re
         "openinterpretability/core/stats.py"
     ]
     assert m.changed_lines("main", "labinacan/stats.py", repo) == {4}
+
+
+def test_an_order_seed_adds_pytest_randomly_to_the_test_arguments(monkeypatch):
+    calls: list = []
+    configuration = _fake_mutmut(monkeypatch, "", calls)
+    configuration._config_reader = lambda: (
+        lambda key, default: ["-q"] if key == "pytest_add_cli_args" else f"file:{key}"
+    )
+    script = _script()
+    assert script.main(["--order-seed", "3"]) == 0
+    read = configuration._config_reader()
+    assert read("pytest_add_cli_args", []) == ["-q", "-p", "randomly", "--randomly-seed=3"]
+    assert read("only_mutate", []) == "file:only_mutate"
+    assert calls[-2:] == [["run"], ["results"]]
+
+
+def test_main_with_runs_repeats_and_runs_no_mutmut_itself(monkeypatch):
+    script = _script()
+    seen = []
+    monkeypatch.setattr(script, "repeat", lambda *args: seen.append(args) or 7)
+    assert script.main(["--base", "main", "--runs", "5"]) == 7
+    assert script.main(["--runs", "2"]) == 7
+    path = Path(script.__file__)
+    assert seen == [(5, "main", path, script.FAILING), (2, None, path, script.FAILING)]
+
+
+def _repeat(monkeypatch, tmp_path, results):
+    """Run :func:`repeat` with each run's ``mutmut results --all true`` taken from ``results``."""
+    script = _script()
+    commands = []
+
+    def run(command, **kwargs):
+        assert command[1] == "m.py"
+        commands.append((command[2:], kwargs["cwd"]))
+        seed = int(command[command.index("--order-seed") + 1])
+        assert not (tmp_path / "mutants").exists()  # each run starts clean
+        return types.SimpleNamespace(stdout=results[seed - 1] if "results" in command else "")
+
+    monkeypatch.setattr(script.subprocess, "run", run)
+    (tmp_path / "mutants").mkdir()
+    status = script.repeat(len(results), "main", Path("m.py"), script.FAILING, tmp_path)
+    return status, commands
+
+
+def test_repeated_runs_with_the_same_results_pass(monkeypatch, tmp_path, capsys):
+    same = "    a__mutmut_1: killed\n    a__mutmut_2: killed\n"
+    status, commands = _repeat(monkeypatch, tmp_path, [same, same])
+    assert status == 0
+    assert [c for c, _ in commands] == [
+        ["--base", "main", "--order-seed", "1"],
+        ["--base", "main", "--order-seed", "1", "results", "--all", "true"],
+        ["--base", "main", "--order-seed", "2"],
+        ["--base", "main", "--order-seed", "2", "results", "--all", "true"],
+    ]
+    assert all(cwd == tmp_path for _, cwd in commands)
+    out = capsys.readouterr().out
+    assert "Run 1 (--randomly-seed=1): 2 mutants, 2 killed" in out
+    assert "No mutant failed in 2 runs." in out
+    assert "No mutant changed its result between runs." in out
+
+
+def test_a_mutant_that_survives_one_run_is_reported_and_fails(monkeypatch, tmp_path, capsys):
+    killed = "    a__mutmut_1: killed\n    a__mutmut_2: killed\n"
+    survived = "    a__mutmut_1: survived\n    a__mutmut_2: killed\n"
+    status, _ = _repeat(monkeypatch, tmp_path, [killed, survived])
+    out = capsys.readouterr().out
+    assert status == 1
+    assert "run 2: a__mutmut_1: survived" in out and "a__mutmut_1: killed, survived" in out
+    assert "Run 2 (--randomly-seed=2): 2 mutants, 1 killed, 1 survived" in out
+
+
+def test_a_run_with_no_results_fails(monkeypatch, tmp_path, capsys):
+    status, _ = _repeat(monkeypatch, tmp_path, ["    a__mutmut_1: killed\n", ""])
+    out = capsys.readouterr().out
+    assert status == 1 and "no results" in out and "a__mutmut_1: killed, missing" in out
+
+
+def test_a_failing_mutant_in_every_run_fails_although_it_never_changes(monkeypatch, tmp_path):
+    timeout = "    a__mutmut_1: timeout\n"
+    assert _repeat(monkeypatch, tmp_path, [timeout, timeout])[0] == 1
