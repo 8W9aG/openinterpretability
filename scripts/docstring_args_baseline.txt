@@ -219,11 +219,8 @@ labinacan/site/cluster_map.py::hull
 labinacan/site/cluster_map.py::hull.turn
 labinacan/site/cluster_map.py::region_outline
 openinterpretability/builder/compiler.py::load_records
-openinterpretability/builder/compiler.py::_pct_fine
-openinterpretability/builder/compiler.py::_root_for
 openinterpretability/builder/compiler.py::explanation_view
 openinterpretability/builder/compiler.py::explanation_view.window
-openinterpretability/builder/compiler.py::_clean_owned_paths
 openinterpretability/builder/compiler.py::_experiment_view
 openinterpretability/builder/compiler.py::pole_scans
 openinterpretability/builder/compiler.py::compile_site
@@ -231,8 +228,6 @@ openinterpretability/builder/compiler.py::_true_text_stats
 openinterpretability/builder/compiler.py::_render_agents
 openinterpretability/builder/compiler.py::_render_index
 openinterpretability/builder/compiler.py::_site_context
-openinterpretability/builder/compiler.py::_write_redirect
-openinterpretability/builder/compiler.py::_Renderer.__call__
 openinterpretability/builder/compiler.py::_render_model
 openinterpretability/builder/compiler.py::_render_model.unit_page
 openinterpretability/builder/compiler.py::_render_model._unit_pages

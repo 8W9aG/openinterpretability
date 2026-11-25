@@ -7,8 +7,6 @@ Each unit page lists all of its experiments, null results too, most conclusive f
 
 from __future__ import annotations
 
-import math
-import shutil
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -18,9 +16,9 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 from pydantic import ValidationError
 
 from labinacan.sensitive import is_offensive
-from labinacan.site.contents import add_contents
 from labinacan.site.parallel import in_background, render_in_parallel
 from labinacan.site.pii import save_spans, scrub
+from labinacan.site.render import Renderer, clean_owned, number_filters, write_redirect
 from openinterpretability import __version__
 from openinterpretability import sisters as sister_lib
 from openinterpretability.builder import charts, palette, pieces, statuses
@@ -105,12 +103,7 @@ def _environment(grid_scale: int = 1) -> Environment:
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    env.filters["pct"] = lambda v: "—" if v is None else f"{100 * v:.0f}%"
-    env.filters["pct_fine"] = _pct_fine
-    env.filters["num"] = lambda v, d=3: "—" if v is None else f"{v:.{d}f}"
-    env.filters["thousands"] = lambda v: "?" if v is None else f"{v:,}"
-    # p-values below 0.001 would round to 0.000, so show them in scientific notation.
-    env.filters["pval"] = lambda v: "—" if v is None else f"{v:.3f}" if v >= 0.001 else f"{v:.1e}"
+    number_filters(env)  # pct, pct_fine, num, thousands and pval
     env.globals["roles"] = ROLES
     env.globals["charts"] = charts  # page-level charts: the layer map
     env.globals["pieces"] = pieces  # the pieces bars of a model and of a layer
@@ -125,20 +118,6 @@ def _environment(grid_scale: int = 1) -> Environment:
     env.globals["heat_html"] = heat_html  # token heatmaps, built in Python for speed
     env.globals["values_rows"] = values_rows  # and the rows of their values tables
     return env
-
-
-def _pct_fine(v: float | None) -> str:
-    """A signed percentage with two significant figures, so 1 in 100k isn't shown as 0%."""
-    if v is None:
-        return "—"
-    if v == 0:
-        return "0%"
-    decimals = max(0, 1 - math.floor(math.log10(100 * abs(v))))
-    return f"{100 * v:.{decimals}f}%"
-
-
-def _root_for(rel_path: str) -> str:
-    return "../" * (len(Path(rel_path).parts) - 1)
 
 
 # Detection outcomes, the explanation's mistakes first.
@@ -195,15 +174,6 @@ def explanation_view(scores, scale: float) -> dict | None:
 # They are removed before each build so deleted records leave no stale pages.
 OWNED_PATHS = ("index.html", "about.html", "learned-baseline.html", "models", "agents", "users",
                "neurons", "research", "posts", "data", "pagefind")  # fmt: skip
-
-
-def _clean_owned_paths(output_dir: Path) -> None:
-    for name in OWNED_PATHS:
-        path = output_dir / name
-        if path.is_dir():
-            shutil.rmtree(path)
-        elif path.exists():
-            path.unlink()
 
 
 def _experiment_view(
@@ -325,7 +295,7 @@ def compile_site(
     ``coverage_rows`` (``builder.coverage.load_rows``) give each model page its coverage.
     """
     rows, output_dir = wiring_rows or {}, Path(output_dir)
-    _clean_owned_paths(output_dir)
+    clean_owned(output_dir, OWNED_PATHS)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     models = build_tree(records, errata, users, archive and archive.claims)
@@ -345,7 +315,7 @@ def compile_site(
 
     common = _site_context(site_title, corpus_sources, experiments, pending)
     common |= model_page_extras(coverage_rows or {}, explanations, circuits or {}, concept_map)
-    render = _Renderer(_environment(pieces.grid_scale(models)), output_dir, common, report, jobs)
+    render = Renderer(_environment(pieces.grid_scale(models)), output_dir, common, report, jobs)
     studied = {n.href for m in models for layer in m.layers for n in (*layer.pages, *layer.stopped)}
     by_unit = stops_by_unit((*draws, *stops))
     stats = stats_for_pages(render, stats_result(), explanations)  # the model pages use it
@@ -382,7 +352,7 @@ def _render_agents(render, experiments, output_dir, report) -> list:
     for agent in agents:
         render(agent.href, "agent.html", agent=agent)
     for old, new in legacy_redirects(agents).items():
-        _write_redirect(output_dir / old, Path(new).name, report)
+        write_redirect(output_dir / old, Path(new).name, report)
     return agents
 
 
@@ -418,40 +388,8 @@ def _site_context(site_title: str, corpus_sources: dict | None, experiments, pen
     }
 
 
-def _write_redirect(out: Path, target: str, report: BuildReport) -> None:
-    """A page that used to live at ``out`` and now lives at ``target`` (relative to it)."""
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(
-        f'<!doctype html><meta charset="utf-8"><title>Moved</title>'
-        f'<link rel="canonical" href="{target}"><meta name="robots" content="noindex">'
-        f'<meta http-equiv="refresh" content="0; url={target}">'
-        f'<p>This page moved to <a href="{target}">{target}</a>.</p>\n'
-    )
-    report.pages.append(out)
-
-
-@dataclass
-class _Renderer:
-    """Renders a template to a path under the output dir, with the site-wide context."""
-
-    env: Environment
-    output_dir: Path
-    common: dict
-    report: BuildReport
-    jobs: int = 1  # worker processes for the unit pages (labinacan/site/parallel.py)
-
-    def __call__(self, rel: str, template: str, **context) -> None:
-        out = self.output_dir / rel
-        out.parent.mkdir(parents=True, exist_ok=True)
-        page = self.env.get_template(template)
-        url = self.common["site_url"] + rel
-        html = page.render(**self.common, root=_root_for(rel), canonical=url, **context)
-        out.write_text(add_contents(html))  # ids on headings, and contents on a long page
-        self.report.pages.append(out)
-
-
 def _render_model(
-    render: _Renderer,
+    render: Renderer,
     model,
     rows: dict,
     studied: set,
