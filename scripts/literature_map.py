@@ -42,7 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from literature_map_io import MIN_COMPACT, plain_lead, queued, report  # noqa: E402, F401
 
 from labinacan.site.cluster_map import SLOTS  # noqa: E402
-from openinterpretability.builder.literature_pages import (  # noqa: E402
+from labinacan.site.literature_pages import (  # noqa: E402
     LITERATURE,
     MAP,
     map_text,

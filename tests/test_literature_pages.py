@@ -2,8 +2,8 @@
 
 import json
 
+from labinacan.site.literature_pages import load_reviews
 from openinterpretability.builder.compiler import compile_site
-from openinterpretability.builder.literature_pages import load_reviews
 
 REPO = "https://github.com/o/r"
 
@@ -51,7 +51,7 @@ def _mapped(tmp_path, sha=None):
     import hashlib
     import json
 
-    from openinterpretability.builder.literature_pages import MAP, map_text
+    from labinacan.site.literature_pages import MAP, map_text
 
     folder = tmp_path / "literature"
     folder.mkdir(parents=True)
@@ -68,8 +68,8 @@ def _mapped(tmp_path, sha=None):
 
 
 def test_the_map_places_reviews_whose_text_matches_and_lists_the_rest(tmp_path):
-    from openinterpretability.builder.literature_map_view import literature_map
-    from openinterpretability.builder.literature_pages import statuses
+    from labinacan.site.literature_map_view import literature_map
+    from labinacan.site.literature_pages import statuses
 
     folder = _mapped(tmp_path)
     assert statuses(folder) == {"a": "used", "b": "planned"}
@@ -82,13 +82,16 @@ def test_the_map_places_reviews_whose_text_matches_and_lists_the_rest(tmp_path):
 
 
 def test_the_index_draws_the_map_and_the_reviews_not_placed(tmp_path):
-    from openinterpretability.builder.literature_pages import render_reviews
+    from labinacan.site.literature_map_view import map_view
+    from labinacan.site.literature_pages import render_reviews
 
     folder, pages = _mapped(tmp_path), {}
     render_reviews(lambda href, template, **kw: pages.update({href: kw}),
                    load_reviews(REPO, folder), folder)  # fmt: skip
     index = pages["research/literature/index.html"]
     assert [p.name for p in index["points"]] == ["a"]
+    view = map_view(folder, index["points"])  # placed reviews draw the map's view
+    assert {key: index[key] for key in view} == view and view["callouts"]
     assert [r.name for r in index["missing"]] == ["b"]
     assert "points" not in pages["research/literature/a.html"]
 
@@ -96,7 +99,7 @@ def test_the_index_draws_the_map_and_the_reviews_not_placed(tmp_path):
 def test_callouts_and_badges_never_overlap():
     """Cards stack in the margins; badges overlap no badge and no card (#4577)."""
     from labinacan.site.cluster_map import overlaps
-    from openinterpretability.builder.literature_map_view import Point, badges, callouts
+    from labinacan.site.literature_map_view import Point, badges, callouts
 
     title = "A long title for one paper that wraps onto more than one line"
     near = [Point(n, title, "used", 300 + i, 300 + i, credit="A, B and C, 2026")
@@ -115,8 +118,8 @@ def test_callouts_and_badges_never_overlap():
 def test_the_repo_map_covers_every_review():
     # Run scripts/literature_map.py after adding or changing a review (#3294).
     from labinacan.site.cluster_map import overlaps
-    from openinterpretability.builder.literature_map_view import literature_map, map_view
-    from openinterpretability.builder.literature_pages import LITERATURE
+    from labinacan.site.literature_map_view import literature_map, map_view
+    from labinacan.site.literature_pages import LITERATURE
 
     points, missing = literature_map(LITERATURE, load_reviews(REPO, LITERATURE))
     assert missing == [], "run scripts/literature_map.py: " + ", ".join(r.name for r in missing)
@@ -128,7 +131,7 @@ def test_the_repo_map_covers_every_review():
 
 def test_the_repo_map_has_regions_neighbours_and_the_queue():
     """map.json's fields since #4577: named regions, each review's neighbours, the queue."""
-    from openinterpretability.builder.literature_pages import LITERATURE, MAP, sections
+    from labinacan.site.literature_pages import LITERATURE, MAP, sections
 
     data = json.loads((LITERATURE / MAP).read_text())
     regions = data["regions"]
@@ -144,9 +147,9 @@ def test_the_repo_map_has_regions_neighbours_and_the_queue():
 
 
 def test_index_rows_credits_and_queued_titles_are_redacted(tmp_path):
+    from labinacan.site.literature_map_view import map_view
+    from labinacan.site.literature_pages import credits, review_rows
     from labinacan.site.pii import REMOVED_TEXT
-    from openinterpretability.builder.literature_map_view import map_view
-    from openinterpretability.builder.literature_pages import credits, review_rows
 
     mail = "jane.doe@somemail.org"  # an address the site's redaction removes (test_pii.py)
     folder = tmp_path / "literature"
@@ -172,3 +175,20 @@ def test_a_review_without_a_level_1_title_takes_its_file_name(tmp_path):
     _, review = load_reviews(REPO, folder)
     assert review.title == "untitled"
     assert "<h2>Notes</h2>" in review.body
+
+
+def test_with_no_placed_review_the_index_gets_an_empty_map(tmp_path):
+    import json
+
+    from labinacan.site.literature_pages import MAP, render_reviews
+
+    folder, pages = _mapped(tmp_path, sha="0" * 64), {}  # every review changed since the map
+    data = json.loads((folder / MAP).read_text())
+    data["queued"] = [{"number": 9, "title": "Queued", "x": 0.4, "y": 0.4}]  # with no point
+    (folder / MAP).write_text(json.dumps(data))
+    render_reviews(lambda href, template, **kw: pages.update({href: (template, kw)}),
+                   load_reviews(REPO, folder), folder)  # fmt: skip
+    template, index = pages["research/literature/index.html"]
+    assert template == "literature.html" and index["points"] == []
+    assert (index["queued"], index["callouts"], index["badges"]) == ([], [], [])
+    assert index["called"] == set()

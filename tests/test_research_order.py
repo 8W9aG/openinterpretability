@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from openinterpretability.builder.research import load_papers
+from labinacan.site.research import load_papers
 
 
 def _paper(root: Path, slug: str) -> None:

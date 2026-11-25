@@ -20,8 +20,8 @@ import tempfile
 from importlib.metadata import metadata
 from pathlib import Path
 
+from labinacan.site.paper_pdf import chrome
 from openinterpretability import DISTRIBUTION
-from openinterpretability.builder.paper_pdf import chrome
 
 BRAND = Path(__file__).resolve().parents[1] / "openinterpretability" / "builder" / "brand"
 SIZES = {"mark-32.png": (32, 32), "og.png": (1200, 630)}

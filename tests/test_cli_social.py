@@ -3,10 +3,10 @@
 import pytest
 from click.testing import CliRunner
 
-from openinterpretability.builder.research_feeds import published_feed
+from labinacan.site.research_feeds import published_feed
+from labinacan.social import poster as x
+from labinacan.social import run as social
 from openinterpretability.cli import cli
-from openinterpretability.social import poster as x
-from openinterpretability.social import run as social
 from tests.test_social import SITE, _paper
 
 KEYS = {name: "k" for name in x.SECRETS}
