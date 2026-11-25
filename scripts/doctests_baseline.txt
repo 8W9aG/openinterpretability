@@ -60,6 +60,7 @@ openinterpretability/builder/registry_stats.py
 labinacan/site/research.py
 labinacan/site/research_feeds.py
 openinterpretability/builder/route_figures.py
+labinacan/site/sections.py
 openinterpretability/builder/sections.py
 openinterpretability/builder/significance.py
 openinterpretability/builder/sister_graph.py

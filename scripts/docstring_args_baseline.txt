@@ -452,7 +452,6 @@ openinterpretability/builder/route_figures.py::answer_figures
 openinterpretability/builder/route_figures.py::_ordered
 openinterpretability/builder/route_figures.py::route3d
 openinterpretability/builder/sections.py::with_explanations
-openinterpretability/builder/sections.py::_render_research
 openinterpretability/builder/significance.py::evidence_strength
 openinterpretability/builder/significance.py::significance
 openinterpretability/builder/significance.py::significance.counts
