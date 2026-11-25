@@ -50,13 +50,13 @@ def test_no_page_loads_the_tailwind_cdn():
     labinacan = Path(css.__file__).parent / "templates"  # #6628
     for page in [*templates.rglob("*.html"), *labinacan.rglob("*.html")]:
         assert "cdn.tailwindcss.com" not in page.read_text(), page
-    assert css.STYLESHEET in (templates / "base.html").read_text()
+    assert css.STYLESHEET in (labinacan / "site_base.html").read_text()  # the page frame (#6628)
 
 
 def test_search_loads_only_when_used():
     from pathlib import Path
 
-    base = (Path(palette.__file__).parent / "templates" / "base.html").read_text()
+    base = (Path(css.__file__).parent / "templates" / "site_base.html").read_text()
     assert '<script src="{{ root }}pagefind/pagefind-ui.js"' not in base  # not with every page
     assert 'id="search-stub"' in base and 'js.src = "{{ root }}pagefind/pagefind-ui.js"' in base
     assert "content-visibility: auto" in base  # long tables and maps are laid out near the screen
