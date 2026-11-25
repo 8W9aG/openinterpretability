@@ -1,8 +1,8 @@
 # Does Fisher importance predict which explanations survive instruction tuning?
 
-Elastic weight consolidation protects the weights with a high diagonal Fisher information, on the view that they matter most to what a network already does. This paper asks whether the same quantity tells which neurons keep their meaning when instruction tuning changes a language model. We read the diagonal Fisher of every MLP neuron of Qwen2.5-0.5B on 20,000 tokens of web text. We compared it with the stored outcome for its 311 VERIFIED neuron poles: whether each explanation still passes its own adversarial probes on Qwen2.5-0.5B-Instruct (252 keep, 59 fail). The Fisher does not predict the outcome. Its within-layer percentile separates the poles that keep from those that fail with an AUC of 0.475, against 0.523 under a null that shuffles the outcomes within each layer (p = 0.21). The empirical Fisher, the input and output weights apart, and probes inside the chat template give the same null result. The Fisher of a neuron's output weights does go with a smaller change of its activation (Spearman $\rho$ = −0.33, p = 0.0001), but the neuron's activation scale explains that relation: with the scale taken out, $\rho$ = −0.03 (p = 0.51). At a fixed activation scale, a higher Fisher of the input weights goes with a *larger* change ($\rho$ = +0.22, p = 0.0001), which is the opposite of the protection that elastic weight consolidation assumes. A weight-importance score from the base model is therefore not a guide to which explanations an instruct model keeps.
+Elastic weight consolidation protects the weights with a high diagonal Fisher information, on the view that they matter most to what a network already does. This paper asks whether the same quantity tells which neurons keep their meaning when instruction tuning changes a language model. We read the diagonal Fisher of every MLP neuron of Qwen2.5-0.5B on 20,000 tokens of web text. We compared it with the stored outcome for its 311 VERIFIED neuron poles: whether each explanation still passes its own adversarial probes on Qwen2.5-0.5B-Instruct (252 keep, 59 fail). The Fisher does not predict the outcome. Its within-layer percentile separates the poles that keep from those that fail with an AUC of 0.475, against 0.523 under a null that shuffles the outcomes within each layer (p = 0.21). The empirical Fisher, the input and output weights apart, and probes inside the chat template give the same null result. The Fisher of a neuron's output weights does go with a smaller change of its activation (Spearman $\rho$ = −0.33, p = 0.0001), but the neuron's activation scale explains that relation: with the scale taken out, $\rho$ = −0.03 (p = 0.51). At a fixed activation scale, a higher Fisher of the input weights goes with a *larger* change ($\rho$ = +0.22, p = 0.0001), which is the opposite of the protection that elastic weight consolidation assumes. A weight-importance score from the base model is therefore not a guide to which explanations an instruct model keeps. An output-side measure fails too. The base-to-instruct KL at each pole's own probes and top contexts gives AUROCs of 0.49 to 0.54 on Qwen2.5-0.5B.
 
-**Status:** Preprint. Work left: #5141 (the output KL at the probes), #6128 (the pole-effects estimate), #6139 (a replication of the input-Fisher relation).
+**Status:** Preprint. Work left: #6128 (the pole-effects estimate), #6139 (a replication of the input-Fisher relation).
 
 ## Introduction
 
@@ -104,6 +104,35 @@ The input Fisher behaves differently. Alone it relates to nothing, but with the 
 | Empirical Fisher, output | −0.298 | −0.050 | 0.0001 | +0.038 | −0.024 | 0.042 |
 | Activation RMS | −0.346 | −0.045 | 0.0001 | | | |
 
+## Does the output KL at a pole's own texts predict it?
+
+The Fisher and the weight change are read in weight space. An output-side measure reads what instruction tuning does to the model's predictions (#5141). Shenfeld et al. (2026) find that the forward KL on the new task's inputs predicts forgetting best on their toy task. Here the unit is one pole, so the KL is read at the pole's own texts.
+
+**Method.** For each VERIFIED pole of Qwen2.5-0.5B and Qwen2.5-1.5B, we take two sets of texts. Its probes are the hard negatives and positive holdouts of its verdict. Its top contexts are its scan's top examples. At each position of each text, we read the next-token $\mathrm{KL}(\text{instruct} \,\|\, \text{base})$, and average it over the text and then over the pole's texts. A text keeps its first 256 tokens. We read each text twice: alone, and as one user turn of the instruct model's chat template, counting only the turn's positions. So each pole has four measures. Each is tested as an AUROC for a failure, plain measures against the plain-text outcomes and chat measures against the chat outcomes. The null shuffles the outcomes within each layer, as for the weight change. The rows are in `docs/analyses/base-instruct-kl.jsonl`.
+
+![Eight AUROCs, one per model, measure and mode, against chance at 0.5](media/kl.svg)
+
+**Figure 4.** The AUROC of each output-KL measure for a failure, one row per model, measure and mode. The dashed line is chance, and each row gives its within-layer shuffle p.
+
+**Table 3.** The output-KL tests. Fail counts the poles whose explanation fails on the instruct model.
+
+| Model | Measure | Mode | Poles | Fail | AUROC | Shuffle p |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| Qwen2.5-0.5B | probes | plain | 304 | 57 | 0.490 | 0.258 |
+| Qwen2.5-0.5B | probes | chat | 305 | 85 | 0.517 | 0.163 |
+| Qwen2.5-0.5B | top contexts | plain | 304 | 57 | 0.544 | 0.088 |
+| Qwen2.5-0.5B | top contexts | chat | 305 | 85 | 0.532 | 0.145 |
+| Qwen2.5-1.5B | probes | plain | 42 | 5 | 0.584 | 0.657 |
+| Qwen2.5-1.5B | probes | chat | 43 | 13 | 0.733 | 0.026 |
+| Qwen2.5-1.5B | top contexts | plain | 42 | 5 | 0.605 | 0.681 |
+| Qwen2.5-1.5B | top contexts | chat | 43 | 13 | 0.641 | 0.061 |
+
+**On Qwen2.5-0.5B, it does not.** The four AUROCs lie between 0.49 and 0.54 (Figure 4, Table 3). None reaches p < 0.05 under the within-layer shuffle. The outcomes are the Fisher test's, for the 304 poles that still stand VERIFIED. So the null holds where the test has its power.
+
+**On Qwen2.5-1.5B, one measure reaches p < 0.05, from 13 failures.** The KL at the probes inside the chat template gives an AUROC of 0.73 (p = 0.026). The KL at the top contexts in the template gives 0.64 (p = 0.061). This is one of eight tests. A Bonferroni correction puts it at about 0.21, and the same measure on Qwen2.5-0.5B gives 0.52. We read it as a lead for a larger sample, not a result.
+
+So an output-side measure fails like the weight-side ones. Where instruction tuning changes a pole's predictions most is not where its explanation fails.
+
 ## Discussion
 
 The main result is a null. A weight-importance score of the base model, in either of its usual forms, does not tell which VERIFIED explanations keep on the instruct model. The registry's VERIFIED poles keep at a high rate, 81%, and the failures are spread across the range of importance. An interpreter who wants to know which explanations to re-audit after instruction tuning gains nothing from the base model's Fisher. The earlier analysis's finding remains the best guide: a failure is most likely where the base readings sat close to a gate.
@@ -123,11 +152,13 @@ These results agree with the earlier analysis's observation that the correlation
 - **The Fisher of a neuron's weights, not of its explanation.** A pole's explanation concerns a narrow set of inputs. The Fisher sums over every input in the sample. A Fisher read on each pole's own probes could relate more closely to whether those probes still pass.
 - **Few failures.** 59 poles fail. The central 95% of the null runs from 0.447 to 0.600, so only an AUC about 0.08 or more from the null's centre would reach p < 0.05. A smaller effect could be missed.
 - **Many tests.** The analysis ran 53 tests. We report the input Fisher's partial relation because it survives a Bonferroni correction for all of them, but we found it after the plan, and it needs a replication.
+- **Few 1.5B poles.** The KL test on Qwen2.5-1.5B has 42 or 43 poles, with 5 to 13 failures. Its one hit could be chance, and a test of its own needs more poles.
+- **The KL at the texts, not at the pole.** The KL reads the whole model's predictions on a pole's texts. Much of it may come from other neurons, so a pole-level effect could be diluted.
 - **One tuning run.** The instruct model is one run of a pipeline that includes supervised tuning and reinforcement learning. A plain supervised run could move neurons in another way.
 
 ## Conclusion
 
-The diagonal Fisher of a neuron in Qwen2.5-0.5B does not predict whether its VERIFIED explanation keeps on Qwen2.5-0.5B-Instruct. The output-weight Fisher's apparent protection of neurons is the activation scale, and at a fixed scale, a high input-weight Fisher goes with more change, not less. Weight importance from the base model is not a useful guide to which explanations to re-audit after instruction tuning.
+The diagonal Fisher of a neuron in Qwen2.5-0.5B does not predict whether its VERIFIED explanation keeps on Qwen2.5-0.5B-Instruct. The output-weight Fisher's apparent protection of neurons is the activation scale, and at a fixed scale, a high input-weight Fisher goes with more change, not less. Weight importance from the base model is not a useful guide to which explanations to re-audit after instruction tuning. Neither is the change of the model's outputs at a pole's own texts.
 
 ## References
 
@@ -149,6 +180,12 @@ The outcomes are the stored rows of `docs/analyses/base-instruct-0.5b.jsonl` and
     uv run python scripts/fisher_keep.py --device cpu --cache fisher.pt \
         --out papers/fisher-keep/results.jsonl
     uv run python scripts/paper_figures.py
+
+The KL test (#5141) runs both pairs on MPS in about 80 minutes. Its `test` rows are copied into `results.jsonl` as `kl_test` rows:
+
+    uv run python scripts/base_instruct_kl.py --device mps \
+        --out docs/analyses/base-instruct-kl.jsonl
+    python3 -c 'import json; [print(json.dumps({**r, "table": "kl_test"})) for r in map(json.loads, open("docs/analyses/base-instruct-kl.jsonl")) if r["table"] == "test"]' >> papers/fisher-keep/results.jsonl
 
 `results.jsonl` holds a `summary` row and one `test` row for each test. The primary test's row holds its 10,000 null values in shuffle order. There is one `layer` row for each layer with its median Fisher, and one `pole` row for each pole with its Fisher, its RMS and their percentiles.
 

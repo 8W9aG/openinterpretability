@@ -156,3 +156,7 @@ The chat template matters more than the tuning. Inside it, the same neurons fire
 - **The weight change is one test.** Five measures, one null, and the 1.5B pair has only 5 failures.
 - **CKA and swaps on one pair.** The CKA and the block swaps cover only Qwen2.5-0.5B, on one sample, and one null seed. The swaps read correlations, not the probes' gates.
 - **Not a crosscoder.** This compares neuron to neuron at one index. A learned shared basis, the crosscoder of Lindsey et al. (2024), could also find features that moved between neurons. That needs training, and it is a follow-up.
+
+## The output KL at each pole's texts
+
+`scripts/base_instruct_kl.py` reads the next-token KL(instruct ‖ base) at each VERIFIED pole's probes and top contexts. It reads them on plain text and inside the chat template, for both Qwen2.5 pairs (#5141). It tests each of the four measures as an AUROC for a failure, against the keep outcomes above, with a within-layer shuffle null. On Qwen2.5-0.5B the AUROCs lie between 0.49 and 0.54. On Qwen2.5-1.5B, the KL at the probes inside the template gives 0.73 (p = 0.026), from 13 failures. That is one of eight tests, and it doesn't replicate on 0.5B. The rows are in `base-instruct-kl.jsonl`, and `papers/fisher-keep/` reports them.
