@@ -316,7 +316,7 @@ def render_explanations(
         pages: The unit pages that the build writes. A unit with no page gets no link
             (#5727). None links every unit, as a test with no unit pages needs.
     """
-    from openinterpretability.builder.compiler import _write_redirect
+    from labinacan.site.render import write_redirect
 
     if not prompts:
         return
@@ -324,7 +324,7 @@ def render_explanations(
     for prompt in prompts:
         render(prompt.href, "explanation_prompt.html", prompt=prompt)
         old = render.output_dir / prompt.legacy_href
-        _write_redirect(old, f"../../{prompt.href}", render.report)
+        write_redirect(old, f"../../{prompt.href}", render.report)
         for answer in prompt.answers:  # one page per answer experiment (#4909)
             answer.pages = pages
             from openinterpretability.builder.route_figures import route3d

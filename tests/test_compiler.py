@@ -294,7 +294,7 @@ def test_each_status_grid_legend_names_every_status_its_cells_use(tmp_path, reco
 
 
 def test_pct_fine():
-    from openinterpretability.builder.compiler import _pct_fine
+    from labinacan.site.render import pct_fine as _pct_fine
 
     assert _pct_fine(None) == "—"
     assert _pct_fine(0) == "0%"
