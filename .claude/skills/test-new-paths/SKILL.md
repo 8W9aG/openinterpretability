@@ -29,7 +29,7 @@ Coverage says which lines ran. It doesn't say whether a test checked what they d
    - **Kill it.** Add a test that fails on the mutant and passes on the code. See the diff with `uv run python scripts/mutation.py --base origin/main show <name>`.
    - **Or record it as equivalent.** If the mutant changes nothing that a caller can see, put mutmut's pragma on its line, with the reason: `# pragma: no mutate, equivalent: <why>`. mutmut then makes no mutants on that line, so later runs don't report it. "Hard to test" is not a reason.
 
-   Run it again until it passes. `make mutation` with no `BASE` mutates the fixed verdict code of `[tool.mutmut]` (#5763), in about 5 minutes.
+   Run it again until it passes. A surviving mutant in a changed verdict file (`only_mutate` in `[tool.mutmut]`) blocks the PR: kill it or record it before you mark the PR ready (#6359). `make mutation` with no `BASE` mutates that fixed verdict code (#5763), in about 2 minutes, and its tests kill every mutant there. `make mutation RUNS=5` runs it 5 times, each in its own test order. It fails when a mutant's result changes between runs, which means that a test depends on order or state. Treat that as a flaky test (`next-issue`, *Flaky tests*).
 
 ## Notes
 
