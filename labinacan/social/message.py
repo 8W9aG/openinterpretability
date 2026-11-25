@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 
-from openinterpretability.social.feed import Entry
+from labinacan.social.feed import Entry
 
 LIMIT = 280  # X's maximum weighted length of a post
 LINK = 23  # what X counts for any link

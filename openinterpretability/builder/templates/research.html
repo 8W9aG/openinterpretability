@@ -3,7 +3,7 @@
 
 {% block title %}Research · {{ site_title }}{% endblock %}
 
-{# The section's feeds (builder/research_feeds.py, #4256). #}
+{# The section's feeds (labinacan/site/research_feeds.py, #4256). #}
 {% block head %}
 <link rel="alternate" type="application/atom+xml" title="Papers" href="{{ root }}research/papers.xml">
 {% if reviewed %}<link rel="alternate" type="application/atom+xml" title="Literature reviews" href="{{ root }}research/literature.xml">{% endif %}

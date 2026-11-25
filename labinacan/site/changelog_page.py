@@ -3,7 +3,7 @@
 Each ``## [<version>] - <date>`` section becomes a section of ``changelog.html`` with the
 anchor ``v<version>``, so a page can link one version. The footer links the running
 version. An empty ``[Unreleased]`` section is left out. The text is rendered as the papers
-are (:mod:`openinterpretability.builder.research`). Links to repo files point at GitHub,
+are (:mod:`labinacan.site.research`). Links to repo files point at GitHub,
 and the same search for personal data runs on the text.
 """
 
@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from labinacan.site.pii import redact_text
-from openinterpretability.builder.research import _MARKDOWN
+from labinacan.site.research import _MARKDOWN
 
 CHANGELOG = Path(__file__).resolve().parents[2] / "CHANGELOG.md"  # absent in an install
 _HEADING = re.compile(r"^## \[(?P<name>[^\]]+)\](?: - (?P<date>\d{4}-\d{2}-\d{2}))?\s*$", re.M)

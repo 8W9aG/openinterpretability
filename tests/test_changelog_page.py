@@ -1,6 +1,6 @@
-"""The Changelog page: one section per released version (builder/changelog_page.py, #3284)."""
+"""The Changelog page: one section per version (labinacan/site/changelog_page.py, #3284)."""
 
-from openinterpretability.builder.changelog_page import load_versions
+from labinacan.site.changelog_page import load_versions
 from openinterpretability.builder.compiler import compile_site
 
 TEXT = """# Changelog

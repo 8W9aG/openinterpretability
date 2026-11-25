@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import pytest
 
-from openinterpretability.builder.research_feeds import published_feed
-from openinterpretability.social import run as social
-from openinterpretability.social.feed import Entry, read_feed
-from openinterpretability.social.message import (
+from labinacan.site.research_feeds import published_feed
+from labinacan.social import run as social
+from labinacan.social.feed import Entry, read_feed
+from labinacan.social.message import (
     LIMIT,
     compose,
     length,
     paper_post,
     site_post,
 )
-from openinterpretability.social.poster import oauth_header
+from labinacan.social.poster import oauth_header
 
 SITE = "https://open-interpretability.com/"
 
@@ -130,8 +130,8 @@ def test_a_preprint_waits_and_is_posted_once_published(tmp_path, poster):
 
 
 def test_a_draft_post_never_posts(tmp_path, poster):
+    from labinacan.site.research_feeds import POSTS_FEED
     from openinterpretability.builder.compiler import compile_site
-    from openinterpretability.builder.research_feeds import POSTS_FEED
 
     posts = tmp_path / "posts"
     (posts / "d").mkdir(parents=True)

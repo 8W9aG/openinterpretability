@@ -221,7 +221,7 @@ class XPoster:
 
         Args:
             text: The post.
-            media: A :class:`~openinterpretability.social.feed.Media`, a sequence of them (a
+            media: A :class:`~labinacan.social.feed.Media`, a sequence of them (a
                 thread's tweet, at most 4), or None.
             reply_to: The id of the post that this one answers, for a thread (#5833).
 
