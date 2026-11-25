@@ -150,6 +150,56 @@ class CentredNorm(nn.Module):
         return self.norm(x - x.mean((0, 1), keepdim=True))
 
 
+def centred_norm_names(spec: str, layers: int) -> set[str]:
+    """The LayerNorms that a condition's ``centre_norms`` spec centres.
+
+    ``blocks`` names every block's ``ln_1`` and ``ln_2``, ``final`` names ``ln_f``, and
+    ``all`` names both. A comma list names norms one by one, such as ``final,L2.ln_1``
+    (#6465).
+
+    Args:
+        spec: The spec; "" centres none.
+        layers: The model's blocks.
+
+    Returns:
+        Names such as ``ln_f`` and ``L2.ln_1``.
+
+    Examples:
+        >>> sorted(centred_norm_names("final,L1.ln_2", 4))
+        ['L1.ln_2', 'ln_f']
+        >>> len(centred_norm_names("all", 4)), centred_norm_names("", 4)
+        (9, set())
+    """
+    blocks = {f"L{i}.ln_{j}" for i in range(layers) for j in (1, 2)}
+    names: set[str] = set()
+    for part in filter(None, spec.split(",")):
+        if part in ("blocks", "all"):
+            names |= blocks
+        if part in ("final", "all"):
+            names.add("ln_f")
+        if part.startswith("L"):
+            if part not in blocks:
+                raise ValueError(f"no LayerNorm {part!r} in {layers} blocks")
+            names.add(part)
+    return names
+
+
+def centre_norms(model, spec: str) -> None:
+    """Wrap each LayerNorm that ``spec`` names in a :class:`CentredNorm`, in place.
+
+    Args:
+        model: A GPT-2 model, ``GPT2LMHeadModel``.
+        spec: Which norms (:func:`centred_norm_names`).
+    """
+    names = centred_norm_names(spec, len(model.transformer.h))
+    for i, block in enumerate(model.transformer.h):
+        for j in (1, 2):
+            if f"L{i}.ln_{j}" in names:
+                setattr(block, f"ln_{j}", CentredNorm(getattr(block, f"ln_{j}")))
+    if "ln_f" in names:
+        model.transformer.ln_f = CentredNorm(model.transformer.ln_f)
+
+
 def parallel_forward(
     self,
     hidden_states,

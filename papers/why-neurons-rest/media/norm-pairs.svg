@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 485" width="760" height="485" role="img">
+<title>A dot plot of 10 conditions. With only the final norm centred, 0.59 of neurons have an up push below the rest. Adding any one block norm leaves each seed between 0.51 and 0.67. Centring every norm gives 0.77.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="485" rx="10"/>
+<text x="20.0" y="30.0" class="title">No single block norm restores the up push</text>
+<text x="20.0" y="53.0" class="title">that centring every norm keeps</text>
+<text x="20.0" y="73.0" class="sub">Each mark is one seed&#x27;s share of GELU neurons whose output&#x27;s push points up below h = −0.25.</text>
+<text x="20.0" y="91.0" class="sub">The final LayerNorm is centred alone, with one block norm, or with every norm, with no dropout.</text>
+<text x="20.0" y="109.0" class="sub">Circles: seed 0. Triangles: seed 1.</text>
+<path class="grid" d="M150.0 153.0L150.0 393.0"/>
+<text x="150.0" y="408.0" class="small" text-anchor="middle">0.4</text>
+<path class="grid" d="M244.0 153.0L244.0 393.0"/>
+<text x="244.0" y="408.0" class="small" text-anchor="middle">0.5</text>
+<path class="grid" d="M338.0 153.0L338.0 393.0"/>
+<text x="338.0" y="408.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M432.0 153.0L432.0 393.0"/>
+<text x="432.0" y="408.0" class="small" text-anchor="middle">0.7</text>
+<path class="grid" d="M526.0 153.0L526.0 393.0"/>
+<text x="526.0" y="408.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M620.0 153.0L620.0 393.0"/>
+<text x="620.0" y="408.0" class="small" text-anchor="middle">0.9</text>
+<text x="385.0" y="424.0" class="small" text-anchor="middle">share of neurons with an up push below h = −0.25</text>
+<text x="140.0" y="169.0" class="small" text-anchor="end">final only</text>
+<circle class="fc2" cx="328.9" cy="165.0" r="4"/>
+<path class="fc1" d="M337.3 160.0L342.3 169.0L332.3 169.0Z"/>
+<text x="140.0" y="193.0" class="small" text-anchor="end">final + L0 ln_1</text>
+<circle class="fc2" cx="321.9" cy="189.0" r="4"/>
+<path class="fc1" d="M319.8 184.0L324.8 193.0L314.8 193.0Z"/>
+<text x="140.0" y="217.0" class="small" text-anchor="end">final + L0 ln_2</text>
+<circle class="fc2" cx="324.6" cy="213.0" r="4"/>
+<path class="fc1" d="M358.9 208.0L363.9 217.0L353.9 217.0Z"/>
+<text x="140.0" y="241.0" class="small" text-anchor="end">final + L1 ln_1</text>
+<circle class="fc2" cx="303.4" cy="237.0" r="4"/>
+<path class="fc1" d="M307.0 232.0L312.0 241.0L302.0 241.0Z"/>
+<text x="140.0" y="265.0" class="small" text-anchor="end">final + L1 ln_2</text>
+<circle class="fc2" cx="378.3" cy="261.0" r="4"/>
+<path class="fc1" d="M408.1 256.0L413.1 265.0L403.1 265.0Z"/>
+<text x="140.0" y="289.0" class="small" text-anchor="end">final + L2 ln_1</text>
+<circle class="fc2" cx="292.4" cy="285.0" r="4"/>
+<path class="fc1" d="M324.7 280.0L329.7 289.0L319.7 289.0Z"/>
+<text x="140.0" y="313.0" class="small" text-anchor="end">final + L2 ln_2</text>
+<circle class="fc2" cx="371.1" cy="309.0" r="4"/>
+<path class="fc1" d="M389.8 304.0L394.8 313.0L384.8 313.0Z"/>
+<text x="140.0" y="337.0" class="small" text-anchor="end">final + L3 ln_1</text>
+<circle class="fc2" cx="252.6" cy="333.0" r="4"/>
+<path class="fc1" d="M300.3 328.0L305.3 337.0L295.3 337.0Z"/>
+<text x="140.0" y="361.0" class="small" text-anchor="end">final + L3 ln_2</text>
+<circle class="fc2" cx="332.3" cy="357.0" r="4"/>
+<path class="fc1" d="M341.2 352.0L346.2 361.0L336.2 361.0Z"/>
+<text x="140.0" y="385.0" class="small" text-anchor="end">every norm</text>
+<circle class="fc2" cx="497.3" cy="381.0" r="4"/>
+<path class="fc1" d="M498.9 376.0L503.9 385.0L493.9 385.0Z"/>
+</svg>
