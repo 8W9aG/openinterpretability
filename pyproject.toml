@@ -122,6 +122,8 @@ include = ["/openinterpretability", "/labinacan", "/README.md", "/LICENSE", "/CH
 name = "Open Interpretability"
 package = "openinterpretability"
 env_prefix = "OPENINTERPRETABILITY"  # environment variables are OPENINTERPRETABILITY_<NAME>
+linear_team = "OPE"  # the Linear team that mirrors the GitHub issues (scripts/linear_sync.py)
+maintainer = "8W9aG"  # the maintainer's GitHub login, whose issues agents may work
 
 [tool.openinterpretability]
 # Models `open-interpretability next` explores: most draws go to the smallest model whose share is
