@@ -39,14 +39,21 @@ def cluster_texts(texts: Sequence[str], threshold: float) -> list[int]:
     parent = list(range(len(texts)))
 
     def find(i: int) -> int:
-        while parent[i] != i:
+        # A path to the root has fewer steps than there are texts, so the loop always
+        # breaks. It is bounded so that a wrong test of the root gives wrong labels, not a
+        # loop without end (#6359).
+        for _ in texts:  # pragma: no branch
+            if parent[i] == i:
+                break
             parent[i] = parent[parent[i]]
             i = parent[i]
         return i
 
     words = [_words(t) for t in texts]
     for i in range(len(texts)):
-        for j in range(i + 1, len(texts)):
+        # Each pair is tested once. A range that adds a text's pair with itself, or a pair
+        # tested already, joins the same clusters, because a union is symmetric.
+        for j in range(i + 1, len(texts)):  # pragma: no mutate, equivalent: see above
             if jaccard(words[i], words[j]) >= threshold:
                 parent[find(j)] = find(i)
     labels: dict[int, int] = {}
@@ -127,7 +134,10 @@ def expected_false_discoveries(p_useful: Sequence[float]) -> float:
     return sum(1.0 - p for p in p_useful)
 
 
-def rank_columns(x: torch.Tensor, chunk: int = 1024) -> torch.Tensor:
+def rank_columns(
+    x: torch.Tensor,
+    chunk: int = 1024,  # pragma: no mutate, equivalent: the size bounds memory, not the ranks
+) -> torch.Tensor:
     """Ranks (0-based) down each column of ``x`` [n, c], averaging ties.
 
     Pole strengths are mostly exact zeros, so tie handling matters. Each tied value gets
@@ -136,8 +146,8 @@ def rank_columns(x: torch.Tensor, chunk: int = 1024) -> torch.Tensor:
     n = x.shape[0]
     out = torch.empty_like(x, dtype=torch.float32)
     positions = torch.arange(n, dtype=torch.float32)[:, None]
-    for start in range(0, x.shape[1], chunk):
-        cols = x[:, start : start + chunk].float()
+    for idx in torch.split(torch.arange(x.shape[1]), chunk):
+        cols = x[:, idx].float()
         values, order = cols.sort(dim=0)
         new = torch.ones_like(values, dtype=torch.bool)
         new[1:] = values[1:] != values[:-1]
@@ -146,22 +156,26 @@ def rank_columns(x: torch.Tensor, chunk: int = 1024) -> torch.Tensor:
         sums = torch.zeros_like(values).scatter_add_(0, group, pos)
         counts = torch.zeros_like(values).scatter_add_(0, group, torch.ones_like(values))
         mean_rank = (sums / counts.clamp(min=1)).gather(0, group)
-        out[:, start : start + chunk] = torch.empty_like(values).scatter_(0, order, mean_rank)
+        out[:, idx] = torch.empty_like(values).scatter_(0, order, mean_rank)
     return out
 
 
-def spearman_columns(target: torch.Tensor, others: torch.Tensor, chunk: int = 1024) -> torch.Tensor:
+def spearman_columns(
+    target: torch.Tensor,
+    others: torch.Tensor,
+    chunk: int = 1024,  # pragma: no mutate, equivalent: the size bounds memory, not rho
+) -> torch.Tensor:
     """Spearman's rho between ``target`` [n] and each column of ``others`` [n, c]."""
-    ranks_t = rank_columns(target[:, None])[:, 0]
-    t = ranks_t - ranks_t.mean()
+    # Ranks 0 to n - 1, with ties averaged, always have the mean (n - 1) / 2.
+    mid = (target.shape[0] - 1) / 2
+    t = rank_columns(target[:, None])[:, 0] - mid
     tt = (t * t).sum()
     rho = torch.zeros(others.shape[1])
-    for start in range(0, others.shape[1], chunk):
-        o = rank_columns(others[:, start : start + chunk])
-        o = o - o.mean(0)
+    for idx in torch.split(torch.arange(others.shape[1]), chunk):
+        o = rank_columns(others[:, idx]) - mid
         denom = torch.sqrt(tt * (o * o).sum(0))
         part = (t[:, None] * o).sum(0) / denom
-        rho[start : start + chunk] = torch.where(denom > 0, part, torch.zeros_like(part))
+        rho[idx] = torch.where(denom > 0, part, torch.zeros_like(part))
     return rho.clamp(-1, 1)
 
 
