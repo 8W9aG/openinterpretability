@@ -128,5 +128,5 @@ def test_the_check_finds_a_value_in_any_case(tmp_path):
 
 def test_no_generic_file_holds_a_value_of_this_project():
     values = project_values(cfg.config())
-    assert "open-interpretability.com" in values and "8W9aG/openinterpretability" in values
+    assert values >= {"open-interpretability.com", "8W9aG/openinterpretability"}  # a set, not a URL
     assert hits(LABINACAN, values) == {}
