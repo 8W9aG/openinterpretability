@@ -11,15 +11,15 @@ from pathlib import Path
 import pytest
 
 from labinacan.site.social_media import stale
-from openinterpretability.social.feed import Media, read_feed
-from openinterpretability.social.poster import SEGMENT, XPoster
+from labinacan.social.feed import Media, read_feed
+from labinacan.social.poster import SEGMENT, XPoster
 
 ROOT = Path(__file__).resolve().parents[1]
 KEYS = {"X_API_KEY": "ck", "X_API_SECRET": "cs", "X_ACCESS_TOKEN": "at", "X_ACCESS_SECRET": "as"}
 
 
 def test_every_drawn_head_figure_is_up_to_date():
-    from openinterpretability.builder.research import _ENTRY, DRAFT
+    from labinacan.site.research import _ENTRY, DRAFT
 
     # A draft never posts, so it draws its head figure when it is published (#5851).
     index = (ROOT / "posts" / "README.md").read_text(encoding="utf-8")
@@ -61,8 +61,8 @@ def _paper(root: Path, animated: bool) -> Path:
 
 @pytest.mark.parametrize("animated", [False, True])
 def test_the_feed_and_the_link_card_carry_the_drawn_figure(tmp_path, animated):
+    from labinacan.site.research_feeds import PUBLISHED_FEED
     from openinterpretability.builder.compiler import compile_site
-    from openinterpretability.builder.research_feeds import PUBLISHED_FEED
 
     out = tmp_path / "dist"
     compile_site([], out, papers_dir=_paper(tmp_path, animated))
@@ -170,7 +170,7 @@ def test_a_video_uploads_in_segments_and_waits_for_processing(fake_x):
 
 
 def test_a_failed_upload_posts_nothing(fake_x):
-    from openinterpretability.social.poster import MediaError
+    from labinacan.social.poster import MediaError
 
     _FakeX.files["/site/social.png"] = b"\x89PNG"
     _FakeX.fail_upload = True
@@ -181,7 +181,7 @@ def test_a_failed_upload_posts_nothing(fake_x):
 
 
 def test_the_site_gets_the_named_user_agent(fake_x):
-    from openinterpretability.social.poster import USER_AGENT
+    from labinacan.social.poster import USER_AGENT
 
     _FakeX.files["/site/social.png"] = b"\x89PNG"
     XPoster(KEYS, api=fake_x).post("A paper", Media(f"{fake_x}/site/social.png", "image/png", ""))
@@ -190,7 +190,7 @@ def test_the_site_gets_the_named_user_agent(fake_x):
 
 
 def test_the_status_query_is_signed():
-    from openinterpretability.social.poster import oauth_header
+    from labinacan.social.poster import oauth_header
 
     url = "https://api.x.com/2/media/upload"
     plain = oauth_header("GET", url, KEYS, "n", "1")

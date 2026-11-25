@@ -45,7 +45,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from labinacan.site.alphaxiv import ALPHAXIV, ALPHAXIV_URL, cited_alphaxiv  # noqa: E402
-from openinterpretability.builder.research import (  # noqa: E402
+from labinacan.site.research import (  # noqa: E402
     _ENTRY,
     ADDENDA,
     STATUS,

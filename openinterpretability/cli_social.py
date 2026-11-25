@@ -21,7 +21,7 @@ def social_group() -> None:
 
 
 def _entries(path: Path | None) -> list:
-    from openinterpretability.social.feed import read_feed
+    from labinacan.social.feed import read_feed
 
     return read_feed(path) if path is not None and path.exists() else []
 
@@ -62,9 +62,9 @@ def post_command(papers, posts, state, dry_run, newest, repost, record) -> None:
     Raises:
         click.ClickException: When a post fails, for example on an HTTP or network error.
     """
-    from openinterpretability.builder.research_feeds import POSTS_FEED, PUBLISHED_FEED
-    from openinterpretability.social.poster import XPoster, keys_from_env
-    from openinterpretability.social.run import State, planned, preview, run
+    from labinacan.site.research_feeds import POSTS_FEED, PUBLISHED_FEED
+    from labinacan.social.poster import XPoster, keys_from_env
+    from labinacan.social.run import State, planned, preview, run
 
     papers = papers or Path("dist") / PUBLISHED_FEED  # the paths the build writes
     posts = posts or Path("dist") / POSTS_FEED
@@ -84,7 +84,7 @@ def post_command(papers, posts, state, dry_run, newest, repost, record) -> None:
         raise click.ClickException(f"posting failed: {error}") from error
     finally:
         if record is not None and posted:  # what posted, even if a later post failed
-            from openinterpretability.social.links import write_records
+            from labinacan.social.links import write_records
 
             write_records(record, posted)
     click.echo("\n".join(lines))
@@ -102,7 +102,7 @@ def link_command(posted) -> None:
     Args:
         posted: The file of this run's posts.
     """
-    from openinterpretability.social.links import link
+    from labinacan.social.links import link
 
     for path in link(posted):
         click.echo(path.as_posix())

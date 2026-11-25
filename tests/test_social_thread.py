@@ -6,12 +6,12 @@ from pathlib import Path
 
 import pytest
 
-from openinterpretability.builder.research import _thread
-from openinterpretability.builder.research_feeds import published_feed
-from openinterpretability.social import run as social
-from openinterpretability.social.feed import Entry, Media, Tweet, read_feed
-from openinterpretability.social.thread import THREAD, Prepared, load_thread, prepare, problems
-from openinterpretability.social.thread import Tweet as ThreadTweet
+from labinacan.site.research import _thread
+from labinacan.site.research_feeds import published_feed
+from labinacan.social import run as social
+from labinacan.social.feed import Entry, Media, Tweet, read_feed
+from labinacan.social.thread import THREAD, Prepared, load_thread, prepare, problems
+from labinacan.social.thread import Tweet as ThreadTweet
 from tests.test_social_poster import _Scripted
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,7 +81,7 @@ def test_the_build_fails_on_a_broken_thread_and_skips_a_folder_without_one(folde
 
 
 def test_every_thread_in_the_repo_keeps_the_rules():
-    from openinterpretability.builder.research import _read_paper
+    from labinacan.site.research import _read_paper
 
     found = sorted(ROOT.glob("papers/*/thread.yaml")) + sorted(ROOT.glob("posts/*/thread.yaml"))
     assert found, "the repo has at least one thread (#5833)"

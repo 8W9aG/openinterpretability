@@ -1,6 +1,6 @@
 import pytest
 
-from openinterpretability.builder.research import Paper, copy_assets, load_papers, redact_asset
+from labinacan.site.research import Paper, copy_assets, load_papers, redact_asset
 
 
 def test_a_paper_must_start_with_a_level_1_heading(tmp_path):
@@ -25,3 +25,15 @@ def test_a_paper_without_a_page_copies_only_the_files_in_its_media_folder(tmp_pa
     assert copied == []
     assert (out / "a.svg").read_text() == "<svg/>"
     assert not (out / "empty").exists()
+
+
+def test_a_thread_that_breaks_rules_fails_the_build_naming_each(tmp_path, monkeypatch):
+    import pytest
+
+    from labinacan.site import research
+    from labinacan.social import thread
+
+    monkeypatch.setattr(thread, "load_thread", lambda folder: ["tweet"])
+    monkeypatch.setattr(thread, "problems", lambda *a: ["too long", "no figure"])
+    with pytest.raises(ValueError, match=r"thread\.yaml: too long; no figure$"):
+        research._thread(tmp_path, ())

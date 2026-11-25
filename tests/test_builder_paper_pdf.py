@@ -4,7 +4,7 @@ import base64
 import subprocess
 from pathlib import Path
 
-from openinterpretability.builder import paper_pdf
+from labinacan.site import paper_pdf
 
 
 def test_chrome_is_the_first_usual_path_that_exists(monkeypatch, tmp_path):

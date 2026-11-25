@@ -40,7 +40,7 @@ from labinacan.site.social_media import (  # noqa: E402
     write_figure,
     write_manifest,
 )
-from openinterpretability.social.thread import load_thread  # noqa: E402
+from labinacan.social.thread import load_thread  # noqa: E402
 
 FPS = 10
 PAGE = """<!doctype html><html><head><meta charset="utf-8"><style>
