@@ -40,7 +40,8 @@ def test_the_accent_has_one_name():
     colours = palette.tailwind_colors()
     assert colours["brand-700"] == "#047857" and len(palette.BRAND_HEX) == 11
     found = subprocess.run(
-        ["git", "grep", "-l", "emerald-[0-9]", "--", "openinterpretability/builder/templates"],
+        ["git", "grep", "-l", "emerald-[0-9]", "--", "openinterpretability/builder/templates",
+         "labinacan/site/templates"],
         capture_output=True, text=True, check=False,
     ).stdout  # fmt: skip
     assert found == ""  # templates name the accent `brand-`, defined once in palette.py
