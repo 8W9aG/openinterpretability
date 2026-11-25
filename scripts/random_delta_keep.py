@@ -53,10 +53,11 @@ from openinterpretability.interference.keep import (  # noqa: E402
 MLP_MATRICES = ("mlp.gate_proj.weight", "mlp.up_proj.weight", "mlp.down_proj.weight")
 CONDITIONS = ("instruct", "instruct_mlp", "random_mlp", "random_all")
 RANDOM = ("random_mlp", "random_all")
-# The most tokens, padding included, in one batched pass over the probe texts.
-PROBE_TOKENS = 4096
-# One-token inputs in one pass of the vocabulary sweep. Each pass records every layer.
-FIRST_BATCH = 2048
+# The GPU memory that one batched pass may fill with recorded MLP activations. The pass
+# records every layer that the records need. 1 GiB fits beside Qwen2.5-1.5B in float32 on
+# a 12 GB GPU. A pass of 4,096 tokens did not fit (#5154).
+PASS_BYTES = 2**30
+PASS_TOKENS = 4096  # the tokens in one pass, for a model whose MLP width is unknown
 
 
 def is_mlp(name: str) -> bool:
@@ -183,7 +184,21 @@ def probe_texts(record) -> list[str]:
     ]  # fmt: skip
 
 
-def probe_activations(runner, records, max_tokens: int = PROBE_TOKENS) -> dict:
+def pass_tokens(runner, records) -> int:
+    """The tokens in one batched pass, so that its recorded activations fill ``PASS_BYTES``.
+
+    Args:
+        runner: The model. Its config gives the MLP width.
+        records: The VERIFIED records. Each pass records each of their layers.
+    """
+    width = getattr(getattr(runner.model, "config", None), "intermediate_size", None)
+    if not width:
+        return PASS_TOKENS
+    layers = len({r.submission.identifier.layer for r in records})
+    return max(1, PASS_BYTES // (layers * width * 4))
+
+
+def probe_activations(runner, records, max_tokens: int | None = None) -> dict:
     """``{(text, layer, neuron): activations}`` for each probe text of each record.
 
     The texts run in batches of about ``max_tokens`` tokens, shortest first, and padded on
@@ -194,11 +209,13 @@ def probe_activations(runner, records, max_tokens: int = PROBE_TOKENS) -> dict:
     Args:
         runner: The model, as it is now.
         records: The VERIFIED records whose probes to read.
-        max_tokens: The most tokens, padding included, in one pass.
+        max_tokens: The most tokens, padding included, in one pass. By default,
+            :func:`pass_tokens`.
 
     Returns:
         Each activation over the text's tokens, as a float32 CPU vector.
     """
+    max_tokens = max_tokens or pass_tokens(runner, records)
     wanted: dict[str, set[tuple[int, int]]] = defaultdict(set)
     for record in records:
         ident = record.submission.identifier
@@ -226,7 +243,7 @@ def probe_activations(runner, records, max_tokens: int = PROBE_TOKENS) -> dict:
     return out
 
 
-def first_position_activations(runner, records, batch_size: int = FIRST_BATCH) -> dict:
+def first_position_activations(runner, records, batch_size: int | None = None) -> dict:
     """``{(layer, neuron): activations}`` at the first position of every vocabulary token.
 
     This is ``harness.first_position.strengths_of`` for every record's neuron in one sweep
@@ -235,13 +252,14 @@ def first_position_activations(runner, records, batch_size: int = FIRST_BATCH) -
     Args:
         runner: The model, as it is now.
         records: The VERIFIED records whose neurons to read.
-        batch_size: The one-token inputs in one pass.
+        batch_size: The one-token inputs in one pass. By default, :func:`pass_tokens`.
 
     Returns:
         Each neuron's raw activation on each token of ``first_position.vocabulary``.
     """
     from openinterpretability.harness.first_position import vocabulary
 
+    batch_size = batch_size or pass_tokens(runner, records)
     by_layer: dict[int, set[int]] = defaultdict(set)
     for record in records:
         ident = record.submission.identifier

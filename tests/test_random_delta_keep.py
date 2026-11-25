@@ -313,3 +313,14 @@ def test_the_floor_from_the_sweep_is_the_floor_of_settle(scale):
     _, expected, expected_scale = settle_first_token_floor(record.submission, runner, policy)
     assert (unit, got_scale) == (expected, expected_scale)
     assert unit.skip_first == (scale < 100)  # the line is a quarter of the scale
+
+
+def test_a_pass_fills_its_memory_budget(monkeypatch):
+    monkeypatch.setattr(rdk, "PASS_BYTES", 4 * 10 * 2 * 100)
+    records = [_Record(0, 1, "positive"), _Record(3, 2, "positive"), _Record(3, 5, "negative")]
+    runner = type("R", (), {"model": type("M", (), {"config": type("C", (), {})()})()})()
+    assert rdk.pass_tokens(runner, records) == rdk.PASS_TOKENS  # no intermediate_size
+    runner.model.config.intermediate_size = 10
+    assert rdk.pass_tokens(runner, records) == 100  # 2 layers of 10 float32 values a token
+    runner.model.config.intermediate_size = 10**6
+    assert rdk.pass_tokens(runner, records) == 1
