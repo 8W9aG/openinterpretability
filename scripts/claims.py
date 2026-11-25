@@ -13,7 +13,14 @@ import os
 import re
 import socket
 import subprocess
+import sys
 import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # the repository, for labinacan
+from labinacan.config import env, use  # noqa: E402
+
+use(Path(__file__).resolve().parents[1] / "pyproject.toml")  # this repository's values (#6629)
 
 # Claims are branches under this prefix (#6725). CI runs on pushes to main only, so a
 # claim starts no workflow.
@@ -21,11 +28,11 @@ CLAIM_PREFIX = "claim/"
 # The exit code of a claim that another agent holds.
 CLAIMED = 3
 # Overrides the agent ID that agent_id derives from the checkout.
-AGENT_ENV = "OPENINTERPRETABILITY_AGENT"
+AGENT_ENV = env("AGENT")
 
 
 def agent_id(cwd: str | None = None) -> str:
-    """This agent's ID: ``$OPENINTERPRETABILITY_AGENT``, else a hash of the host and the checkout.
+    """This agent's ID: :data:`AGENT_ENV` (``$<prefix>_AGENT``), else a hash of host and checkout.
 
     Each agent works in its own checkout (docs/development.md, *Several agents at once*),
     so the checkout names the agent. The hash keeps the host name and path private.
