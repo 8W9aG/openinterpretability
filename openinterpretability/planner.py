@@ -416,7 +416,8 @@ def plan_next(
     now = now or datetime.now(UTC)
     states = load_states(wiki_dir)
     slugs = set(states)
-    pyproject = Path(wiki_dir).parent / "pyproject.toml"
+    root = Path(wiki_dir).parent
+    pyproject = root / DEFAULT_PYPROJECT
     pool = _model_pool(models, pyproject, states)
     # Imported here: these modules build their candidates from this module's weights.
     from openinterpretability.planner_circuits import circuit_candidates
@@ -424,7 +425,6 @@ def plan_next(
     from openinterpretability.planner_sisters import sister_candidates
     from openinterpretability.planner_superpositions import superposition_candidates
 
-    root = Path(wiki_dir).parent
     sisters = sister_candidates(states, claims, now, pool, root, seed)
     extra = [*sisters, *superposition_candidates(states, claims, root)]
     extra += explanation_candidates(states, claims, root, pool, seed)  # issue #3744
@@ -438,12 +438,12 @@ def plan_next(
     target = coverage_target(pyproject)
     explore = explore_weights(coverage, target, others_share(pyproject))
     focus = focus_model(coverage.values(), target)
-    if not candidates or rng.random() < epsilon:
+    if not candidates or rng.random() < epsilon:  # pragma: no mutate, equivalent: P(tie) = 0
         choice = _explore(rng, pool, explore, pyproject, focus, slugs | set(claims))
         return Plan(seed, choice, True, candidates, explore, coverage, focus)
 
     weights = [c.weight ** (1.0 / temperature) for c in candidates]
-    choice = rng.choices(candidates, weights=weights, k=1)[0]
+    choice = rng.choices(candidates, weights=weights)[0]  # one draw: k is 1 by default
     return Plan(seed, choice, False, candidates, explore, coverage, focus)
 
 
@@ -489,7 +489,7 @@ def _explore(
     from openinterpretability.planner_effects import effect_draw
     from openinterpretability.planner_heads import head_draw, neuron_draw
 
-    model = rng.choices(pool, weights=[explore[m] for m in pool], k=1)[0]
+    model = rng.choices(pool, weights=[explore[m] for m in pool])[0]  # k is 1 by default
     audit_seed = rng.getrandbits(32)
     window = configured_windows(pyproject).get(model)
     if head := head_draw(model, audit_seed, pyproject, window):  # the unit kind, its own draw

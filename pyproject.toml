@@ -329,4 +329,8 @@ pytest_add_cli_args_test_selection = [
     "tests/test_planner_explanations.py",
     "tests/test_planner_sisters.py",
     "tests/test_planner_superpositions.py",
+    "tests/test_planner_heads.py",
+    "tests/test_planner_claims.py",
+    "tests/test_planner_models.py",
+    "tests/test_draw_steps.py",
 ]
