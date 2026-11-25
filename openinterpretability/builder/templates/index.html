@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, model_card, read_more, chevron %}
+{% from "_macros.html" import map_fill, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, model_card %}
+{% from "_site_macros.html" import read_more, chevron %}
 {% set t = stats.totals %}
 
 {% block content %}

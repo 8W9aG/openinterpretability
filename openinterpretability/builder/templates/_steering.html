@@ -1,5 +1,5 @@
 {# Steering samples for _experiment.html. Expects `sub`, `positive` and `what`. #}
-{% from "_macros.html" import fold, read_more %}
+{% from "_site_macros.html" import fold, read_more %}
   {% if sub.steering and sub.steering.samples %}
   {% set st = sub.steering %}
   {% set clamp_class = "text-orange-700 dark:text-orange-400" if positive else "text-sky-700 dark:text-sky-400" %}

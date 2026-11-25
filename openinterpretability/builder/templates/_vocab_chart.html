@@ -1,6 +1,6 @@
 {% from "_macros.html" import chart %}
 {# Vocabulary projection for _experiment.html. Expects `v` and `sub`. #}
-{% from "_macros.html" import fold, read_more %}
+{% from "_site_macros.html" import fold, read_more %}
   {% if sub.vocabulary_lens %}
   {% set vl = sub.vocabulary_lens %}{% set vc = v.vocab %}
   {% call fold("Vocabulary projection") %}<div data-pagefind-ignore>
