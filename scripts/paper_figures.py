@@ -26,6 +26,7 @@ import figures_sequential_tuning
 import figures_spd_input
 import figures_syntax
 import figures_template_tuning
+import figures_token_set
 import figures_transfer
 import figures_why_rest
 import figures_why_rest_equal
@@ -88,6 +89,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
             _rows("syntax-positive-controls", "results.followups.jsonl"),
         ),
         "template-or-tuning": figures_template_tuning.build(_rows("template-or-tuning")),
+        "token-set-ceiling": figures_token_set.build(_rows("token-set-ceiling")),
         "sequential-tuning": figures_sequential_tuning.build(_rows("sequential-tuning")),
         "why-neurons-rest": {
             "surface.svg": figures_depth.surface(resting, dip),
