@@ -47,7 +47,8 @@ def test_no_page_loads_the_tailwind_cdn():
     from pathlib import Path
 
     templates = Path(palette.__file__).parent / "templates"
-    for page in templates.rglob("*.html"):
+    labinacan = Path(css.__file__).parent / "templates"  # #6628
+    for page in [*templates.rglob("*.html"), *labinacan.rglob("*.html")]:
         assert "cdn.tailwindcss.com" not in page.read_text(), page
     assert css.STYLESHEET in (templates / "base.html").read_text()
 
@@ -71,9 +72,10 @@ def test_the_site_has_one_content_column():
 
     text = css.config([], {}).removeprefix("module.exports = ").removesuffix(";\n")
     assert json.loads(text)["theme"]["extend"]["maxWidth"] == {"column": "60rem", "page": "62rem"}
-    templates = Path(palette.__file__).parent / "templates"
+    folders = (Path(palette.__file__).parent / "templates", Path(css.__file__).parent / "templates")
     caps = re.compile(r"max-w-([3-7]xl|prose)\b")  # a tooltip may keep max-w-xs
-    assert not [f.name for f in templates.glob("*.html") if caps.search(f.read_text())]
+    pages = [f for folder in folders for f in folder.glob("*.html")]
+    assert not [f.name for f in pages if caps.search(f.read_text())]
     column = css.COLUMN_REM * 16
     assert column >= 760 * charts.DIAGRAM_SCALE  # the About page's taxonomy
     assert column >= dashboard.CHART_WIDTH

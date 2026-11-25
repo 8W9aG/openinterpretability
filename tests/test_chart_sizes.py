@@ -3,7 +3,8 @@
 import re
 from pathlib import Path
 
-TEMPLATES = Path(__file__).parents[1] / "openinterpretability/builder/templates"
+ROOT = Path(__file__).parents[1]
+TEMPLATES = (ROOT / "openinterpretability/builder/templates", ROOT / "labinacan/site/templates")
 
 # SVGs that may still scale with the page. The three maps fill the width on purpose. Their
 # hover cards are placed in the drawn box (#5666). The pieces grid of a model card has no
@@ -20,6 +21,7 @@ def test_no_chart_svg_scales_with_the_page_outside_the_exceptions():
     scaling = re.compile(r'<svg viewBox="[^"]*"[^>]*class="[^"]*\bw-full\b')
     found = {
         path.name: len(scaling.findall(path.read_text(encoding="utf-8")))
-        for path in TEMPLATES.rglob("*.html")
+        for folder in TEMPLATES
+        for path in folder.rglob("*.html")
     }
     assert {name: n for name, n in found.items() if n} == SCALES
