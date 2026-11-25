@@ -39,7 +39,7 @@ The paper bears on research question 4, *Do explanations carry across models?* (
 
 **The sequence.** Each model is fine-tuned on three narrow tasks, in one fixed order:
 
-1. SST-2, sentiment of a sentence, answered "positive" or "negative" (Socher et al., 2013).
+1. SST-2, the sentiment of a movie-review sentence or phrase, answered "positive" or "negative" (Socher et al., 2013). Its training split also holds the labelled phrases of the training sentences, so most training pairs are phrases, with a median of 7 words. The held-out pairs are whole sentences, with a median of 19 words.
 2. XSum, a one-sentence summary of a news article, cut to its first 1,500 characters (Narayan et al., 2018).
 3. GSM8K, a grade-school maths problem, answered with the dataset's worked solution (Cobbe et al., 2021).
 
