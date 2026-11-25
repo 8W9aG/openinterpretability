@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, stop_outcome, fold, read_more %}
+{% from "_macros.html" import breadcrumb, status_badge, evidence_badge, self_review_badge, builtin_sample_badge, pole_mark, heat_tokens, spoiler, stop_outcome %}
+{% from "_site_macros.html" import fold, read_more %}
 
 {% block title %}{{ model.name }} L{{ neuron.layer }}/{{ neuron.label }} · {{ site_title }}{% endblock %}
 

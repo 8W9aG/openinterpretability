@@ -1,5 +1,5 @@
 {# A unit's wiring for _experiment.html. Expects `v.wiring` from circuits.wiring_view, `what` and `root`. #}
-{% from "_macros.html" import fold, read_more %}
+{% from "_site_macros.html" import fold, read_more %}
   {% if v.wiring %}
   {% call fold("Wiring", "Elhage et al., 2021; Syed et al., 2023") %}<div data-pagefind-ignore>
     <p class="text-sm text-slate-600 dark:text-slate-400">The units that write most directly into this {{ what }} (upstream) and read most directly from it (downstream).{% if v.circuit %} <a class="text-brand-700 underline dark:text-brand-400" href="{{ root }}{{ v.circuit }}">See its circuit</a>.{% endif %}</p>

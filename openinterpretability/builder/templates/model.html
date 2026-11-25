@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import chart %}
-{% from "_macros.html" import breadcrumb, map_fill, status_grid, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, explanation_rows, fold, read_more %}
+{% from "_macros.html" import breadcrumb, map_fill, status_grid, status_badge, evidence_badge, self_review_badge, pole_mark, pending_table, explanation_rows %}
+{% from "_site_macros.html" import fold, read_more %}
 
 {% block title %}{{ model.name }} · {{ site_title }}{% endblock %}
 

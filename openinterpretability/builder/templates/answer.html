@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import fold, read_more %}
+{% from "_site_macros.html" import fold, read_more %}
 {# One answer experiment's page (#4909): its claim, and every test it was held to. Expects `answer` (explanation_pages.AnswerView) and `prompt` (PromptView). #}
 
 {% macro margin(row, ratio=false) %}{% if row.margin is none %}—{% elif ratio %}{{ "%+.2f" | format(row.margin) }}×{% else %}{{ "%+.1f" | format(row.margin * 100) }} pp{% endif %}{% endmacro %}
