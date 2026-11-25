@@ -376,6 +376,21 @@ def cached_readings(runner, record, cache: dict, firsts: dict, scale_factor: flo
     }  # fmt: skip
 
 
+def base_rows(records, on_base: dict, model: str) -> list[dict]:
+    """One row for each pole: its readings on the base model, which each condition shares.
+
+    Args:
+        records: The VERIFIED records.
+        on_base: Each pole's readings on the base model, by slug.
+        model: The base model's name.
+    """
+    return [
+        {"table": "base", "model": model, "slug": (i := r.submission.identifier).slug,
+         "layer": i.layer, "pole": i.pole, "readings": on_base[i.slug]}
+        for r in records
+    ]  # fmt: skip
+
+
 def summary(rows: list[dict], **fields) -> dict:
     """The keep share of one condition's pole rows, over the poles that reproduce.
 
@@ -462,7 +477,7 @@ def main(base_name, wiki_dir, out, device, names, mlp_seeds, all_seeds) -> None:
         r.submission.identifier.slug: cached_readings(runner, r, cache, firsts) for r in records
     }
     seeds = {"random_mlp": range(mlp_seeds), "random_all": range(all_seeds)}
-    lines = []
+    lines = base_rows(records, on_base, base_name)
     for name in names or CONDITIONS:
         for seed in seeds.get(name, [None]):
             fields = {"model": base_name, "condition": name, "seed": seed,

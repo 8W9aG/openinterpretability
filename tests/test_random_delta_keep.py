@@ -324,3 +324,12 @@ def test_a_pass_fills_its_memory_budget(monkeypatch):
     assert rdk.pass_tokens(runner, records) == 100  # 2 layers of 10 float32 values a token
     runner.model.config.intermediate_size = 10**6
     assert rdk.pass_tokens(runner, records) == 1
+
+
+def test_base_rows_give_each_pole_its_base_readings():
+    records = [_Record(0, 1, "positive"), _Record(4, 2, "negative")]
+    on_base = {"L0-N1-positive": {"passes": True}, "L4-N2-negative": {"passes": False}}
+    rows = rdk.base_rows(records, on_base, "m")
+    assert [r["table"] for r in rows] == ["base", "base"]
+    assert rows[1] == {"table": "base", "model": "m", "slug": "L4-N2-negative", "layer": 4,
+                       "pole": "negative", "readings": {"passes": False}}  # fmt: skip
