@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from openinterpretability.core.exceptions import SyncError
+from labinacan.errors import SyncError
 
 SHORT_CACHE = "public, max-age=3600"
 IMMUTABLE_CACHE = "public, max-age=31536000, immutable"
@@ -244,7 +244,7 @@ def sync_directory(
     """Sync ``dist_dir`` to ``bucket``; with ``dry_run``, only log what would change."""
     dist_dir = Path(dist_dir)
     if not dist_dir.is_dir():
-        raise SyncError(f"{dist_dir} is not a directory; run `open-interpretability build` first")
+        raise SyncError(f"{dist_dir} is not a directory; build the site first")
     if prefix and not prefix.endswith("/"):
         prefix += "/"
 
