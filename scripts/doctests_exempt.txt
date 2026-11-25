@@ -25,3 +25,5 @@ openinterpretability/harness/ov_lens.py::ov_circuit  needs a loaded model's weig
 openinterpretability/harness/ov_lens.py::ov_lens  needs a loaded model's weights
 openinterpretability/harness/ov_lens.py::unembedding  needs a loaded model's weights
 openinterpretability/builder/css.py::main  downloads the Tailwind CLI and builds the site's stylesheet from argv
+labinacan/site/github.py::open_prs  runs the gh CLI against GitHub
+labinacan/site/github.py::get_json  reads GitHub's API over the network

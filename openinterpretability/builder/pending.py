@@ -10,11 +10,10 @@ offline builds never call GitHub.
 
 from __future__ import annotations
 
-import json
 import re
-import shutil
-import subprocess
 from dataclasses import dataclass
+
+from labinacan.site.github import open_prs
 
 BRANCH = re.compile(
     r"^experiment/(?P<model>.+?)-L(?P<layer>\d+)-(?P<unit>[NHFS][0-9a-z]+)"
@@ -57,15 +56,7 @@ def parse(pr: dict) -> Pending | None:
 
 def open_experiments() -> list[Pending]:
     """The open experiment PRs of this repository, newest first; empty without ``gh``."""
-    if not shutil.which("gh"):
-        return []
     fields = "number,url,headRefName,isCrossRepository,isDraft,createdAt"
-    try:
-        out = subprocess.run(
-            ["gh", "pr", "list", "--state", "open", "--limit", "300", "--json", fields],
-            check=True, capture_output=True, text=True, timeout=60,
-        ).stdout  # fmt: skip
-    except (subprocess.SubprocessError, OSError):
-        return []
-    found = [p for p in map(parse, json.loads(out)) if p is not None]
+    prs = open_prs(fields)  # labinacan/site/github.py: none without gh (#6628)
+    found = [p for p in map(parse, prs) if p is not None]
     return sorted(found, key=lambda p: (p.opened, p.number), reverse=True)
