@@ -1,6 +1,6 @@
-"""Deploy the built site to Cloudflare R2 (``open-interpretability deploy``)."""
+"""Deploy the built site to Cloudflare R2 (the ``deploy`` command, :mod:`labinacan.cli`)."""
 
-from openinterpretability.sync.r2 import (
+from labinacan.sync.r2 import (
     R2Config,
     SyncPlan,
     cache_control_for,

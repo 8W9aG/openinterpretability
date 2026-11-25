@@ -2,8 +2,8 @@
 
 import pytest
 
-from openinterpretability.core.exceptions import SyncError
-from openinterpretability.sync.r2 import (
+from labinacan.errors import SyncError
+from labinacan.sync.r2 import (
     R2Config,
     file_md5,
     make_client,
@@ -25,7 +25,7 @@ def test_the_client_waits_out_a_slow_response_and_retries_it():  # #6101
 
 
 def test_a_missing_build_directory_is_an_error(tmp_path, mocker):
-    with pytest.raises(SyncError, match="is not a directory; run `open-interpretability build`"):
+    with pytest.raises(SyncError, match="is not a directory; build the site first"):
         sync_directory(tmp_path / "dist", "bucket", mocker.Mock())
 
 

@@ -108,7 +108,7 @@ openinterpretability/cli_review.py
 openinterpretability/cli_scan.py
 openinterpretability/cli_score.py
 openinterpretability/cli_sisters.py
-openinterpretability/cli_social.py
+labinacan/cli.py
 openinterpretability/cli_submission.py
 openinterpretability/cli_superpositions.py
 openinterpretability/cli_wiring.py
@@ -277,7 +277,7 @@ openinterpretability/show.py
 openinterpretability/signing.py
 openinterpretability/sisters.py
 openinterpretability/superposition_finders.py
-openinterpretability/sync/r2.py
+labinacan/sync/r2.py
 openinterpretability/syntax.py
 openinterpretability/takedown_checks.py
 openinterpretability/toxicity.py

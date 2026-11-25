@@ -25,5 +25,5 @@ class RegistryError(OpenInterpretabilityError):
     """An audit record on disk is missing or malformed."""
 
 
-class SyncError(OpenInterpretabilityError):
-    """Deploying the static site to object storage failed."""
+# Deploying the site to object storage failed. It lives in labinacan with the deploy (#6628).
+from labinacan.errors import SyncError as SyncError  # noqa: E402
