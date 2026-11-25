@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
+from jinja2 import ChoiceLoader, Environment, PackageLoader, StrictUndefined, select_autoescape
 from pydantic import ValidationError
 
 from labinacan.sensitive import is_offensive
@@ -97,7 +97,12 @@ def _environment(grid_scale: int = 1) -> Environment:
             of every model's grid (#5836).
     """
     env = Environment(
-        loader=PackageLoader("openinterpretability.builder", "templates"),
+        loader=ChoiceLoader(
+            [  # this repo's templates first, then labinacan's (#6628)
+                PackageLoader("openinterpretability.builder", "templates"),
+                PackageLoader("labinacan.site", "templates"),
+            ]
+        ),
         autoescape=select_autoescape(["html"]),
         undefined=StrictUndefined,
         trim_blocks=True,

@@ -23,7 +23,5 @@ def test_a_numeric_table_has_no_wrapping_cell():
 def test_the_prose_styles_let_marked_cells_wrap():
     from pathlib import Path
 
-    prose = (
-        Path(__file__).parents[1] / "openinterpretability/builder/templates/_prose.html"
-    ).read_text()
+    prose = (Path(__file__).parents[1] / "labinacan/site/templates/_prose.html").read_text()
     assert ".paper td.wrap, .paper th.wrap { white-space: normal; }" in prose
