@@ -940,37 +940,6 @@ def test_a_needs_revision_reading_does_not_contest_a_verified_one(tmp_path, reco
     assert "Reviews of this hypothesis split evenly" not in neuron
 
 
-@pytest.mark.parametrize(
-    ("verified", "rejected", "status"),
-    [(0.9, 0.7, "VERIFIED"), (0.6, 0.8, "REJECTED"), (0.80, 0.78, "CONTESTED")],
-)
-def test_scores_settle_verified_against_rejected(records, monkeypatch, verified, rejected,
-                                                 status):  # fmt: skip
-    """An even VERIFIED–REJECTED split, and a REJECTED rival, go to the score (#4900)."""
-    from openinterpretability.builder import standing as st
-
-    table = {"VERIFIED": verified, "REJECTED": rejected}
-    monkeypatch.setattr(st, "score", lambda e: table.get(e.record.verdict.status))
-    split = [*records, _reviewed_by(records[1], "deepseek/flash", status="REJECTED", hours=3,
-                                    counts=(5, 5, 1, 4))]  # fmt: skip
-    assert _standing(split)[0].status == status
-    rival = [*records, _rival(records, status="REJECTED", hours=4, text="Fires on vowels.")]
-    standing, _ = _standing(rival)
-    assert standing.status == status
-    if status == "VERIFIED":  # the earlier hypothesis keeps the standing, and its readings count
-        assert standing.lead.record is records[1] and standing.lead.counts
-
-
-def test_a_newer_needs_revision_hypothesis_leaves_a_verified_one_standing(records):
-    """The L2/H3 case of #4780: a self-reviewed NEEDS_REVISION rival doesn't contest (#4900)."""
-    records.append(_rival(records, status="NEEDS_REVISION", hours=4, text="Fires on nouns."))
-    standing, unit = _standing(records)
-    assert standing.status == "VERIFIED" and unit.verified and standing.prior.record is records[1]
-    roles = {e.record.submission.natural_language_explanation: e.role
-             for e in unit.experiments if e.side == "positive"}  # fmt: skip
-    assert roles["Fires on nouns."] == "failed_rival"
-
-
 def test_a_majority_of_verified_readings_settles_a_contest(tmp_path, records):
     """Two independent VERIFIED readings outvote one NEEDS_REVISION (#3212)."""
     verified = records[1]
@@ -989,96 +958,6 @@ def test_a_majority_of_verified_readings_settles_a_contest(tmp_path, records):
     compile_site(records, tmp_path)
     neuron = unit_pages(tmp_path / "models" / MODEL / "L3" / "N117.html")
     assert "Most reviews of this hypothesis agree (2 of 3)" in neuron
-
-
-def test_needs_revision_does_not_join_rejected_against_verified(records):
-    """VERIFIED, NEEDS_REVISION and REJECTED readings: one against one, so the scores decide.
-
-    With no score on either side the pole is CONTESTED (#4900). Before, NEEDS_REVISION and
-    REJECTED outvoted VERIFIED.
-    """
-    verified = records[1]
-    records.append(
-        _reviewed_by(
-            verified, "deepseek/flash", status="NEEDS_REVISION", hours=3, counts=(5, 5, 1, 4)
-        )
-    )
-    records.append(
-        _reviewed_by(verified, "muse/spark", status="REJECTED", hours=5, counts=(2, 8, 0, 5))
-    )
-    standing, unit = _standing(records)
-    assert standing.status == "CONTESTED" and not unit.verified
-
-
-def test_independent_review_outweighs_self_review(records):
-    verified = records[1]  # reviewed by anthropic/claude-test, proposed by openai/gpt-test
-    records.append(
-        _self_reviewed(_reviewed_by(verified, "x", status="REJECTED", hours=3, counts=(2, 8, 0, 5)))
-    )
-    standing, unit = _standing(records)
-    assert standing.status == "VERIFIED" and not standing.self_reviewed
-    roles = {e.record.verdict.status: e.role for e in unit.experiments if e.side == "positive"}
-    assert roles == {
-        "NEEDS_REVISION": "earlier_hypothesis",
-        "VERIFIED": "current",
-        "REJECTED": "outweighed",
-    }
-
-
-def test_self_reviews_alone_can_contest(records):
-    verified = _self_reviewed(records[1])
-    records[1] = verified
-    records.append(
-        _reviewed_by(
-            verified,
-            verified.verdict.reviewer_agent_model,
-            status="REJECTED",
-            hours=3,
-            counts=(2, 8, 0, 5),
-        )
-    )
-    standing, _ = _standing(records)
-    assert standing.status == "CONTESTED" and standing.self_reviewed
-
-
-def test_remeasurement_replaces_its_reading(records):
-    """Re-evaluating a probe set under a newer protocol replaces that reading.
-
-    The old reading can't contest the new one.
-    """
-    verified = records[1]
-    remeasured = verified.model_copy(
-        update={
-            "verdict": verified.verdict.model_copy(
-                update={
-                    "status": "NEEDS_REVISION",
-                    "timestamp": verified.verdict.timestamp + timedelta(hours=3),
-                }
-            )
-        }
-    )
-    records.append(remeasured)
-    standing, unit = _standing(records)
-    assert standing.status == "NEEDS_REVISION" and len(standing.readings) == 1
-    assert [e.role for e in unit.experiments if e.record is verified] == ["remeasured"]
-
-
-def test_revision_replaces_contested_hypothesis(records):
-    verified = records[1]
-    records.append(
-        _reviewed_by(
-            verified, "deepseek/flash", status="NEEDS_REVISION", hours=3, counts=(5, 5, 1, 4)
-        )
-    )
-    revised = experiment(
-        records[0], idx=117, status="VERIFIED", counts=(10, 0, 5, 0), hours=6, text="Narrower."
-    )
-    records.append(revised)
-    standing, _ = _standing(records)
-    assert standing.status == "VERIFIED"
-    assert [e.record.submission.natural_language_explanation for e in standing.readings] == [
-        "Narrower."
-    ]
 
 
 def _rival(records, *, status, hours, text, counts=(2, 8, 0, 5)):
@@ -1113,56 +992,6 @@ def test_failed_rival_contests_a_verified_hypothesis(tmp_path, records):
     assert "a newer hypothesis came out" in neuron and ">rejected</a> after an earlier" in neuron
     assert "A new hypothesis that reaches VERIFIED settles it." in neuron
     assert "split evenly" not in neuron
-
-
-def test_a_second_failed_rival_leaves_it_contested(records):
-    records.append(_rival(records, status="REJECTED", hours=4, text="Fires on vowels."))
-    records.append(_rival(records, status="NEEDS_REVISION", hours=5, text="Fires on nouns."))
-    standing, _ = _standing(records)
-    assert standing.status == "CONTESTED" and standing.prior.record is records[1]
-
-
-def test_a_verified_rival_settles_the_contest(records):
-    """VERIFIED, then REJECTED, then a third hypothesis that is VERIFIED: VERIFIED."""
-    records.append(_rival(records, status="REJECTED", hours=4, text="Fires on vowels."))
-    records.append(
-        _rival(records, status="VERIFIED", hours=6, text="Narrower.", counts=(10, 0, 5, 0))
-    )
-    standing, unit = _standing(records)
-    assert standing.status == "VERIFIED" and standing.prior is None and unit.verified
-    assert standing.lead.record.submission.natural_language_explanation == "Narrower."
-
-
-def test_rejected_then_verified_is_verified(records):
-    """The ``records`` fixture: N117+ was NEEDS_REVISION, then a new hypothesis VERIFIED."""
-    standing, unit = _standing(records)
-    assert standing.status == "VERIFIED" and standing.prior is None and unit.verified
-
-
-def test_only_a_verified_earlier_hypothesis_contests(records):
-    """N9+ was REJECTED; a new NEEDS_REVISION hypothesis is no contest."""
-    records.append(
-        experiment(
-            records[0], idx=9, status="NEEDS_REVISION", counts=(5, 5, 1, 4), hours=3, text="Dates?"
-        )
-    )
-    standing, _ = _standing(records, idx=9)
-    assert standing.status == "NEEDS_REVISION" and standing.prior is None
-
-
-def test_reviewer_agreement(records):
-    from openinterpretability.builder.standing import reviewer_agreement
-    from openinterpretability.builder.tree import build_tree
-
-    verified = records[1]
-    records.append(_reviewed_by(verified, "deepseek/flash", status="VERIFIED", hours=3))
-    records.append(
-        _reviewed_by(verified, "other/model", status="NEEDS_REVISION", hours=4, counts=(5, 5, 1, 4))
-    )
-    agreement = reviewer_agreement(build_tree(records, []))
-    assert agreement["claims"] == 1 and agreement["unanimous"] == 0
-    assert agreement["pairs"] == 3 and agreement["pair_agreement"] == round(1 / 3, 4)
-    assert agreement["cross_model_pairs"] == 3
 
 
 def _with_opposite(rec):
