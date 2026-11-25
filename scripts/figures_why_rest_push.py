@@ -111,3 +111,92 @@ def push(rows: list[dict]) -> Figure:
     _push_time_panel(left, rows)
     _push_depth_panel(fig, right, rows)
     return fig
+
+
+# The norm-pair conditions of #6465, top to bottom: final only, one block norm added, every norm.
+NORM_PAIRS = (
+    [("final only", "gelu_final_norm_centred_dropout_0")]
+    + [
+        (f"final + L{i} ln_{j}", f"gelu_final_L{i}_ln{j}_dropout_0")
+        for i in range(4)
+        for j in (1, 2)
+    ]
+    + [("every norm", "gelu_all_norms_centred_dropout_0")]
+)
+BELOW = 3  # the bins below h = -0.25, of share_output_bins_up's seven
+
+
+def up_below(rows: list[dict], condition: str, seed: int) -> float:
+    """The share of neurons whose output's push points up below h = −0.25, as Table 23.
+
+    It is a mean over the three bins below −0.25, L1–L3 and the windows of steps 201–1,000.
+
+    Args:
+        rows: The paper's results.
+        condition: The condition.
+        seed: The seed.
+
+    Returns:
+        The share.
+    """
+    shares = [
+        share
+        for r in rows
+        if r.get("part") == "push_norm_pairs" and r["condition"] == condition
+        and r["seed"] == seed and r["step"] - r["steps"] + 1 >= 201 and r["step"] <= 1000
+        for layer in (1, 2, 3)
+        for share in r["layers"][layer]["share_output_bins_up"][:BELOW]
+    ]  # fmt: skip
+    return sum(shares) / len(shares)
+
+
+def mean(values: list[float]) -> float:
+    """The mean of ``values``.
+
+    Args:
+        values: The values.
+
+    Returns:
+        Their mean.
+    """
+    return sum(values) / len(values)
+
+
+def norm_pairs(rows: list[dict]) -> Figure:
+    """Each norm-pair condition's up share below the rest, for each seed (#6465).
+
+    Args:
+        rows: The paper's results.
+
+    Returns:
+        The figure.
+    """
+    found = {c: [up_below(rows, c, s) for s in (0, 1)] for _, c in NORM_PAIRS}
+    one = [v for _, c in NORM_PAIRS[1:-1] for v in found[c]]  # one block norm added
+    low, high = min(one), max(one)
+    fig = Figure(
+        ["No single block norm restores the up push", "that centring every norm keeps"],
+        [
+            "Each mark is one seed's share of GELU neurons whose output's push points up below "
+            "h = −0.25.",
+            "The final LayerNorm is centred alone, with one block norm, or with every norm, "
+            "with no dropout.",
+            "Circles: seed 0. Triangles: seed 1.",
+        ],
+        f"A dot plot of {len(NORM_PAIRS)} conditions. With only the final norm centred, "
+        f"{mean(found[NORM_PAIRS[0][1]]):.2f} of neurons have an up push below the rest. "
+        f"Adding any one block norm leaves each seed between {low:.2f} and {high:.2f}. "
+        f"Centring every norm gives {mean(found[NORM_PAIRS[-1][1]]):.2f}.",
+    )
+    panel = Panel(fig, (150, fig.body_top + 20, 470, 24 * len(NORM_PAIRS)), (0.4, 0.9),
+                  (0, len(NORM_PAIRS)))  # fmt: skip
+    panel.grid_x([0.4, 0.5, 0.6, 0.7, 0.8, 0.9], 1)
+    panel.x_title("share of neurons with an up push below h = −0.25")
+    for i, (label, condition) in enumerate(NORM_PAIRS):
+        y = panel.y(len(NORM_PAIRS) - i - 0.5)
+        fig.text(panel.left - 10, y + 4, label, "small", "end")
+        x0, x1 = (panel.x(v) for v in found[condition])
+        fig.dot(x0, y, 4, "fc2")
+        fig.path([(x1, y - 5), (x1 + 5, y + 4), (x1 - 5, y + 4)], "fc1", close=True)
+    fig.bottom = panel.top + panel.height + 44
+    return fig

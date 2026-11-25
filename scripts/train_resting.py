@@ -32,7 +32,7 @@ from default_on_poles import (
     write_row,
 )
 from figure_svg import LEAKY_SLOPE
-from resting_modules import Activation, CentredNorm, keeper, offset_stats, parallel_forward, warmup
+from resting_modules import Activation, centre_norms, keeper, offset_stats, parallel_forward, warmup
 from resting_push import PushRecorder
 
 from openinterpretability.cli import _load, resolve_device
@@ -80,9 +80,9 @@ class Condition:
     leaky_slope: float = LEAKY_SLOPE  # the slope of leaky ReLU below 0
     output_shift: float = 0.0  # a constant added to the activation's output
     centre_output: bool = False  # the activation's output is centred per neuron over each batch
-    # "blocks" centres the input of each block's LayerNorms over the batch's tokens, and
-    # "all" also the final LayerNorm's. Then no LayerNorm sees a constant offset. "final"
-    # centres only the final LayerNorm's input.
+    # The LayerNorms whose input is centred over the batch's tokens. It is "blocks", "final",
+    # "all" (no norm sees a constant offset), or a list such as "final,L2.ln_1" (#6465).
+    # See resting_modules.centred_norm_names.
     centre_norms: str = ""
     batch: int = BATCH  # windows in each step
     warmup_steps: int = 0  # the learning rate grows linearly over these steps, then holds
@@ -184,6 +184,9 @@ CONDITIONS = {
 }
 CONDITIONS |= {f"gelu_{n[5:]}": replace(c, activation="gelu")  # each ReLU norm condition (#3193)
                for n, c in CONDITIONS.items() if n[:5] == "relu_" and c.centre_norms}  # fmt: skip
+CONDITIONS |= {f"gelu_final_L{i}_ln{j}_dropout_0":  # the final norm and one block norm (#6465)
+               replace(BASE, centre_norms=f"final,L{i}.ln_{j}", dropout=0.0)
+               for i in range(N_LAYER) for j in (1, 2)}  # fmt: skip
 
 
 def build_model(condition: Condition, vocab_size: int, seed: int):
@@ -213,12 +216,9 @@ def build_model(condition: Condition, vocab_size: int, seed: int):
             condition.output_shift,
             condition.centre_output,
         )
-        if condition.centre_norms in ("blocks", "all"):
-            block.ln_1, block.ln_2 = CentredNorm(block.ln_1), CentredNorm(block.ln_2)
         if condition.parallel:
             block.forward = types.MethodType(parallel_forward, block)
-    if condition.centre_norms in ("all", "final"):
-        model.transformer.ln_f = CentredNorm(model.transformer.ln_f)
+    centre_norms(model, condition.centre_norms)
     return model
 
 

@@ -94,6 +94,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
             **figures_why_rest.build(resting, dip),
             "push.svg": figures_why_rest_push.push(resting),
             "equal-rest.svg": figures_why_rest_equal.equal_rest(resting),
+            "norm-pairs.svg": figures_why_rest_push.norm_pairs(resting),
         },
     }
     return {

@@ -387,3 +387,32 @@ def test_route_slope_matches_the_loss_with_the_noise_added_by_hand():
     assert none == {"slope": 0.0, "extra": 0.0}  # the last block has no later block
     whole = routes.route_slope(model, ids, 1, "all", c, 0.1, draws=1, seed=3)
     assert whole["extra"] != got["extra"]  # the noise joins the stream, not ln_f alone
+
+
+def _centred(model) -> set[str]:
+    """The names of the norms that a model's build wrapped in a CentredNorm."""
+    from resting_modules import CentredNorm
+
+    names = {f"L{i}.ln_{j}" for i, b in enumerate(model.transformer.h) for j in (1, 2)
+             if isinstance(getattr(b, f"ln_{j}"), CentredNorm)}  # fmt: skip
+    return names | ({"ln_f"} if isinstance(model.transformer.ln_f, CentredNorm) else set())
+
+
+def test_each_norm_condition_centres_the_norms_it_names():
+    """#6465: the final norm and one block norm, against the settings that came before."""
+    build = lambda name: _centred(build_model(CONDITIONS[name], vocab_size=50, seed=0))  # noqa: E731
+    assert build("gelu_final_L2_ln1_dropout_0") == {"ln_f", "L2.ln_1"}
+    assert build("gelu_final_L0_ln2_dropout_0") == {"ln_f", "L0.ln_2"}
+    assert build("gelu_final_norm_centred_dropout_0") == {"ln_f"}
+    assert len(build("gelu_all_norms_centred_dropout_0")) == 9
+    assert build("gelu") == set()
+    new = [n for n in CONDITIONS if n.startswith("gelu_final_L")]
+    assert len(new) == 8 and all(CONDITIONS[n].dropout == 0.0 for n in new)
+
+
+def test_a_spec_that_names_no_norm_of_the_model_is_an_error():
+    from resting_modules import centred_norm_names
+
+    with pytest.raises(ValueError, match="no LayerNorm 'L9.ln_1' in 4 blocks"):
+        centred_norm_names("final,L9.ln_1", 4)
+    assert centred_norm_names("blocks", 1) == {"L0.ln_1", "L0.ln_2"}
