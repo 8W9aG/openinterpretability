@@ -1,4 +1,4 @@
-"""Each paper's and post's link to its X post (openinterpretability/social/links.py, #5840)."""
+"""Each paper's and post's link to its X post (labinacan/social/links.py, #5840)."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
+from labinacan.social import run as social
+from labinacan.social.feed import Entry, Tweet
+from labinacan.social.links import folder_of, link, write_records
 from openinterpretability.cli import cli
-from openinterpretability.social import run as social
-from openinterpretability.social.feed import Entry, Tweet
-from openinterpretability.social.links import folder_of, link, write_records
 from tests.test_social_media import _paper
 
 SITE = "https://open-interpretability.com/"
@@ -67,7 +67,7 @@ def test_post_records_what_it_posted_and_link_writes_it(tmp_path, monkeypatch):
 
     for name, value in KEYS.items():
         monkeypatch.setenv(name, value)
-    monkeypatch.setattr("openinterpretability.social.poster.XPoster", FakeX)
+    monkeypatch.setattr("labinacan.social.poster.XPoster", FakeX)
     FakeX.sent, FakeX.error = [], None
     feed = tmp_path / "papers.xml"
     feed.write_text('<feed xmlns="http://www.w3.org/2005/Atom"><entry>'

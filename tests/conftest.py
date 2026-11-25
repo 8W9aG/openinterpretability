@@ -269,7 +269,7 @@ def _no_real_browser(monkeypatch):
     Under load, printing every paper in papers/ took over the 60 s timeout and hung a full
     run (#4376). The PDF tests set their own fake browser in the same variable.
     """
-    from openinterpretability.builder.paper_pdf import CHROME_ENV
+    from labinacan.site.paper_pdf import CHROME_ENV
 
     monkeypatch.setenv(CHROME_ENV, "/nonexistent/chrome-for-tests")
 

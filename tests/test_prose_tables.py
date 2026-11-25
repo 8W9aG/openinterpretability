@@ -1,6 +1,6 @@
 """Long table cells wrap on prose pages, and short or numeric cells stay on one line (#5570)."""
 
-from openinterpretability.builder.research import _MARKDOWN, LONG_CELL
+from labinacan.site.research import _MARKDOWN, LONG_CELL
 
 
 def test_only_long_cells_are_marked_to_wrap():

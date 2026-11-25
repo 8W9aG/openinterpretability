@@ -6,13 +6,13 @@ from collections.abc import Set as AbstractSet
 from importlib.metadata import metadata
 from pathlib import Path
 
+from labinacan.site.changelog_page import load_versions
+from labinacan.site.literature_pages import LITERATURE, load_reviews, render_reviews
+from labinacan.site.research import copy_assets, load_papers
+from labinacan.site.research_feeds import POSTS_FEED, posts_feed, write_research_feeds
 from openinterpretability import DISTRIBUTION
 from openinterpretability.builder.brand import write_brand
-from openinterpretability.builder.changelog_page import load_versions
 from openinterpretability.builder.explanation_pages import render_explanations
-from openinterpretability.builder.literature_pages import LITERATURE, load_reviews, render_reviews
-from openinterpretability.builder.research import copy_assets, load_papers
-from openinterpretability.builder.research_feeds import POSTS_FEED, posts_feed, write_research_feeds
 from openinterpretability.builder.taxonomy_view import taxonomy_rows
 from openinterpretability.core.licenses import DATA_TERMS
 from openinterpretability.core.schemas import ReviewPolicy
@@ -125,7 +125,7 @@ def _render_research(
 
     A paper's PDF is printed before its page, so the page links it only if it exists.
     """
-    from openinterpretability.builder.paper_pdf import chrome, write_pdf
+    from labinacan.site.paper_pdf import chrome, write_pdf
 
     papers = load_papers(papers_dir, render.common["repo_url"])
     render("research/index.html", "research.html", papers=papers, explained=explained,

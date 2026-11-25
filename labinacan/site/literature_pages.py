@@ -3,7 +3,7 @@
 The reviews are the Markdown files in ``docs/literature/``. ``README.md`` is their index,
 and each other file is one paper or post. Each becomes a page under
 ``research/literature/``, rendered as the papers are
-(:mod:`openinterpretability.builder.research`), with the same search for personal data.
+(:mod:`labinacan.site.research`), with the same search for personal data.
 Links between the reviews become links between the pages. Links to other repository files
 point at GitHub. An install has no ``docs/`` folder, so it writes no pages.
 """
@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from labinacan.site.pii import redact_text
-from openinterpretability.builder.research import _MARKDOWN, _plain
+from labinacan.site.research import _MARKDOWN, _plain
 
 LITERATURE = Path(__file__).resolve().parents[2] / "docs" / "literature"  # absent in an install
 SECTION = "research/literature"
@@ -128,14 +128,18 @@ def sections(folder: Path) -> dict[str, str]:
 
 def render_reviews(render, reviews: list[Review], folder: Path = LITERATURE) -> None:
     """Write one page per review, and the index with the map of the reviews."""
-    from openinterpretability.builder.literature_map_view import (
+    from labinacan.site.literature_map_view import (
         HEIGHT,
         WIDTH,
         literature_map,
         map_view,
     )
 
-    points, missing = literature_map(folder, reviews) if reviews else ([], [])
+    points, missing = (
+        literature_map(folder, reviews)
+        if reviews  # pragma: no mutate, equivalent: with no reviews, the map is empty
+        else ([], [])
+    )
     view = (
         map_view(folder, points)
         if points

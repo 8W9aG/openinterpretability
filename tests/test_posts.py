@@ -6,8 +6,8 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
+from labinacan.site.research import load_papers
 from openinterpretability.builder.compiler import compile_site
-from openinterpretability.builder.research import load_papers
 
 ATOM = "{http://www.w3.org/2005/Atom}"
 POSTS = Path(__file__).parents[1] / "posts"

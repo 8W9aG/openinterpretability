@@ -23,7 +23,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from openinterpretability.social.message import LIMIT, length
+from labinacan.social.message import LIMIT, length
 
 THREAD = "thread.yaml"
 FEWEST, MOST = 2, 10  # tweets in a thread
