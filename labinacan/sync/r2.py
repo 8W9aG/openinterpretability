@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from labinacan.config import env
 from labinacan.errors import SyncError
 
 SHORT_CACHE = "public, max-age=3600"
@@ -201,8 +202,8 @@ def plan_sync(
     return plan
 
 
-UPLOAD_WORKERS = int(os.environ.get("OPENINTERPRETABILITY_UPLOAD_WORKERS", "32"))
-"""Uploads in flight at once (``$OPENINTERPRETABILITY_UPLOAD_WORKERS``)."""
+UPLOAD_WORKERS = int(os.environ.get(env("UPLOAD_WORKERS"), "32"))
+"""Uploads in flight at once (``$<prefix>_UPLOAD_WORKERS``, :func:`labinacan.config.env`)."""
 
 
 def _upload(client, bucket: str, local: Mapping[str, Path], keys: Sequence[str], prefix: str):

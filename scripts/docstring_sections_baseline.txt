@@ -547,8 +547,6 @@ openinterpretability/core/pricing.py::cost_usd
 openinterpretability/core/profiles.py::output_site_of
 openinterpretability/core/profiles.py::superposition_id
 openinterpretability/core/profiles.py::require_unit_profile
-openinterpretability/core/project.py::project_links
-openinterpretability/core/project.py::site_url
 openinterpretability/core/record_kinds.py::reproducible
 openinterpretability/core/rivals.py::balanced_accuracy
 openinterpretability/core/rivals.py::compare

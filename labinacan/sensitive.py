@@ -236,7 +236,7 @@ def detector(name: str) -> str:
     Records store this string, so a project keeps one name for the search (#6628).
 
     Args:
-        name: The project's name for this search, such as ``openinterpretability.sensitive``.
+        name: The project's name for this search, such as ``<package>.sensitive``.
 
     Returns:
         The name, then the package versions and the suffix list's SHA-256 prefix.

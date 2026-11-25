@@ -27,10 +27,12 @@ import time
 import urllib.parse
 import urllib.request
 
+from labinacan.config import config, site_url
+
 API = "https://api.x.com"
 TWEETS = "/2/tweets"  # under API
 SECRETS = ("X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET")
-USER_AGENT = "openinterpretability-social (+https://open-interpretability.com)"  # #6072
+USER_AGENT = f"{config().package}-social (+{site_url().rstrip('/')})"  # #6072
 SEGMENT = 4 * 1024 * 1024  # a video's upload segment: X allows 4 MB in a JSON body
 LARGEST = 64 * 1024 * 1024  # the largest drawn figure the poster downloads
 WAIT = 300  # seconds to wait for X to process a video, at most

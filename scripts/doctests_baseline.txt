@@ -142,7 +142,6 @@ openinterpretability/core/paths.py
 openinterpretability/core/pause.py
 openinterpretability/core/pricing.py
 openinterpretability/core/profiles.py
-openinterpretability/core/project.py
 openinterpretability/core/record_kinds.py
 openinterpretability/core/rivals.py
 openinterpretability/core/schemas.py
