@@ -138,7 +138,8 @@ def by_score(verified: Experiment, rejected: Experiment) -> str:
     a, b = score(verified), score(rejected)
     if a is None or b is None or abs(a - b) < SCORE_MARGIN:
         return "CONTESTED"
-    return "VERIFIED" if a > b else "REJECTED"
+    # a equals b only within the margin, which returned CONTESTED above.
+    return "VERIFIED" if a > b else "REJECTED"  # pragma: no mutate, equivalent: see above
 
 
 def _majority(readings: list[Experiment]) -> Standing:
@@ -175,18 +176,14 @@ def _claim_readings(newest: list[Experiment], claim: str) -> tuple[list, list]:
     return latest, [e for e in latest if not e.record.self_reviewed] or latest
 
 
-def _verified_prior(newest: list[Experiment], current: str, introduced: dict) -> list | None:
+def _verified_prior(newest: list[Experiment], earlier: list[Experiment]) -> list | None:
     """Return the counted readings of the newest earlier claim that is VERIFIED, or None.
 
-    Each earlier claim is scored by steps 2–4 on its own experiments. That is the status
-    that it had while it was the newest, because a later claim never adds readings to it.
+    ``earlier`` holds the first experiment of each claim before the current one. Each
+    earlier claim is scored by steps 2–4 on its own experiments. That is the status that
+    it had while it was the newest, because a later claim never adds readings to it.
     """
-    earlier = sorted(
-        (e for claim, e in introduced.items() if claim != current),
-        key=lambda e: (e.record.verdict.timestamp, e.id),
-        reverse=True,
-    )
-    for first in earlier:
+    for first in _newest_first(earlier):
         _, counted = _claim_readings(newest, first.claim)
         if _majority(counted).verified:
             return counted
@@ -204,8 +201,12 @@ def _against_prior(standing: Standing, prior: list[Experiment], newest: list) ->
     goes to :func:`by_score`, whichever hypothesis is newest now.
     """
     since = min(_key(e) for e in prior)
-    rejected = [e for e in newest if e.claim != prior[0].claim and _key(e) > since
-                and e.record.verdict.status == "REJECTED"]  # fmt: skip
+    # A key holds the experiment's id. So the one experiment whose key is ``since`` is of
+    # the prior claim, and ``>=`` would select the same experiments as ``>``.
+    later = [e for e in newest if _key(e) > since]  # pragma: no mutate, equivalent: see above
+    rejected = [
+        e for e in later if e.claim != prior[0].claim and e.record.verdict.status == "REJECTED"
+    ]
     status = by_score(prior[0], rejected[0]) if rejected else "VERIFIED"
     if status == "REJECTED":
         return standing  # the newer hypothesis outscores it: its own status stands
@@ -213,8 +214,8 @@ def _against_prior(standing: Standing, prior: list[Experiment], newest: list) ->
     for e in prior:
         e.role = role
     if status == "VERIFIED":  # it rests on the earlier hypothesis's readings (#4900)
-        for e in standing.readings:
-            e.role = "failed_rival" if e.role == "current" else e.role
+        for e in standing.readings:  # the newer claim's counted readings, all "current"
+            e.role = "failed_rival"
         return Standing("VERIFIED", prior, prior=prior[0])
     return Standing("CONTESTED", standing.readings, prior=prior[0])
 
@@ -241,8 +242,8 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
     none. Then the standing rests on them, and :attr:`Standing.errata` names the errata.
     """
     kept = [e for e in experiments if not e.set_aside]
-    for e in experiments:
-        if kept and e.set_aside:
+    for e in experiments:  # when none is kept, the loop below sets every role again
+        if e.set_aside:
             e.role = "set_aside"
     newest = _newest_first(kept or experiments)
     introduced = {e.claim: e for e in reversed(newest)}  # each claim's first experiment
@@ -259,7 +260,8 @@ def pole_standing(experiments: Sequence[Experiment]) -> Standing:
         else:
             e.role = "remeasured"
     standing = _majority(readings)
-    prior = None if standing.verified else _verified_prior(newest, current, introduced)
+    earlier = [e for claim, e in introduced.items() if claim != current]
+    prior = None if standing.verified else _verified_prior(newest, earlier)
     if prior:
         standing = _against_prior(standing, prior, newest)
     for e in experiments:
@@ -317,15 +319,12 @@ def reviewer_agreement(models: Sequence[ModelNode]) -> dict:
 
 def _repeated_claims(models):
     """Each native unit's claim with at least two probe sets: the experiment that reads each."""
-    for m in models:
-        for layer in m.layers:
-            for n in layer.units:
-                if not n.is_native:
-                    continue
-                by_claim: dict[tuple[str, str], list[Experiment]] = {}
-                for e in n.experiments:
-                    by_claim.setdefault((e.side, e.claim), []).append(e)
-                yield from (r for r in map(_readings, by_claim.values()) if len(r) >= 2)
+    native = (n for m in models for layer in m.layers for n in layer.units if n.is_native)
+    for n in native:
+        by_claim: dict[tuple[str, str], list[Experiment]] = {}
+        for e in n.experiments:
+            by_claim.setdefault((e.side, e.claim), []).append(e)
+        yield from (r for r in map(_readings, by_claim.values()) if len(r) >= 2)
 
 
 def _pair_counts(readings) -> tuple[int, int, int, int]:
