@@ -61,6 +61,11 @@ PYTHIA_BETAS = (0.9, 0.95)
 PYTHIA_WEIGHT_DECAY = 0.01
 PYTHIA_WARMUP = 715
 PYTHIA_BATCH_FACTOR = 4  # Pythia's batch is 500 times ours. 4 times fits the time we have.
+# Gradient accumulation reaches 32 times in about an hour a run on one GPU (#6499).
+PYTHIA_FULL_BATCH_FACTOR = 32
+# Pythia-70m is 512 wide, with 6 layers and 8 heads (Biderman et al., 2023).
+PYTHIA_70M_LAYERS = 6
+PYTHIA_70M_WIDTH = 512
 SGD_LEARNING_RATE = 0.1  # the best of 0.01, 0.03, 0.1 and 0.3 over 500 steps that trained stably
 
 
@@ -88,6 +93,8 @@ class Condition:
     warmup_steps: int = 0  # the learning rate grows linearly over these steps, then holds
     adam_betas: tuple[float, float] = ADAM_BETAS
     parallel: bool = False  # attention and the MLP read the same input, as in GPT-NeoX
+    n_layer: int = N_LAYER
+    n_embd: int = N_EMBD  # the MLP is mlp_ratio times as wide
 
 
 # The mean output of ReLU and of GELU at init, where h has an SD of about 0.31. For ReLU it
@@ -179,9 +186,14 @@ CONDITIONS = {
         parallel=True,
         batch=BATCH * PYTHIA_BATCH_FACTOR,
     ),
+    # Pythia's batch and Pythia-70m's size, each on its own (#6499).
+    "pythia_batch_32x": replace(BASE, dropout=0.0, batch=BATCH * PYTHIA_FULL_BATCH_FACTOR),
     "sgd": replace(BASE, optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
     "relu_sgd": replace(BASE, activation="relu", optimizer="sgd", learning_rate=SGD_LEARNING_RATE),
 }
+CONDITIONS["pythia_size"] = replace(
+    CONDITIONS["pythia_all"], n_layer=PYTHIA_70M_LAYERS, n_embd=PYTHIA_70M_WIDTH
+)
 CONDITIONS |= {f"gelu_{n[5:]}": replace(c, activation="gelu")  # each ReLU norm condition (#3193)
                for n, c in CONDITIONS.items() if n[:5] == "relu_" and c.centre_norms}  # fmt: skip
 CONDITIONS |= {f"gelu_final_L{i}_ln{j}_dropout_0":  # the final norm and one block norm (#6465)
@@ -197,10 +209,10 @@ def build_model(condition: Condition, vocab_size: int, seed: int):
     config = GPT2Config(
         vocab_size=vocab_size,
         n_positions=WINDOW_TOKENS,
-        n_layer=N_LAYER,
-        n_embd=N_EMBD,
+        n_layer=condition.n_layer,
+        n_embd=condition.n_embd,
         n_head=N_HEAD,
-        n_inner=N_EMBD * condition.mlp_ratio,
+        n_inner=condition.n_embd * condition.mlp_ratio,
         resid_pdrop=condition.dropout,
         embd_pdrop=condition.dropout,
         attn_pdrop=condition.dropout,
@@ -260,7 +272,7 @@ def sample_batch(
 def evaluate(model, ids: torch.Tensor) -> dict:
     """Return the held-out loss and, per layer, where the neurons rest and why."""
     model.eval()
-    inputs: dict[int, list[torch.Tensor]] = {i: [] for i in range(N_LAYER)}
+    inputs: dict[int, list[torch.Tensor]] = {i: [] for i in range(len(model.transformer.h))}
     # The residual stream at the input of each block's two LayerNorms, and each MLP's output,
     # for the offset measures of #3192.
     seen: dict[tuple[str, int], list[torch.Tensor]] = {}
@@ -345,6 +357,7 @@ def train(
     save_every: int = 0,
     save_dir: Path | None = None,
     spread_bins: bool = False,
+    micro_batch: int = 0,
 ) -> None:
     """Train one model and append a row, labelled ``part``, at each evaluation.
 
@@ -354,8 +367,13 @@ def train(
     that ``PUSH_BINS`` gives.
     If ``save_every`` is not 0, save the weights to ``save_dir`` every ``save_every`` steps,
     as ``checkpoint_path`` names them.
+    If ``micro_batch`` is not 0, each step's batch goes through the model in parts of
+    ``micro_batch`` windows, as ``accumulate`` does it.
     """
     condition = CONDITIONS[name]
+    if push_every and 0 < micro_batch < condition.batch:
+        # The recorder reads the gradient of one forward pass, so it sees only the last part.
+        raise click.UsageError(f"{name}: --push-every needs a micro-batch of the whole batch")
     vocab = int(tokens.max()) + 1
     model = build_model(condition, vocab, seed).to(device).train()
     optimizer = make_optimizer(condition, model)
@@ -375,12 +393,11 @@ def train(
         if step == steps:
             break
         batch = sample_batch(tokens, generator, condition.batch).to(device)
-        loss = model(batch, labels=batch).loss
+        optimizer.zero_grad()
+        loss = accumulate(model, batch, micro_batch)
         if not loss.isfinite():
             # MPS can fail a command buffer and return NaN, so stop and let a person look.
             raise click.ClickException(f"{name} seed {seed}: loss {loss.item()} at step {step}")
-        optimizer.zero_grad()
-        loss.backward()
         if recorder:
             recorder.before_step()  # before the clip, which scales every gradient alike
         nn.utils.clip_grad_norm_(model.parameters(), GRADIENT_CLIP)
@@ -392,6 +409,25 @@ def train(
             if (step + 1) % push_every == 0:
                 row = {"part": push_part, "condition": name, "seed": seed, "step": step + 1}
                 write_row(out, {**row, "steps": push_every, "layers": recorder.row()})
+
+
+def accumulate(model, batch: torch.Tensor, micro_batch: int = 0) -> torch.Tensor:
+    """Add the gradient of the mean loss on ``batch`` to the model's gradients.
+
+    The batch goes through the model in parts of ``micro_batch`` windows, so that a batch
+    too large for the device's memory still trains (#6499). Each part's loss is weighted by
+    its share of the windows. So the gradient is the same as the whole batch's, except for
+    rounding. A ``micro_batch`` of 0 sends the whole batch at once.
+
+    Returns:
+        The mean loss on the batch, with no graph.
+    """
+    total = torch.zeros((), device=batch.device)
+    for part in batch.split(micro_batch or len(batch)):
+        loss = model(part, labels=part).loss * (len(part) / len(batch))
+        loss.backward()
+        total += loss.detach()
+    return total
 
 
 def checkpoint_path(save_dir: Path, name: str, seed: int, step: int | str) -> Path:
@@ -429,6 +465,13 @@ def cli():
 )
 @click.option("--save-every", type=int, default=0, show_default=True, help="0 saves no weights.")
 @click.option("--save-dir", type=click.Path(path_type=Path), default=None)
+@click.option(
+    "--micro-batch",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Windows in each forward pass, with the gradient accumulated. 0 is the whole batch.",
+)
 def train_command(
     names,
     seeds,
@@ -444,6 +487,7 @@ def train_command(
     spread_bins,
     save_every,
     save_dir,
+    micro_batch,
 ):
     """Train each condition with each seed, and append the rows to ``--out``."""
     if save_every and save_dir is None:
@@ -475,6 +519,7 @@ def train_command(
                 save_every,
                 save_dir,
                 spread_bins,
+                micro_batch,
             )
 
 

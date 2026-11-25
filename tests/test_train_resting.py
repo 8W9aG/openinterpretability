@@ -1,6 +1,7 @@
 """The helpers behind papers/why-neurons-rest/README.md."""
 
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -15,12 +16,16 @@ from train_resting import (  # noqa: E402
     INIT_MEAN_RELU,
     LEAKY_SLOPE,
     PUSH_BINS,
+    PYTHIA_70M_LAYERS,
+    PYTHIA_70M_WIDTH,
     PYTHIA_BETAS,
+    PYTHIA_FULL_BATCH_FACTOR,
     PYTHIA_WEIGHT_DECAY,
     SGD_MOMENTUM,
     Activation,
     PushRecorder,
     _layer_stats,
+    accumulate,
     build_model,
     make_optimizer,
     sample_batch,
@@ -416,3 +421,50 @@ def test_a_spec_that_names_no_norm_of_the_model_is_an_error():
     with pytest.raises(ValueError, match="no LayerNorm 'L9.ln_1' in 4 blocks"):
         centred_norm_names("final,L9.ln_1", 4)
     assert centred_norm_names("blocks", 1) == {"L0.ln_1", "L0.ln_2"}
+
+
+def _grads(model) -> dict[str, torch.Tensor]:
+    return {n: p.grad.clone() for n, p in model.named_parameters() if p.grad is not None}
+
+
+@pytest.mark.parametrize("micro_batch", [2, 3])  # 3 leaves a smaller last part
+def test_accumulated_gradient_is_the_whole_batchs(micro_batch):  # #6499
+    model = build_model(CONDITIONS["dropout_0"], vocab_size=50, seed=0)
+    batch = torch.randint(50, (8, 6), generator=torch.Generator().manual_seed(0))
+    whole_loss = accumulate(model, batch)
+    whole = _grads(model)
+    model.zero_grad()
+    parts_loss = accumulate(model, batch, micro_batch)
+    parts = _grads(model)
+    assert parts_loss.item() == pytest.approx(whole_loss.item(), rel=1e-5)
+    assert parts.keys() == whole.keys() and whole
+    for name, grad in whole.items():
+        assert torch.allclose(parts[name], grad, atol=1e-6), name
+    assert not parts_loss.requires_grad
+
+
+def test_push_rows_are_refused_with_a_micro_batch():  # #6499
+    import click
+    from train_resting import train
+
+    with pytest.raises(click.UsageError, match="micro-batch"):
+        train("dropout_0", 0, 1, 1, None, None, "cpu", None, "x", push_every=1, micro_batch=8)
+
+
+def test_scale_conditions_change_only_batch_or_size():  # #6499
+    batch = CONDITIONS["pythia_batch_32x"]
+    assert batch.batch == PYTHIA_FULL_BATCH_FACTOR * BATCH
+    assert batch == replace(CONDITIONS["dropout_0"], batch=batch.batch)
+    size = CONDITIONS["pythia_size"]
+    assert vars(size) == {**vars(CONDITIONS["pythia_all"]), "n_layer": PYTHIA_70M_LAYERS,
+                          "n_embd": PYTHIA_70M_WIDTH}  # fmt: skip
+    model = build_model(size, vocab_size=50, seed=0)
+    assert len(model.transformer.h) == 6 and model.config.n_embd == 512
+    assert model.transformer.h[0].mlp.c_fc.weight.shape == (512, 2048)
+
+
+def test_evaluate_reads_every_layer_of_a_deeper_model():  # #6499
+    from train_resting import evaluate
+
+    model = build_model(CONDITIONS["pythia_size"], vocab_size=50, seed=0)
+    assert len(evaluate(model, torch.randint(50, (2, 8)))["layers"]) == PYTHIA_70M_LAYERS
