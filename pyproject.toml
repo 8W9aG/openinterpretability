@@ -122,6 +122,8 @@ include = ["/openinterpretability", "/labinacan", "/README.md", "/LICENSE", "/CH
 name = "Open Interpretability"
 package = "openinterpretability"
 env_prefix = "OPENINTERPRETABILITY"  # environment variables are OPENINTERPRETABILITY_<NAME>
+linear_team = "OPE"  # the Linear team that mirrors the GitHub issues (scripts/linear_sync.py)
+maintainer = "8W9aG"  # the maintainer's GitHub login, whose issues agents may work
 
 [tool.openinterpretability]
 # Models `open-interpretability next` explores: most draws go to the smallest model whose share is
@@ -324,6 +326,12 @@ only_mutate = [
 # The repository data that the selected tests read.
 also_copy = ["wiki/circuits", ".github/workflows"]
 pytest_add_cli_args = ["-p", "no:cacheprovider", "-o", "addopts=-ra", "-q"]
+# A mutant's CPU budget is (its tests' measured time + timeout_constant) x 15 x 2 seconds.
+# Each test process is a fork of a parent with a large heap, and the fork costs CPU time of
+# its own, more on a loaded machine. With mutmut's default of 1, a mutant whose tests measure
+# 0 s had 30 s, and a parallel run sometimes passed it (exit -24, SIGXCPU).
+# That gave "timeout" in one run and "killed" in another (#6829). 10 gives such a mutant 300 s.
+timeout_constant = 10
 pytest_add_cli_args_test_selection = [
     "tests/test_core_stats.py",
     "tests/test_builder_significance.py",
