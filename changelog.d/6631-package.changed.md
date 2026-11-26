@@ -1,0 +1,1 @@
+- labinacan's templates take the breadcrumb's first step from `home_label`, and include a project's `_research_extra.html` on the Research index. Its examples, docstrings and Vale rules name nothing of this project (#6631).

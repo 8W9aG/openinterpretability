@@ -24,3 +24,16 @@ def test_a_preview_shows_a_tweets_figure_and_nothing_without_one():
     figure = SimpleNamespace(type="image/png", alt="A curve")
     assert preview([("Hi", figure)]).endswith("Hi\n[image/png: A curve]")
     assert preview([("Hi", None)]).endswith(":\nHi")
+
+
+def test_the_first_run_says_that_a_repost_waits_for_a_state(tmp_path):
+    # #6631: --repost on a first run only seeds, and says so.
+    from labinacan.social.feed import Entry
+    from labinacan.social.run import run
+
+    paper = Entry("p1", "A paper", "https://x.org/p", "It reads brackets.")
+    lines = run(
+        tmp_path / "x.json", {"papers": [paper]}, lambda t, m: "1", now=0, repost=frozenset({"p1"})
+    )
+    assert lines[-1] == "--repost waits for a state: the first run only seeds"
+    assert run(tmp_path / "y.json", {"papers": [paper]}, lambda t, m: "1", now=0)[-1] != lines[-1]

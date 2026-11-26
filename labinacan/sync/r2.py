@@ -2,7 +2,7 @@
 
 Only files whose MD5 differs from the remote ETag are uploaded (``put_object``
 always produces single-part uploads, whose ETag is the content MD5). Because the
-builder is deterministic, an unchanged registry syncs as a no-op: nothing is
+builder is deterministic, an unchanged site syncs as a no-op: nothing is
 uploaded, deleted or purged.
 
 * Upload order: content-addressed files, then other assets, then HTML, so a page

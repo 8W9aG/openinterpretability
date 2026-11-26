@@ -383,6 +383,7 @@ def _site_context(site_title: str, corpus_sources: dict | None, experiments, pen
     return {
         **project_links(),
         "site_title": site_title,
+        "home_label": "Registry",  # the first step of each page's breadcrumb (#6631)
         "corpus_sources": corpus_sources or {},  # for records with no corpus_source of their own
         "model_licenses": configured_licenses(),
         "version": __version__,
