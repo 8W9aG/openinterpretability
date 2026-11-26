@@ -1,0 +1,22 @@
+{
+ "source": "media/recovery.svg",
+ "sha256": "71ea7fdac569e3dcf2514f9b74a45f9a9c5e0e2de5b5e0e6561a5a492d2cc700",
+ "files": [
+  "social.png"
+ ],
+ "figures": {
+  "grid": {
+   "sha256": "f140a6daeaa531ffcd3025a47c063849f2fe03cad53b740f4fac6dafd7bc671e",
+   "files": [
+    "social-grid.mp4",
+    "social-grid.png"
+   ]
+  },
+  "recovery": {
+   "sha256": "71ea7fdac569e3dcf2514f9b74a45f9a9c5e0e2de5b5e0e6561a5a492d2cc700",
+   "files": [
+    "social-recovery.png"
+   ]
+  }
+ }
+}

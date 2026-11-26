@@ -33,6 +33,7 @@ import figures_transfer
 import figures_why_rest
 import figures_why_rest_equal
 import figures_why_rest_push
+import figures_wrapper_prune
 
 PAPERS = Path(__file__).parents[1] / "papers"
 
@@ -94,6 +95,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         ),
         "template-or-tuning": figures_template_tuning.build(_rows("template-or-tuning")),
         "token-set-ceiling": figures_token_set.build(_rows("token-set-ceiling")),
+        "wrapper-prune": figures_wrapper_prune.build(_rows("wrapper-prune")),
         "sequential-tuning": figures_sequential_tuning.build(_rows("sequential-tuning")),
         "why-neurons-rest": {
             "surface.svg": figures_depth.surface(resting, dip),
