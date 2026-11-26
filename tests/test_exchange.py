@@ -1,14 +1,16 @@
 """What papers and analyses read from exchange/ must be published and pinned (#3255)."""
 
+import importlib
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
-
-import pytest  # noqa: E402
-
-import exchange  # noqa: E402
+# Imported by name. Ruff sorts a script as first-party only where a folder of its name sits at
+# the root. exchange/ is a local, ignored folder, so the sort would differ in CI.
+exchange = importlib.import_module("exchange")
 
 
 @pytest.fixture(autouse=True)
