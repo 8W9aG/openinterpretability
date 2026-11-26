@@ -124,6 +124,7 @@ package = "openinterpretability"
 env_prefix = "OPENINTERPRETABILITY"  # environment variables are OPENINTERPRETABILITY_<NAME>
 linear_team = "OPE"  # the Linear team that mirrors the GitHub issues (scripts/linear_sync.py)
 maintainer = "8W9aG"  # the maintainer's GitHub login, whose issues agents may work
+hf_dataset = "sackfield/open-interpretability-exchange"  # the public inputs (scripts/exchange.py)
 
 [tool.openinterpretability]
 # Models `open-interpretability next` explores: most draws go to the smallest model whose share is

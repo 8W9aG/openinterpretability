@@ -1,6 +1,7 @@
 """The project's config, and the rule that no generic file holds its values (#6629)."""
 
 import re
+import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -12,7 +13,8 @@ ROOT = Path(__file__).parents[1]
 LABINACAN = ROOT / "labinacan"
 # Generic scripts that #6629 makes read the config, before #6630 moves them under labinacan/.
 GENERIC_SCRIPTS = [
-    ROOT / "scripts" / f"{n}.py" for n in ("claims", "issue_state", "linear_sync", "next_issue")
+    ROOT / "scripts" / f"{n}.py"
+    for n in ("claims", "issue_state", "linear_sync", "next_issue", "papers", "exchange")
 ]
 TEXT = {".py", ".html", ".css", ".js", ".md", ".txt", ".toml", ".json", ".svg", ".xml"}
 
@@ -33,6 +35,7 @@ package = "aproject"
 env_prefix = "APROJECT"
 linear_team = "APR"
 maintainer = "someone"
+hf_dataset = "someone/a-project-inputs"
 """
 
 
@@ -61,6 +64,7 @@ def test_the_config_reads_both_tables_of_the_first_path_that_has_them(tmp_path, 
         description="research on something.", site_url="https://example.org/",
         repo_url="https://github.com/someone/a-project", x_url="https://x.com/aproject/",
         contact_email="team@example.org", linear_team="APR", maintainer="someone",
+        hf_dataset="someone/a-project-inputs",
     )  # fmt: skip
     assert cfg.config().repo == "someone/a-project"
     assert cfg.env("CHROME") == "APROJECT_CHROME"
@@ -91,6 +95,7 @@ def test_this_project_reads_its_own_values():
     assert cfg.env("QUIET") == "OPENINTERPRETABILITY_QUIET"
     c = cfg.config()
     assert (c.repo, c.linear_team, c.maintainer) == ("8W9aG/openinterpretability", "OPE", "8W9aG")
+    assert c.hf_dataset == "sackfield/open-interpretability-exchange"
 
 
 def project_values(c: cfg.ProjectConfig) -> set[str]:
@@ -105,7 +110,7 @@ def project_values(c: cfg.ProjectConfig) -> set[str]:
     repo = urlparse(c.repo_url).path.strip("/")
     return {
         c.name, c.package, c.command, c.env_prefix, urlparse(c.site_url).netloc, repo,
-        c.contact_email, cfg.x_handle(c.x_url), c.maintainer,
+        c.contact_email, cfg.x_handle(c.x_url), c.maintainer, c.hf_dataset,
     }  # fmt: skip
 
 
@@ -162,3 +167,16 @@ def test_no_generic_file_holds_a_value_of_this_project():
     assert values >= {"open-interpretability.com", "8W9aG/openinterpretability"}  # a set, not a URL
     assert hits(LABINACAN, values, short_values(cfg.config())) == {}
     assert hits(GENERIC_SCRIPTS, values, short_values(cfg.config())) == {}
+
+
+def test_the_paper_and_exchange_scripts_take_their_values_from_the_config():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import exchange
+
+    import papers
+
+    c = cfg.config()
+    assert {"name": c.name} == papers.GROUP and c.repo_url == papers.REPO
+    assert f"{c.site_url}research/" == papers.SITE
+    assert c.hf_dataset == exchange.REPO and c.package in exchange.CITING
+    assert f"[{c.name}]({c.repo_url})" in exchange.CARD

@@ -25,12 +25,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from labinacan.config import config, use  # noqa: E402
+
+use(Path(__file__).resolve().parents[1] / "pyproject.toml")  # this repository's values (#6629)
+
 MANIFEST = Path("data/exchange-manifest.json")
 EXCHANGE = Path("exchange")
 STAGING = Path("exchange/.published")
-REPO = "sackfield/open-interpretability-exchange"
+REPO = config().hf_dataset
 # The files that cite inputs: papers, analyses, scripts and the package.
-CITING = ("papers", "docs", "scripts", "openinterpretability", ".claude")
+CITING = ("papers", "docs", "scripts", config().package, ".claude")
 NAME = re.compile(r"exchange/([A-Za-z0-9._-]+)")
 # Names under exchange/ that are only outputs or working folders, never cited inputs. A
 # command writes them, and no analysis reads them. `bench` also holds the benchmark's
@@ -50,15 +56,15 @@ UNPUBLISHED = {
     "(docs/experiments.md). scripts/probe_comparison.py writes them again from pile-10k.",
 }
 TEXT = {".json", ".jsonl", ".md", ".txt", ".log", ".csv"}
-CARD = """---
+CARD = f"""---
 license: other
-pretty_name: Open Interpretability exchange inputs
+pretty_name: {config().name} exchange inputs
 ---
 
-# Open Interpretability: inputs of papers and analyses
+# {config().name}: inputs of papers and analyses
 
 The files that papers, analyses and scripts of
-[Open Interpretability](https://github.com/8W9aG/openinterpretability) read from its
+[{config().name}]({config().repo_url}) read from its
 git-ignored `exchange/` folder. Examples are SPD checkpoints and training logs, reviewer
 prompts and probe sets, and corpus samples. `data/exchange-manifest.json` in the
 repository pins this dataset's revision and each file's SHA-256, and
