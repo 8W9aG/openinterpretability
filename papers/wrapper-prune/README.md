@@ -6,7 +6,7 @@ Jain et al. (2024) report that fine-tuning often adds a thin wrapper on top of a
 
 ## Introduction
 
-Instruction tuning breaks about one in six VERIFIED explanations of Qwen2.5-0.5B: they pass their adversarial probes on the base model and fail on the instruct model ([`papers/random-change-keep/`](../random-change-keep/README.md)). Whether those explanations are gone, or only hidden, is open. Jain et al. (2024) study fine-tuning on procedurally defined tasks, and find that it often leaves the pretrained capability in place. Fine-tuning learns a small transform on top of the capability, which they call a wrapper. Pruning 5 to 15 neurons by gradient times weight on the pretraining loss removes the wrapper, and the pretraining task's accuracy comes back.
+Instruction tuning breaks about one in six VERIFIED explanations of Qwen2.5-0.5B: they pass their adversarial probes on the base model and fail on the instruct model ([`papers/random-change-keep/`](../random-change-keep/README.md)). Whether those explanations are gone, or only hidden, is open. Jain et al. (2024) study fine-tuning on procedurally defined tasks, and find that it often leaves the pretrained capability in place. Fine-tuning learns a small transform on top of the capability, which they call a wrapper. In their grammar-counting task, pruning 5 to 15 neurons by gradient times weight on the pretraining loss removes the wrapper, and the pretraining task's accuracy comes back.
 
 If instruction tuning works the same way on the neurons that the registry explains, a small set of instruct neurons should hold the change, and pruning them should bring the base model's explanations back. The test needs no training. It also differs from an earlier paper here, which pruned a neuron's own input weights ([`papers/pruning-keep/`](../pruning-keep/README.md)).
 
@@ -21,7 +21,7 @@ The paper bears on research question 4, how far an explanation carries to a chan
 
 ## Related work
 
-**Wrappers.** Jain et al. (2024) pretrain small models on Tracr programs, a probabilistic grammar and TinyStories, then fine-tune them on a related task. With a small learning rate, the pretraining capability stays readable by linear probes, and pruning a few neurons brings the pretraining accuracy back. In their counter task, pruning 5 to 15 neurons was enough. They prune in one step, by gradient times weight on the pretraining task's loss, and they test no random set of neurons. Their models are small and their tasks synthetic. We apply the step to a released instruct model, with a null.
+**Wrappers.** Jain et al. (2024) study small transformers: compiled Tracr programs, and models pretrained on a probabilistic grammar or on TinyStories. They fine-tune each on a related task. With a small learning rate, the pretraining capability stays readable by linear probes, and pruning a few neurons brings the pretraining accuracy back. In their counter task, pruning 5 to 15 neurons was enough. They prune weights or neurons in one step, by gradient times weight on the pretraining task's loss, and they test no random set of neurons. A neuron there is one row of a weight matrix. Their largest model has 91 million parameters, and most of their tasks are synthetic. We apply the step to a released instruct model, with a null.
 
 **Explanations under instruction tuning in this repo.** On Qwen2.5-0.5B, the explanations that instruction tuning breaks are mostly those that sat near a review gate on the base model, and a random change of the instruct change's size breaks about as many, largely the same ones ([`papers/random-change-keep/`](../random-change-keep/README.md)). Neither a neuron's diagonal Fisher nor the size of the instruct change in its own weights predicts which explanations break ([`papers/fisher-keep/`](../fisher-keep/README.md), [`docs/analyses/base-instruct.md`](../../docs/analyses/base-instruct.md)). And the VERIFIED poles carry little of the change in the instruct model's output ([`papers/instruct-difference/`](../instruct-difference/README.md)). These results make a wrapper on the explained neurons unlikely, but none of them tests one.
 
@@ -29,7 +29,7 @@ The paper bears on research question 4, how far an explanation carries to a chan
 
 **Model and units.** The pair is Qwen2.5-0.5B and Qwen2.5-0.5B-Instruct (Yang et al., 2024), which share one architecture. A *pole* is one sign of an MLP neuron's activation, positive or negative. A pole is *VERIFIED* when its explanation, a sentence that says when the pole fires, passed the registry's adversarial review. In that review, a reviewer model wrote hard negatives, near-miss texts that the explanation says should not fire, and positive holdouts, new texts that it says should fire. The explanation passed when its specificity on the hard negatives reached 0.80, and its sensitivity on the holdouts reached 0.60. The registry holds 363 VERIFIED poles of Qwen2.5-0.5B, and 362 of them pass both gates again on the base model.
 
-**The score.** Let $p_{\text{base}}$ and $p_{\text{inst}}$ be the two models' next-token distributions, on the 20,000 tokens of the registry's scan corpus that the keep test reads. The loss is their mean token KL,
+**The score.** Let $p_{\text{base}}$ and $p_{\text{inst}}$ be the two models' next-token distributions, on the about 20,000 tokens of the registry's scan corpus that the keep test reads, in whole windows of 512. The loss is their mean token KL,
 
 $$
 L = \frac{1}{T} \sum_{t=1}^{T} \mathrm{KL}\left(p_{\text{base}}(\cdot \mid x_{<t}) \,\middle\|\, p_{\text{inst}}(\cdot \mid x_{<t})\right).
@@ -41,13 +41,13 @@ $$
 s_{\ell j} = \sum_i \frac{\partial L}{\partial W_{\ell, ij}} W_{\ell, ij},
 $$
 
-which is the first-order drop in $L$ when $w_{\ell j}$ is set to zero. This is Jain et al.'s gradient times weight, with the base model's distribution as the old task and the neuron's write as the unit.
+which is the first-order drop in $L$ when $w_{\ell j}$ is set to zero. This is Jain et al.'s gradient times weight, with the base model's distribution as the old task. Their unit is a row of a weight matrix, and ours is the column that holds an MLP neuron's write, for the reason that the next paragraph gives.
 
 **Pruning.** To prune a neuron is to zero its write column in the instruct model. Its own activation stays, so the probes of a VERIFIED pole still read the pole where it fires. Zeroing the neuron's input rows would switch the pole off, which could not count as a recovery. We prune the top $K$ neurons by score over all 24 layers, for $K$ = 5, 15, 50, 150 and 500. The null prunes $K$ random neurons with the same count in each layer as the top $K$, and none of them, with three seeds for each $K$.
 
 **The keep test.** This is the test of the paper on random changes. Each pole's probes run on the base model and on the pruned instruct model. On the pruned model, the line is the record's line times the ratio of the pole's maximum after the change to its maximum before, over the same 20,000 tokens. An explanation *keeps* when it passes both gates on both models. Against the unpruned instruct model, an explanation is *recovered* when it fails there and keeps after the prune. It is *lost* when it keeps there and fails after the prune. The exact McNemar test compares top and random pruning of the same $K$ on the same poles.
 
-**The KL.** After each prune, we read $L$ again on the next 20,000 tokens of the corpus, which the score never saw. As a check of the first order, we also prune each of the top 10 neurons alone, and read $L$ on the scoring tokens.
+**The KL.** After each prune, we read $L$ again on the next windows of the corpus, about 20,000 tokens that the score never saw. As a check of the first order, we also prune each of the top 10 neurons alone, and read $L$ on the scoring tokens.
 
 **Motion.** Figure 2 steps through the five values of $K$ for top pruning, one frame each. The frames show no state between two values.
 
@@ -80,7 +80,7 @@ It costs more explanations than it brings back, at every $K$. Pruning the top 5 
 
 The prune also moves the instruct model away from the base model, not towards it. On held-out tokens, the KL to the base model rises from 0.075 to 0.188 at 5 neurons and to 2.373 at 500, while random prunes leave it between 0.076 and 0.104. The score predicted the opposite: the top 5 neurons' scores sum to a first-order drop of 0.050 on the scoring tokens.
 
-Figure 2 shows where the losses fall, and they do not fall near a gate. We cut the poles into quarters of 90 or 91 by margin, the distance of a pole's base readings above the nearer gate. From the quarter nearest a gate to the furthest, the top 5 prune loses 8, 12, 5 and 1 explanations. At 500 neurons it loses 45, 32, 46 and 35. The instruct model's own failures, by contrast, sit near a gate: 31, 15, 11 and 6. Top pruning therefore breaks explanations that a random change of instruction tuning's size rarely breaks ([`papers/random-change-keep/`](../random-change-keep/README.md)).
+Figure 2 shows where the losses fall. At small $K$ they fall near a gate, like the instruct model's own failures, and at large $K$ they fall everywhere. We cut the poles into quarters of 90 or 91 by margin, the distance of a pole's base readings above the nearer gate. From the quarter nearest a gate to the furthest, the top 5 prune loses 8, 12, 5 and 1 explanations. The instruct model keeps 59, 76, 80 and 84 poles in those quarters, so 20 of the 26 losses are in the two quarters nearest a gate. At 500 neurons it loses 45, 32, 46 and 35, at every margin. The instruct model's own failures sit near a gate: 31, 15, 11 and 6. So a large top prune breaks explanations far from a gate, which instruction tuning does not.
 
 ![As more neurons go, top pruning breaks explanations at every margin.](media/grid.svg)
 
@@ -88,7 +88,7 @@ Figure 2 shows where the losses fall, and they do not fall near a gate. We cut t
 
 ## Why does the score fail?
 
-Because the first order does not hold for the neurons it ranks highest. Pruning each of the top 10 neurons alone, on the scoring tokens, raises the KL for 5 of them, where each score predicted a fall (Table 2). Neuron 813 of layer 2 has a score of 0.0033 and raises the KL by 0.112 when pruned, from 0.0717, which more than doubles it. Neuron 567 of layer 21 has the highest score, 0.0288, and raises the KL by 0.012. For the five neurons with small effects, the measured drop has the score's sign and size.
+Because the first order does not hold for the neurons it ranks highest. Pruning each of the top 10 neurons alone, on the scoring tokens, raises the KL for 5 of them, where each score predicted a fall (Table 2). Neuron 813 of layer 2 has a score of 0.0033 and raises the KL by 0.112 when pruned, from 0.0717, which more than doubles it. Neuron 567 of layer 21 has the highest score, 0.0288, and raises the KL by 0.012. For the five neurons with small effects, the measured drop has the score's sign and a size within a factor of about two.
 
 **Table 2.** The top 10 neurons by score, each pruned alone. The measured drop is the KL before the prune, 0.0717 on the scoring tokens, less the KL after it. A negative drop is a rise. The column norm is the norm of the neuron's write, beside its layer's median.
 
@@ -105,15 +105,15 @@ Because the first order does not hold for the neurons it ranks highest. Pruning 
 | 6 | 4648 | 0.0010 | 0.0007 | 0.607 | 0.534 |
 | 7 | 505 | 0.0009 | 0.0004 | 0.535 | 0.532 |
 
-The failures are not large writes. Each neuron's column norm is close to its layer's median. So the harm comes from what the neuron's write does downstream, which the gradient at the unpruned model does not see. We suggest, as a hypothesis we did not test, that the rest of the network depends on these writes in a way that is flat for small changes and steep for their removal.
+The failures are not large writes. No neuron's column norm is much above its layer's median, and two are well below it. So the harm comes from what the neuron's write does downstream, which the gradient at the unpruned model does not see. Linear estimates of this kind are known to fail for large changes: Syed et al. (2023) find that attribution patching, a first-order estimate of a component's effect, fits exact patching with $R^2 = 0.27$ on one task. In this repo, a first-order estimate of a single pole's effect ranks its exact effect well, at a Spearman of 0.85 on Qwen2.5-0.5B ([`docs/analyses/pole-effects.md`](../../docs/analyses/pole-effects.md)), but it reads small changes to one activation, not the removal of a write. We suggest, as a hypothesis we did not test, that the rest of the network depends on these writes in a way that is flat for small changes and steep for their removal.
 
 ## Discussion
 
-In Qwen2.5-0.5B-Instruct, gradient times weight on the KL to the base model does not find a wrapper whose removal restores the base model. It finds neurons whose removal brings back some explanations, more than chance at small $K$, but it breaks more explanations than it brings back, and it moves the model further from the base. Jain et al. (2024) found the opposite in small models fine-tuned at a small learning rate on synthetic tasks. Our setting differs in three ways that could explain it. The model is larger and trained on natural text. Instruction tuning is a long fine-tune on broad data, not a short one on a related synthetic task. And our old task is the base model's whole next-token distribution, not one capability.
+In Qwen2.5-0.5B-Instruct, gradient times weight on the KL to the base model does not find a wrapper whose removal restores the base model. It finds neurons whose removal brings back some explanations, more than chance at small $K$, but it breaks more explanations than it brings back, and it moves the model further from the base. Jain et al. (2024) found the opposite in small models fine-tuned at a small learning rate, mostly on synthetic tasks. Our setting differs in three ways that could explain it. The model is larger and trained on natural text. Instruction tuning is a long fine-tune on broad data, not a short one on a related synthetic task. And our old task is the base model's whole next-token distribution, not one capability.
 
 The 16 explanations that come back at 5 neurons are a hint, not a wrapper. Random prunes recover almost none at that size, so the top neurons carry something that these explanations depend on. But the same prune breaks 26 others, and the first-order score is wrong for half of its own top 10. A score that reads the measured effect of each prune, or a second-order score, could find a cleaner set. Without such a set, the result agrees with the earlier finding that the instruct change is spread over almost every neuron ([`docs/analyses/base-instruct.md`](../../docs/analyses/base-instruct.md)): no small set of neurons holds it.
 
-The failure of the first order is itself a warning for pruning methods that rank neurons by gradient times weight. In this model, a few neurons with ordinary weights and small scores do great harm when pruned. One neuron of layer 2 more than doubles the KL alone. A pruning study that ranks by such a score, with no check of each prune's measured effect, can remove exactly the neurons that the model depends on most.
+The failure of the first order is itself a warning for a pruning step that ranks neurons by gradient times weight, as Jain et al.'s does. In this model, a few neurons with ordinary weights and small scores do great harm when pruned. One neuron of layer 2 more than doubles the KL alone. A pruning study that ranks by such a score, with no check of each prune's measured effect, can remove exactly the neurons that the model depends on most.
 
 ## Limitations
 
@@ -131,6 +131,7 @@ Pruning the top 5 instruct neurons by gradient times weight on the KL to the bas
 ## References
 
 - Jain, S., Kirk, R., Lubana, E. S., Dick, R. P., Tanaka, H., Grefenstette, E., Rocktäschel, T., & Krueger, D. (2024). *Mechanistically analyzing the effects of fine-tuning on procedurally defined tasks*. ICLR 2024. [arXiv:2311.12786](https://arxiv.org/abs/2311.12786).
+- Syed, A., Rager, C., & Conmy, A. (2023). *Attribution patching outperforms automated circuit discovery*. [arXiv:2310.10348](https://arxiv.org/abs/2310.10348).
 - Yang, A., Yang, B., Zhang, B., Hui, B., Zheng, B., Yu, B., Li, C., Liu, D., Huang, F., Wei, H., Lin, H., Yang, J., Tu, J., Zhang, J., Yang, J., Yang, J., Zhou, J., Lin, J., Dang, K., . . . Qiu, Z. (2024). *Qwen2.5 technical report*. [arXiv:2412.15115](https://arxiv.org/abs/2412.15115).
 
 ## Appendices

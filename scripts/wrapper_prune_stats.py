@@ -2,8 +2,8 @@
 
 For each pruned condition, it counts the poles that fail on the instruct model and pass again
 (*recovered*). It also counts the poles that keep on the instruct model and fail once pruned
-(*lost*). Top pruning and each random prune of the same K are compared on the same poles with
-the exact McNemar test, once for the recovered poles and once for the lost ones. It prints one
+(*lost*). Top pruning and each random prune of the same K are compared on the same poles. The exact
+McNemar test runs once for the recovered poles and once for the lost ones. It prints one
 JSON line for each condition, and one for each layer's share of the top neurons.
 
     uv run python scripts/wrapper_prune_stats.py papers/wrapper-prune/results.jsonl
@@ -43,8 +43,8 @@ def changes(rows: list[dict]) -> list[dict]:
         rows: The rows of ``scripts/wrapper_prune.py``.
 
     Returns:
-        One row for each condition. A random row also gives the McNemar tests against the top
-        prune of the same K: ``recovered_p`` on the failed poles and ``lost_p`` on the kept.
+        One row for each condition. A random row also gives its McNemar tests against the top
+        prune of the same K. ``recovered_p`` is on the failed poles, and ``lost_p`` on the kept.
     """
     sets = pole_sets(rows)
     none = sets["none", 0, None]

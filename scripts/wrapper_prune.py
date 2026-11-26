@@ -1,8 +1,8 @@
 """Prune a few instruct-model neurons by gradient × weight, and test the failed poles again (#5163).
 
 Jain et al. (2024) find that fine-tuning often adds a small wrapper on top of a pretrained
-capability, and that pruning a few neurons by gradient × weight on the old task's loss
-brings the capability back. This script asks the same of Qwen2.5-0.5B's instruct model.
+capability. Pruning a few neurons by gradient × weight on the old task's loss brings the
+capability back. This script asks the same of Qwen2.5-0.5B's instruct model.
 The capability is each VERIFIED explanation that instruction tuning breaks.
 
 The instruct model is the base model with Δ added in place (``random_delta_keep.changed``).
