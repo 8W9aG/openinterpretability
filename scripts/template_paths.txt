@@ -61,10 +61,11 @@ scripts/leftover_terms.txt
 scripts/leftovers_baseline.txt
 scripts/linear_sync.py
 scripts/mutation.py
-scripts/repo_config.py
 scripts/mutation_runs.py
 scripts/next_issue.py
+scripts/paper_terms.py
 scripts/papers.py
+scripts/repo_config.py
 scripts/repo_size.py
 scripts/social_images.py
 scripts/ste_prose.py
@@ -94,6 +95,7 @@ tests/test_labinacan_sync.py
 tests/test_linear_sync.py
 tests/test_mutation_script.py
 tests/test_next_issue.py
+tests/test_paper_terms.py
 tests/test_papers.py
 tests/test_repo_size.py
 tests/test_ste_prose.py
