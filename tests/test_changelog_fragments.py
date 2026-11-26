@@ -87,7 +87,7 @@ def test_a_fragment_marked_breaking_bumps_the_minor(tmp_path, monkeypatch):
     folder = tmp_path / "changelog.d"
     folder.mkdir()
     (folder / "1.added.md").write_text("- **New.** A thing (#1).\n")
-    monkeypatch.setattr(changelog, "protocol_changed", lambda since: False)
+    monkeypatch.setattr(changelog, "marker_changed", lambda since: None)
     assert changelog.propose("0.0.21", "v0.0.21", folder)[0] == "0.0.22"
     (folder / "2.changed.md").write_text(f"- {changelog.BREAKING} The CLI drops `--x` (#2).\n")
     version, reasons = changelog.propose("0.0.21", "v0.0.21", folder)
@@ -98,6 +98,6 @@ def test_a_protocol_change_bumps_the_minor(tmp_path, monkeypatch):
     folder = tmp_path / "changelog.d"
     folder.mkdir()
     (folder / "1.fixed.md").write_text("- **Fix.** A fix (#1).\n")
-    monkeypatch.setattr(changelog, "protocol_changed", lambda since: True)
+    monkeypatch.setattr(changelog, "marker_changed", lambda since: "PROTOCOL_VERSION")
     version, reasons = changelog.propose("0.0.21", "v0.0.21", folder)
     assert version == "0.1.0" and any("PROTOCOL_VERSION" in r for r in reasons)

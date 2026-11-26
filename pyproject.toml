@@ -132,6 +132,14 @@ mutation_skip = ["wiki/experiments"]
 # The workflows whose failure issues an agent may work, under their fixed titles
 # (scripts/issue_state.py). The link check is left out on purpose.
 automatic_issue_workflows = ["reproduce-nightly.yml", "deploy.yml"]
+# A change to this line is breaking (scripts/changelog.py next): the protocol's version, since
+# the same evidence can then get another verdict (docs/PROTOCOL.md §6).
+breaking = { file = "openinterpretability/core/schemas.py", marker = "PROTOCOL_VERSION =" }
+# The kinds of page that scripts/a11y_check.py opens first: a model, a layer, a neuron and
+# an experiment.
+a11y_pages = ["models/*/index.html", "models/*/L*/index.html", "models/*/L*/N*.html", "models/*/L*/N*-*/*.html"]
+# A pull request that changes only these folders runs no lint and tests (labinacan-ci.yml).
+data_only = ["wiki/"]
 generated = [
   "wiki/*",  # the experiment pages and records
   "docs/analyses/*.jsonl",  # analysis rows
@@ -141,6 +149,23 @@ generated = [
   "benchmark/*.jsonl",  # frozen benchmark data (open-interpretability benchmark freeze)
   "hf_models/*.jsonl",  # dictionary training logs
 ]
+
+[tool.labinacan.exchange]
+# What scripts/exchange.py keeps back from the Hugging Face dataset, and its card's lines.
+# Names under exchange/ that a command writes and no analysis reads. `bench` also holds the
+# benchmark's private test probes, so it is never published.
+outputs = [
+  "bench", "bench-dev", "bench-redteam", "code-detection", "dream-arms", "dreams", "gpt2-spd",
+  "language-detection", "rescore-pilot", "score-backfill", "spd-up-neurons.json",
+]
+contents = "Examples are SPD checkpoints and training logs, reviewer prompts and probe sets, and corpus samples."
+terms = """Text in these files quotes the corpora that the scans read, under their own terms. Examples
+are pile-10k (bigscience-bloom-rail-1.0, each Pile component under its own) and
+FineWeb-Edu (ODC-BY). Model outputs and code-generated files are under the repository's MIT
+licence. Pile corpus files themselves are not included."""
+
+[tool.labinacan.exchange.unpublished]
+"probe-comparison/*.pile.jsonl" = "pile-10k excerpts: the Pile corpus is not published (docs/experiments.md). scripts/probe_comparison.py writes them again from pile-10k."
 
 [tool.labinacan.brand]
 # The brand: the mark, the wordmark and the social image (labinacan/site/brand.py, #6629).

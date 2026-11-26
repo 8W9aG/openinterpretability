@@ -34,4 +34,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.event.release.tag_name }}
           DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
-        run: python3 scripts/issue_state.py --release "$TAG" $DRY_RUN
+        # A project with no Linear workspace has no key, and no issue to move.
+        run: |
+          if [ -z "$LINEAR_API_KEY" ]; then
+            echo "::notice::No LINEAR_API_KEY: no issue to move."
+            exit 0
+          fi
+          python3 scripts/issue_state.py --release "$TAG" $DRY_RUN

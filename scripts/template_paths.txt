@@ -3,7 +3,9 @@
 # repositories share history. One path per line: a file, or a folder taken whole.
 # scripts/check_leftovers.py reads it too, and tests/test_check_leftovers.py checks that
 # each path exists. The check baselines (scripts/*_baseline.txt, doctests_exempt.txt) stay
-# here: they name this repository's functions, and the template starts with its own.
+# here: they name this repository's functions, and the template starts with its own. So do
+# the PR template, codeql.yml, .gitleaks.toml and lychee.toml, which name this project's
+# records and links: the template writes its own when it is cut (#6631, plan step 4).
 .claude/skills/asd-ste100
 .claude/skills/commenting/SKILL.md
 .claude/skills/literature-review/SKILL.md
@@ -18,9 +20,7 @@
 .coveragerc
 .diff-cover.toml
 .github/dependabot.yml
-.github/pull_request_template.md
 .github/workflows/close-merged-issues.yml
-.github/workflows/codeql.yml
 .github/workflows/labinacan-ci.yml
 .github/workflows/linear-released.yml
 .github/workflows/linear-sync.yml
@@ -28,7 +28,6 @@
 .github/workflows/muse-label.yml
 .github/workflows/publish.yml
 .github/workflows/secret-scan.yml
-.gitleaks.toml
 .pymarkdown.yml
 .vale
 .vale.ini
@@ -37,7 +36,6 @@ REVIEW.md
 changelog.d/README.md
 labinacan
 labinacan.mk
-lychee.toml
 ruff.toml
 scripts/a11y_check.py
 scripts/benchmark_ledger.py

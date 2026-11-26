@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from email.utils import parseaddr
 from functools import cache
 from pathlib import Path
+from typing import Any
 
 _PATHS: list[Path] = [Path("pyproject.toml")]
 
@@ -40,7 +41,7 @@ class Brand:
     accent: dict[str, str] = field(default_factory=dict)
 
 
-def brand_of(table: dict | None) -> Brand | None:
+def brand_of(table: dict[str, Any] | None) -> Brand | None:
     """The brand in a ``[tool.labinacan.brand]`` table, or None when there is no table.
 
     Args:
@@ -118,7 +119,7 @@ def use(*paths: Path) -> None:
     config.cache_clear()
 
 
-def _tables(path: Path) -> tuple[dict, dict] | None:
+def _tables(path: Path) -> tuple[dict[str, Any], dict[str, Any]] | None:
     """``([project], [tool.labinacan])`` of ``path``, or None when either is missing.
 
     Args:
@@ -163,7 +164,7 @@ def config() -> ProjectConfig:
                 description=project["description"].split(": ", 1)[-1],
                 site_url=urls["Homepage"],
                 repo_url=urls["Repository"],
-                x_url=urls["X"],
+                x_url=urls.get("X", ""),  # a project with no X account has none (#6631)
                 contact_email=contact_email(project["maintainers"][0]),
                 linear_team=own["linear_team"],
                 maintainer=own["maintainer"],
@@ -189,7 +190,7 @@ def env(name: str) -> str:
     return f"{config().env_prefix}_{name}"
 
 
-def contact_email(maintainer: dict) -> str:
+def contact_email(maintainer: dict[str, str]) -> str:
     """The address of one ``[project] maintainers`` entry.
 
     Args:
@@ -208,17 +209,19 @@ def x_handle(url: str) -> str:
     """The X handle in an account's URL, so that the handle is not written a second time.
 
     Args:
-        url: The account's URL.
+        url: The account's URL, or "" for a project with no account.
 
     Returns:
-        ``@`` and the URL's last path part.
+        ``@`` and the URL's last path part, or "" for no account.
 
     >>> x_handle("https://x.com/example")
     '@example'
     >>> x_handle("https://x.com/example/")
     '@example'
+    >>> x_handle("")  # no X account
+    ''
     """
-    return "@" + url.rstrip("/").rsplit("/", 1)[-1]
+    return "@" + url.rstrip("/").rpartition("/")[2] if url else ""
 
 
 def project_links() -> dict[str, str]:

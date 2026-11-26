@@ -175,8 +175,8 @@ openinterpretability/explain_run.py
 openinterpretability/explain_stopped.py
 openinterpretability/explanation_registry.py
 openinterpretability/explanation_targets.py
-openinterpretability/figures/motion.py
-openinterpretability/figures/svg.py
+labinacan/figures/motion.py
+labinacan/figures/svg.py
 openinterpretability/half_precision.py
 openinterpretability/harness/ane/backend.py
 openinterpretability/harness/ane/cache.py

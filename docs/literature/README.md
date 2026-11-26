@@ -14,6 +14,7 @@ Status marks how the work relates to this repo:
 | --- | --- | --- |
 | [Context Language Models](context-language-models.md) (Shao et al., 2026) | not applicable | Agent context management, with no look inside any model. Its skill-selection loop shows what the DSPy prompt-optimisation item must avoid: selection on one seed. |
 | [Recursive Language Models](recursive-language-models.md) (Zhang, Kraska and Khattab, 2025) | not applicable | A scaffold for prompts longer than the context window, with no look inside any model. Our agents' prompts are short, and the proposer already reads its large evidence file from disk. |
+| [CoEvoBench: Can LLMs Drive Recursive Co-Evolution of Agentic Systems?](coevobench.md) (Xiao, Wang, Fan, Du and Xu, 2026) | not applicable | LLM researchers improve a 9B model and its harness within 24 hours. The best closes about four fifths of the gap to an instruct reference, but most of the gain comes from the first change. It looks inside no model. Its measures of a stall could track this project's own loop. |
 
 ## Explanation scoring
 
@@ -119,6 +120,7 @@ Part of the review of how to fix a model's behaviour (#4784). These pages report
 | [MQuAKE](mquake.md) (Zhong, Wu, Manning, Potts and Chen, 2023) | planned | Editors that recall over 88% of edited facts answer only 0.3–16.0% of the multi-hop questions that follow. So a test on the edited prompt alone overstates a fix. Its single-fact control bears on #5015. |
 | [Editing Large Language Models: Problems, Methods, and Opportunities](editing-llms-survey.md) (Yao et al., 2023) | planned | A same-conditions comparison of about a dozen editing methods, on four properties. Single-neuron edits did poorly on GPT-J. Its Distract-Neighbour test is the copy habit behind #4781 (#5015). |
 | [Language Models Can Rewrite Their Own Weights](models-rewrite-own-weights.md) (Fan et al., 2026) | planned | A 27B model edits a direction or clips weight outliers, with no gradients. Its edit gains 6.6 points only after a framework check, and 1.1 without one. No random-direction control, so it bears on #5069 and #4782. |
+| [Mechanistic Failure Modes of Weight Pruning in Transformer Language Models](pruning-failure-modes.md) (Faumi and Sumanathilaka, 2026) | planned | On GPT-2 small, magnitude pruning of 30% of MLP neurons drops IOI accuracy to 17.7%. It reverses the Name Movers' direct logit effect, though activation patching shows them only degraded. One random mask per condition, and the text disagrees on which neurons are removed. It motivates #6400: a pole that keeps can still change its effect downstream. |
 
 ## Fixing models: why models give wrong answers
 
@@ -246,6 +248,7 @@ Part of #4782. These pages ask whether one network can write another's weights, 
 | [Interpretable Weight-Space Programming Builds Transparent Transformers and Brain Encoding Models](interpretable-weight-space-programming.md) (Mehta, Singh, Xu et al., 2026) | planned | A coding agent writes small transformers and brain-encoding features with no backpropagation. A fresh agent rebuilds each model from 200 words. Its story-fMRI search found a scan-position confound in the visible score. Evidence for #3249. |
 | [A CPU Inside an LLM](cpu-inside-an-llm.md) (Sah, 2026) | planned | It compiles exact arithmetic into Granite and Qwen in closed form, on appended residual wires, and reaches 97–100% where LoRA reaches 42–62%. Benchmarks stay within pre-registered margins, but no pretrained unit is measured. Evidence for #4782 that interference follows shared capacity. |
 | [Training Vision Models for LLM-Driven Weight-Space Programming](edit-ready-training.md) (Ropinski and Kranz, 2026) | planned | LLM agents fix image classifiers with rank-one head edits, and Edit-Ready Training rehearses those edits, for +0.12 net score over ERM. It does not beat ENN significantly, and it never measures whether units become easier to read. It edits no language model. Evidence for #4782. |
+| [Weight-Space Programming and Mechanistic Interpretability for Model Editing in Particle Physics](weight-space-physics-editing.md) (Bonnet-Guerrini, Ioannou-Nikolaides and Petersen, 2026) | planned | Claude agents edit a jet tagger's weights with no gradients, and remove a soft-photon shortcut with a median 10,122 parameters against 63,240 for fine-tuning. A rank-one SAE edit also works on the small model. Side effects are measured on outputs only. It is evidence for #5220's arm G, whose runs need a report of their spread. |
 
 ## LoRA and low-rank fine-tuning
 

@@ -1,6 +1,6 @@
 """The figures of an explanation page, drawn at build time from the record's data (#4479).
 
-They use the paper figures' system (:mod:`openinterpretability.figures`). Each figure is
+They use the paper figures' system (:mod:`labinacan.figures`). Each figure is
 its own SVG file next to the page. An animated one also has a static copy, which shows its
 last frame. The page's button swaps the two, and reduced motion stops the animation too.
 No figure rests on colour alone. A status is a marker's shape, a kind of unit is a fill
@@ -20,8 +20,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from openinterpretability.figures.motion import reveal
-from openinterpretability.figures.svg import WIDTH, Figure, Panel, number
+from labinacan.figures.motion import reveal
+from labinacan.figures.svg import WIDTH, Figure, Panel, number
 
 STATIC = "*{animation:none!important}"  # the static copy: every mark at its resting frame
 CYCLE = "9s"
