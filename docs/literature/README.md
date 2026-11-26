@@ -182,7 +182,7 @@ Part of the review of how to fix a model's behaviour (#4784). These pages cover 
 
 ## Catastrophic interference and forgetting
 
-Part of the review of interference, weight-space programming and low-rank fine-tuning (#4782). These pages ask what a change to a network's weights does to what it already knows.
+Part of the review of interference, weight-space programming and low-rank fine-tuning (#4782). These pages ask what a change to a network's weights does to what it already knows. The synthesis of all four areas is [Interference, weight-space programming and LoRA](interference-weight-programming-and-lora.md).
 
 | Page | Status | Why |
 | --- | --- | --- |
@@ -217,7 +217,7 @@ Part of the review of interference, weight-space programming and low-rank fine-t
 
 ## Weight-space programming and fast weights
 
-Part of #4782. These pages ask whether one network can write another's weights, and whether reading weights alone can check an explanation.
+Part of #4782. These pages ask whether one network can write another's weights, and whether reading weights alone can check an explanation. The synthesis of all four areas is [Interference, weight-space programming and LoRA](interference-weight-programming-and-lora.md).
 
 | Page | Status | Why |
 | --- | --- | --- |
@@ -248,7 +248,7 @@ Part of #4782. These pages ask whether one network can write another's weights, 
 
 ## LoRA and low-rank fine-tuning
 
-Part of #4782. These pages ask how a low-rank or parameter-efficient fine-tune moves the registry's units. They also ask whether a VERIFIED unit keeps its explanation after an adapter is merged.
+Part of #4782. These pages ask how a low-rank or parameter-efficient fine-tune moves the registry's units. They also ask whether a VERIFIED unit keeps its explanation after an adapter is merged. The synthesis of all four areas is [Interference, weight-space programming and LoRA](interference-weight-programming-and-lora.md).
 
 | Page | Status | Why |
 | --- | --- | --- |
@@ -272,7 +272,7 @@ Part of #4782. These pages ask how a low-rank or parameter-efficient fine-tune m
 
 ## Bridges: editing, merging and task vectors
 
-Part of #4782. These pages link weight edits and merged task updates to the units the registry explains.
+Part of #4782. These pages link weight edits and merged task updates to the units the registry explains. The synthesis of all four areas is [Interference, weight-space programming and LoRA](interference-weight-programming-and-lora.md).
 
 | Page | Status | Why |
 | --- | --- | --- |
