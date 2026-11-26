@@ -5,14 +5,14 @@
 # each path exists. The check baselines (scripts/*_baseline.txt, doctests_exempt.txt) stay
 # here: they name this repository's functions, and the template starts with its own.
 .claude/skills/asd-ste100
-.claude/skills/commenting
-.claude/skills/literature-review
-.claude/skills/next-issue
-.claude/skills/paper-animation
+.claude/skills/commenting/SKILL.md
+.claude/skills/literature-review/SKILL.md
+.claude/skills/next-issue/SKILL.md
+.claude/skills/paper-animation/SKILL.md
 .claude/skills/release/SKILL.md
 .claude/skills/semantic-versioning/SKILL.md
-.claude/skills/single-source-of-truth
-.claude/skills/test-new-paths
+.claude/skills/single-source-of-truth/SKILL.md
+.claude/skills/test-new-paths/SKILL.md
 .claude/skills/work-an-issue
 .claude/skills/write-paper/SKILL.md
 .coveragerc
