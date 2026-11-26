@@ -52,6 +52,8 @@ def load_versions(repo_url: str, path: Path = CHANGELOG) -> list[Version]:
         return []
     text = path.read_text(encoding="utf-8")
     heads = list(_HEADING.finditer(text))
+    if not heads:  # a changelog with a title and no version yet
+        return []
     versions = []
     for head, after in zip(heads, [*heads[1:], None], strict=True):
         body = text[head.end() : after.start() if after else len(text)].strip()

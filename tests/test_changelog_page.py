@@ -38,3 +38,10 @@ def test_each_version_is_a_section_and_an_empty_unreleased_is_left_out(tmp_path)
     path.write_text(TEXT.replace("## [Unreleased]\n", "## [Unreleased]\n\n- Coming.\n"))
     assert load_versions("u", path)[0].anchor == "unreleased"
     assert load_versions("u", tmp_path / "missing.md") == []
+
+
+def test_a_changelog_with_no_version_yet_has_no_sections(tmp_path):
+    # A new project's changelog has a title and nothing under it (#6736).
+    path = tmp_path / "CHANGELOG.md"
+    path.write_text("# Changelog\n\nIntro.\n")
+    assert load_versions("u", path) == []
