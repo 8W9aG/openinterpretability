@@ -73,6 +73,42 @@ class PushRecorder:
         self.offset = [{"cosine": 0.0, "correlation": 0.0} for _ in self.mlps]
         self.energy = [{"correlation": 0.0} for _ in self.mlps]
 
+    # The activation's values that add up over the parts of a batch, and those that are
+    # means over its tokens. A part's gradients already carry its share of the batch.
+    SUMS = ("rest_grad", "output_grad", "energy_push")
+    MEANS = ("mean_slope", "mean_output", "output_correlation")
+
+    def start_parts(self) -> None:
+        """Start a step whose batch goes through the model in parts (#6806)."""
+        self.parts: list[dict] | None = [{} for _ in self.mlps]
+
+    def add_part(self, share: float) -> None:
+        """Add the values of the part that just went forward and back, as ``share`` of the batch.
+
+        Args:
+            share: The part's windows as a share of the batch's.
+        """
+        for i, mlp in enumerate(self.mlps):
+            kept = self.parts[i]
+            for key in self.SUMS:
+                value = getattr(mlp.act, key).float()
+                kept[key] = kept.get(key, 0) + value
+            # A correlation over the batch's tokens is not a sum. So a step in parts keeps
+            # the parts' correlations, weighted by their shares. That is an approximation.
+            for key in self.MEANS:
+                value = getattr(mlp.act, key).float()
+                kept[key] = kept.get(key, 0) + share * value
+            kept["input"] = kept.get("input", 0) + share * self.inputs[i]
+
+    def end_parts(self) -> None:
+        """Put the whole batch's values where :meth:`before_step` reads them."""
+        for i, mlp in enumerate(self.mlps):
+            kept = self.parts[i]
+            for key in (*self.SUMS, *self.MEANS):
+                setattr(mlp.act, key, kept[key])
+            self.inputs[i] = kept["input"]
+        self.parts = None
+
     def before_step(self) -> None:
         """Keep the input weights and biases, and add this step's gradients to the window."""
         self.before = [
