@@ -64,23 +64,27 @@ jobs:
           persist-credentials: false
       # A draft's CI run skips every job, and a skipped job reports success (#4690). So when a
       # PR leaves draft, the required checks still show the draft run's skipped results until
-      # the new run registers its own. This waits for the CI run that leaving draft starts to
-      # finish, so auto-merge never turns on while the stale results stand.
+      # the new run registers its own. This waits for the runs that leaving draft starts to
+      # finish, so auto-merge never turns on while the stale results stand. The required
+      # checks come from two workflows: ci.yml and labinacan-ci.yml (#6630).
       - name: Wait for the CI run that leaving draft starts
         if: github.event.action == 'ready_for_review'
         env:
           SINCE: ${{ github.event.pull_request.updated_at }}
         run: |
           since=$(date -d "$SINCE" +%s)  # the run that leaving draft starts is newer
-          runs="repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$HEAD_SHA&event=pull_request"
           query="[.workflow_runs[] | select((.created_at | fromdateiso8601) >= $since)]"
-          for _ in $(seq 1 90); do
-            state=$(gh api "$runs" --jq "$query | .[0].status // \"none\"")
-            [ "$state" = completed ] && exit 0
-            sleep 20
+          for workflow in ci.yml labinacan-ci.yml; do
+            runs="repos/$REPO/actions/workflows/$workflow/runs?head_sha=$HEAD_SHA&event=pull_request"
+            for _ in $(seq 1 90); do
+              state=$(gh api "$runs" --jq "$query | .[0].status // \"none\"")
+              [ "$state" = completed ] && continue 2
+              sleep 20
+            done
+            echo "The $workflow run for $HEAD_SHA did not finish in 30 minutes."
+            echo "So auto-merge stays off."
+            exit 1
           done
-          echo "The CI run for $HEAD_SHA did not finish in 30 minutes, so auto-merge stays off."
-          exit 1
       - name: Auto-merge if the maintainer opened it, or it only adds reproducible records
         run: |
           set -euo pipefail
