@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 485" width="760" height="485" role="img">
-<title>A dot plot of 10 conditions. With only the final norm centred, 0.59 of neurons have an up push below the rest. Adding any one block norm leaves each seed between 0.51 and 0.67. Centring every norm gives 0.77.</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 533" width="760" height="533" role="img">
+<title>A dot plot of 12 conditions. With only the final norm centred, 0.59 of neurons have an up push below the rest. Adding any one block norm leaves each seed between 0.51 and 0.67. Adding every norm before attention gives 0.54, and every norm before the MLP 0.76. Centring every norm gives 0.77.</title>
 <style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
 .bg{fill:var(--surface)}
 text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
@@ -28,25 +28,25 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 .sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
 .sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
 </style>
-<rect class="bg" width="760" height="485" rx="10"/>
-<text x="20.0" y="30.0" class="title">No single block norm restores the up push</text>
-<text x="20.0" y="53.0" class="title">that centring every norm keeps</text>
+<rect class="bg" width="760" height="533" rx="10"/>
+<text x="20.0" y="30.0" class="title">No single block norm restores the up push,</text>
+<text x="20.0" y="53.0" class="title">but the four before the MLP together do</text>
 <text x="20.0" y="73.0" class="sub">Each mark is one seed&#x27;s share of GELU neurons whose output&#x27;s push points up below h = −0.25.</text>
-<text x="20.0" y="91.0" class="sub">The final LayerNorm is centred alone, with one block norm, or with every norm, with no dropout.</text>
-<text x="20.0" y="109.0" class="sub">Circles: seed 0. Triangles: seed 1.</text>
-<path class="grid" d="M150.0 153.0L150.0 393.0"/>
-<text x="150.0" y="408.0" class="small" text-anchor="middle">0.4</text>
-<path class="grid" d="M244.0 153.0L244.0 393.0"/>
-<text x="244.0" y="408.0" class="small" text-anchor="middle">0.5</text>
-<path class="grid" d="M338.0 153.0L338.0 393.0"/>
-<text x="338.0" y="408.0" class="small" text-anchor="middle">0.6</text>
-<path class="grid" d="M432.0 153.0L432.0 393.0"/>
-<text x="432.0" y="408.0" class="small" text-anchor="middle">0.7</text>
-<path class="grid" d="M526.0 153.0L526.0 393.0"/>
-<text x="526.0" y="408.0" class="small" text-anchor="middle">0.8</text>
-<path class="grid" d="M620.0 153.0L620.0 393.0"/>
-<text x="620.0" y="408.0" class="small" text-anchor="middle">0.9</text>
-<text x="385.0" y="424.0" class="small" text-anchor="middle">share of neurons with an up push below h = −0.25</text>
+<text x="20.0" y="91.0" class="sub">The final LayerNorm is centred alone, with one block norm, with all four of a kind, or with every norm.</text>
+<text x="20.0" y="109.0" class="sub">No dropout. Circles: seed 0. Triangles: seed 1.</text>
+<path class="grid" d="M150.0 153.0L150.0 441.0"/>
+<text x="150.0" y="456.0" class="small" text-anchor="middle">0.4</text>
+<path class="grid" d="M244.0 153.0L244.0 441.0"/>
+<text x="244.0" y="456.0" class="small" text-anchor="middle">0.5</text>
+<path class="grid" d="M338.0 153.0L338.0 441.0"/>
+<text x="338.0" y="456.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M432.0 153.0L432.0 441.0"/>
+<text x="432.0" y="456.0" class="small" text-anchor="middle">0.7</text>
+<path class="grid" d="M526.0 153.0L526.0 441.0"/>
+<text x="526.0" y="456.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M620.0 153.0L620.0 441.0"/>
+<text x="620.0" y="456.0" class="small" text-anchor="middle">0.9</text>
+<text x="385.0" y="472.0" class="small" text-anchor="middle">share of neurons with an up push below h = −0.25</text>
 <text x="140.0" y="169.0" class="small" text-anchor="end">final only</text>
 <circle class="fc2" cx="328.9" cy="165.0" r="4"/>
 <path class="fc1" d="M337.3 160.0L342.3 169.0L332.3 169.0Z"/>
@@ -74,7 +74,13 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <text x="140.0" y="361.0" class="small" text-anchor="end">final + L3 ln_2</text>
 <circle class="fc2" cx="332.3" cy="357.0" r="4"/>
 <path class="fc1" d="M341.2 352.0L346.2 361.0L336.2 361.0Z"/>
-<text x="140.0" y="385.0" class="small" text-anchor="end">every norm</text>
-<circle class="fc2" cx="497.3" cy="381.0" r="4"/>
-<path class="fc1" d="M498.9 376.0L503.9 385.0L493.9 385.0Z"/>
+<text x="140.0" y="385.0" class="small" text-anchor="end">final + every ln_1</text>
+<circle class="fc2" cx="268.3" cy="381.0" r="4"/>
+<path class="fc1" d="M299.2 376.0L304.2 385.0L294.2 385.0Z"/>
+<text x="140.0" y="409.0" class="small" text-anchor="end">final + every ln_2</text>
+<circle class="fc2" cx="481.5" cy="405.0" r="4"/>
+<path class="fc1" d="M490.0 400.0L495.0 409.0L485.0 409.0Z"/>
+<text x="140.0" y="433.0" class="small" text-anchor="end">every norm</text>
+<circle class="fc2" cx="497.3" cy="429.0" r="4"/>
+<path class="fc1" d="M498.9 424.0L503.9 433.0L493.9 433.0Z"/>
 </svg>

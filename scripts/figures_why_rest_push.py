@@ -121,8 +121,12 @@ NORM_PAIRS = (
         for i in range(4)
         for j in (1, 2)
     ]
+    + [("final + every ln_1", "gelu_final_all_ln1_dropout_0"),  # #6785
+       ("final + every ln_2", "gelu_final_all_ln2_dropout_0")]
     + [("every norm", "gelu_all_norms_centred_dropout_0")]
-)
+)  # fmt: skip
+SINGLE = slice(1, 9)  # the rows that add one block norm to the final norm
+PUSH_PARTS = ("push_norm_pairs", "push_norm_sets")  # #6465's runs, then #6785's
 BELOW = 3  # the bins below h = -0.25, of share_output_bins_up's seven
 
 
@@ -142,7 +146,7 @@ def up_below(rows: list[dict], condition: str, seed: int) -> float:
     shares = [
         share
         for r in rows
-        if r.get("part") == "push_norm_pairs" and r["condition"] == condition
+        if r.get("part") in PUSH_PARTS and r["condition"] == condition
         and r["seed"] == seed and r["step"] - r["steps"] + 1 >= 201 and r["step"] <= 1000
         for layer in (1, 2, 3)
         for share in r["layers"][layer]["share_output_bins_up"][:BELOW]
@@ -172,20 +176,22 @@ def norm_pairs(rows: list[dict]) -> Figure:
         The figure.
     """
     found = {c: [up_below(rows, c, s) for s in (0, 1)] for _, c in NORM_PAIRS}
-    one = [v for _, c in NORM_PAIRS[1:-1] for v in found[c]]  # one block norm added
+    one = [v for _, c in NORM_PAIRS[SINGLE] for v in found[c]]  # one block norm added
     low, high = min(one), max(one)
     fig = Figure(
-        ["No single block norm restores the up push", "that centring every norm keeps"],
+        ["No single block norm restores the up push,", "but the four before the MLP together do"],
         [
             "Each mark is one seed's share of GELU neurons whose output's push points up below "
             "h = −0.25.",
-            "The final LayerNorm is centred alone, with one block norm, or with every norm, "
-            "with no dropout.",
-            "Circles: seed 0. Triangles: seed 1.",
+            "The final LayerNorm is centred alone, with one block norm, with all four of a kind, "
+            "or with every norm.",
+            "No dropout. Circles: seed 0. Triangles: seed 1.",
         ],
         f"A dot plot of {len(NORM_PAIRS)} conditions. With only the final norm centred, "
         f"{mean(found[NORM_PAIRS[0][1]]):.2f} of neurons have an up push below the rest. "
         f"Adding any one block norm leaves each seed between {low:.2f} and {high:.2f}. "
+        f"Adding every norm before attention gives {mean(found[NORM_PAIRS[-3][1]]):.2f}, "
+        f"and every norm before the MLP {mean(found[NORM_PAIRS[-2][1]]):.2f}. "
         f"Centring every norm gives {mean(found[NORM_PAIRS[-1][1]]):.2f}.",
     )
     panel = Panel(fig, (150, fig.body_top + 20, 470, 24 * len(NORM_PAIRS)), (0.4, 0.9),
