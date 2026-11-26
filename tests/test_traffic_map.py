@@ -104,3 +104,15 @@ def test_known_cases_rank_the_copy_heads():
     rows = [_site("head", layer, h, float(10 * layer + h)) for layer in range(6) for h in range(8)]
     got = ts.known_cases(rows)
     assert got["heads"] == 48 and got["copy_head_ranks"]["L4/H7"] == 9
+
+
+def test_within_layer_ranks_take_depth_away():
+    # The measure follows the layer only, so a predictor equal to the layer gets no credit.
+    sites = [{"kind": "mlp", "layer": layer, "traffic": float(layer), "flips": layer * 10 + i}
+             for layer in range(3) for i in range(5)]  # fmt: skip
+    assert ts.within_layer(sites, "traffic", "flips")["rho"] is None
+    assert ts.within_layer(sites, "traffic", "flips")["shuffle_p"] is None
+    for s in sites:
+        s["traffic"] = float(s["flips"] % 10)  # follows the order within each layer
+    got = ts.within_layer(sites, "traffic", "flips")
+    assert got["rho"] == pytest.approx(1.0) and got["shuffle_p"] < 0.01

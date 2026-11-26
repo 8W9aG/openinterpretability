@@ -2,8 +2,9 @@
 
 For each predictor and each measure of disturbance, it prints Spearman's ρ over the tested
 sites, with a bootstrap 95% interval over sites. A shuffle of the traffic across the tested
-sites gives the null: the share of shuffles whose |ρ| reaches the observed |ρ|. The
-predictors are these:
+sites gives the null: the share of shuffles whose |ρ| reaches the observed |ρ|. A second
+test ranks each variable within its kind and layer, and shuffles within them, so that a
+predictor gets no credit for depth alone. The predictors are these:
 
 * ``traffic``: Σ_p use_p · ‖∂R_p/∂θ_s‖.
 * ``unweighted``: the same sum, with no use weight.
@@ -69,6 +70,16 @@ def spearman(x: list[float], y: list[float]) -> float | None:
     return sum((a - mx) * (b - my) for a, b in zip(rx, ry, strict=True)) / (sx * sy)
 
 
+def p_value(rho: float | None, at_least: int) -> float | None:
+    """The shuffle p-value, with the observed order counted as one shuffle. None with no ρ.
+
+    Args:
+        rho: The observed ρ.
+        at_least: The shuffles whose |ρ| reached the observed |ρ|.
+    """
+    return None if rho is None else round((at_least + 1) / (SHUFFLES + 1), 4)
+
+
 def tested_sites(rows: list[dict]) -> list[dict]:
     """Each tested site's predictors and measures, joined from its ``site`` and ``test`` rows.
 
@@ -115,7 +126,52 @@ def correlation(sites: list[dict], predictor: str, measure: str) -> dict:
     return {"table": "correlation", "predictor": predictor, "measure": measure,
             "sites": len(sites), "rho": rho and round(rho, 4),
             "ci95": [low and round(low, 4), high and round(high, 4)],
-            "shuffle_p": round((at_least + 1) / (SHUFFLES + 1), 4)}  # fmt: skip
+            "shuffle_p": p_value(rho, at_least)}  # fmt: skip
+
+
+def within_layer(sites: list[dict], predictor: str, measure: str) -> dict:
+    """ρ after ranking each variable within its kind and layer, so that depth gets no credit.
+
+    The null shuffles the predictor within each kind and layer.
+
+    Args:
+        sites: From :func:`tested_sites`.
+        predictor: One of :data:`PREDICTORS`.
+        measure: One of :data:`MEASURES`.
+    """
+    groups: dict[tuple, list[int]] = {}
+    for i, s in enumerate(sites):
+        groups.setdefault((s["kind"], s["layer"]), []).append(i)
+
+    def local(values: list[float]) -> list[float]:
+        """Each value's rank within its group, as a share of the group, from 0 to 1.
+
+        Args:
+            values: One value for each site, in the order of ``sites``.
+        """
+        out = [0.5] * len(values)
+        for members in groups.values():
+            r = ranks([values[i] for i in members])
+            for i, rank in zip(members, r, strict=True):
+                out[i] = (rank - 1) / (len(members) - 1) if len(members) > 1 else 0.5
+        return out
+
+    x = [s[predictor] for s in sites]
+    y = local([s[measure] for s in sites])
+    rho = spearman(local(x), y)
+    rng, at_least = random.Random(SEED), 0
+    for _ in range(SHUFFLES):
+        shuffled = x[:]
+        for members in groups.values():
+            values = [x[i] for i in members]
+            rng.shuffle(values)
+            for i, v in zip(members, values, strict=True):
+                shuffled[i] = v
+        r = spearman(local(shuffled), y)
+        at_least += rho is not None and r is not None and abs(r) >= abs(rho)
+    return {"table": "within_layer", "predictor": predictor, "measure": measure,
+            "sites": len(sites), "rho": rho and round(rho, 4),
+            "shuffle_p": p_value(rho, at_least)}  # fmt: skip
 
 
 def known_cases(rows: list[dict]) -> dict:
@@ -147,6 +203,8 @@ def main(results: Path) -> None:
             for predictor in PREDICTORS:
                 row = correlation(part, predictor, measure)
                 click.echo(json.dumps({**row, "kind": kind}))
+                if kind == "all":
+                    click.echo(json.dumps(within_layer(part, predictor, measure)))
     click.echo(json.dumps(known_cases(rows)))
 
 
