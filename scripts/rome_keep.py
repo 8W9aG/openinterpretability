@@ -61,10 +61,10 @@ FACTS = (
     ("Toyota", " is a company based in the country of", " Canada"),
     ("The Moon", " orbits the planet", " Mars"),
 )  # fmt: skip
-PREFIXES = 10  # corpus prefixes over which k* and v* are fitted, as in the paper
+PREFIXES = 10  # corpus prefixes over which k* and v* are fitted (the paper uses 20 random ones)
 COV_TOKENS = 100_000  # tokens for the second moment C
 RIDGE = 1e-4  # times the mean diagonal of C, for a stable solve
-V_STEPS, V_LR, KL_WEIGHT, CLAMP = 40, 0.5, 0.0625, 4.0  # ROME's defaults, more steps
+V_STEPS, V_LR, KL_WEIGHT, CLAMP = 40, 0.5, 0.0625, 4.0  # our settings for the fit of v*
 
 
 def down(model, layer: int):
@@ -142,7 +142,14 @@ def hidden_at(model, ids: torch.Tensor, layer: int) -> torch.Tensor:
     """
     got = {}
 
-    def keep(_m, args, _out) -> None:  # returns None, so the module's output stays
+    def keep(_m, args, _out) -> None:
+        """Keep the projection's input. Return None, so that its output stays.
+
+        Args:
+            _m: The module.
+            args: Its positional inputs, the hidden activations first.
+            _out: Its output.
+        """
         got["h"] = args[0].detach()
 
     hook = down(model, layer).register_forward_hook(keep)
@@ -234,7 +241,7 @@ def fit_value(model, tokenizer, ctxs, fact, layer: int) -> tuple[torch.Tensor, t
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        with torch.no_grad():  # the paper clamps δ to a multiple of the output's norm
+        with torch.no_grad():  # δ stays within a multiple of the output's norm
             limit = CLAMP * base_out.norm()
             if delta.norm() > limit:
                 delta.mul_(limit / delta.norm())
@@ -253,6 +260,13 @@ def _with_delta(model, ids: list[int], pos: int, delta, layer: int):
     """
 
     def add(_m, _args, out):
+        """The projection's output with ``delta`` added at ``pos``.
+
+        Args:
+            _m: The module.
+            _args: Its positional inputs.
+            out: Its output.
+        """
         out = out.clone()
         out[0, pos] = out[0, pos] + delta
         return out
