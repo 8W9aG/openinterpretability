@@ -1,7 +1,7 @@
 """The analyses of papers/nf4-keep/README.md, from the rows of scripts/nf4_keep.py (#5158).
 
-``drift`` prints, for each model and condition, the share of probes whose peak drifts by
-less than each mark, and the 99% and 99.9% points, as
+``drift`` prints the drift of the probes' peaks for each model and condition. That is the
+share of probes whose peak drifts by less than each mark, and the 99% and 99.9% points, as
 ``docs/analyses/half-precision-reproduce.md`` gives them.
 
 ``paired`` compares NF4 with each seed of its matched random change, on the same poles.
@@ -89,6 +89,11 @@ def fisher(a: int, b: int, c: int, d: int) -> float:
     row, col, n = a + b, a + c, a + b + c + d
 
     def chance(x: int) -> float:
+        """The chance of the table whose first cell is ``x``.
+
+        Args:
+            x: Row 1, column 1.
+        """
         return comb(col, x) * comb(n - col, row - x) / comb(n, row)
 
     seen = chance(a)
@@ -125,9 +130,13 @@ def keep_table(normal_rows: list[dict], kept: dict[str, bool], weight: str) -> d
     """
 
     def non_normal(r: dict) -> bool:
-        return (
-            any(r["p"][w] < ALPHA for w in WEIGHTS) if weight == "any" else r["p"][weight] < ALPHA
-        )
+        """True when the pole's ``weight``, or any of its weights, fails the test.
+
+        Args:
+            r: A ``normality`` row.
+        """
+        names = WEIGHTS if weight == "any" else (weight,)
+        return any(r["p"][w] < ALPHA for w in names)
 
     cells = {"non_normal_fail": 0, "non_normal_keep": 0, "normal_fail": 0, "normal_keep": 0}
     for r in normal_rows:
@@ -140,6 +149,11 @@ def keep_table(normal_rows: list[dict], kept: dict[str, bool], weight: str) -> d
 
 
 def _rows(path: Path) -> list[dict]:
+    """The JSON rows of a JSONL file.
+
+    Args:
+        path: The file.
+    """
     return [json.loads(line) for line in path.read_text().splitlines() if line]
 
 
@@ -174,6 +188,12 @@ def instruct_overlap(rows: list[dict], instruct_rows: list[dict], model: str) ->
     """
 
     def poles(source: list[dict], condition: str) -> list[dict]:
+        """The pole rows of ``model`` under ``condition`` that reproduce.
+
+        Args:
+            source: The rows.
+            condition: The condition.
+        """
         return [r for r in source if r["table"] == "pole" and r["model"] == model
                 and r["condition"] == condition and r["base_passes"]]  # fmt: skip
 

@@ -1,7 +1,7 @@
 """Test VERIFIED poles with the model's linear weights rounded to NF4 (#5158).
 
-QLoRA stores a base model's weights in 4-bit NormalFloat (NF4), and computes with them after
-it turns them back into 16 bits (Dettmers et al., 2023). This script asks whether the
+QLoRA stores a base model's weights in 4-bit NormalFloat (NF4). It turns them back into
+16 bits before it computes with them (Dettmers et al., 2023). This script asks whether the
 explanations of the registry's neurons keep through that rounding. It trains nothing.
 
 Each condition adds a change to the base model's weights in place, and copies them back
