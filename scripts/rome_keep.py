@@ -1,15 +1,14 @@
 """ROME edits of unrelated facts at one layer of pythia-70m, and the poles that keep (#5167).
 
-ROME (Meng et al., 2022) inserts a fact with a rank-one change to one MLP's output matrix:
-Ŵ = W + Λuᵀ, with u = C⁻¹k* and Λ = (v* − Wk* − b) / (uᵀk*). Here C is the second moment of
-the layer's hidden activations, k* the hidden activation at the subject's last token, and v*
-the output that makes the model predict the new object. The edit changes each neuron's
-write and no neuron's input weights. So in pythia-70m, which has a parallel residual, every
-pole at or below the edit layer fires as before. Poles above it change through the
-residual stream.
+ROME (Meng et al., 2022) inserts a fact with a rank-one change to one MLP's output matrix.
+The new matrix is Ŵ = W + Λuᵀ, with u = C⁻¹k* and Λ = (v* − Wk* − b) / (uᵀk*). C is the
+second moment of the layer's hidden activations. k* is the hidden activation at the
+subject's last token. v* is the output that makes the model predict the new object. The
+edit changes each neuron's write and no neuron's input weights. So every pole at or below
+the edit layer fires as before. Poles above it change through the residual stream.
 
-For each fact the script edits the base model, tests every VERIFIED pole with the batched
-keep test of ``scripts/random_delta_keep.py``, and restores the weights. It then does the
+For each fact the script edits the base model. It tests every VERIFIED pole with the
+batched keep test of ``scripts/random_delta_keep.py``, then restores the weights. It then does the
 same with a random rank-one change of the same norm. Each pole row above the edit layer
 gives the alignment of Λ with the pole's input weights. Each edit's row gives how u loads
 on the VERIFIED neurons of the edit layer.
@@ -201,9 +200,9 @@ def fit_value(model, tokenizer, ctxs, fact, layer: int) -> tuple[torch.Tensor, t
     """k* and v* of one fact: the mean hidden activation and the fitted output at the subject.
 
     v* is the MLP's mean output at the subject's last token plus a δ that Adam fits. The
-    loss is the new object's negative log-probability after each context and the relation,
-    plus a KL term on the prediction after "{subject} is a". The term keeps the subject's
-    other knowledge, as ROME does.
+    loss is the new object's negative log-probability after each context and the relation.
+    A KL term on the prediction after "{subject} is a" is added to it. The term keeps the
+    subject's other knowledge, as ROME does.
 
     Args:
         model: The model.
