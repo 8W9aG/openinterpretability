@@ -1,0 +1,6 @@
+[tool.diff_cover]
+# The lines that a pull request changes must all be covered, or marked `# pragma: no cover`
+# with a reason (#5855). `make coverage` and CI's diff-cover step read this with
+# `-c .diff-cover.toml`, so the number is set only here. diff-cover reads the table of this
+# name from any TOML file, so it holds no value of a project (#6630).
+fail_under = 100
