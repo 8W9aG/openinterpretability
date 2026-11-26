@@ -5,10 +5,10 @@ The 32× run adds the push over its micro-batches (``PushRecorder.add_part``). F
 and range of steps, this prints three values, each the median of L1–L3 and then the mean
 over the windows:
 
-* the median push;
-* its ratio of mean to root mean square over the window's steps, which is how steady it
-  is, since Adam moves a parameter by about the rate times this ratio;
-* how far the rest moved, at the batch's mean input.
+* The median push.
+* Its ratio of mean to root mean square over the window's steps. That is how steady it
+  is, since Adam moves a parameter by about the rate times this ratio.
+* How far the rest moved, at the batch's mean input.
 
 It also gives the number of windows in which the push points down. The ranges compare the
 runs at the same steps, at the same number of tokens and at the same loss.
@@ -50,9 +50,14 @@ def summarise(rows: list[dict], part: str, first: int, last: int) -> dict:
         The means over the windows, and the windows in which the push points down.
     """
     windows = [r for r in rows if r.get("part") == part and first < r["step"] <= last]
+    # A window's row is labelled with the step that ends it, so a range starts after first.
 
     def mean_of(key: str) -> float:
-        """The mean over the windows of the median of ``key`` over L1–L3."""
+        """The mean over the windows of the median of ``key`` over L1–L3.
+
+        Args:
+            key: A field of each layer's push row.
+        """
         return statistics.mean(
             statistics.median(w["layers"][i][key] for i in LAYERS) for w in windows
         )
