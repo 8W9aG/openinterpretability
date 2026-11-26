@@ -2,7 +2,6 @@
 # Delete a paper's line in the PR that rewrites it. The check fails on a line whose paper
 # has no term left, so the list only shrinks. It goes when it is empty.
 conformal-line
-copy-first-unit
 default-on-poles
 explanations-across-models
 fisher-keep
@@ -15,10 +14,8 @@ random-change-keep
 rome-keep
 sequential-tuning
 shared-concept-space
-spd-input-projections
 template-or-tuning
 token-set-ceiling
 traffic-map
-why-neurons-rest
 wrapper-prune
 rome-sequence
