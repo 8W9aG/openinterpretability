@@ -123,4 +123,3 @@ def test_a_project_with_no_x_account_has_no_handle(tmp_path, restore):
 def test_the_handle_is_the_urls_last_part_whatever_its_letters():
     assert cfg.x_handle("https://x.com/labX/") == "@labX"  # a trailing X stays
     assert cfg.x_handle("https://x.com/a/b") == "@b"
-
