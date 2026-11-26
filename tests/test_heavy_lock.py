@@ -57,23 +57,31 @@ def test_a_child_of_the_holder_skips_it(lock, monkeypatch):
         assert not lock.exists()
 
 
-def test_a_second_process_waits_until_the_first_exits(lock):
+def test_a_second_process_waits_until_the_first_exits(lock, tmp_path):
+    # The first holds the lock until the test creates `release`, not for a fixed time. On a
+    # busy machine, the second process could start after a fixed hold ended (#6916).
     env = {**os.environ, heavy_lock.ENABLE_ENV: "1", heavy_lock.FILE_ENV: str(lock)}
     env.pop(heavy_lock.HELD_ENV, None)
+    release = tmp_path / "release"
+    hold = (
+        f"import pathlib, time\nwhile not pathlib.Path({str(release)!r}).exists(): time.sleep(0.02)"
+    )
     run = [sys.executable, "-m", "openinterpretability.core.heavy_lock"]
-    first = subprocess.Popen([*run, sys.executable, "-c", "import time; time.sleep(1.5)"], env=env)
-    deadline = time.monotonic() + 10
+    first = subprocess.Popen([*run, sys.executable, "-c", hold], env=env)
+    deadline = time.monotonic() + 30
     while not lock.exists() or not lock.read_text():
         assert time.monotonic() < deadline
         time.sleep(0.05)
-    start = time.monotonic()
-    second = subprocess.run(
-        [*run, sys.executable, "-c", "pass"], env=env, capture_output=True, text=True, check=False
+    second = subprocess.Popen(
+        [*run, sys.executable, "-c", "pass"], env=env, stderr=subprocess.PIPE, text=True
     )
-    assert second.returncode == 0
-    assert "Waiting for the heavy-job lock" in second.stderr
-    assert time.monotonic() - start > 0.5  # it waited for the first
-    assert first.wait(timeout=10) == 0
+    assert second.stderr is not None
+    assert "Waiting for the heavy-job lock" in second.stderr.readline()
+    assert second.poll() is None  # it waits while the first holds the lock
+    release.touch()
+    assert first.wait(timeout=30) == 0
+    assert second.wait(timeout=30) == 0
+    second.stderr.close()
     assert is_free(lock)  # released at exit
 
 
