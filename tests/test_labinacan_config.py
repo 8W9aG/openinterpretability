@@ -200,3 +200,15 @@ def test_the_paper_and_exchange_scripts_take_their_values_from_the_config():
     assert f"{c.site_url}research/" == papers.SITE
     assert c.hf_dataset == exchange.REPO and c.package in exchange.CITING
     assert f"[{c.name}]({c.repo_url})" in exchange.CARD
+
+
+def test_the_citation_file_agrees_with_the_config():
+    # CITATION.cff is this project's own file (GitHub and Zenodo read it), so it keeps its
+    # values. They must be the config's.
+    import yaml
+
+    cff = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
+    c = cfg.config()
+    assert cff["repository-code"] == c.repo_url and cff["url"] == c.site_url
+    assert cff["title"].startswith(f"{c.name}: ")
+    assert c.name in cff["message"] and c.package in cff["message"]
