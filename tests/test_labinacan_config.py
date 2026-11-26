@@ -194,7 +194,17 @@ def test_no_generic_file_holds_a_value_of_this_project():
     flows = ROOT / ".github" / "workflows"
     skills = ROOT / ".claude" / "skills"
     generic = [ROOT / "labinacan.mk", flows / "labinacan-ci.yml", flows / "links.yml"]  # #6630
-    split = ("release", "semantic-versioning", "write-paper")  # each has a project.md
+    split = (
+        "release",
+        "semantic-versioning",
+        "write-paper",
+        "single-source-of-truth",
+        "commenting",
+        "test-new-paths",
+        "next-issue",
+        "literature-review",
+        "paper-animation",
+    )
     generic += [skills / name / "SKILL.md" for name in split]
     generic += [
         ROOT / name for name in ("ruff.toml", ".coveragerc", ".diff-cover.toml", ".pymarkdown.yml")
