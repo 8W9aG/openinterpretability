@@ -1,8 +1,8 @@
 """The figures of papers/traffic-map/README.md, from its results.jsonl (#5231).
 
 A neuron site of the even draw is a circle in the first colour. A head is a triangle in
-the second colour, and a top-traffic neuron a square in the third. The shape keeps them apart without
-colour.
+the second colour, and a top-traffic neuron a square in the third. The shape keeps them
+apart without colour.
 """
 
 import math
