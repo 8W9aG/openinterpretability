@@ -1,0 +1,21 @@
+# Words that a file of the labinacan template must not hold (#6631, plan step 2).
+# They are this project's field, interpretability, and its names, URLs and mark colours.
+# scripts/check_leftovers.py reads one regular expression per line, case-sensitive unless
+# it starts with (?i). This file and the check's baseline are the only files exempt.
+(?i)interpretab
+(?i)\bneurons?\b
+\bpoles?\b
+\bVERIFIED\b
+\bREJECTED\b
+\bNEEDS_REVISION\b
+(?i)\bregistry\b
+\bprobes?\b
+\bsisters?\b
+(?i)\bcircuits?\b
+\bSAEs?\b
+(?i)transcoder
+(?i)pythia
+(?i)\bgpt-?2\b
+(?i)\bqwen
+\bwiki/
+(?i)#FDE047|#F97316|#0284C7
