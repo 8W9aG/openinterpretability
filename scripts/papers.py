@@ -43,6 +43,9 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # paper_terms, beside this script
+
+import paper_terms  # noqa: E402
 
 from labinacan.config import config, site_url, use  # noqa: E402
 
@@ -164,8 +167,13 @@ def problems(folder: Path, date: str) -> list[str]:
 
 
 def check(papers: Path = PAPERS) -> list[str]:
-    """Every problem of every listed paper, each as ``<slug>: <problem>``."""
-    return [f"{slug}: {p}" for date, slug in entries(papers) for p in problems(papers / slug, date)]
+    """Every problem of every listed paper, each as ``<slug>: <problem>``.
+
+    The project's own terms in a preprint count too (``scripts/paper_terms.py``, #6851).
+    """
+    listed = entries(papers)
+    out = [f"{slug}: {p}" for date, slug in listed for p in problems(papers / slug, date)]
+    return out + paper_terms.problems(papers, [slug for _, slug in listed])
 
 
 def work_left(papers: Path = PAPERS) -> dict[str, tuple[int, ...]]:
