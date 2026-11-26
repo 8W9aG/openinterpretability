@@ -1,14 +1,2 @@
 # The leftover words that each template file may still hold (scripts/check_leftovers.py, #6631).
 # <hits> <path>. Lower a line when a file loses words. The template is cut when this list is empty.
-11 tests/test_exchange.py
-7 .github/pull_request_template.md
-5 scripts/exchange.py
-3 .github/workflows/labinacan-ci.yml
-3 .github/workflows/publish.yml
-3 scripts/a11y_check.py
-2 .github/workflows/codeql.yml
-2 .gitleaks.toml
-2 lychee.toml
-2 scripts/changelog.py
-2 scripts/figure_motion.py
-2 scripts/figure_svg.py
