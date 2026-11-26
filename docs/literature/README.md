@@ -48,6 +48,7 @@ Status marks how the work relates to this repo:
 
 | Page | Status | Why |
 | --- | --- | --- |
+| [gBench: performance and capability benchmarks for open models](gbench.md) (Martins and Li, Google DeepMind, 2026) | planned | A harness that serves and scores open models over `/v1`. Its hashed scaffold beside each score fits the explainer benchmark (#6985). Its suites score served chat models by their text, so they don't fit the checks after a weight change. |
 | [Training LLMs to Predict World Events](training-llms-to-predict-world-events.md) (Jeen, Aitchison and Mantic, 2026) | not applicable | No interpretability content. Its fine-tuned model is not one the registry can study, though two evaluation habits carry over. |
 
 ## Probing
