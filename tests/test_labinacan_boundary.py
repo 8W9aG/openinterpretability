@@ -7,6 +7,8 @@ project merges from (#6207). An import of the project's own package would not ex
 import ast
 from pathlib import Path
 
+import pytest
+
 from labinacan.config import config
 
 LABINACAN = Path(__file__).parents[1] / "labinacan"
@@ -38,10 +40,13 @@ def test_project_imports_are_found_at_any_depth():
 
 
 def test_labinacan_imports_nothing_from_the_project():
+    project = config().package
+    if project == "labinacan":  # the template's own example project: nothing around it
+        pytest.skip("the project is labinacan itself")
     offenders = {
         str(path.relative_to(LABINACAN.parent)): found
         for path in sorted(LABINACAN.rglob("*.py"))
-        if (found := project_imports(path.read_text(encoding="utf-8"), config().package))
+        if (found := project_imports(path.read_text(encoding="utf-8"), project))
     }
     assert offenders == {}
     assert len(list(LABINACAN.rglob("*.py"))) > 2  # the check reads the moved modules

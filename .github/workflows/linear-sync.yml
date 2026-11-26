@@ -39,4 +39,10 @@ jobs:
           # A user-owned project needs a token with the `project` scope.
           # GITHUB_TOKEN can't write to it. Without this secret the job skips the Roadmap.
           ROADMAP_TOKEN: ${{ secrets.ROADMAP_TOKEN }}
-        run: python3 scripts/linear_sync.py ${{ inputs.dry_run && '--dry-run' || '' }}
+        # A project with no Linear workspace has no key, and the job has nothing to sync.
+        run: |
+          if [ -z "$LINEAR_API_KEY" ]; then
+            echo "::notice::No LINEAR_API_KEY: nothing to sync."
+            exit 0
+          fi
+          python3 scripts/linear_sync.py ${{ inputs.dry_run && '--dry-run' || '' }}
