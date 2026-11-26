@@ -43,8 +43,11 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-sys.path.insert(0, str(Path(__file__).resolve().parent))  # paper_terms and paper_abstract
+sys.path.insert(
+    0, str(Path(__file__).resolve().parent)
+)  # paper_terms, paper_abstract, paper_captions
 
+import paper_captions  # noqa: E402
 import paper_terms  # noqa: E402
 from labinacan.config import config, site_url, use  # noqa: E402
 from paper_abstract import ABSTRACT_WORDS, abstract, abstract_words  # noqa: E402
@@ -150,6 +153,10 @@ def problems(folder: Path, date: str) -> list[str]:
     words = abstract_words(text)
     if status.preprint and words > ABSTRACT_WORDS:  # a published paper is frozen
         return [f"the abstract has {words} words, over the cap of {ABSTRACT_WORDS} (write-paper)"]
+    if status.preprint:  # a published paper is frozen
+        captions = paper_captions.problems(folder)
+        if captions:
+            return captions
     if not path.exists():
         return ["no CITATION.cff (scripts/papers.py new)"]
     cff = yaml.safe_load(path.read_text(encoding="utf-8"))

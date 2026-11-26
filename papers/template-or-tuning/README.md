@@ -66,7 +66,7 @@ Yes, and it costs more than the tuning does. On the base model, putting the prob
 
 ![Two line charts: keeps and mean sensitivity on plain text and inside the chat template, for the base and the instruct model.](media/square.svg)
 
-**Figure 1.** The 360 poles that pass on the base model with plain text, in the four conditions. Circles are the base model and triangles the instruct model. Left: the poles that pass both gates. Right: the mean sensitivity of their probes. The base model's line falls more steeply than the instruct model's.
+**Figure 1.** The chat template costs the base model more explanations than instruction tuning does. The 360 poles that pass on the base model with plain text, in the four conditions. Circles are the base model and triangles the instruct model. Left: the poles that pass both gates. Right: the mean sensitivity of their probes. The base model's line falls more steeply than the instruct model's.
 
 So the template makes the neurons fire less on the text that their explanations describe, in a model that was never tuned on it. The explanations still say when the poles stay quiet, but the poles fire less often where they should. This is the pattern that the earlier analysis found for the instruct model inside the template, and it is already present in the base model.
 
@@ -88,7 +88,7 @@ The same pattern shows when the template is added to the instruct model. There, 
 
 ![A grid of 360 marks, one per pole, in 24 columns by layer, stepping through the four conditions.](media/grid.svg)
 
-**Figure 2.** Each mark is one pole, in the column of its layer. A filled mark passes its own probes and an open mark fails. The frames step through the four conditions, and the last frame rests on the instruct model inside the template. Circles are the base model and triangles the instruct model. Most of the open marks of the last frame are already open in the second frame.
+**Figure 2.** Most of the explanations that fail inside the chat template fail on the base model already. Each mark is one pole, in the column of its layer. A filled mark passes its own probes and an open mark fails. The frames step through the four conditions, and the last frame rests on the instruct model inside the template. Circles are the base model and triangles the instruct model. Most of the open marks of the last frame are already open in the second frame.
 
 The figure shows where the failures come from. Of the 95 poles that fail on the instruct model inside the template, 54 already fail on the base model inside the template. The template's losses spread across all depths. In the first third of the layers it costs 19 of 132, in the middle third 30 of 101, and in the last third 27 of 127. It costs positive and negative poles alike: 35 of 177 positive and 41 of 183 negative.
 
@@ -98,7 +98,7 @@ It does, but in both directions. A pole's change can be large and still leave it
 
 ![A scatter plot of each pole's change in sensitivity under the tuning: on plain text across, inside the chat template up.](media/tuning.svg)
 
-**Figure 3.** Each mark is one pole. Across: the instruct model's sensitivity minus the base model's, on plain text. Up: the same inside the chat template. Open marks are the poles that failed inside the template on the base model. The marks spread further up and down than across, and many open marks sit above zero.
+**Figure 3.** Inside the template, the tuning moves sensitivity further, and it moves it up as often as down. Each mark is one pole. Across: the instruct model's sensitivity minus the base model's, on plain text. Up: the same inside the chat template. Open marks are the poles that failed inside the template on the base model. The marks spread further up and down than across, and many open marks sit above zero.
 
 The changes inside the template go up about as often as down (Figure 3). The poles that the template hurt most on the base model are the ones whose sensitivity the tuning raises most inside it. Across poles, the template's change in sensitivity and the tuning's change inside the template have Spearman $\rho$ = −0.42. Part of that relation is arithmetic. The base model's reading inside the template appears in both changes with opposite signs, so any noise in it gives a negative correlation. The 22 poles that come back show that the relation is not only noise.
 
@@ -110,7 +110,7 @@ They do, slightly. Across the 360 poles, the base-to-instruct correlation has a 
 
 ![A scatter plot of each pole's base-to-instruct correlation on plain text against chat text, with the line of equal correlation.](media/pearson.svg)
 
-**Figure 4.** Each mark is one pole: Pearson's $r$ between its activations in the base and instruct models, on the plain corpus sample (across) and on the document tokens of the chat sample (up). The line marks equal correlation. Nearly every mark is below it.
+**Figure 4.** On chat text, 343 of 360 poles correlate less between the base and instruct models. Each mark is one pole: Pearson's $r$ between its activations in the base and instruct models, on the plain corpus sample (across) and on the document tokens of the chat sample (up). The line marks equal correlation. Nearly every mark is below it.
 
 The two samples differ in more than the template. The plain sample reads windows of 512 tokens across document boundaries, and the chat sample reads each document as one turn of up to 2,000 characters. So the drop mixes the template with the length and the starts of the contexts. It is consistent with our extension of Kumar et al.'s result, but it does not test it alone.
 

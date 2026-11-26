@@ -1,6 +1,6 @@
 {
  "source": "media/recovery.svg",
- "sha256": "71ea7fdac569e3dcf2514f9b74a45f9a9c5e0e2de5b5e0e6561a5a492d2cc700",
+ "sha256": "315a8a1b3944e41b8f87e6632771153ec7974c64a8a81b83c562593a8c75e274",
  "files": [
   "social.png"
  ],
@@ -13,7 +13,7 @@
    ]
   },
   "recovery": {
-   "sha256": "71ea7fdac569e3dcf2514f9b74a45f9a9c5e0e2de5b5e0e6561a5a492d2cc700",
+   "sha256": "315a8a1b3944e41b8f87e6632771153ec7974c64a8a81b83c562593a8c75e274",
    "files": [
     "social-recovery.png"
    ]

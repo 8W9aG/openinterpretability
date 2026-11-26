@@ -85,3 +85,39 @@ def test_a_preprint_abstract_over_the_cap_fails_and_a_published_one_is_left(tmp_
     ]
     papers.publish("p", root, today="2026-11-20")
     assert papers.check(root) == []  # a published paper is frozen, whatever its length
+
+
+def _figure(tmp_path, caption, title_lines=("A rises,", "and B falls")):
+    """A preprint with one figure, whose SVG title has ``title_lines``."""
+    root = _papers(tmp_path)
+    media = root / "p" / "media"
+    media.mkdir()
+    texts = "".join(f'<text x="0" class="title">{t}</text>' for t in title_lines)
+    (media / "f.svg").write_text(f"<svg>{texts}<text class='sub'>marks</text></svg>")
+    readme = root / "p" / "README.md"
+    readme.write_text(PAPER + f"\n![A rises](media/f.svg)\n\n**Figure 1.** {caption}\n")
+    papers.new("p", "#12 (x).", root)
+    return root
+
+
+def test_a_preprint_caption_opens_with_its_figures_finding(tmp_path):
+    root = _figure(tmp_path, "A rises, and B falls. Each mark is one run.")
+    assert papers.check(root) == []
+
+
+def test_a_caption_that_only_describes_the_marks_fails(tmp_path):
+    root = _figure(tmp_path, "Each mark is one run.")
+    assert papers.check(root) == [
+        "p: Figure 1's caption does not open with its finding: 'A rises, and B falls.'"
+    ]
+
+
+def test_a_title_with_a_question_mark_keeps_it(tmp_path):
+    root = _figure(tmp_path, "Does A rise? It does.", ("Does A rise?",))
+    assert papers.check(root) == []
+
+
+def test_a_published_papers_captions_are_left_as_they_are(tmp_path):
+    root = _figure(tmp_path, "Each mark is one run.")
+    papers.publish("p", root, today="2026-11-20")
+    assert papers.check(root) == []

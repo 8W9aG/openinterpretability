@@ -57,7 +57,7 @@ It brings a few back, more than chance. Of the 63 explanations that fail on the 
 
 ![Pruning by gradient times weight brings back a few failed explanations, and breaks many more.](media/recovery.svg)
 
-**Figure 1.** Qwen2.5-0.5B's instruct model with the writes of $K$ MLP neurons pruned. Left: of the 63 explanations that fail on it, those that pass their probes again. Right: of the 299 that keep on it, those that fail. Circles prune the top $K$ by gradient times weight, and triangles $K$ random neurons of the same layers, one for each seed.
+**Figure 1.** Pruning by gradient times weight brings back a few failed explanations, and breaks many more. Qwen2.5-0.5B's instruct model with the writes of $K$ MLP neurons pruned. Left: of the 63 explanations that fail on it, those that pass their probes again. Right: of the 299 that keep on it, those that fail. Circles prune the top $K$ by gradient times weight, and triangles $K$ random neurons of the same layers, one for each seed.
 
 **Table 1.** The explanations recovered and lost at each $K$, the keep share over the 362 that reproduce, and the KL to the base model on held-out tokens. The unpruned instruct model keeps 299 (82.6%) at a KL of 0.075. Random rows give the range over three seeds.
 
@@ -84,7 +84,7 @@ Figure 2 shows where the losses fall. At small $K$ they fall near a gate, like t
 
 ![As more neurons go, top pruning breaks explanations at every margin.](media/grid.svg)
 
-**Figure 2.** Each cell is one of the 362 VERIFIED poles of Qwen2.5-0.5B that reproduce on the base model, nearest a gate first. Circles are explanations that fail on the instruct model and pass again after top pruning. Triangles are explanations that keep on the instruct model and fail after it. Dark cells still fail. Each frame is one measured value of $K$.
+**Figure 2.** As more neurons go, top pruning breaks explanations at every margin. Each cell is one of the 362 VERIFIED poles of Qwen2.5-0.5B that reproduce on the base model, nearest a gate first. Circles are explanations that fail on the instruct model and pass again after top pruning. Triangles are explanations that keep on the instruct model and fail after it. Dark cells still fail. Each frame is one measured value of $K$.
 
 ## Why does the score fail?
 

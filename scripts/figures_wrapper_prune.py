@@ -44,7 +44,7 @@ def recovery(rows: list[dict]) -> Figure:
     failed, kept = table[0]["failed_on_instruct"], table[0]["kept_on_instruct"]
     back = [r["recovered"] for r in top.values()]
     fig = Figure(
-        ["Pruning by gradient × weight brings back a few failed",
+        ["Pruning by gradient times weight brings back a few failed",
          "explanations, and breaks many more"],
         [f"Qwen2.5-0.5B's instruct model, with K MLP neurons' writes pruned. Left: of the {failed}",
          f"explanations that fail on it, those that pass again. Right: of the {kept} that keep, "

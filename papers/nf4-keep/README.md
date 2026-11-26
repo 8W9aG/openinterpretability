@@ -63,7 +63,7 @@ Most do. On Qwen2.5-0.5B, 281 of the 362 explanations that reproduce keep under 
 
 ![NF4 rounding keeps most explanations, and on Qwen2.5-1.5B more than a random change of the same size.](media/keep.svg)
 
-**Figure 1.** The share of each model's VERIFIED explanations that still pass their probes under each change, with 95% Wilson intervals. Circles are NF4 rounding, triangles are random changes with NF4's error norm in every matrix, one for each seed, and the green circle is bfloat16 rounding.
+**Figure 1.** NF4 rounding keeps most explanations, and on Qwen2.5-1.5B more than a random change of the same size. The share of each model's VERIFIED explanations that still pass their probes under each change, with 95% Wilson intervals. Circles are NF4 rounding, triangles are random changes with NF4's error norm in every matrix, one for each seed, and the green circle is bfloat16 rounding.
 
 **Table 1.** The explanations that keep under each change, out of those that reproduce on the base model, with the norm of the change and the median correlation of each pole's activations with its base activations. A random row gives the range over its three seeds.
 
@@ -106,7 +106,7 @@ The poles that flip are mostly those near a gate. On Qwen2.5-0.5B, cut into quar
 
 ![On Qwen2.5-0.5B, NF4 and random changes of its size flip many of the same poles, near a gate.](media/flips.svg)
 
-**Figure 2.** Each cell is one of the 362 VERIFIED poles of Qwen2.5-0.5B that reproduce on the base model, in order of how far its base readings sit above the nearer gate, nearest first. A filled cell is a pole that flips under the change that the frame names: NF4 rounding, then each random change of its norm. Each frame is one measured condition.
+**Figure 2.** On Qwen2.5-0.5B, NF4 and random changes of its size flip many of the same poles: those near a gate. Each cell is one of the 362 VERIFIED poles of Qwen2.5-0.5B that reproduce on the base model, in order of how far its base readings sit above the nearer gate, nearest first. A filled cell is a pole that flips under the change that the frame names: NF4 rounding, then each random change of its norm. Each frame is one measured condition.
 
 The same poles flip under different changes. On Qwen2.5-0.5B, NF4 and the first random change share 34 flips, where independent flips would share 15.2 (hypergeometric $p = 1.5 \times 10^{-8}$). NF4 and instruction tuning, from the paper on random changes, share 38 flips of 361 poles, against 14.0 by chance. On Qwen2.5-1.5B, they share 4 flips of 75 poles, against 1.2. Both changes fail mostly on sensitivity. Of NF4's 81 flips on Qwen2.5-0.5B, 52 fail sensitivity alone, 27 specificity alone and 2 both.
 

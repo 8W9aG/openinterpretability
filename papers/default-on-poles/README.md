@@ -71,7 +71,7 @@ A *clamp* keeps a side's mean and removes its variation. A *zero* removes the me
 
 ![An illustration of the clean run, clamp, zero, mean and shuffled null on one neuron's activation](media/clamps.svg)
 
-**Figure 1.** What each intervention does to a neuron's activation, over forty tokens. This is an illustration with made-up values, not data. Grey shows the clean activation. The clamp keeps the side's level and removes its variation, and the zero removes the level too.
+**Figure 1.** What each intervention does to a neuron. What each intervention does to a neuron's activation, over forty tokens. This is an illustration with made-up values, not data. Grey shows the clean activation. The clamp keeps the side's level and removes its variation, and the zero removes the level too.
 
 **Intervals.** All intervals are 95% bootstrap intervals over documents.
 
@@ -83,7 +83,7 @@ The first question is whether resting below the dip is learned, and what sets it
 
 ![Twelve ridges of h by layer, at random init and after training](media/ridges.svg)
 
-**Figure 2.** Every layer but L1 moves left of GELU's dip during training. An animated sketch in depth: one normal curve for each layer of GPT-2 small, with its median $h$ and its median neuron's SD. The ridges move between random initialisation (mean of 5 seeds) and the trained model, and only these two end states are measured. The dark line on the floor is GELU's dip, at −0.75.
+**Figure 2.** Every layer but L1 slides past the dip together. Every layer but L1 moves left of GELU's dip during training. An animated sketch in depth: one normal curve for each layer of GPT-2 small, with its median $h$ and its median neuron's SD. The ridges move between random initialisation (mean of 5 seeds) and the trained model, and only these two end states are measured. The dark line on the floor is GELU's dip, at −0.75.
 
 ![GELU over a sketch of a typical L9 neuron's h before and after training, and median h by layer](media/rest.svg)
 

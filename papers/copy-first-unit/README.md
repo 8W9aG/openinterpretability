@@ -70,7 +70,7 @@ Table 2 gives each wrong prompt's right unit, after the full prompt and after it
 
 ![Alone, the second clause rarely gets its right unit either](media/single.svg)
 
-**Figure 1.** The right unit's rank after the full prompt (dot), the clause alone (ring) and the clause after four facts (square).
+**Figure 1.** Alone, the second clause rarely gets its right unit either. The right unit's rank after the full prompt (dot), the clause alone (ring) and the clause after four facts (square).
 
 The model doesn't hold these facts firmly. Its greedy answer to the clause alone is wrong for five of the six, though the right answer is near the top. The few-shot context makes them worse, not better. So a first clause with a unit in it has little to compete with.
 
@@ -82,7 +82,7 @@ At the second clause's subject, the best rank of the right unit in any layer's M
 
 ![By layer 4 the right unit is near the top, but the copied unit stays first](media/layers.svg)
 
-**Figure 2.** The right unit's rank (solid) and the copied unit's (dashed) at the answer position, after each layer. A moving dot steps along the right unit's line.
+**Figure 2.** By layer 4 the right unit is near the top, but the copied unit stays first. The right unit's rank (solid) and the copied unit's (dashed) at the answer position, after each layer. A moving dot steps along the right unit's line.
 
 At the answer position, the right unit rises with depth on every wrong prompt (Figure 2). After layer 4 it is rank 2, 3, 3, 32, 2 and 4, and the copied unit is rank 1 or 2. The last layer leaves the order as it is. The right answer therefore reaches the answer position, but from somewhere other than the subject's MLPs, and the copied unit outvotes it. The " eggs" prompt is the exception, with the right unit at rank 32 after layer 4.
 
@@ -92,7 +92,7 @@ The layer 4 and 5 MLPs add little either way. Over all their neuron poles, the d
 
 ![Without the copy heads, the copied unit still wins on five of the six prompts](media/heads.svg)
 
-**Figure 3.** $\mathrm{logit}(\text{right}) - \mathrm{logit}(\text{copied})$ for the model, with the three copy heads switched off, and with them and L4/H1 switched off. A line spans 20 random sets of three heads of layers 3 and 4, switched off, with a tick at their median.
+**Figure 3.** Without the copy heads, the copied unit still wins on five of the six prompts. $\mathrm{logit}(\text{right}) - \mathrm{logit}(\text{copied})$ for the model, with the three copy heads switched off, and with them and L4/H1 switched off. A line spans 20 random sets of three heads of layers 3 and 4, switched off, with a tick at their median.
 
 | Prompt | The model | Copy heads off | Copy heads and L4/H1 off | Copy heads at $\alpha = -0.5$ | Random heads off: median, range |
 | --- | --- | --- | --- | --- | --- |
