@@ -318,6 +318,7 @@ only_mutate = [
     "openinterpretability/builder/significance.py",
     "openinterpretability/core/errata.py",
     "openinterpretability/planner_states.py",
+    "openinterpretability/planner_models.py",
 ]
 # The repository data that the selected tests read.
 also_copy = ["wiki/circuits", ".github/workflows"]
@@ -331,6 +332,7 @@ timeout_constant = 10
 pytest_add_cli_args_test_selection = [
     "tests/test_errata_edges.py",
     "tests/test_planner_states.py",
+    "tests/test_planner_models.py",
     "tests/test_core_stats.py",
     "tests/test_builder_significance.py",
     "tests/test_covariance.py",
