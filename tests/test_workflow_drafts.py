@@ -15,13 +15,13 @@ def _load(name: str) -> dict:
 
 
 def test_pull_request_runs_start_on_ready_for_review_too():
-    for name in ("ci.yml", "secret-scan.yml", "codeql.yml"):
+    for name in ("ci.yml", "labinacan-ci.yml", "secret-scan.yml", "codeql.yml"):
         trigger = _load(name)["on"]["pull_request"]
         assert trigger["types"] == TYPES, name
 
 
 def test_every_job_that_a_pull_request_starts_skips_a_draft():
-    for name in ("ci.yml", "secret-scan.yml", "codeql.yml"):
+    for name in ("ci.yml", "labinacan-ci.yml", "secret-scan.yml", "codeql.yml"):
         for job_id, job in _load(name)["jobs"].items():
             condition = str(job.get("if", ""))
             starts_alone = "needs" not in job or "!cancelled()" in condition
@@ -38,15 +38,17 @@ def test_auto_merge_waits_for_the_run_that_leaving_draft_starts():
     wait = names.index("Wait for the CI run that leaving draft starts")
     assert wait < next(i for i, n in enumerate(names) if n.startswith("Auto-merge if"))
     assert steps[wait]["if"] == "github.event.action == 'ready_for_review'"
-    assert "actions/workflows/ci.yml/runs" in steps[wait]["run"]
-    names = [str(job["name"]) for job in _load("ci.yml")["jobs"].values()]
+    assert "actions/workflows/$workflow/runs" in steps[wait]["run"]
+    assert "for workflow in ci.yml labinacan-ci.yml" in steps[wait]["run"]  # both (#6630)
+    names = [str(job["name"]) for w in ("ci.yml", "labinacan-ci.yml")
+             for job in _load(w)["jobs"].values()]  # fmt: skip
     assert set(REQUIRED) <= set(names)  # static, so a skipped job still reports its name
 
 
 def test_a_draft_time_run_cannot_cancel_the_ready_run():
     # #6179: the push and ready_for_review runs arrive a second apart. A shared group with
     # cancel-in-progress let the push's skipped run cancel the real one.
-    for name in ("ci.yml", "codeql.yml"):
+    for name in ("ci.yml", "labinacan-ci.yml", "codeql.yml"):
         group = _load(name)["concurrency"]
         assert group["group"].endswith("-${{ github.event.pull_request.draft }}"), name
         assert group["cancel-in-progress"] is True, name

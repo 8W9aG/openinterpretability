@@ -25,7 +25,8 @@ GENERIC_SCRIPTS = [
         "brand_images",
     )
 ]
-TEXT = {".py", ".html", ".css", ".js", ".md", ".txt", ".toml", ".json", ".svg", ".xml", ".mk"}
+TEXT = {".py", ".html", ".css", ".js", ".md", ".txt", ".toml", ".json", ".svg", ".xml"}
+TEXT |= {".mk", ".yml"}  # labinacan.mk and the generic workflow (#6630)
 
 PYPROJECT = """
 [project]
@@ -186,7 +187,8 @@ def test_no_generic_file_holds_a_value_of_this_project():
     assert values >= {"open-interpretability.com", "8W9aG/openinterpretability"}  # a set, not a URL
     assert hits(LABINACAN, values, short_values(cfg.config())) == {}
     assert hits(GENERIC_SCRIPTS, values, short_values(cfg.config())) == {}
-    assert hits([ROOT / "labinacan.mk"], values, short_values(cfg.config())) == {}  # #6630
+    generic = [ROOT / "labinacan.mk", ROOT / ".github" / "workflows" / "labinacan-ci.yml"]  # #6630
+    assert hits(generic, values, short_values(cfg.config())) == {}
 
 
 def test_the_paper_and_exchange_scripts_take_their_values_from_the_config():

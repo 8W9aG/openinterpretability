@@ -18,7 +18,7 @@ ifndef PACKAGES
 $(error Set PACKAGES before including labinacan.mk)
 endif
 
-.PHONY: install test coverage mutation vulture typecheck lint markdown shell vale ste format build css search-index serve clean
+.PHONY: install packages test coverage mutation vulture typecheck lint markdown shell vale ste format build css search-index serve clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -27,6 +27,10 @@ DIST_DIR ?= dist
 # plain sync removed its command with the old one.
 install:
 	uv sync --reinstall-package $(DIST_NAME)
+
+# The project's Python packages, one line: the generic workflow reads them (`make -s packages`).
+packages:
+	@echo $(PACKAGES)
 
 # Single-threaded in each process: the tests use tiny models, and thread pools contending
 # with other jobs on the machine have hung the suite.
@@ -116,7 +120,7 @@ shell:
 # purpose, so the run leaves them out. Vale is
 # a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.
 # `make lint` runs it, so a long sentence fails locally as it does in CI.
-# CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
+# CI runs this target with the version pinned in .github/workflows/labinacan-ci.yml. Vale exits
 # non-zero only on errors, so the STE rules that gate are at level `error`.
 VALE_PATHS ?= $(PACKAGES) scripts tests
 vale:
