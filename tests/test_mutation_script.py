@@ -148,6 +148,25 @@ def test_main_with_a_base_mutates_the_changed_files(monkeypatch, capsys):
     assert calls[-1] == ["show", "m"]
 
 
+def test_main_with_files_mutates_every_function_of_them(monkeypatch, capsys):
+    # #6491: a whole module, by hand. No change against a base is read, and no mutant is
+    # sampled out: mutmut runs every mutant of the named files.
+    calls: list = []
+    configuration = _fake_mutmut(monkeypatch, "", calls)
+    script = _script()
+    monkeypatch.setattr(script, "changed_files", lambda base: pytest.fail("not with --files"))
+    monkeypatch.setattr(script, "tests_for", lambda paths: [f"tests/test_{len(paths)}.py"])
+    monkeypatch.setattr(script, "copied", lambda: ["scripts"])
+    monkeypatch.setattr(script, "selected", lambda paths, base: pytest.fail("no sample"))
+    assert script.main(["--files", "aproject/x.py,aproject/y.py"]) == 0
+    assert "Mutating 2 files with 1 test files" in capsys.readouterr().out
+    assert ["run"] in calls  # every mutant, none named
+    assert configuration._config_reader()("only_mutate", []) == ["aproject/x.py", "aproject/y.py"]
+    assert configuration._config_reader()("pytest_add_cli_args_test_selection", []) == [
+        "tests/test_2.py"
+    ]
+
+
 def test_main_with_no_change_does_nothing(monkeypatch, capsys):
     calls: list = []
     _fake_mutmut(monkeypatch, "", calls)

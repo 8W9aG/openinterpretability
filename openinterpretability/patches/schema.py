@@ -18,6 +18,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 REGISTRY_VERSION = 1
 VERDICTS = ("fixed", "not fixed")  # evidence["verdict"], #5220 §9.1
+# The text encoding of every patch file, whatever the machine's locale (#6491).
+ENCODING = "utf-8"
+# How a patch's body is written for its hash: keys sorted, no spaces, text as it is.
+CANONICAL_JSON = {"sort_keys": True, "separators": (",", ":"), "ensure_ascii": False}
 
 
 @dataclass(frozen=True)
@@ -143,7 +147,7 @@ class Patch(BaseModel):
     def content_id(self) -> str:
         """The SHA-256 of the record without ``id``: the patch's id, like a commit hash."""
         body = self.model_dump(mode="json", exclude={"id"})
-        text = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        text = json.dumps(body, **CANONICAL_JSON)
         return hashlib.sha256(text.encode()).hexdigest()
 
     def sealed(self) -> Patch:
