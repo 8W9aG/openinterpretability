@@ -1,0 +1,44 @@
+{"table": "loading", "layer": 0, "norm": 1.520808, "verified": 26, "median_percentile": 0.6003, "share_of_norm": 0.0068, "share_expected": 0.0053}
+{"table": "loading", "layer": 1, "norm": 1.582982, "verified": 14, "median_percentile": 0.6735, "share_of_norm": 0.005, "share_expected": 0.0029}
+{"table": "loading", "layer": 2, "norm": 1.639895, "verified": 14, "median_percentile": 0.4542, "share_of_norm": 0.0022, "share_expected": 0.0029}
+{"table": "loading", "layer": 3, "norm": 1.438067, "verified": 13, "median_percentile": 0.6835, "share_of_norm": 0.0048, "share_expected": 0.0027}
+{"table": "loading", "layer": 4, "norm": 1.464911, "verified": 19, "median_percentile": 0.4571, "share_of_norm": 0.0032, "share_expected": 0.0039}
+{"table": "loading", "layer": 5, "norm": 1.376229, "verified": 15, "median_percentile": 0.5585, "share_of_norm": 0.0044, "share_expected": 0.0031}
+{"table": "loading", "layer": 6, "norm": 1.561071, "verified": 16, "median_percentile": 0.5726, "share_of_norm": 0.0037, "share_expected": 0.0033}
+{"table": "loading", "layer": 7, "norm": 1.507962, "verified": 10, "median_percentile": 0.481, "share_of_norm": 0.0023, "share_expected": 0.0021}
+{"table": "loading", "layer": 8, "norm": 1.556216, "verified": 11, "median_percentile": 0.5608, "share_of_norm": 0.0023, "share_expected": 0.0023}
+{"table": "loading", "layer": 9, "norm": 1.431897, "verified": 14, "median_percentile": 0.5706, "share_of_norm": 0.0031, "share_expected": 0.0029}
+{"table": "loading", "layer": 10, "norm": 1.406524, "verified": 10, "median_percentile": 0.6204, "share_of_norm": 0.0018, "share_expected": 0.0021}
+{"table": "loading", "layer": 11, "norm": 1.503391, "verified": 10, "median_percentile": 0.7932, "share_of_norm": 0.0032, "share_expected": 0.0021}
+{"table": "loading", "layer": 12, "norm": 1.455486, "verified": 11, "median_percentile": 0.4948, "share_of_norm": 0.002, "share_expected": 0.0023}
+{"table": "loading", "layer": 13, "norm": 1.652937, "verified": 15, "median_percentile": 0.3379, "share_of_norm": 0.0015, "share_expected": 0.0031}
+{"table": "loading", "layer": 14, "norm": 1.501737, "verified": 12, "median_percentile": 0.6005, "share_of_norm": 0.0027, "share_expected": 0.0025}
+{"table": "loading", "layer": 15, "norm": 1.449804, "verified": 12, "median_percentile": 0.2517, "share_of_norm": 0.0021, "share_expected": 0.0025}
+{"table": "loading", "layer": 16, "norm": 1.478349, "verified": 21, "median_percentile": 0.4399, "share_of_norm": 0.0032, "share_expected": 0.0043}
+{"table": "loading", "layer": 17, "norm": 1.50669, "verified": 13, "median_percentile": 0.4495, "share_of_norm": 0.0035, "share_expected": 0.0027}
+{"table": "loading", "layer": 18, "norm": 1.684858, "verified": 14, "median_percentile": 0.2258, "share_of_norm": 0.002, "share_expected": 0.0029}
+{"table": "loading", "layer": 19, "norm": 1.619364, "verified": 13, "median_percentile": 0.6846, "share_of_norm": 0.0035, "share_expected": 0.0027}
+{"table": "loading", "layer": 20, "norm": 1.484842, "verified": 14, "median_percentile": 0.5983, "share_of_norm": 0.0036, "share_expected": 0.0029}
+{"table": "loading", "layer": 21, "norm": 1.53468, "verified": 23, "median_percentile": 0.5618, "share_of_norm": 0.0039, "share_expected": 0.0047}
+{"table": "loading", "layer": 22, "norm": 1.696069, "verified": 15, "median_percentile": 0.5287, "share_of_norm": 0.0021, "share_expected": 0.0031}
+{"table": "loading", "layer": 23, "norm": 1.117989, "verified": 11, "median_percentile": 0.3282, "share_of_norm": 0.0014, "share_expected": 0.0023}
+{"table": "unit", "order": 0, "layer": 15, "sign": 1, "file": "L15-pos.json"}
+{"table": "unit", "order": 1, "layer": 3, "sign": -1, "file": "L3-neg.json"}
+{"table": "unit", "order": 2, "layer": 14, "sign": 1, "file": "L14-pos.json"}
+{"table": "unit", "order": 3, "layer": 1, "sign": -1, "file": "L1-neg.json"}
+{"table": "unit", "order": 4, "layer": 2, "sign": -1, "file": "L2-neg.json"}
+{"table": "unit", "order": 5, "layer": 5, "sign": -1, "file": "L5-neg.json"}
+{"table": "unit", "order": 6, "layer": 23, "sign": 1, "file": "L23-pos.json"}
+{"table": "unit", "order": 7, "layer": 22, "sign": 1, "file": "L22-pos.json"}
+{"table": "unit", "order": 8, "layer": 16, "sign": -1, "file": "L16-neg.json"}
+{"table": "unit", "order": 9, "layer": 21, "sign": -1, "file": "L21-neg.json"}
+{"table": "unit", "order": 10, "layer": 10, "sign": -1, "file": "L10-neg.json"}
+{"table": "unit", "order": 11, "layer": 21, "sign": 1, "file": "L21-pos.json"}
+{"table": "unit", "order": 12, "layer": 10, "sign": 1, "file": "L10-pos.json"}
+{"table": "unit", "order": 13, "layer": 20, "sign": -1, "file": "L20-neg.json"}
+{"table": "unit", "order": 14, "layer": 15, "sign": -1, "file": "L15-neg.json"}
+{"table": "unit", "order": 15, "layer": 8, "sign": 1, "file": "L8-pos.json"}
+{"table": "unit", "order": 16, "layer": 19, "sign": 1, "file": "L19-pos.json"}
+{"table": "unit", "order": 17, "layer": 4, "sign": 1, "file": "L4-pos.json"}
+{"table": "unit", "order": 18, "layer": 6, "sign": 1, "file": "L6-pos.json"}
+{"table": "unit", "order": 19, "layer": 12, "sign": -1, "file": "L12-neg.json"}

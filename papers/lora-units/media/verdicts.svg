@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 298" width="760" height="298" role="img">
+<title>Two rows of squares. Of 20 adapter directions, 1 passed the review, 14 passed some tests and 5 failed. Of 20 native poles, 12 passed, 7 passed some tests and 1 failed.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+@keyframes u0x0{0%{opacity:0}4.0%{opacity:1}100%{opacity:1}}.u0x0{animation:u0x0 12s step-end infinite;opacity:1}@keyframes u0x1{0%{opacity:0}6.0%{opacity:1}100%{opacity:1}}.u0x1{animation:u0x1 12s step-end infinite;opacity:1}@keyframes u0x2{0%{opacity:0}8.0%{opacity:1}100%{opacity:1}}.u0x2{animation:u0x2 12s step-end infinite;opacity:1}@keyframes u0x3{0%{opacity:0}10.0%{opacity:1}100%{opacity:1}}.u0x3{animation:u0x3 12s step-end infinite;opacity:1}@keyframes u0x4{0%{opacity:0}12.0%{opacity:1}100%{opacity:1}}.u0x4{animation:u0x4 12s step-end infinite;opacity:1}@keyframes u0x5{0%{opacity:0}14.0%{opacity:1}100%{opacity:1}}.u0x5{animation:u0x5 12s step-end infinite;opacity:1}@keyframes u0x6{0%{opacity:0}16.0%{opacity:1}100%{opacity:1}}.u0x6{animation:u0x6 12s step-end infinite;opacity:1}@keyframes u0x7{0%{opacity:0}18.0%{opacity:1}100%{opacity:1}}.u0x7{animation:u0x7 12s step-end infinite;opacity:1}@keyframes u0x8{0%{opacity:0}20.0%{opacity:1}100%{opacity:1}}.u0x8{animation:u0x8 12s step-end infinite;opacity:1}@keyframes u0x9{0%{opacity:0}22.0%{opacity:1}100%{opacity:1}}.u0x9{animation:u0x9 12s step-end infinite;opacity:1}@keyframes u0x10{0%{opacity:0}24.0%{opacity:1}100%{opacity:1}}.u0x10{animation:u0x10 12s step-end infinite;opacity:1}@keyframes u0x11{0%{opacity:0}26.0%{opacity:1}100%{opacity:1}}.u0x11{animation:u0x11 12s step-end infinite;opacity:1}@keyframes u0x12{0%{opacity:0}28.0%{opacity:1}100%{opacity:1}}.u0x12{animation:u0x12 12s step-end infinite;opacity:1}@keyframes u0x13{0%{opacity:0}30.0%{opacity:1}100%{opacity:1}}.u0x13{animation:u0x13 12s step-end infinite;opacity:1}@keyframes u0x14{0%{opacity:0}32.0%{opacity:1}100%{opacity:1}}.u0x14{animation:u0x14 12s step-end infinite;opacity:1}@keyframes u0x15{0%{opacity:0}34.0%{opacity:1}100%{opacity:1}}.u0x15{animation:u0x15 12s step-end infinite;opacity:1}@keyframes u0x16{0%{opacity:0}36.0%{opacity:1}100%{opacity:1}}.u0x16{animation:u0x16 12s step-end infinite;opacity:1}@keyframes u0x17{0%{opacity:0}38.0%{opacity:1}100%{opacity:1}}.u0x17{animation:u0x17 12s step-end infinite;opacity:1}@keyframes u0x18{0%{opacity:0}40.0%{opacity:1}100%{opacity:1}}.u0x18{animation:u0x18 12s step-end infinite;opacity:1}@keyframes u0x19{0%{opacity:0}42.0%{opacity:1}100%{opacity:1}}.u0x19{animation:u0x19 12s step-end infinite;opacity:1}@keyframes u1x0{0%{opacity:0}48.0%{opacity:1}100%{opacity:1}}.u1x0{animation:u1x0 12s step-end infinite;opacity:1}@keyframes u1x1{0%{opacity:0}50.0%{opacity:1}100%{opacity:1}}.u1x1{animation:u1x1 12s step-end infinite;opacity:1}@keyframes u1x2{0%{opacity:0}52.0%{opacity:1}100%{opacity:1}}.u1x2{animation:u1x2 12s step-end infinite;opacity:1}@keyframes u1x3{0%{opacity:0}54.0%{opacity:1}100%{opacity:1}}.u1x3{animation:u1x3 12s step-end infinite;opacity:1}@keyframes u1x4{0%{opacity:0}56.0%{opacity:1}100%{opacity:1}}.u1x4{animation:u1x4 12s step-end infinite;opacity:1}@keyframes u1x5{0%{opacity:0}58.0%{opacity:1}100%{opacity:1}}.u1x5{animation:u1x5 12s step-end infinite;opacity:1}@keyframes u1x6{0%{opacity:0}60.0%{opacity:1}100%{opacity:1}}.u1x6{animation:u1x6 12s step-end infinite;opacity:1}@keyframes u1x7{0%{opacity:0}62.0%{opacity:1}100%{opacity:1}}.u1x7{animation:u1x7 12s step-end infinite;opacity:1}@keyframes u1x8{0%{opacity:0}64.0%{opacity:1}100%{opacity:1}}.u1x8{animation:u1x8 12s step-end infinite;opacity:1}@keyframes u1x9{0%{opacity:0}66.0%{opacity:1}100%{opacity:1}}.u1x9{animation:u1x9 12s step-end infinite;opacity:1}@keyframes u1x10{0%{opacity:0}68.0%{opacity:1}100%{opacity:1}}.u1x10{animation:u1x10 12s step-end infinite;opacity:1}@keyframes u1x11{0%{opacity:0}70.0%{opacity:1}100%{opacity:1}}.u1x11{animation:u1x11 12s step-end infinite;opacity:1}@keyframes u1x12{0%{opacity:0}72.0%{opacity:1}100%{opacity:1}}.u1x12{animation:u1x12 12s step-end infinite;opacity:1}@keyframes u1x13{0%{opacity:0}74.0%{opacity:1}100%{opacity:1}}.u1x13{animation:u1x13 12s step-end infinite;opacity:1}@keyframes u1x14{0%{opacity:0}76.0%{opacity:1}100%{opacity:1}}.u1x14{animation:u1x14 12s step-end infinite;opacity:1}@keyframes u1x15{0%{opacity:0}78.0%{opacity:1}100%{opacity:1}}.u1x15{animation:u1x15 12s step-end infinite;opacity:1}@keyframes u1x16{0%{opacity:0}80.0%{opacity:1}100%{opacity:1}}.u1x16{animation:u1x16 12s step-end infinite;opacity:1}@keyframes u1x17{0%{opacity:0}82.0%{opacity:1}100%{opacity:1}}.u1x17{animation:u1x17 12s step-end infinite;opacity:1}@keyframes u1x18{0%{opacity:0}84.0%{opacity:1}100%{opacity:1}}.u1x18{animation:u1x18 12s step-end infinite;opacity:1}@keyframes u1x19{0%{opacity:0}86.0%{opacity:1}100%{opacity:1}}.u1x19{animation:u1x19 12s step-end infinite;opacity:1}</style>
+<rect class="bg" width="760" height="298" rx="10"/>
+<text x="20.0" y="30.0" class="title">The same audit verifies far fewer LoRA directions than native neurons</text>
+<text x="20.0" y="50.0" class="sub">Each square is one unit, by layer. Filled: passed the review. Grey: passed some tests. Pale: failed.</text>
+<text x="20.0" y="120.0" class="head">rank-1 LoRA directions</text>
+<text x="20.0" y="136.0" class="small">1 of 20 passed</text>
+<rect class="fwash u0x0" x="225.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="235.5" y="137.0" class="small u0x0" text-anchor="middle">1</text>
+<rect class="fneutral u0x1" x="250.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="260.5" y="137.0" class="small u0x1" text-anchor="middle">2</text>
+<rect class="fneutral u0x2" x="275.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="285.5" y="137.0" class="small u0x2" text-anchor="middle">3</text>
+<rect class="fneutral u0x3" x="300.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="310.5" y="137.0" class="small u0x3" text-anchor="middle">4</text>
+<rect class="fneutral u0x4" x="325.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="335.5" y="137.0" class="small u0x4" text-anchor="middle">5</text>
+<rect class="fneutral u0x5" x="350.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="360.5" y="137.0" class="small u0x5" text-anchor="middle">6</text>
+<rect class="fc2 u0x6" x="375.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="385.5" y="137.0" class="small u0x6" text-anchor="middle">8</text>
+<rect class="fwash u0x7" x="400.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="410.5" y="137.0" class="small u0x7" text-anchor="middle">10</text>
+<rect class="fneutral u0x8" x="425.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="435.5" y="137.0" class="small u0x8" text-anchor="middle">10</text>
+<rect class="fwash u0x9" x="450.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="460.5" y="137.0" class="small u0x9" text-anchor="middle">12</text>
+<rect class="fneutral u0x10" x="475.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="485.5" y="137.0" class="small u0x10" text-anchor="middle">14</text>
+<rect class="fneutral u0x11" x="500.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="510.5" y="137.0" class="small u0x11" text-anchor="middle">15</text>
+<rect class="fwash u0x12" x="525.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="535.5" y="137.0" class="small u0x12" text-anchor="middle">15</text>
+<rect class="fneutral u0x13" x="550.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="560.5" y="137.0" class="small u0x13" text-anchor="middle">16</text>
+<rect class="fneutral u0x14" x="575.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="585.5" y="137.0" class="small u0x14" text-anchor="middle">19</text>
+<rect class="fneutral u0x15" x="600.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="610.5" y="137.0" class="small u0x15" text-anchor="middle">20</text>
+<rect class="fwash u0x16" x="625.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="635.5" y="137.0" class="small u0x16" text-anchor="middle">21</text>
+<rect class="fneutral u0x17" x="650.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="660.5" y="137.0" class="small u0x17" text-anchor="middle">21</text>
+<rect class="fneutral u0x18" x="675.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="685.5" y="137.0" class="small u0x18" text-anchor="middle">22</text>
+<rect class="fneutral u0x19" x="700.0" y="104.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="710.5" y="137.0" class="small u0x19" text-anchor="middle">23</text>
+<text x="20.0" y="190.0" class="head">random native poles</text>
+<text x="20.0" y="206.0" class="small">12 of 20 passed</text>
+<rect class="fc1 u1x0" x="225.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="235.5" y="207.0" class="small u1x0" text-anchor="middle">1</text>
+<rect class="fc1 u1x1" x="250.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="260.5" y="207.0" class="small u1x1" text-anchor="middle">3</text>
+<rect class="fneutral u1x2" x="275.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="285.5" y="207.0" class="small u1x2" text-anchor="middle">4</text>
+<rect class="fc1 u1x3" x="300.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="310.5" y="207.0" class="small u1x3" text-anchor="middle">4</text>
+<rect class="fneutral u1x4" x="325.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="335.5" y="207.0" class="small u1x4" text-anchor="middle">5</text>
+<rect class="fneutral u1x5" x="350.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="360.5" y="207.0" class="small u1x5" text-anchor="middle">7</text>
+<rect class="fc1 u1x6" x="375.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="385.5" y="207.0" class="small u1x6" text-anchor="middle">9</text>
+<rect class="fneutral u1x7" x="400.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="410.5" y="207.0" class="small u1x7" text-anchor="middle">9</text>
+<rect class="fneutral u1x8" x="425.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="435.5" y="207.0" class="small u1x8" text-anchor="middle">10</text>
+<rect class="fwash u1x9" x="450.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="460.5" y="207.0" class="small u1x9" text-anchor="middle">11</text>
+<rect class="fc1 u1x10" x="475.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="485.5" y="207.0" class="small u1x10" text-anchor="middle">12</text>
+<rect class="fneutral u1x11" x="500.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="510.5" y="207.0" class="small u1x11" text-anchor="middle">13</text>
+<rect class="fneutral u1x12" x="525.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="535.5" y="207.0" class="small u1x12" text-anchor="middle">15</text>
+<rect class="fc1 u1x13" x="550.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="560.5" y="207.0" class="small u1x13" text-anchor="middle">15</text>
+<rect class="fc1 u1x14" x="575.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="585.5" y="207.0" class="small u1x14" text-anchor="middle">16</text>
+<rect class="fc1 u1x15" x="600.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="610.5" y="207.0" class="small u1x15" text-anchor="middle">16</text>
+<rect class="fc1 u1x16" x="625.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="635.5" y="207.0" class="small u1x16" text-anchor="middle">18</text>
+<rect class="fc1 u1x17" x="650.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="660.5" y="207.0" class="small u1x17" text-anchor="middle">21</text>
+<rect class="fc1 u1x18" x="675.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="685.5" y="207.0" class="small u1x18" text-anchor="middle">21</text>
+<rect class="fc1 u1x19" x="700.0" y="174.0" width="21.0" height="21.0" rx="1.5"/>
+<text x="710.5" y="207.0" class="small u1x19" text-anchor="middle">22</text>
+<text x="225.0" y="250.0" class="small">number under each square: its layer</text>
+</svg>
