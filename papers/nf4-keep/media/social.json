@@ -1,0 +1,22 @@
+{
+ "source": "media/keep.svg",
+ "sha256": "287848ad6bfe2e0158a3a53bdb9817a9a6e1880c043236c4753710acc662ddef",
+ "files": [
+  "social.png"
+ ],
+ "figures": {
+  "flips": {
+   "sha256": "d0e33f773a4f0eb3cb24eecd4f63aa29526fe574fbf4a37dee1898934941e044",
+   "files": [
+    "social-flips.mp4",
+    "social-flips.png"
+   ]
+  },
+  "keep": {
+   "sha256": "287848ad6bfe2e0158a3a53bdb9817a9a6e1880c043236c4753710acc662ddef",
+   "files": [
+    "social-keep.png"
+   ]
+  }
+ }
+}

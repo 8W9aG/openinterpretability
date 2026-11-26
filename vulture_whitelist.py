@@ -237,3 +237,4 @@ _.ink  # Badge.ink, read by the templates _map_theme.html, _concept_map.html and
 interference_command  # the click command 'open-interpretability interference' (cli_interference.py, #5230)
 post_command  # the click command 'open-interpretability social post' (labinacan/cli.py, #4463)
 link_command  # the click command 'open-interpretability social link' (labinacan/cli.py, #5840)
+normality  # the click command 'nf4_keep_stats.py normality' (scripts/nf4_keep_stats.py, #5158)

@@ -77,16 +77,17 @@ def flips_by_condition(rows: list[dict], model: str) -> tuple[list[str], dict]:
     return reproduced, out
 
 
-def comparisons(rows: list[dict], model: str) -> list[dict]:
-    """One row for each pair of an instruct condition and one seed of its random condition.
+def comparisons(rows: list[dict], model: str, pairs=PAIRS) -> list[dict]:
+    """One row for each pair of a condition and one seed of its random condition.
 
     Args:
         rows: The paper's results.
         model: The base model's name.
+        pairs: Each condition, and the random condition matched to it.
     """
     reproduced, flips = flips_by_condition(rows, model)
     out = []
-    for ours, theirs in PAIRS:
+    for ours, theirs in pairs:
         if (ours, None) not in flips:
             continue
         a = flips[ours, None]

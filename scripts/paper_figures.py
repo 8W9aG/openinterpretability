@@ -21,6 +21,7 @@ import figures_dormant
 import figures_fisher_keep
 import figures_instruct_difference
 import figures_native_learned
+import figures_nf4_keep
 import figures_pruning_keep
 import figures_random_change_keep
 import figures_sequential_tuning
@@ -82,6 +83,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         "fisher-keep": figures_fisher_keep.build(_rows("fisher-keep")),
         "explanations-across-models": figures_transfer.build(_rows("explanations-across-models")),
         "native-vs-learned": figures_native_learned.build(_rows("native-vs-learned")),
+        "nf4-keep": figures_nf4_keep.build(_rows("nf4-keep")),
         "pruning-keep": figures_pruning_keep.build(_rows("pruning-keep")),
         "random-change-keep": figures_random_change_keep.build(_rows("random-change-keep")),
         "spd-input-projections": figures_spd_input.build(_rows("spd-input-projections")),
