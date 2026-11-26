@@ -1,14 +1,10 @@
-"""Tests for scripts/check_markdown.py, and a lint of the rendered wiki templates."""
+"""Tests for scripts/check_markdown.py."""
 
 import importlib.util
-from datetime import UTC, datetime, timedelta
+from fnmatch import fnmatch
 from pathlib import Path
 
 import pytest
-
-from openinterpretability.builder.wiki import write_experiment_page, write_stop_page
-from openinterpretability.core.draws import UnauditableDraw
-from openinterpretability.core.schemas import AuditRecord, ExperimentProvenance
 
 _SPEC = importlib.util.spec_from_file_location(
     "check_markdown", Path(__file__).parents[1] / "scripts" / "check_markdown.py"
@@ -94,62 +90,10 @@ def test_main_returns_one_on_a_problem(tmp_path, monkeypatch, capsys):
 @pytest.mark.skipif(check_markdown.REPO.name == "mutants", reason="git lists no file in mutants/")
 def test_markdown_files_skips_generated_and_vendored():
     names = {p.relative_to(check_markdown.REPO).as_posix() for p in check_markdown.markdown_files()}
-    assert {"README.md", "docs/PROTOCOL.md", ".claude/skills/release/SKILL.md"} <= names
-    assert not any(
-        n.startswith(("wiki/", "openinterpretability/builder/templates/")) for n in names
-    )
+    assert {"README.md", ".claude/skills/release/SKILL.md"} <= names
+    skipped = (*check_markdown.generated(check_markdown.REPO), "*/templates/*")
+    assert not any(fnmatch(n, p) for n in names for p in skipped)
     assert not any(n.startswith(".claude/skills/asd-ste100/") for n in names)
-
-
-def test_rendered_experiment_and_index_templates_pass(tmp_path, record):
-    """Two experiments on one unit also fill the history rows of the unit's page."""
-    wiki = tmp_path / "wiki"
-    write_experiment_page(record, wiki)
-    probes = [
-        t.model_copy(update={"passed": False, "measured": True})
-        for t in record.verdict.adversarial_test_results
-    ]
-    update = {
-        "status": "NEEDS_REVISION",
-        "timestamp": record.verdict.timestamp + timedelta(hours=1),
-        "adversarial_test_results": probes,
-    }
-    verdict = record.verdict.model_copy(update=update)
-    second = write_experiment_page(AuditRecord(submission=record.submission, verdict=verdict), wiki)
-    assert "Failed probes:" in second.read_text()
-    pages = sorted(wiki.rglob("*.md"))
-    assert len(pages) == 4  # home, unit page, two experiments
-    problems = check_markdown.style_problems(pages)
-    assert problems == [], "\n".join(problems)
-
-
-@pytest.mark.parametrize(
-    "fields",
-    [
-        {"outcome": "default_on", "active_share": 0.9},
-        {"outcome": "dead", "proven_dead": True},
-        {"outcome": "dead", "proven_dead": False},
-    ],
-)
-def test_rendered_stop_template_passes(tmp_path, record, fields):
-    wiki = tmp_path / "wiki"
-    provenance = ExperimentProvenance(
-        dtype="float32",
-        corpus="corpus.jsonl",
-        corpus_sha256="ab" * 32,
-        n_snippets=1,
-        tokens_scanned=100,
-        selection="manual",
-        harness_version="test",
-    )
-    draw = UnauditableDraw(
-        identifier=record.submission.identifier,
-        provenance=provenance,
-        timestamp=datetime(2026, 11, 2, 12, tzinfo=UTC),
-        **fields,
-    )
-    page = write_stop_page(draw, wiki)
-    assert check_markdown.style_problems([page]) == [], page.read_text()
 
 
 def test_emphasis_findings_inside_latex_are_dropped(tmp_path):

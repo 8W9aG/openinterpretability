@@ -1,14 +1,8 @@
 # The leftover words that each template file may still hold (scripts/check_leftovers.py, #6631).
 # <hits> <path>. Lower a line when a file loses words. The template is cut when this list is empty.
-12 tests/test_labinacan_config.py
 11 tests/test_exchange.py
-9 tests/test_check_markdown.py
 7 .github/pull_request_template.md
-7 tests/test_labinacan_boundary.py
-6 .claude/skills/write-paper/SKILL.md
 5 scripts/exchange.py
-4 tests/test_benchmark_ledger.py
-4 tests/test_linear_sync.py
 3 .github/workflows/labinacan-ci.yml
 3 .github/workflows/publish.yml
 3 scripts/a11y_check.py
@@ -18,11 +12,3 @@
 2 scripts/changelog.py
 2 scripts/figure_motion.py
 2 scripts/figure_svg.py
-2 tests/test_changelog_page.py
-2 tests/test_issue_state.py
-1 .claude/skills/asd-ste100/references/writing-rules.md
-1 scripts/repo_config.py
-1 tests/test_labinacan_palette.py
-1 tests/test_labinacan_sections.py
-1 tests/test_papers.py
-1 tests/test_ste_prose.py

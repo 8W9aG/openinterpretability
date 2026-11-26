@@ -17,5 +17,5 @@
 (?i)pythia
 (?i)\bgpt-?2\b
 (?i)\bqwen
-\bwiki/
+(?<!/)\bwiki/
 (?i)#FDE047|#F97316|#0284C7

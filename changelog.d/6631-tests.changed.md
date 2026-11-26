@@ -1,0 +1,1 @@
+- The generic tests name nothing of this project. Its own tests move to `tests/test_project_config.py`, `tests/test_wiki_markdown.py` and `tests/test_site_changelog.py`, which the template doesn't take. `[tool.labinacan] automatic_issue_workflows` lists the workflows whose failure issues an agent may work (#6631).
