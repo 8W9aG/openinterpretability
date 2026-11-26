@@ -30,6 +30,7 @@ GENERIC_SCRIPTS = [
 ]
 TEXT = {".py", ".html", ".css", ".js", ".md", ".txt", ".toml", ".json", ".svg", ".xml"}
 TEXT |= {".mk", ".yml"}  # labinacan.mk and the generic workflow (#6630)
+TEXT_NAMES = {".coveragerc"}  # text files with no suffix
 
 PYPROJECT = """
 [project]
@@ -163,7 +164,7 @@ def hits(paths, values: set[str], words: set[str] = frozenset()) -> dict[str, li
     files = sorted(paths.rglob("*")) if isinstance(paths, Path) else sorted(paths)
     out = {}
     for path in files:
-        if path.suffix in TEXT and "__pycache__" not in path.parts:
+        if (path.suffix in TEXT or path.name in TEXT_NAMES) and "__pycache__" not in path.parts:
             text = path.read_text(encoding="utf-8", errors="replace")
             found = {v for v in values if v.lower() in text.lower()}
             found |= {w for w in words if re.search(rf"\b{re.escape(w)}\b", text)}
@@ -195,6 +196,9 @@ def test_no_generic_file_holds_a_value_of_this_project():
     generic = [ROOT / "labinacan.mk", flows / "labinacan-ci.yml", flows / "links.yml"]  # #6630
     split = ("release", "semantic-versioning", "write-paper")  # each has a project.md
     generic += [skills / name / "SKILL.md" for name in split]
+    generic += [
+        ROOT / name for name in ("ruff.toml", ".coveragerc", ".diff-cover.toml", ".pymarkdown.yml")
+    ]
     assert hits(generic, values, short_values(cfg.config())) == {}
 
 

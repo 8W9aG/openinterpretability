@@ -1,0 +1,42 @@
+# Ruff's settings for any project from the template (#6630). They hold no value of a
+# project. Ruff reads this file in place of [tool.ruff] in pyproject.toml.
+
+line-length = 100
+target-version = "py311"
+# Vendored from danyuchn/asd-ste100-skill as is; upstream owns its style.
+extend-exclude = [".claude/skills/asd-ste100"]
+
+[lint]
+# D: docstrings, held to the commenting skill (.claude/skills/commenting/SKILL.md).
+# ERA: commented-out code.
+# S: Bandit's security checks (flake8-bandit), ported to Ruff.
+# RET and PLR1702 keep code flat (#3158): RET505-508 forbid an else after return, raise,
+# continue or break, so a function returns early; PLR1702 allows at most 5 nested blocks.
+# PLR1702 is a preview rule. explicit-preview-rules turns on only the preview rules named
+# here, so no other rule changes with preview.
+select = ["E", "F", "I", "B", "UP", "SIM", "D", "ERA", "S", "ARG", "RET", "PLR1702"]
+preview = true
+explicit-preview-rules = true
+# Magic methods and __init__ are described by their class's docstring. D301 asks for r"""
+# when a docstring has a backslash, but Click's `\b` (no rewrapping) must stay a real \b.
+# S311: the random generators seed experiments and samples, never secrets.
+# S603, S607: every subprocess call passes a list, never a shell string (S602 and S604 still
+# apply), and runs a tool found on PATH (git, gh, ssh-keygen, uv). S603 flags every call.
+ignore = ["D105", "D107", "D301", "S311", "S603", "S607"]
+
+[lint.pydocstyle]
+convention = "google"
+# D417 checks an Args: section that exists. scripts/check_docstring_args.py requires one,
+# and scripts/check_docstring_sections.py requires Returns:, Yields: and Raises: (#3938,
+# #5361). Ruff's preview DOC rules stay off: they need preview for the whole linter.
+
+[lint.per-file-ignores]
+# Tests need no docstrings (D1): a test's name says what it checks, and a docstring that
+# restates it is noise (.claude/skills/commenting/SKILL.md). The other D rules apply.
+# Tests assert (S101), and give token fields fixed strings that S105 and S106 read as
+# passwords. S314 parses SVG, and S608 queries parquet files, that the test itself wrote.
+# Fixtures requested only for their side effects, and stubs that must match what they
+# replace, take arguments that they never read (ARG, #3165).
+"tests/**" = ["D1", "S101", "S105", "S106", "S314", "S608", "ARG"]
+# A notebook checks its state with assert before a long run.
+"*.ipynb" = ["S101"]
