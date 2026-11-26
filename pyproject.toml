@@ -125,6 +125,9 @@ env_prefix = "OPENINTERPRETABILITY"  # environment variables are OPENINTERPRETAB
 linear_team = "OPE"  # the Linear team that mirrors the GitHub issues (scripts/linear_sync.py)
 maintainer = "8W9aG"  # the maintainer's GitHub login, whose issues agents may work
 hf_dataset = "sackfield/open-interpretability-exchange"  # the public inputs (scripts/exchange.py)
+# Left out of mutmut's copy of the repository: no unit test reads the 840 MB of records
+# (scripts/mutation.py, #6631).
+mutation_skip = ["wiki/experiments"]
 
 [tool.labinacan.brand]
 # The brand: the mark, the wordmark and the social image (labinacan/site/brand.py, #6629).
