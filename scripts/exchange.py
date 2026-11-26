@@ -26,6 +26,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # repo_config, beside this script
+
+from repo_config import exchange as exchange_config  # noqa: E402
 
 from labinacan.config import config, use  # noqa: E402
 
@@ -38,23 +41,17 @@ REPO = config().hf_dataset
 # The files that cite inputs: papers, analyses, scripts and the package.
 CITING = ("papers", "docs", "scripts", config().package, ".claude")
 NAME = re.compile(r"exchange/([A-Za-z0-9._-]+)")
+# The project's part (scripts/repo_config.py, [tool.labinacan.exchange], #6631).
+PROJECT = exchange_config(Path(__file__).resolve().parents[1])
 # Names under exchange/ that are only outputs or working folders, never cited inputs. A
-# command writes them, and no analysis reads them. `bench` also holds the benchmark's
-# private test probes, so it is never published.
-OUTPUTS = {
-    "bench", "bench-dev", "bench-redteam", "code-detection", "dream-arms", "dreams", "gpt2-spd",
-    "language-detection", "rescore-pilot", "score-backfill",
-    "spd-up-neurons.json", ".published",
-}  # fmt: skip
+# command writes them, and no analysis reads them. The staging folder is one of them.
+OUTPUTS = {*PROJECT["outputs"], ".published"}
 # A case-insensitive file system, such as macOS's, opens `exchange/BENCH` as `exchange/bench`.
 # So the names compare without case.
 OUTPUTS_FOLDED = {name.casefold() for name in OUTPUTS}
 OUTPUT_FILE = re.compile(r"^(ev|review|score)\.|\.(prompt\.md|response\.json)$", re.IGNORECASE)
 # Inputs that stay unpublished, each with why, and how to make them again.
-UNPUBLISHED = {
-    "probe-comparison/*.pile.jsonl": "pile-10k excerpts: the Pile corpus is not published "
-    "(docs/experiments.md). scripts/probe_comparison.py writes them again from pile-10k.",
-}
+UNPUBLISHED = dict(PROJECT["unpublished"])
 TEXT = {".json", ".jsonl", ".md", ".txt", ".log", ".csv"}
 CARD = f"""---
 license: other
@@ -65,15 +62,11 @@ pretty_name: {config().name} exchange inputs
 
 The files that papers, analyses and scripts of
 [{config().name}]({config().repo_url}) read from its
-git-ignored `exchange/` folder. Examples are SPD checkpoints and training logs, reviewer
-prompts and probe sets, and corpus samples. `data/exchange-manifest.json` in the
+git-ignored `exchange/` folder. {PROJECT["contents"]} `data/exchange-manifest.json` in the
 repository pins this dataset's revision and each file's SHA-256, and
 `scripts/exchange.py fetch` downloads and checks them.
 
-Text in these files quotes the corpora that the scans read, under their own terms. Examples
-are pile-10k (bigscience-bloom-rail-1.0, each Pile component under its own) and
-FineWeb-Edu (ODC-BY). Model outputs and code-generated files are under the repository's MIT
-licence. Pile corpus files themselves are not included.
+{PROJECT["terms"]}
 """
 
 

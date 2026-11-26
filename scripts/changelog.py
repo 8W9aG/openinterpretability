@@ -25,6 +25,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
+sys.path.insert(0, str(Path(__file__).parent))
+from repo_config import breaking, package  # noqa: E402  (a script beside this one)
+
 CHANGELOG = ROOT / "CHANGELOG.md"
 FRAGMENTS = ROOT / "changelog.d"
 # Keep a Changelog's headings, in the order a version section lists them.
@@ -108,13 +111,27 @@ def bump(current: str, kinds: list[str], breaking: bool) -> tuple[str, list[str]
     return f"{major}.{minor}.{patch + 1}", ["no breaking change: bump the patch"]
 
 
-def protocol_changed(since: str) -> bool:
-    """True when ``PROTOCOL_VERSION`` changed between the tag ``since`` and the working tree."""
+def marker_changed(since: str) -> str | None:
+    """The marker's name when its line changed between the tag ``since`` and the working tree.
+
+    The project names the file and the marker in ``[tool.labinacan.breaking]``
+    (``scripts/repo_config.py``).
+
+    Args:
+        since: The tag to compare with.
+
+    Returns:
+        The marker without its `` =``, or None when its line didn't change or there is none.
+    """
+    signal = breaking(ROOT)
+    if signal is None:
+        return None
+    path, marker = signal
     diff = subprocess.run(
-        ["git", "diff", since, "--", "openinterpretability/core/schemas.py"],
-        capture_output=True, text=True, check=True, cwd=ROOT,
-    ).stdout  # fmt: skip
-    return any(line[:1] in "+-" and "PROTOCOL_VERSION =" in line for line in diff.splitlines())
+        ["git", "diff", since, "--", path], capture_output=True, text=True, check=True, cwd=ROOT
+    ).stdout
+    changed = any(line[:1] in "+-" and marker in line for line in diff.splitlines())
+    return marker.rstrip(" =") if changed else None
 
 
 def propose(current: str, since: str, folder: Path = FRAGMENTS) -> tuple[str, list[str]]:
@@ -123,10 +140,10 @@ def propose(current: str, since: str, folder: Path = FRAGMENTS) -> tuple[str, li
     kinds = [NAME.match(path.name).group(1) for path in paths]
     marked = [p.name for p in paths if any(
         line.lstrip("- ").startswith(BREAKING) for line in p.read_text().splitlines())]  # fmt: skip
-    changed = protocol_changed(since)
-    version, reasons = bump(current, kinds, bool(marked) or changed)
+    changed = marker_changed(since)
+    version, reasons = bump(current, kinds, bool(marked) or bool(changed))
     if changed:
-        reasons.append(f"PROTOCOL_VERSION changed since {since}")
+        reasons.append(f"{changed} changed since {since}")
     if marked:
         reasons.append(f"marked {BREAKING}: {', '.join(marked)}")
     if "removed" in kinds:
@@ -143,7 +160,7 @@ def main() -> None:
             print(f"changelog: {problem}", file=sys.stderr)
         sys.exit(1 if found else 0)
     if args[:1] == ["next"]:
-        init = (ROOT / "openinterpretability" / "__init__.py").read_text(encoding="utf-8")
+        init = (ROOT / package(ROOT) / "__init__.py").read_text(encoding="utf-8")
         current = re.search(r'__version__ = "([^"]+)"', init).group(1)
         since = subprocess.run(["git", "describe", "--tags", "--abbrev=0"], capture_output=True,
                                text=True, check=True, cwd=ROOT).stdout.strip()  # fmt: skip

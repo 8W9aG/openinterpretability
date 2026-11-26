@@ -28,9 +28,10 @@ concurrency:
 jobs:
   code-changes:
     name: Code changes
-    # Whether a pull request changes any file outside wiki/, by the same rule as
-    # auto-merge.yml. A wiki-only PR (an experiment) runs the same code as main, so
-    # "Lint and tests" is skipped for it.
+    # Whether a pull request changes any file outside the project's data folders
+    # ([tool.labinacan] data_only), by the same rule as auto-merge.yml. A data-only PR runs
+    # the same code as main, so "Lint and tests" is skipped for it. The folders come from the
+    # base branch's pyproject.toml, so that a PR can't widen the rule for itself (#6631).
     if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     runs-on: ubuntu-latest
     outputs:
@@ -42,15 +43,20 @@ jobs:
       - id: diff
         env:
           BASE_REF: ${{ github.base_ref }}
-        # --no-renames lists a rename as a delete and an add, so moving a file into wiki/
-        # still counts as a change outside it. A PR with no changed files counts as code.
+        # --no-renames lists a rename as a delete and an add, so moving a file into a data
+        # folder still counts as a change outside it. A PR with no changed files counts as
+        # code, and so does every PR of a project with no data folders.
         run: |
           git diff --name-only --no-renames "origin/$BASE_REF...HEAD" | tee files.txt
-          if [ -s files.txt ] && ! grep -qv '^wiki/' files.txt; then
-            echo "code=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "code=true" >> "$GITHUB_OUTPUT"
-          fi
+          git show "origin/$BASE_REF:pyproject.toml" > base-pyproject.toml
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import tomllib
+          tool = tomllib.load(open("base-pyproject.toml", "rb")).get("tool", {})
+          data = tuple(p for p in tool.get("labinacan", {}).get("data_only", []) if p)
+          files = [f for f in open("files.txt").read().splitlines() if f]
+          only = bool(files) and bool(data) and all(f.startswith(data) for f in files)
+          print(f"code={'false' if only else 'true'}")
+          PY
 
   tests:
     name: Lint and tests

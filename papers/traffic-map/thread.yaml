@@ -1,0 +1,30 @@
+# The paper's X thread (labinacan/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Which parts of a model can a fix change without breaking the explanations of other
+    neurons? We built a traffic map of pythia-70m from the gradients of 176 VERIFIED
+    explanations, and tested it with a random change at 118 sites. {link}
+  media: [traffic]
+- section: Does traffic predict the damage of a change?
+  text: >-
+    Over 108 sites drawn evenly across the map, traffic predicts the explanations that flip
+    (Spearman's rho 0.66) and the drift of their readings (0.80). The diagonal Fisher of the
+    loss does worse, by 0.11 and 0.27.
+- section: What does traffic know beyond depth?
+  text: >-
+    But most of that is depth. Within a layer, traffic predicts drift at rho 0.55 and flips
+    at 0.25, about as well as the loss Fisher.
+  media: [predictors]
+- section: What lies at the map's high end?
+  text: >-
+    The high end is where the map earns its place. One change of norm 1 at the top site,
+    neuron 181 of layer 2, flips 22 of 176 explanations. The 10 top neurons flip 91.
+- section: The known cases
+  text: >-
+    The top sites are neurons that are silent on over 99% of tokens, but that fire very
+    strongly on the rest, including the first token. A dormant rule would call them safe.
+- section: Conclusion
+  text: >-
+    A fix should not touch the map's top sites without testing the explanations again.
+    {link}

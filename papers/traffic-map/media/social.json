@@ -1,0 +1,23 @@
+{
+ "source": "media/traffic.svg",
+ "sha256": "5b5bf3e60d281de66bcccf7b84e2c320f507921e26ae0dcc0ceeb7a1d7608dc2",
+ "files": [
+  "social.mp4",
+  "social.png"
+ ],
+ "figures": {
+  "predictors": {
+   "sha256": "8633c931877f3dc112f60f793b02e8f33558b30163817c4efca14b58df054cf2",
+   "files": [
+    "social-predictors.png"
+   ]
+  },
+  "traffic": {
+   "sha256": "5b5bf3e60d281de66bcccf7b84e2c320f507921e26ae0dcc0ceeb7a1d7608dc2",
+   "files": [
+    "social-traffic.mp4",
+    "social-traffic.png"
+   ]
+  }
+ }
+}

@@ -7,7 +7,7 @@ draws a value that these don't hold.
 
 A figure moves only when it shows a path: a mean that settles, a series that draws itself,
 or a ring that travels. The rest are still. Motion is CSS keyframes inside the SVG
-(``openinterpretability.figures``). The resting state is the final frame, so each figure
+(``labinacan.figures``). The resting state is the final frame, so each figure
 makes its point with motion off. No point rests on colour alone. A status, a kind of unit,
 a sign, a pass and a fail each have their own shape, fill pattern or line style.
 
@@ -35,10 +35,10 @@ from explain_post_answer_figures import (
 )
 from explain_post_marks import CYCLE, END, ROW, _arrow, _at, _end, _figure, _group, _token, _travel
 
+from labinacan.figures.motion import counter
+from labinacan.figures.svg import WIDTH, Figure, Panel, number
 from openinterpretability.builder.explanation_figures import _marker
 from openinterpretability.core.explanation_records import ExplanationRecord
-from openinterpretability.figures.motion import counter
-from openinterpretability.figures.svg import WIDTH, Figure, Panel, number
 
 ROOT = Path(__file__).parents[1]
 MEDIA = ROOT / "posts/explain/media"

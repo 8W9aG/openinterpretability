@@ -97,3 +97,81 @@ def automatic_workflows(root: Path = Path(".")) -> tuple[str, ...]:
         True
     """
     return tuple(_tables(root)[1].get("automatic_issue_workflows", ()))
+
+
+def package(root: Path = Path(".")) -> str:
+    """The project's Python package: ``[tool.labinacan] package``, which holds ``__version__``.
+
+    Args:
+        root: The repository's root.
+
+    Returns:
+        The package's folder name.
+
+    Examples:
+        >>> package(Path(__file__).resolve().parents[1]) != ""
+        True
+    """
+    return _tables(root)[1].get("package", "")
+
+
+def breaking(root: Path = Path(".")) -> tuple[str, str] | None:
+    """The line whose change is breaking: ``[tool.labinacan.breaking]`` ``file`` and ``marker``.
+
+    ``scripts/changelog.py next`` counts a change to a line of ``file`` that holds ``marker``
+    as a breaking change. An example is a version of the project's decision rule (#6631).
+
+    Args:
+        root: The repository's root.
+
+    Returns:
+        The file, relative to ``root``, and the marker, or None when the project has none.
+
+    Examples:
+        >>> breaking(Path(__file__).resolve().parents[1]) is not None
+        True
+    """
+    table = _tables(root)[1].get("breaking")
+    return (table["file"], table["marker"]) if table else None
+
+
+def exchange(root: Path = Path(".")) -> dict:
+    """What ``scripts/exchange.py`` keeps back and says: ``[tool.labinacan.exchange]``.
+
+    ``outputs`` names folders under ``exchange/`` that are never cited inputs.
+    ``unpublished`` gives the patterns of inputs kept back, each with why. ``contents`` and
+    ``terms`` are the dataset card's lines on what the files are and their licences (#6631).
+
+    Args:
+        root: The repository's root.
+
+    Returns:
+        The table, with an empty value for each key it lacks.
+
+    Examples:
+        >>> sorted(exchange(Path("/no/such/repo/at/all")))
+        ['contents', 'outputs', 'terms', 'unpublished']
+    """
+    try:
+        table = _tables(root)[1].get("exchange", {})
+    except FileNotFoundError:
+        table = {}
+    return {"outputs": (), "unpublished": {}, "contents": "", "terms": ""} | table
+
+
+def a11y_pages(root: Path = Path(".")) -> tuple[str, ...]:
+    """The project's own kinds of page for the accessibility check.
+
+    They are ``[tool.labinacan] a11y_pages``.
+
+    Args:
+        root: The repository's root.
+
+    Returns:
+        Glob patterns under the built site. The check opens the first page of each.
+
+    Examples:
+        >>> isinstance(a11y_pages(Path(__file__).resolve().parents[1]), tuple)
+        True
+    """
+    return tuple(_tables(root)[1].get("a11y_pages", ()))
