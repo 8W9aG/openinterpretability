@@ -1,1 +1,0 @@
-- Every page's frame is now labinacan's `site_base.html`: the head, the stylesheet, the search box and its script, and the footer's frame (#6628). This repo's `base.html` extends it. Its blocks hold the generator, the VERIFIED feed, the registry's styles, the search box's label, the nav and the footer. `paper_status` moves to labinacan's `_site_macros.html`.

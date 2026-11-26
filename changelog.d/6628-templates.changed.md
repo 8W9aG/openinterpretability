@@ -1,1 +1,0 @@
-- The templates of the papers, posts, literature reviews, Changelog and redirect pages now live in `labinacan/site/templates/` (#6628). The site's template environment reads this repo's templates first, then labinacan's, so they still extend this repo's `base.html`. The figure templates stay, because only the explanation pages use them.
