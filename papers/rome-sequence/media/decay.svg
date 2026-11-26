@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 485" width="760" height="485" role="img">
+<title>Keeps fall from 88 to 4 under ROME and to 2 under random edits, at a distance of about 12. The fitted rates are 0.24 and 0.34.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+@keyframes step0{0%{opacity:0}4.0%{opacity:1}100%{opacity:1}}.step0{animation:step0 10s step-end infinite;opacity:1}@keyframes step1{0%{opacity:0}8.6%{opacity:1}100%{opacity:1}}.step1{animation:step1 10s step-end infinite;opacity:1}@keyframes step2{0%{opacity:0}13.3%{opacity:1}100%{opacity:1}}.step2{animation:step2 10s step-end infinite;opacity:1}@keyframes step3{0%{opacity:0}17.9%{opacity:1}100%{opacity:1}}.step3{animation:step3 10s step-end infinite;opacity:1}@keyframes step4{0%{opacity:0}22.5%{opacity:1}100%{opacity:1}}.step4{animation:step4 10s step-end infinite;opacity:1}@keyframes step5{0%{opacity:0}27.2%{opacity:1}100%{opacity:1}}.step5{animation:step5 10s step-end infinite;opacity:1}@keyframes step6{0%{opacity:0}31.8%{opacity:1}100%{opacity:1}}.step6{animation:step6 10s step-end infinite;opacity:1}@keyframes step7{0%{opacity:0}36.4%{opacity:1}100%{opacity:1}}.step7{animation:step7 10s step-end infinite;opacity:1}@keyframes step8{0%{opacity:0}41.1%{opacity:1}100%{opacity:1}}.step8{animation:step8 10s step-end infinite;opacity:1}@keyframes step9{0%{opacity:0}45.7%{opacity:1}100%{opacity:1}}.step9{animation:step9 10s step-end infinite;opacity:1}@keyframes step10{0%{opacity:0}50.3%{opacity:1}100%{opacity:1}}.step10{animation:step10 10s step-end infinite;opacity:1}@keyframes step11{0%{opacity:0}54.9%{opacity:1}100%{opacity:1}}.step11{animation:step11 10s step-end infinite;opacity:1}@keyframes step12{0%{opacity:0}59.6%{opacity:1}100%{opacity:1}}.step12{animation:step12 10s step-end infinite;opacity:1}@keyframes step13{0%{opacity:0}64.2%{opacity:1}100%{opacity:1}}.step13{animation:step13 10s step-end infinite;opacity:1}@keyframes step14{0%{opacity:0}68.8%{opacity:1}100%{opacity:1}}.step14{animation:step14 10s step-end infinite;opacity:1}@keyframes step15{0%{opacity:0}73.5%{opacity:1}100%{opacity:1}}.step15{animation:step15 10s step-end infinite;opacity:1}@keyframes step16{0%{opacity:0}78.1%{opacity:1}100%{opacity:1}}.step16{animation:step16 10s step-end infinite;opacity:1}@keyframes step17{0%{opacity:0}82.7%{opacity:1}100%{opacity:1}}.step17{animation:step17 10s step-end infinite;opacity:1}@keyframes step18{0%{opacity:0}87.4%{opacity:1}100%{opacity:1}}.step18{animation:step18 10s step-end infinite;opacity:1}</style>
+<rect class="bg" width="760" height="485" rx="10"/>
+<text x="20.0" y="30.0" class="title">As ROME edits pile up, the explanations above the layer fade steadily,</text>
+<text x="20.0" y="53.0" class="title">with no threshold, and more slowly than under random edits of the same size</text>
+<text x="20.0" y="73.0" class="sub">Each mark is a checkpoint: the 88 VERIFIED poles above layer 2 that still pass, against ‖ΔW‖/‖W₀‖.</text>
+<text x="20.0" y="91.0" class="sub">The curves are N·exp(−h·distance), fitted to each sequence.</text>
+<path class="grid" d="M80.0 145.0L80.0 385.0"/>
+<text x="80.0" y="400.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M177.3 145.0L177.3 385.0"/>
+<text x="177.3" y="400.0" class="small" text-anchor="middle">2</text>
+<path class="grid" d="M274.6 145.0L274.6 385.0"/>
+<text x="274.6" y="400.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M371.9 145.0L371.9 385.0"/>
+<text x="371.9" y="400.0" class="small" text-anchor="middle">6</text>
+<path class="grid" d="M469.1 145.0L469.1 385.0"/>
+<text x="469.1" y="400.0" class="small" text-anchor="middle">8</text>
+<path class="grid" d="M566.4 145.0L566.4 385.0"/>
+<text x="566.4" y="400.0" class="small" text-anchor="middle">10</text>
+<path class="grid" d="M663.7 145.0L663.7 385.0"/>
+<text x="663.7" y="400.0" class="small" text-anchor="middle">12</text>
+<path class="grid" d="M80.0 385.0L680.0 385.0"/>
+<text x="73.0" y="389.0" class="small" text-anchor="end">0</text>
+<path class="grid" d="M80.0 333.1L680.0 333.1"/>
+<text x="73.0" y="337.1" class="small" text-anchor="end">20</text>
+<path class="grid" d="M80.0 281.1L680.0 281.1"/>
+<text x="73.0" y="285.1" class="small" text-anchor="end">40</text>
+<path class="grid" d="M80.0 229.2L680.0 229.2"/>
+<text x="73.0" y="233.2" class="small" text-anchor="end">60</text>
+<path class="grid" d="M80.0 177.2L680.0 177.2"/>
+<text x="73.0" y="181.2" class="small" text-anchor="end">80</text>
+<text x="380.0" y="416.0" class="small" text-anchor="middle">weight distance of layer 2, ‖W_n − W₀‖ / ‖W₀‖</text>
+<path class="line sc1" d="M80.0 156.4L89.7 167.2L99.4 177.5L109.1 187.3L118.8 196.6L128.5 205.5L138.3 214.0L148.0 222.0L157.7 229.7L167.4 237.0L177.1 244.0L186.8 250.7L196.5 257.0L206.2 263.0L215.9 268.8L225.6 274.3L235.3 279.5L245.0 284.5L254.8 289.2L264.5 293.7L274.2 298.0L283.9 302.1L293.6 306.1L303.3 309.8L313.0 313.3L322.7 316.7L332.4 319.9L342.1 323.0L351.8 325.9L361.6 328.7L371.3 331.4L381.0 333.9L390.7 336.3L400.4 338.6L410.1 340.8L419.8 342.9L429.5 344.9L439.2 346.8L448.9 348.6L458.6 350.3L468.3 351.9L478.1 353.5L487.8 355.0L497.5 356.4L507.2 357.7L516.9 359.0L526.6 360.2L536.3 361.4L546.0 362.5L555.7 363.6L565.4 364.6L575.1 365.6L584.9 366.5L594.6 367.3L604.3 368.2L614.0 369.0L623.7 369.7L633.4 370.5L643.1 371.1L652.8 371.8L662.5 372.4"/>
+<path class="line sc2" d="M80.0 156.4L89.7 171.3L99.4 185.3L109.1 198.3L118.8 210.4L128.5 221.8L138.3 232.5L148.0 242.4L157.7 251.7L167.4 260.4L177.1 268.5L186.8 276.1L196.5 283.2L206.2 289.8L215.9 296.0L225.6 301.8L235.3 307.3L245.0 312.3L254.8 317.1L264.5 321.5L274.2 325.6L283.9 329.5L293.6 333.1L303.3 336.5L313.0 339.7L322.7 342.6L332.4 345.4L342.1 348.0L351.8 350.4L361.6 352.6L371.3 354.7L381.0 356.7L390.7 358.6L400.4 360.3L410.1 361.9L419.8 363.4L429.5 364.8L439.2 366.1L448.9 367.4L458.6 368.5L468.3 369.6L478.1 370.6L487.8 371.5L497.5 372.4L507.2 373.2L516.9 374.0L526.6 374.7L536.3 375.4L546.0 376.0L555.7 376.6L565.4 377.1L575.1 377.7L584.9 378.1L594.6 378.6L604.3 379.0L614.0 379.4L623.7 379.8L633.4 380.1L643.1 380.4L652.8 380.7L662.5 381.0"/>
+<circle class="fc1 ring step0" cx="80.0" cy="156.4" r="4.0"/>
+<path class="fc2 ring step0" d="M80.0 151.6L84.8 160.3L75.2 160.3Z"/>
+<circle class="fc1 ring step1" cx="89.9" cy="169.4" r="4.0"/>
+<path class="fc2 ring step1" d="M89.9 159.4L94.7 168.1L85.1 168.1Z"/>
+<circle class="fc1 ring step2" cx="96.9" cy="179.8" r="4.0"/>
+<path class="fc2 ring step2" d="M96.6 188.0L101.4 196.6L91.8 196.6Z"/>
+<circle class="fc1 ring step3" cx="107.3" cy="182.4" r="4.0"/>
+<path class="fc2 ring step3" d="M106.4 216.6L111.2 225.2L101.6 225.2Z"/>
+<circle class="fc1 ring step4" cx="108.7" cy="179.8" r="4.0"/>
+<path class="fc2 ring step4" d="M107.8 208.8L112.6 217.4L103.0 217.4Z"/>
+<circle class="fc1 ring step5" cx="112.0" cy="185.0" r="4.0"/>
+<path class="fc2 ring step5" d="M111.0 216.6L115.8 225.2L106.2 225.2Z"/>
+<circle class="fc1 ring step6" cx="126.2" cy="200.6" r="4.0"/>
+<path class="fc2 ring step6" d="M124.5 229.6L129.3 238.2L119.7 238.2Z"/>
+<circle class="fc1 ring step7" cx="148.8" cy="224.0" r="4.0"/>
+<path class="fc2 ring step7" d="M145.3 263.3L150.1 272.0L140.5 272.0Z"/>
+<circle class="fc1 ring step8" cx="179.2" cy="236.9" r="4.0"/>
+<path class="fc2 ring step8" d="M173.9 273.7L178.7 282.3L169.1 282.3Z"/>
+<circle class="fc1 ring step9" cx="202.4" cy="255.1" r="4.0"/>
+<path class="fc2 ring step9" d="M197.6 294.5L202.4 303.1L192.8 303.1Z"/>
+<circle class="fc1 ring step10" cx="221.8" cy="255.1" r="4.0"/>
+<path class="fc2 ring step10" d="M216.8 299.7L221.6 308.3L212.0 308.3Z"/>
+<circle class="fc1 ring step11" cx="258.2" cy="262.9" r="4.0"/>
+<path class="fc2 ring step11" d="M253.5 325.7L258.3 334.3L248.7 334.3Z"/>
+<circle class="fc1 ring step12" cx="282.3" cy="286.3" r="4.0"/>
+<path class="fc2 ring step12" d="M277.0 343.8L281.8 352.5L272.2 352.5Z"/>
+<circle class="fc1 ring step13" cx="315.6" cy="304.5" r="4.0"/>
+<path class="fc2 ring step13" d="M313.5 351.6L318.3 360.3L308.7 360.3Z"/>
+<circle class="fc1 ring step14" cx="372.8" cy="338.2" r="4.0"/>
+<path class="fc2 ring step14" d="M370.0 356.8L374.8 365.5L365.2 365.5Z"/>
+<circle class="fc1 ring step15" cx="418.2" cy="343.4" r="4.0"/>
+<path class="fc2 ring step15" d="M413.1 362.0L417.9 370.7L408.3 370.7Z"/>
+<circle class="fc1 ring step16" cx="462.9" cy="356.4" r="4.0"/>
+<path class="fc2 ring step16" d="M456.8 362.0L461.6 370.7L452.0 370.7Z"/>
+<circle class="fc1 ring step17" cx="571.1" cy="361.6" r="4.0"/>
+<path class="fc2 ring step17" d="M561.7 364.6L566.5 373.3L556.9 373.3Z"/>
+<circle class="fc1 ring step18" cx="662.5" cy="374.6" r="4.0"/>
+<path class="fc2 ring step18" d="M653.4 375.0L658.2 383.6L648.6 383.6Z"/>
+<text x="656.5" y="364.6" class="small step18" text-anchor="end">100 edits</text>
+<circle class="fc1" cx="25.0" cy="433.0" r="5"/>
+<text x="35.0" y="437.0" class="small">ROME edits, in turn</text>
+<path class="fc2" d="M165.2 427.0L171.2 437.8L159.2 437.8Z"/>
+<text x="175.2" y="437.0" class="small">random rank-one edits, same norms</text>
+</svg>
