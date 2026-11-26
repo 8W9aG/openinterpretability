@@ -168,9 +168,9 @@ Train the adapter on one GPU, write its units and loadings, audit each unit, the
 uv run --with datasets==4.4.1 python scripts/lora_units.py train --device cuda
 uv run python scripts/lora_units.py units
 uv run open-interpretability audit --superposition papers/lora-units/units/L8-pos.json \
-    --evidence-out exchange/lora-L8-pos/ev.json
+    --evidence-out lora-L8-pos/ev.json
 uv run open-interpretability audit --model Qwen/Qwen2.5-0.5B --random --seed 5166 \
-    --evidence-out exchange/native-5166/ev.json
+    --evidence-out native-5166/ev.json
 uv run python scripts/lora_units_stats.py
 uv run python scripts/paper_figures.py
 ```
