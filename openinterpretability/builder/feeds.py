@@ -1,7 +1,7 @@
 """The site's feed of new VERIFIED units, beside labinacan's sitemap and ``robots.txt`` (#3285).
 
 The feed comes from the records, never the clock. So an unchanged registry rebuilds it byte
-for byte, and the deploy uploads (and purges) nothing. ``labinacan/site/feeds.py`` writes
+for byte, and the deploy uploads (and purges) nothing. ``labinacan.site.feeds`` writes
 the sitemap and ``robots.txt`` (#6628).
 """
 
@@ -12,6 +12,7 @@ from datetime import UTC
 from xml.sax.saxutils import escape
 
 from labinacan.site.feeds import write_site_files
+
 from openinterpretability.builder.experiment import Experiment
 
 FEED_ENTRIES = 50

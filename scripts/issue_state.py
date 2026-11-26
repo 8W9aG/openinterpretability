@@ -64,9 +64,8 @@ from claims import (  # noqa: E402
     reply_key,
     unclaim,
 )
-from repo_config import automatic_workflows  # noqa: E402
-
 from labinacan.config import config  # noqa: E402  (claims points it at this repository)
+from repo_config import automatic_workflows  # noqa: E402
 
 REPO = config().repo
 TEAM_KEY = config().linear_team

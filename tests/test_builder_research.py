@@ -1,5 +1,4 @@
 import pytest
-
 from labinacan.site.research import Paper, copy_assets, load_papers, redact_asset
 
 
@@ -29,7 +28,6 @@ def test_a_paper_without_a_page_copies_only_the_files_in_its_media_folder(tmp_pa
 
 def test_a_thread_that_breaks_rules_fails_the_build_naming_each(tmp_path, monkeypatch):
     import pytest
-
     from labinacan.site import research
     from labinacan.social import thread
 

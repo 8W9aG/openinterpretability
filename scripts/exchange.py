@@ -28,9 +28,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # repo_config, beside this script
 
-from repo_config import exchange as exchange_config  # noqa: E402
-
 from labinacan.config import config, use  # noqa: E402
+from repo_config import exchange as exchange_config  # noqa: E402
 
 use(Path(__file__).resolve().parents[1] / "pyproject.toml")  # this repository's values (#6629)
 

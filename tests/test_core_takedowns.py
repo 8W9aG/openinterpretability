@@ -1,4 +1,4 @@
-"""Takedown lines and the spans that their shingles cover (labinacan/site/takedowns.py)."""
+"""Takedown lines and the spans that their shingles cover (labinacan.site.takedowns)."""
 
 from labinacan.site import takedowns as td
 

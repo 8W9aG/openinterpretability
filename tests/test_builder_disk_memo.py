@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from labinacan.site.disk_memo import DiskMemo
+
 from openinterpretability.core.cache_dirs import build_cache
 
 ENV = "OPENINTERPRETABILITY_BUILD_CACHE"

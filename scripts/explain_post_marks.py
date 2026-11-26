@@ -8,6 +8,7 @@ import textwrap
 
 from labinacan.figures.motion import animate, reveal, translate
 from labinacan.figures.svg import Figure
+
 from openinterpretability.builder.explanation_figures import DEFS, EXTRA
 
 CYCLE = "10s"

@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 import click
-
 from labinacan.cli import site_commands
 from labinacan.errors import LabinacanError
+
 from openinterpretability import DISTRIBUTION, runner_cache
 from openinterpretability.cli_memory import memory_option
 from openinterpretability.core.contributors import CONTRIBUTOR_ENV, contributor_problem

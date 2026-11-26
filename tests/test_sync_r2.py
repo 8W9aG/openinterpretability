@@ -1,7 +1,6 @@
 """Syncing the site to R2 and purging Cloudflare's cache (sync/r2.py)."""
 
 import pytest
-
 from labinacan.errors import SyncError
 from labinacan.sync.r2 import (
     R2Config,

@@ -1,4 +1,4 @@
-"""Tables of contents on long pages, from their headings (labinacan/site/contents.py, #3756)."""
+"""Tables of contents on long pages, from their headings (labinacan.site.contents, #3756)."""
 
 import re
 

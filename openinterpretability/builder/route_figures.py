@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from labinacan.figures.motion import reveal
 from labinacan.figures.svg import WIDTH, Figure, number
+
 from openinterpretability.builder.explanation_figures import (
     CYCLE,
     DEFS,

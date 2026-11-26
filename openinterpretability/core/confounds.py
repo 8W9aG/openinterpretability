@@ -26,12 +26,12 @@ BRACKET_DEPTH = "bracket depth"
 ROUND_DEPTH = "round depth"
 INDENT_DEPTH = "indent depth"
 SYNTAX_CONSTRUCT = "syntax construct"
-# The label sets of what `labinacan/sensitive.py`, `toxicity.py` and `names.py` find in a document,
+# The label sets of what `labinacan.sensitive`, `toxicity.py` and `names.py` find in a document,
 # and the label of every other token. Tokens with no label leave R² and mutual
 # information, so a label set that named only the matches would always measure zero.
 PERSONAL_DATA = "personal data"
 # The personal-data search's name in records' ``label_detector``. The search moved to
-# labinacan/sensitive.py (#6628), and records keep this name for it.
+# labinacan.sensitive (#6628), and records keep this name for it.
 PII_DETECTOR = "openinterpretability.sensitive"
 TOXICITY = "toxicity"  # a model's guess (`openinterpretability/toxicity.py`)
 HATE_SPEECH = "hate speech"  # a model's guess (`openinterpretability/toxicity.py`)

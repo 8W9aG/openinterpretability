@@ -12,6 +12,7 @@ from labinacan.site.paper_pdf import (
     print_svg,
     raise_superscripts,
 )
+
 from openinterpretability.builder.compiler import _environment
 
 SYSTEM_FONTS = ("Times", "Liberation", "Nimbus", "Courier", "Menlo", "Helvetica", "Arial")

@@ -1,4 +1,4 @@
-"""Where the on-disk caches live, in this project's cache folder (``labinacan/cache.py``)."""
+"""Where the on-disk caches live, in this project's cache folder (``labinacan.cache``)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from labinacan import cache
 def build_cache() -> Path | None:
     """The build's memo folder: ``$OPENINTERPRETABILITY_BUILD_CACHE``, else ``<cache>/build``.
 
-    ``off`` turns it off (``labinacan/site/disk_memo.py``, #6628).
+    ``off`` turns it off (``labinacan.site.disk_memo``, #6628).
 
     Returns:
         The folder, or None when the cache is off.

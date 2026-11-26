@@ -46,7 +46,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # paper_terms, beside this script
 
 import paper_terms  # noqa: E402
-
 from labinacan.config import config, site_url, use  # noqa: E402
 
 use(Path(__file__).resolve().parents[1] / "pyproject.toml")  # this repository's values (#6629)

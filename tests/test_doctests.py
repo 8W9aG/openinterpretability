@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGES = (ROOT / "openinterpretability", ROOT / "labinacan")  # labinacan: #6628
+PACKAGES = (ROOT / "openinterpretability",)  # labinacan's doctests run in its own repo (#7003)
 # mutmut runs the tests from its copy, mutants/, whose modules hold its generated functions.
 pytestmark = pytest.mark.skipif(ROOT.name == "mutants", reason="mutmut's copy of the package")
 BASELINE = ROOT / "scripts" / "doctests_baseline.txt"

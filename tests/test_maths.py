@@ -1,7 +1,6 @@
-"""Papers' LaTeX is typeset as MathML at build time (labinacan/site/maths.py, #4211)."""
+"""Papers' LaTeX is typeset as MathML at build time (labinacan.site.maths, #4211)."""
 
 import pytest
-
 from labinacan.site.maths import MathsError, to_mathml
 from labinacan.site.research import _read_paper
 

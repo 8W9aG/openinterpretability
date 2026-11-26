@@ -1,10 +1,10 @@
-"""The site's stylesheet, built with Tailwind's CLI (labinacan/site/css.py, #3282)."""
+"""The site's stylesheet, built with Tailwind's CLI (labinacan.site.css, #3282)."""
 
 import json
 
 import pytest
-
 from labinacan.site import css
+
 from openinterpretability.builder import palette
 
 
@@ -63,7 +63,7 @@ def test_search_loads_only_when_used():
 
 
 def test_the_site_has_one_content_column():
-    # #5726: one width, set in labinacan/site/css.py. No template caps a part of the page at
+    # #5726: one width, set in labinacan.site.css. No template caps a part of the page at
     # its own width, and the widest fixed figures fit the column at their natural size.
     import re
     from pathlib import Path
