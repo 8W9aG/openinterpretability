@@ -14,8 +14,9 @@ path that holds a ``[tool.labinacan]`` table counts. Until then, the working dir
 
 from __future__ import annotations
 
+import shlex
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from email.utils import parseaddr
 from functools import cache
 from pathlib import Path
@@ -34,6 +35,9 @@ class Brand:
     # The mark's cells, each (column, row, share filled, colour name). An empty cell has
     # share 0 and colour "".
     cells: tuple[tuple[int, int, float, str], ...]
+    # The accent's shades, by Tailwind's numbers ("400": "#34d399"), for the pages' links
+    # and highlights (#6631). A project with its own stylesheet colours leaves it empty.
+    accent: dict[str, str] = field(default_factory=dict)
 
 
 def brand_of(table: dict | None) -> Brand | None:
@@ -59,6 +63,7 @@ def brand_of(table: dict | None) -> Brand | None:
         folder=table["folder"], tile=table["tile"], ink=dict(table["ink"]),
         colours=dict(table["colours"]),
         cells=tuple((col, row, thirds / 3, colour) for col, row, thirds, colour in table["cells"]),
+        accent={str(k): v for k, v in table.get("accent", {}).items()},
     )  # fmt: skip
 
 
@@ -252,3 +257,35 @@ def site_url() -> str:
         True
     """
     return config().site_url
+
+
+def shell_lines(c: ProjectConfig) -> list[str]:
+    """The values that commands in the generic skills need, as shell assignments.
+
+    A skill runs ``eval "$(uv run python -m labinacan.config)"``, then names ``$REPO`` and
+    the others, so it holds no value of a project (#6630). Each value is quoted for the
+    shell.
+
+    Args:
+        c: The project's config.
+
+    Returns:
+        One ``NAME=value`` line for each value.
+
+    Examples:
+        >>> [line.split("=")[0] for line in shell_lines(config())]
+        ['NAME', 'PACKAGE', 'COMMAND', 'REPO', 'MAINTAINER', 'SITE_URL']
+    """
+    values = {
+        "NAME": c.name,
+        "PACKAGE": c.package,
+        "COMMAND": c.command,
+        "REPO": c.repo,
+        "MAINTAINER": c.maintainer,
+        "SITE_URL": c.site_url,
+    }
+    return [f"{name}={shlex.quote(value)}" for name, value in values.items()]
+
+
+if __name__ == "__main__":
+    print("\n".join(shell_lines(config())))

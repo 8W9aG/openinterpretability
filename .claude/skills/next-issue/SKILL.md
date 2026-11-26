@@ -18,7 +18,7 @@ description: Give unprioritised issues a priority, then pick the next issue to w
    ```bash
    python3 scripts/issue_state.py --claim-release <the last tag>
    ```
-   Exit 3 means another agent cut or is cutting this release. Then don't release: go on to step 1 and work an issue. Otherwise run the `release` skill as this iteration's work, in place of an issue. It has its own checks and steps. Its release PR lands as in step 6. **Don't move on from the release** until its PR has merged and `gh release view v<version>` shows it published on GitHub (`release` skill, step 12). A release PR waiting for a merge blocks the loop: finish it first. Then the iteration stops at step 7. Otherwise go on to step 1.
+   Exit 3 means another agent cut or is cutting this release. Then don't release: go on to step 1 and work an issue. Otherwise run the `release` skill as this iteration's work, in place of an issue. It has its own checks and steps. Its release PR lands as in step 6. **Don't move on from the release** until its PR has merged and `gh release view v<version>` shows it published on GitHub (`release` skill, *Check the release*, step 10). A release PR waiting for a merge blocks the loop: finish it first. Then the iteration stops at step 7. Otherwise go on to step 1.
 
    **Until the release is due, keep working issues.** The maintainer decided this on 2026-11-15. Don't skip or postpone an issue because the release might come due while you work on it. If the 24 hours pass during an issue, finish that issue, its PR and its merge first. The next iteration then does the release.
 1. **Give every open issue a priority.** The ranking is only as good as the priorities, so first list the issues that have none:
@@ -29,11 +29,11 @@ description: Give unprioritised issues a priority, then pick the next issue to w
    ```bash
    python3 scripts/next_issue.py --prioritise <number> <urgent|high|medium|low>
    ```
-   Judge by the north star, total interpretability of open models (`docs/research-questions.md`, question 0):
-   - **urgent:** it breaks the registry, CI, a release, or the correctness of stored records.
-   - **high:** it changes whether verdicts can be trusted (protocol validity, false positives), or it removes a bottleneck to more VERIFIED units.
+   Judge by the project's north star, which [`project.md`](project.md) states with what each priority means here (#6631):
+   - **urgent:** it breaks CI, a release, or the correctness of stored data.
+   - **high:** it changes whether the project's results can be trusted, or it removes a bottleneck to its goal.
    - **medium:** a useful analysis, feature or paper review that doesn't block anything. This is the default when you are unsure.
-   - **low:** nice to have, and every `area: models` issue until each configured model reaches `coverage_target`.
+   - **low:** nice to have.
 
    Keep the workstreams balanced: don't raise one area's issues just because you know it best. Give the reason for each priority in one line when you report back. Setting a priority isn't working on an issue, so do it for ineligible issues too.
 2. **Ask the script.** It needs `gh` and `LINEAR_API_KEY`:
@@ -56,7 +56,7 @@ description: Give unprioritised issues a priority, then pick the next issue to w
    Pull one issue at a time, and only when the release has nothing left. The release cadence (`release` skill, *When to release*) decides when the release goes out, not how full it is.
 5. **Claim it, then work it with `work-an-issue`.** Run the claim command that the script printed for the pick. The claim is a branch, `claim/issue-<number>`, and GitHub lets only one agent create it (#6725). Exit 3 means another agent took the issue since the script ran. Then claim the next runner-up the same way, and do step 3's checks on it. Exit 0 means the issue is yours, and the claim set it In Progress. That skill then posts the plan, posts the plan, posts deviations, opens the PR and posts what shipped. Its eligibility check runs again there.
 6. **Land the PR.** Don't move on while the issue's PR is open. The maintainer decided on 2026-11-14 that this skill merges its own PR once CI passes.
-   1. Bring the branch up to date with `main`: `git fetch origin && git merge origin/main`. If that conflicts, don't resolve someone else's change by hand. Run `git merge --abort`, comment on the PR, and stop at step 7 without merging. Otherwise run `make lint` and `make test`. If the merge brought changes to the files under `openinterpretability/` that the branch changes, run `make mutation BASE=origin/main` again until no mutant survives (`work-an-issue`, step 6). Then push.
+   1. Bring the branch up to date with `main`: `git fetch origin && git merge origin/main`. If that conflicts, don't resolve someone else's change by hand. Run `git merge --abort`, comment on the PR, and stop at step 7 without merging. Otherwise run `make lint` and `make test`. If the merge brought changes to the package files (`[tool.mutmut] source_paths`) that the branch changes, run `make mutation BASE=origin/main` again until no mutant survives (`work-an-issue`, step 6). Then push.
    2. Wait for every check: `gh pr checks <number> --watch --fail-fast --interval 30`. Checks can take a minute to appear after a push. No checks is not green, so wait and retry. If they are still pending after 45 minutes, comment that they didn't finish, and stop at step 7.
    3. If a check fails, read its log (`gh run view <run-id> --log-failed`). Fix it if this PR caused it, push, and wait again. Stop after two failed attempts, or if the failure isn't this PR's (a broken `main`, a runner outage). Then comment what you found and stop at step 7 without merging. A flaky test is never "not this PR's": see *Flaky tests* below.
    4. Merge only a PR that this session opened for this issue. It must not be draft, every check must have passed on its head commit, and `gh pr view <number> --json mergeable -q .mergeable` must print `MERGEABLE`:
@@ -88,7 +88,7 @@ The maintainer decided on 2026-11-15: zero tolerance for flaky tests. Every flak
 
 ## Notes
 
-- **An empty pick means nothing is eligible.** The script then exits with "No eligible issue". Say so, and propose new work as the `release` skill's step 3 does. Don't work on an ineligible issue.
+- **An empty pick means nothing is eligible.** The script then exits with "No eligible issue". Say so, and propose new work as the `release` skill's *Before the release* step 4 does. Don't work on an ineligible issue.
 - **Linear's states are the record of what is started, and the claim branch says who started it.** `git ls-remote origin 'refs/heads/claim/*'` lists the claims. Each claim's commit message names its agent (`issue_state.py --whoami`). An issue In Progress belongs to whoever started it. Never take it, even if it looks stalled. Ask instead. The one exception is an answered issue (step 2): an agent stopped to ask, the maintainer replied, so any agent resumes it.
 - **Issues labelled `muse` are Muse's** (`docs/muse.md`), such as posting a paper to alphaXiv. The script never picks, resumes or lists them, and you never work one. The maintainer decided this on 2026-11-22. Never add the `muse` label to an issue that the maintainer didn't open or give a thumbs up. The maintainer decided this on 2026-11-23.
 - **The script only reads, except with `--pull` and `--prioritise`.** `--pull` sets one milestone and one label. `--prioritise` sets one label and Linear's priority. `work-an-issue` sets the states.

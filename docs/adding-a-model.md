@@ -88,4 +88,4 @@ Reproduction compares activations with a tolerance relative to each pole's scale
 
 ### 7. Let the release refresh it
 
-The next release runs the slow analyses for every configured model (`.claude/skills/release/SKILL.md`). These are the sister search, the registry coverage, the circuit ids and the shared concept map. Nothing else is needed for the model to appear on the site.
+The next release runs the slow analyses for every configured model (`.claude/skills/release/project.md`, *Refresh*). These are the sister search, the registry coverage, the circuit ids and the shared concept map. Nothing else is needed for the model to appear on the site.

@@ -307,3 +307,15 @@ def test_an_email_cut_by_the_end_of_the_text_is_found_unless_reserved():
     assert list(_cut_email("mail bob@exa")) == [(5, 12, "email")]
     assert pii_matches("mail bob@exa") == ((5, 12, "email"),)
     assert list(_cut_email("mail bob@example.com.")) == []
+
+
+def test_the_rules_on_top_of_presidio_keep_only_real_phones_and_public_addresses():
+    # #6631: each boundary of sensitive._keeps.
+    from labinacan.sensitive import MIN_PHONE_DIGITS, _keeps
+
+    ten = "".join(str(i % 10) for i in range(MIN_PHONE_DIGITS))
+    assert _keeps("phone", ten) and not _keeps("phone", ten[:-1])  # at least, not more than
+    assert not _keeps("phone", ten + "  9")  # enough digits, but a run of spaces is no phone
+    assert not _keeps("phone", "0.5")  # neither enough digits nor a phone's shape
+    assert _keeps("ip_address", "8.8.8.8") and not _keeps("ip_address", "10.0.0.1")
+    assert _keeps("email", "a@b.example")  # other kinds pass as Presidio found them

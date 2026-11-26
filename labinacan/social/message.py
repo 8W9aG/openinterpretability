@@ -33,7 +33,7 @@ def weight(text: str) -> int:
         The number of characters as X counts them.
 
     Examples:
-        >>> weight("neuron")
+        >>> weight("widget")
         6
         >>> weight("神经元")  # each CJK character counts as two
         6
@@ -95,8 +95,8 @@ def compose(head: str, body: str, link: str, separator: str = " ") -> str:
         The post: the text on one or more lines, then the link on the last line.
 
     Examples:
-        >>> compose("L3/N7+ VERIFIED:", "Fires on dates.", "https://x.org/u")
-        'L3/N7+ VERIFIED: Fires on dates.\nhttps://x.org/u'
+        >>> compose("New result:", "It reads dates.", "https://x.org/u")
+        'New result: It reads dates.\nhttps://x.org/u'
     """
     from labinacan.site.pii import redact_text
 
@@ -120,9 +120,9 @@ def paper_post(entry: Entry) -> str:
         The post's text, which fits :data:`LIMIT`.
 
     Examples:
-        >>> paper = Entry("p", "A bracket neuron", "https://x.org/p", "It reads brackets. More.")
+        >>> paper = Entry("p", "A bracket reader", "https://x.org/p", "It reads brackets. More.")
         >>> paper_post(paper)
-        'A bracket neuron\n\nIt reads brackets.\nhttps://x.org/p'
+        'A bracket reader\n\nIt reads brackets.\nhttps://x.org/p'
     """
     return compose(entry.title, first_sentence(entry.summary), entry.link, separator="\n\n")
 

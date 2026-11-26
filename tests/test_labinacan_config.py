@@ -1,7 +1,10 @@
 """The project's config, and the rule that no generic file holds its values (#6629)."""
 
+import dataclasses
 import importlib
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
@@ -27,6 +30,7 @@ GENERIC_SCRIPTS = [
 ]
 TEXT = {".py", ".html", ".css", ".js", ".md", ".txt", ".toml", ".json", ".svg", ".xml"}
 TEXT |= {".mk", ".yml"}  # labinacan.mk and the generic workflow (#6630)
+TEXT_NAMES = {".coveragerc"}  # text files with no suffix
 
 PYPROJECT = """
 [project]
@@ -160,7 +164,7 @@ def hits(paths, values: set[str], words: set[str] = frozenset()) -> dict[str, li
     files = sorted(paths.rglob("*")) if isinstance(paths, Path) else sorted(paths)
     out = {}
     for path in files:
-        if path.suffix in TEXT and "__pycache__" not in path.parts:
+        if (path.suffix in TEXT or path.name in TEXT_NAMES) and "__pycache__" not in path.parts:
             text = path.read_text(encoding="utf-8", errors="replace")
             found = {v for v in values if v.lower() in text.lower()}
             found |= {w for w in words if re.search(rf"\b{re.escape(w)}\b", text)}
@@ -190,7 +194,21 @@ def test_no_generic_file_holds_a_value_of_this_project():
     flows = ROOT / ".github" / "workflows"
     skills = ROOT / ".claude" / "skills"
     generic = [ROOT / "labinacan.mk", flows / "labinacan-ci.yml", flows / "links.yml"]  # #6630
-    generic += [skills / name / "SKILL.md" for name in ("semantic-versioning", "write-paper")]
+    split = (
+        "release",
+        "semantic-versioning",
+        "write-paper",
+        "single-source-of-truth",
+        "commenting",
+        "test-new-paths",
+        "next-issue",
+        "literature-review",
+        "paper-animation",
+    )
+    generic += [skills / name / "SKILL.md" for name in split]
+    generic += [
+        ROOT / name for name in ("ruff.toml", ".coveragerc", ".diff-cover.toml", ".pymarkdown.yml")
+    ]
     assert hits(generic, values, short_values(cfg.config())) == {}
 
 
@@ -218,3 +236,36 @@ def test_the_citation_file_agrees_with_the_config():
     assert cff["repository-code"] == c.repo_url and cff["url"] == c.site_url
     assert cff["title"].startswith(f"{c.name}: ")
     assert c.name in cff["message"] and c.package in cff["message"]
+
+
+def test_the_shell_lines_quote_each_value_and_name_this_project():
+    c = cfg.config()
+    lines = cfg.shell_lines(dataclasses.replace(c, name="A 'Project'"))
+    assert lines[0] == "NAME='A '\"'\"'Project'\"'\"''"
+    assert f"REPO={c.repo}" in cfg.shell_lines(c) and f"PACKAGE={c.package}" in cfg.shell_lines(c)
+    out = subprocess.run(
+        [sys.executable, "-m", "labinacan.config"],
+        capture_output=True,
+        text=True,
+        check=True,
+        cwd=ROOT,
+    ).stdout
+    assert out.splitlines() == cfg.shell_lines(c)
+    shell = subprocess.run(
+        ["bash", "-c", 'eval "$OUT"; echo "$REPO $MAINTAINER $SITE_URL"'],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "OUT": out},
+    ).stdout.split()
+    assert shell == [c.repo, c.maintainer, c.site_url]
+
+
+# runpy warns that the module is already imported, which is harmless here.
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_the_module_prints_the_shell_lines_when_run(capsys):
+    # In this process, so that coverage sees the main guard (the subprocess above it doesn't).
+    import runpy
+
+    runpy.run_module("labinacan.config", run_name="__main__")
+    assert capsys.readouterr().out.splitlines() == cfg.shell_lines(cfg.config())

@@ -1,14 +1,15 @@
 """Mutation testing of the package code that a branch changes (#5856).
 
-``make mutation BASE=origin/main`` runs this script. It finds the ``.py`` files under
-``openinterpretability/`` that the branch changes against the base. That covers committed,
-uncommitted and untracked changes, but not deleted files. It mutates only those files, and
-it runs only the tests that import them. Of their mutants, it runs only those in the
-functions that the branch changes, and at most :data:`CAP` of them, a seeded sample
-(#5857). A change to a large file then still takes minutes. mutmut reads its config from
-``pyproject.toml`` alone, so the script overrides two keys in this process before mutmut starts:
-``only_mutate`` and ``pytest_add_cli_args_test_selection``. It does not change the file.
-Without ``--base``, mutmut runs the fixed verdict-code config of ``[tool.mutmut]`` (#5763).
+``make mutation BASE=origin/main`` runs this script. It finds the ``.py`` files in the
+packages of ``[tool.mutmut] source_paths`` that the branch changes against the base. That
+covers committed, uncommitted and untracked changes, but not deleted files. It mutates only
+those files, and it runs only the tests that import them. Of their mutants, it runs only
+those in the functions that the branch changes, and at most :data:`CAP` of them, a seeded
+sample (#5857). A change to a large file then still takes minutes. mutmut reads its config
+from ``pyproject.toml`` alone, so the script overrides two keys in this process before
+mutmut starts: ``only_mutate`` and ``pytest_add_cli_args_test_selection``. It does not
+change the file. Without ``--base``, mutmut runs the fixed verdict-code config of
+``[tool.mutmut]`` (#5763).
 
 The script prints each mutant that survives, or that no test reaches. It exits with 1 when
 there is one, so the run can gate a pull request. A mutant that changes nothing a caller can
@@ -35,13 +36,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from mutation_runs import repeat  # noqa: E402  (a script beside this one)
+from mutation_paths import not_copied, packages  # noqa: E402  (a script beside this one)
+from mutation_runs import repeat  # noqa: E402
 
-PACKAGES = ("openinterpretability", "labinacan")  # labinacan: the template part (#6628)
 FAILING = ("survived", "no tests", "timeout", "suspicious")
-# Left out of mutmut's copy of the repository. mutmut copies the package and the tests itself.
-# No unit test reads the 840 MB of experiment records.
-NOT_COPIED = {*PACKAGES, "tests", "wiki/experiments"}
 # With --base, at most this many mutants run, a seeded sample of those in the changed
 # functions. So a large change still takes minutes, not most of an hour (#5857).
 CAP = 100
@@ -77,7 +75,9 @@ def changed_files(base: str, root: Path = Path(".")) -> list[str]:
     names |= set(_git(root, "diff", "--name-only", "--diff-filter=d", "HEAD"))
     names |= set(_git(root, "ls-files", "--others", "--exclude-standard"))
     ours = (
-        n for n in names if n.startswith(tuple(f"{p}/" for p in PACKAGES)) and n.endswith(".py")
+        n
+        for n in names
+        if n.startswith(tuple(f"{p}/" for p in packages(root))) and n.endswith(".py")
     )
     return sorted(n for n in ours if (root / n).exists())
 
@@ -248,16 +248,16 @@ def module_name(path: str) -> str:
     """The dotted module of a package path.
 
     Args:
-        path: A path such as ``openinterpretability/core/stats.py``.
+        path: A path such as ``aproject/core/stats.py``.
 
     Returns:
         The module's dotted name.
 
     Examples:
-        >>> module_name("openinterpretability/core/stats.py")
-        'openinterpretability.core.stats'
-        >>> module_name("openinterpretability/interference/__init__.py")
-        'openinterpretability.interference'
+        >>> module_name("aproject/core/stats.py")
+        'aproject.core.stats'
+        >>> module_name("aproject/interference/__init__.py")
+        'aproject.interference'
     """
     parts = Path(path).with_suffix("").parts
     return ".".join(parts[:-1] if parts[-1] == "__init__" else parts)
@@ -267,7 +267,7 @@ def imports(text: str, module: str) -> bool:
     """Whether a test file's ``text`` imports ``module`` or names it.
 
     A file counts when it names the module's dotted path. It also counts when it imports the
-    module's last part from its package, as in ``from openinterpretability.core import stats``.
+    module's last part from its package, as in ``from aproject.core import stats``.
 
     Args:
         text: The test file's source.
@@ -312,8 +312,9 @@ def copied(root: Path = Path(".")) -> list[str]:
     """What mutmut copies beside the package, so that any selected test finds its files.
 
     The fixed config copies only what the verdict tests read. A changed file can bring in
-    any test, so this copies every tracked top-level entry but those in :data:`NOT_COPIED`.
-    It copies ``wiki/`` entry by entry for the same reason.
+    any test, so this copies every tracked top-level entry but the ones that
+    ``mutation_paths.not_copied`` names. A folder that holds a left-out path is copied entry
+    by entry, for the same reason.
 
     Args:
         root: The repository's root.
@@ -321,14 +322,17 @@ def copied(root: Path = Path(".")) -> list[str]:
     Returns:
         The paths, relative to ``root``.
     """
-    top = [
+    skip = not_copied(root)
+    parents = {s.split("/")[0] for s in skip if "/" in s}  # copied entry by entry
+    top = [n for n in _git(root, "ls-tree", "--name-only", "HEAD") if n not in skip | parents]
+    inner = [
         n
-        for n in _git(root, "ls-tree", "--name-only", "HEAD")
-        if n not in NOT_COPIED and n != "wiki"
+        for parent in sorted(parents)
+        for n in _git(root, "ls-tree", "--name-only", "HEAD", f"{parent}/")
+        if n not in skip
     ]
-    wiki = [n for n in _git(root, "ls-tree", "--name-only", "HEAD", "wiki/") if n not in NOT_COPIED]
-    # mutmut copies a file into an existing folder only, so the wiki's folders go first.
-    return top + sorted(wiki, key=lambda n: not (root / n).is_dir())
+    # mutmut copies a file into an existing folder only, so those folders go first.
+    return top + sorted(inner, key=lambda n: not (root / n).is_dir())
 
 
 def override(only_mutate: list[str], selection: list[str], also_copy: list[str]) -> None:

@@ -6,8 +6,8 @@ state; the clock never decides that. The first run, with no state, records every
 the feeds and posts nothing. So a new poster doesn't post fifty old entries at once. A feed
 that is new to the state seeds the same way, so adding a feed posts nothing old (#5533).
 
-- Each published paper and each site post gets its own post (#5533). VERIFIED units don't
-  post.
+- Each published paper and each site post gets its own post (#5533). Nothing else on the
+  site posts.
 - An entry with a thread (``thread.yaml``, #5833) posts it as one unit: each tweet replies
   to the one before. The state keeps the ids of the tweets posted so far, so a run after a
   failure goes on from the next tweet. It never posts a tweet twice, and the entry counts
@@ -227,7 +227,7 @@ def run(state_path: Path, feeds: dict[str, list[Entry]],
     Examples:
         >>> import tempfile
         >>> path = Path(tempfile.mkdtemp()) / "x.json"
-        >>> paper = Entry("p1", "A bracket neuron", "https://x.org/p", "It reads brackets.")
+        >>> paper = Entry("p1", "A bracket reader", "https://x.org/p", "It reads brackets.")
         >>> run(path, {"papers": [paper]}, lambda text, media: "42", now=0)  # the first run
         ['seeded 1 entries; posted nothing']
         >>> new = Entry("s1", "Hello", "https://x.org/s", "The first post.")

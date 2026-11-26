@@ -1,0 +1,1 @@
+- Ruff, coverage, diff-cover and PyMarkdown read their own files (`ruff.toml`, `.coveragerc`, `.diff-cover.toml`, `.pymarkdown.yml`), which hold no value of a project. Make and CI name the packages for coverage from `PACKAGES` (#6630).

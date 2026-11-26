@@ -1,0 +1,292 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 337" width="760" height="337" role="img">
+<title>A grid of 176 cells, in rows of 38. The frames step through 10 facts. No cell among the first 89 ever flips. Above them, each edit flips a few cells.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+@keyframes frame0{0%{opacity:0}0.0%{opacity:1}10.0%{opacity:0}100%{opacity:0}}.frame0{animation:frame0 10s step-end infinite;opacity:0}@keyframes frame1{0%{opacity:0}10.0%{opacity:1}20.0%{opacity:0}100%{opacity:0}}.frame1{animation:frame1 10s step-end infinite;opacity:0}@keyframes frame2{0%{opacity:0}20.0%{opacity:1}30.0%{opacity:0}100%{opacity:0}}.frame2{animation:frame2 10s step-end infinite;opacity:0}@keyframes frame3{0%{opacity:0}30.0%{opacity:1}40.0%{opacity:0}100%{opacity:0}}.frame3{animation:frame3 10s step-end infinite;opacity:0}@keyframes frame4{0%{opacity:0}40.0%{opacity:1}50.0%{opacity:0}100%{opacity:0}}.frame4{animation:frame4 10s step-end infinite;opacity:0}@keyframes frame5{0%{opacity:0}50.0%{opacity:1}60.0%{opacity:0}100%{opacity:0}}.frame5{animation:frame5 10s step-end infinite;opacity:0}@keyframes frame6{0%{opacity:0}60.0%{opacity:1}70.0%{opacity:0}100%{opacity:0}}.frame6{animation:frame6 10s step-end infinite;opacity:0}@keyframes frame7{0%{opacity:0}70.0%{opacity:1}80.0%{opacity:0}100%{opacity:0}}.frame7{animation:frame7 10s step-end infinite;opacity:0}@keyframes frame8{0%{opacity:0}80.0%{opacity:1}90.0%{opacity:0}100%{opacity:0}}.frame8{animation:frame8 10s step-end infinite;opacity:0}@keyframes frame9{0%{opacity:0}90.0%{opacity:1}100%{opacity:1}}.frame9{animation:frame9 10s step-end infinite;opacity:1}</style>
+<rect class="bg" width="760" height="337" rx="10"/>
+<text x="20.0" y="30.0" class="title">Each edit flips a few poles above layer 2,</text>
+<text x="20.0" y="53.0" class="title">and none at or below it</text>
+<text x="20.0" y="73.0" class="sub">Each cell is one of pythia-70m&#x27;s 176 VERIFIED poles, by layer, nearest a gate first within each.</text>
+<text x="20.0" y="91.0" class="sub">The first 89 cells are layers 0 to 2. Circles flip under ROME, triangles under the random edit.</text>
+<rect class="fneutral soft" x="40.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="58.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="76.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="94.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="112.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="130.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="148.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="166.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="184.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="202.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="220.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="238.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="256.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="274.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="292.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="310.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="328.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="346.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="364.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="382.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="400.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="418.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="436.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="454.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="472.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="490.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="508.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="526.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="544.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="562.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="580.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="598.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="616.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="634.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="652.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="670.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="688.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="706.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="40.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="58.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="76.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="94.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="112.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="130.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="148.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="166.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="184.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="202.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="220.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="238.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="256.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="274.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="292.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="310.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="328.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="346.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="364.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="382.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="400.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="418.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="436.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="454.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="472.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="490.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="508.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="526.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="544.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="562.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="580.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="598.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="616.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="634.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="652.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="670.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="688.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="706.0" y="167.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="40.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="58.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="76.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="94.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="112.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="130.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="148.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="166.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="184.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="202.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="220.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="238.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fneutral soft" x="256.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="274.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="292.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="310.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="328.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="346.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="364.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="382.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="400.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="418.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="436.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="454.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="472.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="490.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="508.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="526.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="544.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="562.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="580.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="598.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="616.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="634.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="652.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="670.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="688.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="706.0" y="185.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="40.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="58.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="76.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="94.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="112.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="130.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="148.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="166.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="184.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="202.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="220.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="238.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="256.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="274.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="292.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="310.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="328.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="346.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="364.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="382.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="400.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="418.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="436.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="454.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="472.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="490.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="508.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="526.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="544.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="562.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="580.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="598.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="616.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="634.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="652.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="670.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="688.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="706.0" y="203.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="40.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="58.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="76.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="94.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="112.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="130.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="148.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="166.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="184.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="202.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="220.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="238.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="256.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="274.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="292.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="310.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="328.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="346.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="364.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="382.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="400.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="418.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="436.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<rect class="fwash" x="454.0" y="221.0" width="15.0" height="15.0" rx="1.5"/>
+<text x="40.0" y="137.0" class="head frame0">fact 1: ROME flips 2, random 7</text>
+<circle class="fc1 frame0" cx="368.5" cy="192.5" r="4.0"/>
+<path class="fc2 frame0" d="M374.5 187.7L379.3 196.3L369.7 196.3Z"/>
+<path class="fc2 frame0" d="M194.5 205.7L199.3 214.3L189.7 214.3Z"/>
+<path class="fc2 frame0" d="M410.5 205.7L415.3 214.3L405.7 214.3Z"/>
+<circle class="fc1 frame0" cx="422.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame0" d="M428.5 205.7L433.3 214.3L423.7 214.3Z"/>
+<path class="fc2 frame0" d="M500.5 205.7L505.3 214.3L495.7 214.3Z"/>
+<path class="fc2 frame0" d="M50.5 223.7L55.3 232.3L45.7 232.3Z"/>
+<path class="fc2 frame0" d="M122.5 223.7L127.3 232.3L117.7 232.3Z"/>
+<text x="40.0" y="137.0" class="head frame1">fact 2: ROME flips 4, random 4</text>
+<path class="fc2 frame1" d="M320.5 187.7L325.3 196.3L315.7 196.3Z"/>
+<circle class="fc1 frame1" cx="494.5" cy="192.5" r="4.0"/>
+<circle class="fc1 frame1" cx="152.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame1" d="M158.5 205.7L163.3 214.3L153.7 214.3Z"/>
+<circle class="fc1 frame1" cx="170.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame1" d="M176.5 205.7L181.3 214.3L171.7 214.3Z"/>
+<circle class="fc1 frame1" cx="206.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame1" d="M212.5 205.7L217.3 214.3L207.7 214.3Z"/>
+<text x="40.0" y="137.0" class="head frame2">fact 3: ROME flips 2, random 4</text>
+<circle class="fc1 frame2" cx="278.5" cy="192.5" r="4.0"/>
+<path class="fc2 frame2" d="M194.5 205.7L199.3 214.3L189.7 214.3Z"/>
+<path class="fc2 frame2" d="M212.5 205.7L217.3 214.3L207.7 214.3Z"/>
+<circle class="fc1 frame2" cx="314.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame2" d="M356.5 205.7L361.3 214.3L351.7 214.3Z"/>
+<path class="fc2 frame2" d="M122.5 223.7L127.3 232.3L117.7 232.3Z"/>
+<text x="40.0" y="137.0" class="head frame3">fact 4: ROME flips 2, random 1</text>
+<circle class="fc1 frame3" cx="368.5" cy="192.5" r="4.0"/>
+<path class="fc2 frame3" d="M194.5 205.7L199.3 214.3L189.7 214.3Z"/>
+<circle class="fc1 frame3" cx="206.5" cy="210.5" r="4.0"/>
+<text x="40.0" y="137.0" class="head frame4">fact 5: ROME flips 4, random 6</text>
+<path class="fc2 frame4" d="M356.5 187.7L361.3 196.3L351.7 196.3Z"/>
+<path class="fc2 frame4" d="M374.5 187.7L379.3 196.3L369.7 196.3Z"/>
+<circle class="fc1 frame4" cx="206.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame4" d="M212.5 205.7L217.3 214.3L207.7 214.3Z"/>
+<circle class="fc1 frame4" cx="278.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame4" d="M284.5 205.7L289.3 214.3L279.7 214.3Z"/>
+<path class="fc2 frame4" d="M320.5 205.7L325.3 214.3L315.7 214.3Z"/>
+<circle class="fc1 frame4" cx="422.5" cy="210.5" r="4.0"/>
+<circle class="fc1 frame4" cx="62.5" cy="228.5" r="4.0"/>
+<path class="fc2 frame4" d="M194.5 223.7L199.3 232.3L189.7 232.3Z"/>
+<text x="40.0" y="137.0" class="head frame5">fact 6: ROME flips 4, random 3</text>
+<circle class="fc1 frame5" cx="278.5" cy="192.5" r="4.0"/>
+<path class="fc2 frame5" d="M500.5 187.7L505.3 196.3L495.7 196.3Z"/>
+<circle class="fc1 frame5" cx="170.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame5" d="M194.5 205.7L199.3 214.3L189.7 214.3Z"/>
+<circle class="fc1 frame5" cx="278.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame5" d="M320.5 205.7L325.3 214.3L315.7 214.3Z"/>
+<circle class="fc1 frame5" cx="116.5" cy="228.5" r="4.0"/>
+<text x="40.0" y="137.0" class="head frame6">fact 7: ROME flips 1, random 3</text>
+<circle class="fc1 frame6" cx="368.5" cy="192.5" r="4.0"/>
+<path class="fc2 frame6" d="M212.5 205.7L217.3 214.3L207.7 214.3Z"/>
+<path class="fc2 frame6" d="M536.5 205.7L541.3 214.3L531.7 214.3Z"/>
+<path class="fc2 frame6" d="M50.5 223.7L55.3 232.3L45.7 232.3Z"/>
+<text x="40.0" y="137.0" class="head frame7">fact 8: ROME flips 3, random 4</text>
+<circle class="fc1 frame7" cx="314.5" cy="192.5" r="4.0"/>
+<path class="fc2 frame7" d="M320.5 187.7L325.3 196.3L315.7 196.3Z"/>
+<circle class="fc1 frame7" cx="206.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame7" d="M284.5 205.7L289.3 214.3L279.7 214.3Z"/>
+<path class="fc2 frame7" d="M320.5 205.7L325.3 214.3L315.7 214.3Z"/>
+<path class="fc2 frame7" d="M428.5 205.7L433.3 214.3L423.7 214.3Z"/>
+<circle class="fc1 frame7" cx="62.5" cy="228.5" r="4.0"/>
+<text x="40.0" y="137.0" class="head frame8">fact 9: ROME flips 3, random 5</text>
+<circle class="fc1 frame8" cx="368.5" cy="192.5" r="4.0"/>
+<path class="fc2 frame8" d="M500.5 187.7L505.3 196.3L495.7 196.3Z"/>
+<circle class="fc1 frame8" cx="206.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame8" d="M212.5 205.7L217.3 214.3L207.7 214.3Z"/>
+<path class="fc2 frame8" d="M266.5 205.7L271.3 214.3L261.7 214.3Z"/>
+<circle class="fc1 frame8" cx="422.5" cy="210.5" r="4.0"/>
+<path class="fc2 frame8" d="M176.5 223.7L181.3 232.3L171.7 232.3Z"/>
+<path class="fc2 frame8" d="M302.5 223.7L307.3 232.3L297.7 232.3Z"/>
+<text x="40.0" y="137.0" class="head frame9">fact 10: ROME flips 0, random 3</text>
+<path class="fc2 frame9" d="M320.5 187.7L325.3 196.3L315.7 196.3Z"/>
+<path class="fc2 frame9" d="M374.5 187.7L379.3 196.3L369.7 196.3Z"/>
+<path class="fc2 frame9" d="M194.5 205.7L199.3 214.3L189.7 214.3Z"/>
+<text x="40.0" y="259.0" class="small">Shaded cells are layers 0 to 2, which the edit cannot change.</text>
+<circle class="fc1" cx="25.0" cy="285.0" r="5"/>
+<text x="35.0" y="289.0">ROME edit</text>
+<path class="fc2" d="M112.6 279.0L118.6 289.8L106.6 289.8Z"/>
+<text x="122.6" y="289.0">random rank-one edit, same norm</text>
+</svg>
