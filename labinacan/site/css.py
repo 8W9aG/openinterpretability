@@ -28,6 +28,8 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
+from labinacan import config as project
+
 VERSION = "3.4.16"
 STYLESHEET = "assets/site.css"
 COLUMN_REM = 60
@@ -159,3 +161,27 @@ def main(colours: dict[str, str], cache: Path) -> None:
     args = parser.parse_args()
     out = build(args.site, args.cache, colours)
     print(f"Wrote {out} ({out.stat().st_size:,} bytes)")
+
+
+def accent_colours() -> dict[str, str]:
+    """The project's accent shades as Tailwind colours, ``brand-<shade>`` (#6631).
+
+    A project with no build of its own (``labinacan/site/build.py``) gets its stylesheet's
+    colours from here, so it needs no palette module.
+
+    Returns:
+        ``{"brand-400": hex, ...}``, from ``[tool.labinacan.brand] accent``, or ``{}``.
+
+    Examples:
+        >>> all(name.startswith("brand-") for name in accent_colours())
+        True
+    """
+    brand = project.config().brand
+    return {
+        f"brand-{shade}": hex_colour
+        for shade, hex_colour in (brand.accent if brand else {}).items()
+    }
+
+
+if __name__ == "__main__":
+    main(accent_colours(), Path.home() / ".cache" / project.config().command / "tailwind")

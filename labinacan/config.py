@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import shlex
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from email.utils import parseaddr
 from functools import cache
 from pathlib import Path
@@ -35,6 +35,9 @@ class Brand:
     # The mark's cells, each (column, row, share filled, colour name). An empty cell has
     # share 0 and colour "".
     cells: tuple[tuple[int, int, float, str], ...]
+    # The accent's shades, by Tailwind's numbers ("400": "#34d399"), for the pages' links
+    # and highlights (#6631). A project with its own stylesheet colours leaves it empty.
+    accent: dict[str, str] = field(default_factory=dict)
 
 
 def brand_of(table: dict | None) -> Brand | None:
@@ -60,6 +63,7 @@ def brand_of(table: dict | None) -> Brand | None:
         folder=table["folder"], tile=table["tile"], ink=dict(table["ink"]),
         colours=dict(table["colours"]),
         cells=tuple((col, row, thirds / 3, colour) for col, row, thirds, colour in table["cells"]),
+        accent={str(k): v for k, v in table.get("accent", {}).items()},
     )  # fmt: skip
 
 

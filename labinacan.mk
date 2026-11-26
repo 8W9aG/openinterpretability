@@ -5,9 +5,12 @@
 #   PACKAGES      its Python packages, for vulture, interrogate and Vale.
 #   TEST_WRAPPER  a command that each test run goes through, or nothing.
 #   BUILD_COMMAND the command that builds the site into $(DIST_DIR). It should start with
-#                 $(BUILD_WRAPPER), which CI sets to a memory cap.
+#                 $(BUILD_WRAPPER), which CI sets to a memory cap. Default: labinacan's
+#                 build (labinacan/site/build.py, #6631).
 #   CACHE_DIR_COMMAND  a command that prints the project's cache folder, for CI's caches.
-#   CSS_MODULE    the module that writes the site's stylesheet.
+#                 Default: ~/.cache/<the project's command>.
+#   CSS_MODULE    the module that writes the site's stylesheet. Default: labinacan's, in
+#                 the accent of [tool.labinacan.brand].
 #   PROJECT_LINT  a target of its own checks, which `lint` runs, or nothing.
 #
 # This file holds no value of a project, so a project can take a new copy of it with no
@@ -24,6 +27,10 @@ endif
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
+BUILD_COMMAND ?= $(BUILD_WRAPPER) uv run python -m labinacan.site.build --output-dir $(DIST_DIR)
+CACHE_DIR_COMMAND ?= uv run python -c \
+	"from pathlib import Path; from labinacan.config import config; print(Path.home() / '.cache' / config().command)"
+CSS_MODULE ?= labinacan.site.css
 
 # Reinstalls the project's own distribution. After a rename of the distribution (#3251), a
 # plain sync removed its command with the old one.
