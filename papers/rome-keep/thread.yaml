@@ -1,0 +1,25 @@
+# The paper's X thread (labinacan/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Which neuron explanations survive a ROME edit? We inserted 10 unrelated facts into
+    pythia-70m at layer 2, one at a time, and ran each of 176 VERIFIED explanations' probes
+    again. {link}
+  media: [keep]
+- section: Do the edits work, and do the poles below them stay as they were?
+  text: >-
+    A ROME edit changes no input weight, so no pole at or below its layer can change. None
+    did: 1,780 readings, all as before. Nine of the ten edits inserted their fact.
+- section: Does a ROME edit break more explanations than a random edit of its size?
+  text: >-
+    Above the edit, ROME flipped 25 of 870 readings. Random rank-one edits of the same norm
+    flipped 40.
+  media: [flips]
+- section: Which poles flip?
+  text: >-
+    The poles that flip sat near a review gate, and under ROME their input weights face the
+    edit's write: AUROC 0.67, p = 0.0009 under a within-layer shuffle.
+- section: Conclusion
+  text: >-
+    A ROME edit of one fact breaks no more explanations than a random change of its size. The
+    few it breaks sat near a gate. {link}

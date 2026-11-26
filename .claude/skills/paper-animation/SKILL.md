@@ -9,13 +9,15 @@ A figure moves when its argument is about **change, order or cause**. The motion
 
 ## Choose the form
 
+[`project.md`](project.md) gives a paper of this project for each form (#6631).
+
 | Pattern | When | Example |
 | --- | --- | --- |
-| **Change through training** | Points or curves change across checkpoints or steps | `neuron-development/media/development.svg`: each pole's dot steps through 20 checkpoints beside the loss. `spd-input-projections/media/training.svg`. |
-| **Reading along a sequence** | A unit's activation token by token | `syntax-positive-controls/media/trace.svg`: a caret moves across the tokens and lights each one at its activation. |
+| **Change through training** | Points or curves change across checkpoints or steps | Each point steps through the checkpoints beside the loss. |
+| **Reading along a sequence** | A unit's activation token by token | A caret moves across the tokens and lights each one at its activation. |
 | **Before and after an intervention** | An ablation, a clamp or a patch moves a distribution or the logits | Morph from the clean state to the intervened one, and label both. |
-| **Two states compared** | Two conditions of one measure | `default-on-poles/media/ridges.svg`: each layer's curve morphs between random init and trained. |
-| **Build-up** | The argument assembles from parts | `native-vs-learned/media/shares.svg`: the arms appear one at a time. `explanations-across-models/media/transfer.svg`: each class's studies appear, then its median. `why-neurons-rest/media/long-run.svg`. |
+| **Two states compared** | Two conditions of one measure | Each curve morphs between the two conditions. |
+| **Build-up** | The argument assembles from parts | The arms appear one at a time, or each group's points appear, then its median. |
 | **Steering** | Generated text changes as a clamp rises | Show the text token by token while a counter names the clamp value. |
 
 Don't animate a chart that has no order, such as a bar chart of categories. Don't spin or pulse a figure, and don't add motion for decoration.
