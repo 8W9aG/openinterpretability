@@ -3,7 +3,7 @@
 It prints these rows:
 
 * ``curve``: for each sequence and checkpoint, the poles above the edit layer that keep,
-  with a Wilson interval, the weight distance, the loss and the retention.
+  with a Wilson interval. The row also gives the weight distance, the loss and the retention.
 * ``paired``: at each checkpoint, ROME against the random sequence over the same poles, as
   discordant counts with an exact McNemar test.
 * ``rate``: between checkpoints, the poles lost per unit of weight distance. A gradual

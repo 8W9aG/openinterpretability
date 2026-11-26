@@ -8,9 +8,9 @@ random rank-one updates, the n-th with the norm of the n-th ROME edit.
 
 At the base and after each count of edits in :data:`CHECKPOINTS`, a ``checkpoint`` row gives:
 
-* the keep test of every VERIFIED pole (``random_delta_keep``'s batched readings);
-* the edited layer's normalised weight distance ‖W_n − W_0‖ / ‖W_0‖;
-* the share of the edits so far whose new object is the top prediction (retention);
+* the keep test of every VERIFIED pole, with ``random_delta_keep``'s batched readings.
+* the edited layer's normalised weight distance ‖W_n − W_0‖ / ‖W_0‖.
+* the share of the edits so far whose new object is the top prediction (retention).
 * the language-model loss on the corpus sample.
 
 A ``pole`` row for each pole and checkpoint gives its readings::
