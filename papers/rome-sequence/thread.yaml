@@ -1,0 +1,30 @@
+# The paper's X thread (labinacan/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Sequential model edits are known to end in collapse. What happens to the explanations of
+    single neurons on the way? We made 100 ROME edits in turn at one layer of pythia-70m and
+    re-tested 180 VERIFIED explanations. {link}
+  media: [decay]
+- section: Do the explanations below the edit stay as they were?
+  text: >-
+    A check first: all 92 explanations at or below the edited layer kept at every step, as
+    the edit's form requires.
+- section: How do the explanations above the edit fail?
+  text: >-
+    Above it, the 88 explanations fade steadily with the layer's weight distance, as
+    88·exp(−0.24·d), R² 0.98. Each one's risk of failing is about constant per unit of
+    change: no threshold.
+- section: Is a ROME sequence gentler than random edits of its size?
+  text: >-
+    Random rank-one edits of the same norms erase them faster (rate 0.34). From 3 to 30
+    edits, ROME keeps 13 to 26 more explanations over the same poles.
+- section: How do the edits change along the sequence?
+  text: >-
+    The edits grow: a mean norm of 6.2 over the first five, then 26.3. The loss rises from
+    3.45 to 12.78. The apparent speed-up is the edits getting larger.
+  media: [edits]
+- section: Conclusion
+  text: >-
+    In this small model, explanations above an edit fail in step with the accumulated weight
+    change, and ROME is gentler on them than random changes of its size. {link}
