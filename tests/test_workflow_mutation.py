@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 
-CI = Path(__file__).parents[1] / ".github" / "workflows" / "ci.yml"
+CI = Path(__file__).parents[1] / ".github" / "workflows" / "labinacan-ci.yml"  # #6630
 
 
 def _job() -> dict:
