@@ -1,0 +1,106 @@
+"""The helpers of scripts/traffic_map.py and scripts/traffic_stats.py (#5231)."""
+
+import sys
+from pathlib import Path
+
+import pytest
+import torch
+
+sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
+
+import traffic_map as tm  # noqa: E402
+import traffic_stats as ts  # noqa: E402
+
+
+def _tiny():
+    from transformers import GPTNeoXConfig, GPTNeoXForCausalLM
+
+    torch.manual_seed(0)
+    config = GPTNeoXConfig(vocab_size=20, hidden_size=16, num_hidden_layers=2,
+                           num_attention_heads=4, intermediate_size=32,
+                           max_position_embeddings=16)  # fmt: skip
+    return GPTNeoXForCausalLM(config).eval()
+
+
+def test_every_neuron_write_and_head_is_a_site():
+    model = _tiny()
+    sites = tm.site_params(model)
+    assert len(sites) == 2 * (32 + 4)
+    kind, layer, index, name, cols = sites[32]  # the first head of layer 0
+    assert (kind, layer, index) == ("head", 0, 0) and cols == slice(0, 4)
+    assert name == "gpt_neox.layers.0.attention.dense.weight"
+    assert sites[0][3] == "gpt_neox.layers.0.mlp.dense_4h_to_h.weight"
+
+
+def test_column_norms_by_neuron_and_by_head():
+    grad = torch.arange(24.0).reshape(3, 8)
+    assert torch.allclose(tm.column_norms(grad, "mlp", 0), grad.norm(dim=0))
+    heads = tm.column_norms(grad, "head", 2)
+    assert torch.allclose(heads, torch.stack([grad[:, :4].norm(), grad[:, 4:].norm()]))
+
+
+def test_the_score_reaches_only_writes_below_the_pole():
+    model = _tiny()
+    for p in model.parameters():
+        p.requires_grad_(False)
+    weights = tm.output_weights(model)
+    for w in weights.values():
+        w.requires_grad_(True)
+    torch.set_grad_enabled(True)
+    score = tm.peak_score(model, [[1, 2, 3], [4, 5]], 1, 3, "positive", False)
+    score.backward()
+    assert weights["mlp", 0].grad is not None and weights["head", 0].grad is not None
+    assert weights["mlp", 1].grad is None  # the pole's own layer's write doesn't reach it
+    assert tm.peak_score(model, [[1]], 1, 3, "positive", True) is None  # no token after the first
+
+
+def test_a_change_has_the_norm_and_touches_only_the_site():
+    model = _tiny()
+    row = {"param": "gpt_neox.layers.1.attention.dense.weight", "start": 4, "stop": 8}
+    change = tm.site_change(model, row, 2.5, seed=1)[row["param"]]
+    assert float(change.norm()) == pytest.approx(2.5)
+    assert float(change[:, :4].abs().sum()) == 0 and float(change[:, 8:].abs().sum()) == 0
+    again = tm.site_change(model, row, 2.5, seed=1)[row["param"]]
+    assert torch.equal(change, again)
+
+
+def test_sites_are_sampled_by_decile_of_traffic_with_every_head():
+    rows = [{"kind": "mlp", "traffic": float(i)} for i in range(100)]
+    rows += [{"kind": "head", "traffic": 0.0} for _ in range(3)]
+    got = tm.sample_sites(rows, per_decile=2, seed=1)
+    assert len(got) == 2 * 10 + 3
+    deciles = [int(r["traffic"]) // 10 for r in got if r["kind"] == "mlp"]
+    assert deciles == sorted(deciles) and set(deciles) == set(range(10))
+
+
+def test_ranks_and_spearman():
+    assert ts.ranks([3.0, 1.0, 1.0, 2.0]) == [4.0, 1.5, 1.5, 3.0]
+    assert ts.spearman([1, 2, 3], [10, 20, 30]) == pytest.approx(1.0)
+    assert ts.spearman([1, 2, 3], [3, 2, 1]) == pytest.approx(-1.0)
+    assert ts.spearman([1, 1, 1], [1, 2, 3]) is None
+
+
+def _site(kind, layer, index, traffic, weight_norm=0.5):
+    return {"table": "site", "kind": kind, "layer": layer, "index": index, "traffic": traffic,
+            "unweighted": traffic, "count": 1, "loss_fisher": 0.1,
+            "weight_norm": weight_norm}  # fmt: skip
+
+
+def test_tested_sites_join_the_map_and_the_measures():
+    rows = [_site("mlp", 2, 7, 3.0, 0.25),
+            {"table": "test", "kind": "mlp", "site_layer": 2, "index": 7, "flips": 4,
+             "mean_drift": 0.01}]  # fmt: skip
+    (got,) = ts.tested_sites(rows)
+    assert got["traffic"] == 3.0 and got["inverse_weight_norm"] == 4.0 and got["flips"] == 4
+
+
+def test_correlation_of_a_perfect_predictor():
+    sites = [{"traffic": float(i), "flips": i * 2} for i in range(12)]
+    got = ts.correlation(sites, "traffic", "flips")
+    assert got["rho"] == 1.0 and got["shuffle_p"] < 0.01 and got["ci95"][0] == 1.0
+
+
+def test_known_cases_rank_the_copy_heads():
+    rows = [_site("head", layer, h, float(10 * layer + h)) for layer in range(6) for h in range(8)]
+    got = ts.known_cases(rows)
+    assert got["heads"] == 48 and got["copy_head_ranks"]["L4/H7"] == 9
