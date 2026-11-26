@@ -3,11 +3,21 @@
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 _SPEC = importlib.util.spec_from_file_location(
     "a11y_check", Path(__file__).parents[1] / "scripts" / "a11y_check.py"
 )
 a11y = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(a11y)
+
+
+@pytest.fixture(autouse=True)
+def model_pages(monkeypatch):
+    """A project whose own kinds of page are models, layers, units and experiments."""
+    kinds = ("models/*/index.html", "models/*/L*/index.html", "models/*/L*/N*.html",
+             "models/*/L*/N*-*/*.html")  # fmt: skip
+    monkeypatch.setattr(a11y, "a11y_pages", lambda root: kinds)
 
 
 def touch(root, *paths):
@@ -68,3 +78,13 @@ def test_axe_source_refuses_a_file_with_the_wrong_hash(tmp_path):
     else:
         raise AssertionError("a file with the wrong hash was accepted")
     assert not (tmp_path / f"axe-{a11y.AXE_VERSION}.min.js").exists()
+
+
+def test_a_site_must_have_a_page_of_each_kind(tmp_path):
+    # #6631: the home page, Research and each project kind, checked against the site itself.
+    touch(tmp_path, "research/index.html", "models/a/index.html", "models/a/L2/index.html")
+    assert a11y.missing_kinds(tmp_path) == [
+        "index.html", "models/*/L*/N*.html", "models/*/L*/N*-*/*.html"
+    ]  # fmt: skip
+    touch(tmp_path, "index.html", "models/a/L2/N7.html", "models/a/L2/N7-positive/e.html")
+    assert a11y.missing_kinds(tmp_path) == []

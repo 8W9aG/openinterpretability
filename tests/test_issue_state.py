@@ -66,16 +66,15 @@ def test_an_edit_by_someone_else_after_the_thumbs_up_needs_a_new_approval(monkey
 
 def test_titles_are_read_from_the_configured_workflows_only():
     # Each listed workflow exists and names its titles in TITLE: lines. Others are not read.
-    assert issue_state.AUTOMATIC_WORKFLOWS and all(
-        w.exists() for w in issue_state.AUTOMATIC_WORKFLOWS
-    )
+    # A project may list none.
+    assert all(w.exists() for w in issue_state.AUTOMATIC_WORKFLOWS)
 
     def titles(path: Path) -> set[str]:
         lines = (line.strip() for line in path.read_text().splitlines())
         return {line.removeprefix("TITLE:").strip() for line in lines if line.startswith("TITLE:")}
 
     listed = set().union(*(titles(w) for w in issue_state.AUTOMATIC_WORKFLOWS))
-    assert issue_state.automatic_titles() == listed and listed
+    assert issue_state.automatic_titles() == listed
     others = set(issue_state.WORKFLOWS.glob("*.yml")) - set(issue_state.AUTOMATIC_WORKFLOWS)
     assert not issue_state.automatic_titles() & set().union(*(titles(w) for w in others))
 

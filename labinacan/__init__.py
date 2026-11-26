@@ -5,3 +5,5 @@ keeps its own research code beside it (#6207). This repository is one such proje
 ``labinacan/`` sits at the path it has in labinacan's own repository, so that this
 repository can merge from it. It imports nothing from the project around it.
 """
+
+__version__ = "0.1.0"
