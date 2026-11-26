@@ -2,7 +2,7 @@
 
 Training moves most of GPT-2's neurons to a median pre-activation $h$ of about −1, as [the paper on default-on negative poles](../default-on-poles/README.md) found. That is below GELU's minimum at −0.75. That paper also found that the input weights do this. It did not find why. This paper trains small GPT-2s and changes one thing at a time. It finds a small push on each neuron's rest that is steady over many steps, and that the optimizer's step size sets how far the push takes the rest.
 
-**Status:** Preprint. Work left: #6785 and #6806 (the causes of the push that are still open).
+**Status:** Preprint. Work left: #6806 (the causes of the push that are still open).
 
 ## Introduction
 
@@ -503,6 +503,11 @@ for SEED in 0 1; do  # Table 25 and Figure 10, on an Apple GPU (#6465)
   uv run python scripts/train_resting.py train --seed $SEED --steps 1000 --part training_norm_pairs \
       --push-part push_norm_pairs --spread-bins --device mps $C $T
 done
+for SEED in 0 1; do  # Table 25's every-ln_1 and every-ln_2 rows, on an Apple GPU (#6785)
+  uv run python scripts/train_resting.py train --seed $SEED --steps 1000 --part training_norm_sets \
+      --push-part push_norm_sets --spread-bins --device mps --condition gelu_final_all_ln1_dropout_0 \
+      --condition gelu_final_all_ln2_dropout_0 $T
+done
 for C in dropout_0 relu_dropout_0; do
   uv run python scripts/train_resting.py train --seed 0 --condition $C --steps 2000 \
       --part training_calib --push-part push_calib --save-every 250 --save-dir ckpt $T
@@ -678,11 +683,13 @@ For GELU and SiLU, the output's push points up on 68%–90% of neurons below −
 
 Centring only the final norm, with no dropout, weakens the pattern: 56%–63% of neurons below −0.25 have an up push. Centring every norm does not weaken it. At step 1,000 both conditions have a higher loss than GELU, 6.37–6.45 against 6.20–6.21, by about the same amount. So the loss does not explain the difference.
 
-No single block norm brings the pattern back (#6465). Runs labelled `training_norm_pairs` centre the final norm and one block norm, for each of the eight, with no dropout. They also repeat the final-only and every-norm conditions on the same machine, an Apple GPU, and match Table 23 to 0.01. Adding a block norm before attention (`ln_1`) leaves the shares at or below the final-only level. Adding one before the MLP (`ln_2`) lifts the −1.5 to −0.75 bin most: to 0.72 at L1, 0.71 at L2 and 0.67 at L3, from 0.60. Every norm centred gives 0.88. The seeds differ by up to 0.11 in a bin, so even that lift is small. So the restoration needs several block norms, mostly the MLP's. The losses lie between 6.32 and 6.54, near the reference conditions', so they do not explain the shares. #6785 tests the final norm with all four `ln_2` against all four `ln_1`.
+No single block norm brings the pattern back (#6465). Runs labelled `training_norm_pairs` centre the final norm and one block norm, for each of the eight, with no dropout. They also repeat the final-only and every-norm conditions on the same machine, an Apple GPU, and match Table 23 to 0.01. Adding a block norm before attention (`ln_1`) leaves the shares at or below the final-only level. Adding one before the MLP (`ln_2`) lifts the −1.5 to −0.75 bin most: to 0.72 at L1, 0.71 at L2 and 0.67 at L3, from 0.60. Every norm centred gives 0.88. The seeds differ by up to 0.11 in a bin, so even that lift is small. So the restoration needs several block norms, mostly the MLP's. The losses lie between 6.32 and 6.54, near the reference conditions', so they do not explain the shares.
+
+The four norms before the MLP together bring the pattern back (#6785). Runs labelled `training_norm_sets` centre the final norm with all four `ln_2`, or with all four `ln_1`, with no dropout, on the same machine. With every `ln_2`, the −1.5 to −0.75 bin reaches 0.85, against 0.88 with every norm. The other bins are within 0.05 of the every-norm row too. With every `ln_1`, that bin stays at 0.63, near the final-only level of 0.60, and the −0.75 to −0.25 bin falls to 0.49. The two seeds agree to 0.03 with every `ln_2` and to 0.06 with every `ln_1`. So the up push below the rest comes from centring the norms before the MLP, as a set. No single one of them is enough. The loss with every `ln_2` is 6.54, the highest in Table 25, and with every `ln_1` it is 6.33, the lowest. A lower loss does not go with more up push here.
 
 ![Each condition's share of neurons with an up push below the rest, for each seed.](media/norm-pairs.svg)
 
-**Figure 10.** The share of GELU neurons whose output's push points up below h = −0.25, a mean over its three bins, L1–L3 and steps 201–1,000. One row per condition, one mark per seed.
+**Figure 10.** The share of GELU neurons whose output's push points up below h = −0.25, a mean over its three bins, L1–L3 and steps 201–1,000. One row per condition, one mark per seed. The last three rows centre every `ln_1`, every `ln_2` and every norm, with the final norm.
 
 | Centred, no dropout | Below −1.5 | −1.5 to −0.75 | −0.75 to −0.25 | −0.25 to 0.25 | Loss at step 1,000 |
 | --- | --- | --- | --- | --- | --- |
@@ -695,6 +702,8 @@ No single block norm brings the pattern back (#6465). Runs labelled `training_no
 | final + L2 `ln_2` | 0.61 | 0.71 | 0.62 | 0.32 | 6.39 |
 | final + L3 `ln_1` | 0.47 | 0.55 | 0.58 | 0.40 | 6.35 |
 | final + L3 `ln_2` | 0.59 | 0.67 | 0.54 | 0.34 | 6.32 |
+| final + every `ln_1` | 0.50 | 0.63 | 0.49 | 0.36 | 6.33 |
+| final + every `ln_2` | 0.73 | 0.85 | 0.69 | 0.18 | 6.54 |
 | every norm | 0.73 | 0.88 | 0.70 | 0.13 | 6.44 |
 
 **Table 25.** The share of neurons whose output's push points up, by bin of $h$, for each norm condition, as in Table 23. A mean over L1–L3, steps 201–1,000 and two seeds. The loss is the mean of the two seeds.

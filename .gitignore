@@ -237,3 +237,6 @@ hf_models/**/*.safetensors
 *.private.jsonl
 # mutmut's copy of the package (make mutation, #5763)
 mutants/
+
+# The token cache of scripts/train_resting.py (--cache tokens.pt), over 100 MB (#6785).
+/tokens.pt
