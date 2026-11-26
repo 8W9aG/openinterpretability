@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 405" width="760" height="405" role="img">
+<title>Two panels, drift and flips. Over all sites, traffic, its unweighted form and the count of poles reached reach ρ 0.66 to 0.93. Within layers, traffic and the loss Fisher reach 0.25 to 0.55, and the change&#x27;s relative size -0.17 to -0.04.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="405" rx="10"/>
+<text x="20.0" y="30.0" class="title">Much of what predicts the damage is depth;</text>
+<text x="20.0" y="53.0" class="title">within a layer, traffic and the loss Fisher predict it about as well</text>
+<text x="20.0" y="73.0" class="sub">Spearman&#x27;s ρ with each measure over the 108 sites of the even draw. A dot is ρ over all sites, with</text>
+<text x="20.0" y="91.0" class="sub">a 95% bootstrap interval. A ring is ρ within each kind and layer, which gives depth no credit.</text>
+<path class="grid" d="M200.0 155.0L200.0 285.0"/>
+<text x="200.0" y="300.0" class="small" text-anchor="middle">−0.5</text>
+<path class="grid" d="M273.3 155.0L273.3 285.0"/>
+<text x="273.3" y="300.0" class="small" text-anchor="middle">0.0</text>
+<path class="grid" d="M346.7 155.0L346.7 285.0"/>
+<text x="346.7" y="300.0" class="small" text-anchor="middle">0.5</text>
+<path class="grid" d="M420.0 155.0L420.0 285.0"/>
+<text x="420.0" y="300.0" class="small" text-anchor="middle">1.0</text>
+<text x="200.0" y="147.0" class="head">mean drift</text>
+<path class="dip" d="M273.3 155.0L273.3 285.0"/>
+<path class="line sc1" d="M372.8 168.0L403.7 168.0"/>
+<circle class="fc1 ring" cx="390.4" cy="168.0" r="4.5"/>
+<circle class="fc2 ring" cx="353.8" cy="168.0" r="4.5"/>
+<path class="line sc1" d="M382.7 194.0L407.8 194.0"/>
+<circle class="fc1 ring" cx="397.3" cy="194.0" r="4.5"/>
+<circle class="fc2 ring" cx="357.1" cy="194.0" r="4.5"/>
+<path class="line sc1" d="M403.8 220.0L414.2 220.0"/>
+<circle class="fc1 ring" cx="410.4" cy="220.0" r="4.5"/>
+<text x="424.0" y="224.0" class="small">flat</text>
+<path class="line sc1" d="M322.0 246.0L375.4 246.0"/>
+<circle class="fc1 ring" cx="351.4" cy="246.0" r="4.5"/>
+<circle class="fc2 ring" cx="338.0" cy="246.0" r="4.5"/>
+<path class="line sc1" d="M232.3 272.0L294.4 272.0"/>
+<circle class="fc1 ring" cx="260.6" cy="272.0" r="4.5"/>
+<circle class="fc2 ring" cx="247.9" cy="272.0" r="4.5"/>
+<text x="188.0" y="172.0" text-anchor="end">traffic</text>
+<text x="188.0" y="198.0" text-anchor="end">traffic, no use weight</text>
+<text x="188.0" y="224.0" text-anchor="end">poles reached (depth)</text>
+<text x="188.0" y="250.0" text-anchor="end">diagonal Fisher of the loss</text>
+<text x="188.0" y="276.0" text-anchor="end">change / weight norm</text>
+<path class="grid" d="M480.0 155.0L480.0 285.0"/>
+<text x="480.0" y="300.0" class="small" text-anchor="middle">−0.5</text>
+<path class="grid" d="M553.3 155.0L553.3 285.0"/>
+<text x="553.3" y="300.0" class="small" text-anchor="middle">0.0</text>
+<path class="grid" d="M626.7 155.0L626.7 285.0"/>
+<text x="626.7" y="300.0" class="small" text-anchor="middle">0.5</text>
+<path class="grid" d="M700.0 155.0L700.0 285.0"/>
+<text x="700.0" y="300.0" class="small" text-anchor="middle">1.0</text>
+<text x="480.0" y="147.0" class="head">flips</text>
+<path class="dip" d="M553.3 155.0L553.3 285.0"/>
+<path class="line sc1" d="M632.2 168.0L665.7 168.0"/>
+<circle class="fc1 ring" cx="650.7" cy="168.0" r="4.5"/>
+<circle class="fc2 ring" cx="590.3" cy="168.0" r="4.5"/>
+<path class="line sc1" d="M636.4 194.0L668.2 194.0"/>
+<circle class="fc1 ring" cx="654.3" cy="194.0" r="4.5"/>
+<circle class="fc2 ring" cx="581.2" cy="194.0" r="4.5"/>
+<path class="line sc1" d="M632.6 220.0L663.2 220.0"/>
+<circle class="fc1 ring" cx="649.5" cy="220.0" r="4.5"/>
+<text x="704.0" y="224.0" class="small">flat</text>
+<path class="line sc1" d="M608.9 246.0L652.7 246.0"/>
+<circle class="fc1 ring" cx="634.1" cy="246.0" r="4.5"/>
+<circle class="fc2 ring" cx="594.7" cy="246.0" r="4.5"/>
+<path class="line sc1" d="M491.3 272.0L549.9 272.0"/>
+<circle class="fc1 ring" cx="517.3" cy="272.0" r="4.5"/>
+<circle class="fc2 ring" cx="547.7" cy="272.0" r="4.5"/>
+<circle class="fc1" cx="25.0" cy="331.0" r="5"/>
+<text x="35.0" y="335.0">over all sites, with 95% interval</text>
+<circle class="fc2" cx="268.8" cy="331.0" r="5"/>
+<text x="278.8" y="335.0">within each kind and layer</text>
+<text x="20.0" y="357.0" class="small">flat: the count is the same for every site of a layer, so it has no rank within one.</text>
+</svg>

@@ -109,3 +109,17 @@ def test_the_module_prints_the_shell_lines_when_run(capsys):
 
     runpy.run_module("labinacan.config", run_name="__main__")
     assert capsys.readouterr().out.splitlines() == cfg.shell_lines(cfg.config())
+
+
+def test_a_project_with_no_x_account_has_no_handle(tmp_path, restore):
+    # #6631: the template's example project has no X account.
+    (tmp_path / "pyproject.toml").write_text(
+        PYPROJECT.replace('X = "https://x.com/aproject/"\n', "")
+    )
+    cfg.use(tmp_path / "pyproject.toml")
+    assert cfg.config().x_url == "" and cfg.project_links()["x_handle"] == ""
+
+
+def test_the_handle_is_the_urls_last_part_whatever_its_letters():
+    assert cfg.x_handle("https://x.com/labX/") == "@labX"  # a trailing X stays
+    assert cfg.x_handle("https://x.com/a/b") == "@b"
