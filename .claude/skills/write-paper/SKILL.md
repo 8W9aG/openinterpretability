@@ -7,6 +7,8 @@ description: Write or revise a paper in papers/, with checked references, figure
 
 A paper states what was measured, what that does and doesn't show, and how to reproduce it. Readers can check each claim against its data or its source.
 
+**Read [`project.md`](project.md) first.** It gives the project's authors, its site, its terms and the papers whose register to follow. This file holds no value of a project (#6630).
+
 ## Layout
 
 ```text
@@ -16,11 +18,11 @@ papers/<slug>/
 └── media/          figures, written by scripts/paper_figures.py
 ```
 
-List the paper in `papers/README.md`, with the date it is published before it: `- 2026-11-16: [Title](slug/README.md)`. The site's Research index shows the papers newest first by that date, and keeps the list's order for one date ([open-interpretability.com/research](https://open-interpretability.com/research/index.html)). A folder with an `index.html` is an interactive page, and the site copies it unchanged.
+List the paper in `papers/README.md`, with the date it is published before it: `- 2026-11-16: [Title](slug/README.md)`. The site's Research index shows the papers newest first by that date, and keeps the list's order for one date. A folder with an `index.html` is an interactive page, and the site copies it unchanged.
 
 ## Authors
 
-The maintainer is the first author of every paper, and Open Interpretability is the second. The maintainer decided this on 2026-11-19 (#5260). `scripts/papers.py` writes both into each paper's `CITATION.cff`, and takes the maintainer's name from the root `CITATION.cff`. The site shows them under the title. Never add an agent or a model as an author. Say in the paper's text which models proposed, reviewed, wrote and narrated the work.
+`project.md` names the authors of every paper. `scripts/papers.py` writes them into each paper's `CITATION.cff`, and takes the maintainer's name from the root `CITATION.cff`. The site shows them under the title. Never add an agent or a model as an author. Say in the paper's text which models proposed, reviewed, wrote and narrated the work.
 
 ## Structure
 
@@ -43,9 +45,9 @@ Write in a formal, academic register. Use the third person or "we", not "I" or "
 
 - **Argue in paragraphs.** Each paragraph opens with a topic sentence, gives the evidence, and ends with what the evidence implies. Use bullets only for real lists: contributions, setups and limitations. Results, Discussion and Conclusion are prose.
 - **Relate the claims.** A sentence may relate two claims with "because", "whereas", "although" or "which suggests". Papers get their own STE profile (`scripts/ste_prose.py`): a sentence may have up to 40 words, and a paper's mean must stay at 25 or fewer. Every other STE rule still holds.
-- **Define the repo's terms.** Explain each term the first time it appears, in plain words: a pole, VERIFIED, the review's gates, the activation line at 0.25 of the maximum. Then use it as defined. Keep code names and file paths out of the argument. They belong in the Method's setup and the Appendices.
+- **Define the project's terms.** Explain each term the first time it appears, in plain words. `project.md` lists the terms that a reader outside the project does not know. Then use each term as defined. Keep code names and file paths out of the argument. They belong in the Method's setup and the Appendices.
 - **Number the figures and tables.** Give each one a caption that starts **Figure 1.** or **Table 1.**, and that a reader can follow alone. Refer to each one in the text by its number.
-- **Read the models.** Shabalin & Piotrowski's *Many Transcoder Features Are Neurons in Disguise* (`docs/literature/neurons-in-disguise.md`) and Oikarinen et al.'s *Evaluating Neuron Explanations* (`docs/literature/evaluating-neuron-explanations.md`) show the arc and the register.
+- **Read the models.** `project.md` names the papers that show the arc and the register.
 
 **Before and after.** The old form read like a list:
 
@@ -119,7 +121,7 @@ Each paper needs figures that let a reader see the argument. Be imaginative, and
   - `text`: one result, with numbers from the paper only, in 280 characters or fewer. Each link counts as 23. `{link}` is the paper's URL, and `{section_link}` the section's. The first tweet is the hook, the title's claim with `{link}`. The last tweet links to the paper again.
   - `media` (optional): the ids of the section's figures, the stems of their SVGs (`trace` for `media/trace.svg`). Use at most 4 images, or one figure that animates, alone. Each figure needs its alt text in the README.
 
-  Then run `scripts/social_images.py` again, which draws each named figure as `media/social-<id>.png` (and `.mp4`). Commit those files too. `make build` and `make test` fail on a broken rule. `open-interpretability social post --preview 1` prints the thread with each tweet's length.
+  Then run `scripts/social_images.py` again, which draws each named figure as `media/social-<id>.png` (and `.mp4`). Commit those files too. `make build` and `make test` fail on a broken rule. The command in `project.md` prints the thread with each tweet's length.
 
 - **The X link is metadata.** Once a published paper posts to X, the deploy opens a PR that writes the post's URL as `x_url` in `media/social.json` (#5840). The page then shows "Thread on X". That PR changes no text of the paper, so it isn't a change to a frozen paper.
 
