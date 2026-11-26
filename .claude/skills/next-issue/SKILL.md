@@ -18,7 +18,7 @@ description: Give unprioritised issues a priority, then pick the next issue to w
    ```bash
    python3 scripts/issue_state.py --claim-release <the last tag>
    ```
-   Exit 3 means another agent cut or is cutting this release. Then don't release: go on to step 1 and work an issue. Otherwise run the `release` skill as this iteration's work, in place of an issue. It has its own checks and steps. Its release PR lands as in step 6. **Don't move on from the release** until its PR has merged and `gh release view v<version>` shows it published on GitHub (`release` skill, step 12). A release PR waiting for a merge blocks the loop: finish it first. Then the iteration stops at step 7. Otherwise go on to step 1.
+   Exit 3 means another agent cut or is cutting this release. Then don't release: go on to step 1 and work an issue. Otherwise run the `release` skill as this iteration's work, in place of an issue. It has its own checks and steps. Its release PR lands as in step 6. **Don't move on from the release** until its PR has merged and `gh release view v<version>` shows it published on GitHub (`release` skill, *Check the release*, step 10). A release PR waiting for a merge blocks the loop: finish it first. Then the iteration stops at step 7. Otherwise go on to step 1.
 
    **Until the release is due, keep working issues.** The maintainer decided this on 2026-11-15. Don't skip or postpone an issue because the release might come due while you work on it. If the 24 hours pass during an issue, finish that issue, its PR and its merge first. The next iteration then does the release.
 1. **Give every open issue a priority.** The ranking is only as good as the priorities, so first list the issues that have none:
@@ -88,7 +88,7 @@ The maintainer decided on 2026-11-15: zero tolerance for flaky tests. Every flak
 
 ## Notes
 
-- **An empty pick means nothing is eligible.** The script then exits with "No eligible issue". Say so, and propose new work as the `release` skill's step 3 does. Don't work on an ineligible issue.
+- **An empty pick means nothing is eligible.** The script then exits with "No eligible issue". Say so, and propose new work as the `release` skill's *Before the release* step 4 does. Don't work on an ineligible issue.
 - **Linear's states are the record of what is started, and the claim branch says who started it.** `git ls-remote origin 'refs/heads/claim/*'` lists the claims. Each claim's commit message names its agent (`issue_state.py --whoami`). An issue In Progress belongs to whoever started it. Never take it, even if it looks stalled. Ask instead. The one exception is an answered issue (step 2): an agent stopped to ask, the maintainer replied, so any agent resumes it.
 - **Issues labelled `muse` are Muse's** (`docs/muse.md`), such as posting a paper to alphaXiv. The script never picks, resumes or lists them, and you never work one. The maintainer decided this on 2026-11-22. Never add the `muse` label to an issue that the maintainer didn't open or give a thumbs up. The maintainer decided this on 2026-11-23.
 - **The script only reads, except with `--pull` and `--prioritise`.** `--pull` sets one milestone and one label. `--prioritise` sets one label and Linear's priority. `work-an-issue` sets the states.
