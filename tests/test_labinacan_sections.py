@@ -1,5 +1,6 @@
 """labinacan's sections: Changelog, the literature review, Research and Posts (#6628)."""
 
+from labinacan.config import env
 from labinacan.site import sections
 
 
@@ -52,7 +53,7 @@ def test_research_tells_the_index_what_exists_and_warns_without_chrome(
     sections.render_research(Render(), tmp_path, SimpleNamespace(pages=[]), True, flags)
     assert calls == [("research/index.html", "research.html",
                       {"papers": [], "explained": True, "reviewed": False})]  # fmt: skip
-    warning = "No Chrome found ($OPENINTERPRETABILITY_CHROME): the papers get no PDFs.\n"
+    warning = f"No Chrome found (${env('CHROME')}): the papers get no PDFs.\n"
     assert capsys.readouterr().out == warning
     monkeypatch.setattr(paper_pdf, "chrome", lambda: "/bin/chrome")
     sections.render_research(Render(), tmp_path, SimpleNamespace(pages=[]), True, flags)

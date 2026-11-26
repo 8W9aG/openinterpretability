@@ -13,7 +13,7 @@ linear_sync = importlib.util.module_from_spec(_SPEC)
 sys.modules["linear_sync"] = linear_sync  # dataclasses look the module up by name
 _SPEC.loader.exec_module(linear_sync)
 
-WORKSTREAMS = {"Why neurons rest", "Testing"}
+WORKSTREAMS = {"A workstream", "Testing"}
 
 
 def _issue(**kw):
@@ -63,13 +63,13 @@ def test_label_case_is_normalised():
 
 
 def test_roadmap_workstream_sets_missing_linear_project():
-    act = linear_sync.plan(_issue(roadmap_workstream="Why neurons rest"), WORKSTREAMS)
-    assert act.linear_project == "Why neurons rest"
+    act = linear_sync.plan(_issue(roadmap_workstream="A workstream"), WORKSTREAMS)
+    assert act.linear_project == "A workstream"
     assert act.roadmap_workstream is None
 
 
 def test_linear_project_wins_and_unknown_workstream_is_not_set():
-    issue = _issue(linear_project="Testing", roadmap_workstream="Why neurons rest")
+    issue = _issue(linear_project="Testing", roadmap_workstream="A workstream")
     act = linear_sync.plan(issue, WORKSTREAMS)
     assert act.linear_project is None and act.roadmap_workstream == "Testing"
     act = linear_sync.plan(_issue(linear_project="New project"), WORKSTREAMS)
