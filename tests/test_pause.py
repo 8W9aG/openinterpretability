@@ -124,3 +124,9 @@ def test_the_pause_says_where_it_came_from(monkeypatch, tmp_path):
     assert by == f"{getpass.getuser()}, process {os.getpid()}, in {tmp_path}"
     monkeypatch.setenv(env("AGENT"), " agent-1a2b ")
     assert pause.start("timing devices", now=NOW).by == f"{by}, agent agent-1a2b"
+
+
+def test_a_pause_makes_the_folders_of_its_file(monkeypatch, tmp_path):
+    monkeypatch.setenv(pause.ENV, str(tmp_path / "not" / "made" / "yet" / "pause"))
+    started = pause.start("timing devices", now=NOW)
+    assert pause.read(NOW) == started

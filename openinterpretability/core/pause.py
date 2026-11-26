@@ -100,8 +100,10 @@ def start(reason: str, minutes: float = DEFAULT_MINUTES, now: datetime | None = 
     pause = Pause(reason, who, now.isoformat(), until.isoformat())
     path = pause_file()
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f".{path.name}.{secrets.token_hex(4)}")
-    tmp.write_text(json.dumps(asdict(pause), indent=1))
+    unique = secrets.token_hex(4)  # pragma: no mutate, equivalent: any unique name will do
+    text = json.dumps(asdict(pause), indent=1)  # pragma: no mutate, equivalent: read() parses it
+    tmp = path.with_name(f".{path.name}.{unique}")
+    tmp.write_text(text)
     os.replace(tmp, path)
     return pause
 
