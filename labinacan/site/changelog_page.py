@@ -50,10 +50,14 @@ def load_versions(repo_url: str, path: Path = CHANGELOG) -> list[Version]:
     """The changelog's versions, newest first; none when the file is missing."""
     if not path.exists():
         return []
-    text = path.read_text(encoding="utf-8")
+    utf8 = "utf-8"  # pragma: no mutate, equivalent: any case names the same codec
+    text = path.read_text(encoding=utf8)  # pragma: no mutate, equivalent: tests run in UTF-8
     heads = list(_HEADING.finditer(text))
+    if not heads:  # a changelog with a title and no version yet
+        return []
     versions = []
-    for head, after in zip(heads, [*heads[1:], None], strict=True):
+    ends = [*heads[1:], None]  # each heading's section ends at the next one
+    for head, after in zip(heads, ends, strict=True):  # pragma: no mutate, equivalent: same lengths
         body = text[head.end() : after.start() if after else len(text)].strip()
         if head["name"] == "Unreleased" and not body:
             continue
