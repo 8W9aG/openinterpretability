@@ -160,6 +160,10 @@ CONDITIONS = {
 CONDITIONS["pythia_size"] = replace(
     CONDITIONS["pythia_all"], n_layer=PYTHIA_70M_LAYERS, n_embd=PYTHIA_70M_WIDTH
 )
+# Pythia-70m's size and 32 times our batch together (#6806).
+CONDITIONS["pythia_size_batch_32x"] = replace(
+    CONDITIONS["pythia_size"], batch=BATCH * PYTHIA_FULL_BATCH_FACTOR
+)
 CONDITIONS |= {f"gelu_{n[5:]}": replace(c, activation="gelu")  # each ReLU norm condition (#3193)
                for n, c in CONDITIONS.items() if n[:5] == "relu_" and c.centre_norms}  # fmt: skip
 CONDITIONS |= {f"gelu_final_L{i}_ln{j}_dropout_0":  # the final norm and one block norm (#6465)

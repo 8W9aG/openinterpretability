@@ -221,9 +221,9 @@ def train(
     ``micro_batch`` windows, as ``accumulate`` does it.
     """
     condition = CONDITIONS[name]
-    if push_every and 0 < micro_batch < condition.batch:
-        # The recorder reads the gradient of one forward pass, so it sees only the last part.
-        raise click.UsageError(f"{name}: --push-every needs a micro-batch of the whole batch")
+    if spread_bins and 0 < micro_batch < condition.batch:
+        # The bins centre each token on the batch's mean, which one part does not hold.
+        raise click.UsageError(f"{name}: --spread-bins needs a micro-batch of the whole batch")
     vocab = int(tokens.max()) + 1
     model = build_model(condition, vocab, seed).to(device).train()
     optimizer = make_optimizer(condition, model)
@@ -244,7 +244,7 @@ def train(
             break
         batch = sample_batch(tokens, generator, condition.batch).to(device)
         optimizer.zero_grad()
-        loss = accumulate(model, batch, micro_batch)
+        loss = accumulate(model, batch, micro_batch, recorder)
         if not loss.isfinite():
             # MPS can fail a command buffer and return NaN, so stop and let a person look.
             raise click.ClickException(f"{name} seed {seed}: loss {loss.item()} at step {step}")
@@ -261,7 +261,7 @@ def train(
                 write_row(out, {**row, "steps": push_every, "layers": recorder.row()})
 
 
-def accumulate(model, batch: torch.Tensor, micro_batch: int = 0) -> torch.Tensor:
+def accumulate(model, batch: torch.Tensor, micro_batch: int = 0, recorder=None) -> torch.Tensor:
     """Add the gradient of the mean loss on ``batch`` to the model's gradients.
 
     The batch goes through the model in parts of ``micro_batch`` windows, so that a batch
@@ -273,15 +273,22 @@ def accumulate(model, batch: torch.Tensor, micro_batch: int = 0) -> torch.Tensor
         model: The model, in training mode. Its gradients are added to, not zeroed.
         batch: The step's windows, ``[windows, tokens]``.
         micro_batch: The windows in each forward pass. 0 sends the whole batch at once.
+        recorder: A ``PushRecorder``, which then adds up the push over the parts (#6806).
 
     Returns:
         The mean loss on the batch, with no graph.
     """
     total = torch.zeros((), device=batch.device)
+    if recorder:
+        recorder.start_parts()
     for part in batch.split(micro_batch or len(batch)):
         loss = model(part, labels=part).loss * (len(part) / len(batch))
         loss.backward()
         total += loss.detach()
+        if recorder:
+            recorder.add_part(len(part) / len(batch))
+    if recorder:
+        recorder.end_parts()
     return total
 
 
