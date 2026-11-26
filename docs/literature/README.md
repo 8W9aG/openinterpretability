@@ -294,6 +294,7 @@ Part of #4782. These pages link weight edits and merged task updates to the unit
 
 | Page | Status | Why |
 | --- | --- | --- |
+| [Think you have Solved Question Answering? Try ARC, the AI2 Reasoning Challenge](arc-challenge.md) (Clark, Cowhey, Etzioni et al., 2018) | used | The source of ARC-Easy, the general benchmark of `papers/sequential-tuning/`: 2,376 test questions that retrieval answers. Most questions come from a partner that allows non-commercial research only. |
 | [Character-level Convolutional Networks for Text Classification](char-cnn.md) (Zhang, Zhao and LeCun, 2015) | used | Built the AG News set that the `ag_news` preset reads. Its topics are the corpus's categories, and the source doesn't say how they were assigned, so one preprint now says so. |
 | [Introduction to the CoNLL-2003 Shared Task: Language-Independent Named Entity Recognition](conll-2003.md) (Tjong Kim Sang and De Meulder, 2003) | used | The source of the `conll2003-ner` and `conll2003-pos` presets. People tagged the entities, and a tagger made the part-of-speech tags, so the preset's comment now says so. |
 | [Recursive Deep Models for Semantic Compositionality Over a Sentiment Treebank](sentiment-treebank.md) (Socher, Perelygin, Wu et al., 2013) | used | The source of SST-2, the first narrow stage of `papers/sequential-tuning/`. Its binary task is whole sentences, but the Hub copy's training split also holds their phrases, median 7 words. So the paper's method now says that most training pairs are phrases. No licence is stated. |
