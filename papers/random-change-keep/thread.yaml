@@ -1,0 +1,27 @@
+# The paper's X thread (labinacan/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Instruction tuning breaks some neuron explanations. Is that the tuning, or just the size of
+    the change? We added a random change with the instruct change's norm in every weight matrix
+    of Qwen2.5, and ran each explanation's probes again. {link}
+  media: [keep]
+- section: Does a random change of the same size break as many explanations?
+  text: >-
+    On Qwen2.5-0.5B, the instruct change keeps 298 of 361 VERIFIED explanations. Three random
+    changes of its size keep 296, 301 and 300. On Qwen2.5-1.5B, the instruct change keeps 65 of
+    75, and the random changes keep 72 or 73.
+- section: Do instruction tuning and a random change break the same explanations?
+  text: >-
+    On 0.5B the two changes flip largely the same poles: 30 to 32 shared flips per seed, against
+    about 11 by chance. A flip there says more about the pole than about the tuning.
+  media: [flips]
+- section: Discussion
+  text: >-
+    Why do the two models differ? On 0.5B, noise of the instruct change's norm moves the poles'
+    activations more than the tuning does (median r 0.960 against 0.974). On 1.5B it barely
+    moves them (0.999 against 0.987).
+- section: Conclusion
+  text: >-
+    A random change of the same norm is not a change of the same effect. A keep share needs a
+    matched random change beside it before it is read as an effect of the tuning. {link}
