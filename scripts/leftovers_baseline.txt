@@ -1,10 +1,8 @@
 # The leftover words that each template file may still hold (scripts/check_leftovers.py, #6631).
 # <hits> <path>. Lower a line when a file loses words. The template is cut when this list is empty.
-35 tests/test_mutation_script.py
 16 .claude/skills/single-source-of-truth/SKILL.md
 12 .claude/skills/commenting/SKILL.md
 12 tests/test_labinacan_config.py
-11 scripts/mutation.py
 11 tests/test_exchange.py
 9 .claude/skills/test-new-paths/SKILL.md
 9 tests/test_check_markdown.py

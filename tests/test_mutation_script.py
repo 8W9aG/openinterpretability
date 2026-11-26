@@ -29,17 +29,21 @@ def repo(tmp_path):
     _git(tmp_path, "init", "-q", "-b", "main")
     _git(tmp_path, "config", "user.email", "t@example.org")
     _git(tmp_path, "config", "user.name", "T")
-    pkg = tmp_path / "openinterpretability" / "core"
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.mutmut]\nsource_paths = ["aproject", "labinacan"]\n'
+        '[tool.labinacan]\nmutation_skip = ["data/big"]\n'
+    )
+    pkg = tmp_path / "aproject" / "core"
     pkg.mkdir(parents=True)
     (pkg / "stats.py").write_text("X = 1\n")
     (pkg / "gone.py").write_text("Y = 1\n")
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts" / "tool.py").write_text("Z = 1\n")
-    (tmp_path / "wiki" / "draws").mkdir(parents=True)
-    (tmp_path / "wiki" / "draws" / "a.json").write_text("{}")
-    (tmp_path / "wiki" / "LICENSE.md").write_text("L")
-    (tmp_path / "wiki" / "experiments").mkdir()
-    (tmp_path / "wiki" / "experiments" / "b.json").write_text("{}")
+    (tmp_path / "data" / "small").mkdir(parents=True)
+    (tmp_path / "data" / "small" / "a.json").write_text("{}")
+    (tmp_path / "data" / "LICENSE.md").write_text("L")
+    (tmp_path / "data" / "big").mkdir()
+    (tmp_path / "data" / "big" / "b.json").write_text("{}")
     _git(tmp_path, "add", "-A")
     _git(tmp_path, "commit", "-qm", "base")
     return tmp_path
@@ -48,38 +52,38 @@ def repo(tmp_path):
 def test_changed_files_are_the_branchs_package_files_only(repo):
     script = _script()
     _git(repo, "checkout", "-qb", "work")
-    (repo / "openinterpretability" / "core" / "stats.py").write_text("X = 2\n")
+    (repo / "aproject" / "core" / "stats.py").write_text("X = 2\n")
     _git(repo, "commit", "-qam", "committed change")
-    (repo / "openinterpretability" / "core" / "gone.py").unlink()  # deleted: not mutated
-    (repo / "openinterpretability" / "core" / "new.py").write_text("W = 1\n")  # untracked
+    (repo / "aproject" / "core" / "gone.py").unlink()  # deleted: not mutated
+    (repo / "aproject" / "core" / "new.py").write_text("W = 1\n")  # untracked
     (repo / "scripts" / "tool.py").write_text("Z = 2\n")  # outside the package
-    assert script.changed_files("main", repo) == ["openinterpretability/core/new.py",
-                                                  "openinterpretability/core/stats.py"]  # fmt: skip
+    assert script.changed_files("main", repo) == ["aproject/core/new.py",
+                                                  "aproject/core/stats.py"]  # fmt: skip
 
 
 def test_copied_skips_the_package_tests_and_experiment_records(repo):
     got = _script().copied(repo)
-    assert "openinterpretability" not in got and "wiki/experiments" not in got
-    assert "scripts" in got and "wiki" not in got
-    assert got.index("wiki/draws") < got.index("wiki/LICENSE.md")  # folders before files
+    assert "aproject" not in got and "data/big" not in got
+    assert "scripts" in got and "data" not in got
+    assert got.index("data/small") < got.index("data/LICENSE.md")  # folders before files
 
 
 def test_imports_finds_the_module_however_a_test_imports_it():
     script = _script()
-    module = "openinterpretability.core.stats"
-    assert script.imports("import openinterpretability.core.stats as s", module)
-    assert script.imports("from openinterpretability.core import (\n    schemas,\n    stats,\n)",
+    module = "aproject.core.stats"
+    assert script.imports("import aproject.core.stats as s", module)
+    assert script.imports("from aproject.core import (\n    schemas,\n    stats,\n)",
                           module)  # fmt: skip
-    assert not script.imports("from openinterpretability.core import statsmodels", module)
-    assert not script.imports("from openinterpretability.agents import stats", module)
+    assert not script.imports("from aproject.core import statsmodels", module)
+    assert not script.imports("from aproject.agents import stats", module)
 
 
 def test_tests_for_selects_the_tests_that_import_a_changed_file(tmp_path):
     script = _script()
-    (tmp_path / "test_a.py").write_text("from openinterpretability.core import stats\n")
-    (tmp_path / "test_b.py").write_text("from openinterpretability.core import schemas\n")
-    (tmp_path / "helper.py").write_text("import openinterpretability.core.stats\n")  # not a test
-    got = script.tests_for(["openinterpretability/core/stats.py"], tmp_path)
+    (tmp_path / "test_a.py").write_text("from aproject.core import stats\n")
+    (tmp_path / "test_b.py").write_text("from aproject.core import schemas\n")
+    (tmp_path / "helper.py").write_text("import aproject.core.stats\n")  # not a test
+    got = script.tests_for(["aproject/core/stats.py"], tmp_path)
     assert got == [str(tmp_path / "test_a.py")]
 
 
@@ -131,7 +135,7 @@ def test_main_with_a_base_mutates_the_changed_files(monkeypatch, capsys):
     calls: list = []
     configuration = _fake_mutmut(monkeypatch, "", calls)
     script = _script()
-    monkeypatch.setattr(script, "changed_files", lambda base: ["openinterpretability/x.py"])
+    monkeypatch.setattr(script, "changed_files", lambda base: ["aproject/x.py"])
     monkeypatch.setattr(script, "tests_for", lambda paths: ["tests/test_x.py"])
     monkeypatch.setattr(script, "copied", lambda: ["scripts"])
     monkeypatch.setattr(script, "selected", lambda paths, base: (["x.x_f__mutmut_1"], 7))
@@ -139,7 +143,7 @@ def test_main_with_a_base_mutates_the_changed_files(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "Mutating 1 files with 1 test files" in out and "Running 1 of the 7 mutants" in out
     assert ["run", "x.x_f__mutmut_1"] in calls
-    assert configuration._config_reader()("only_mutate", []) == ["openinterpretability/x.py"]
+    assert configuration._config_reader()("only_mutate", []) == ["aproject/x.py"]
     script.main(["--base", "origin/main", "show", "m"])  # a command runs under the selection
     assert calls[-1] == ["show", "m"]
 
@@ -155,22 +159,22 @@ def test_main_with_no_change_does_nothing(monkeypatch, capsys):
 
 def test_changed_lines_are_the_branchs_added_and_changed_lines(repo):
     m = _script()
-    stats = repo / "openinterpretability" / "core" / "stats.py"
+    stats = repo / "aproject" / "core" / "stats.py"
     stats.write_text("X = 1\nY = 2\nZ = 3\n")
     _git(repo, "commit", "-qam", "more")
     _git(repo, "checkout", "-qb", "work")
     stats.write_text("X = 1\nY = 20\nZ = 3\n")  # uncommitted counts too
-    assert m.changed_lines("main", "openinterpretability/core/stats.py", repo) == {2}
+    assert m.changed_lines("main", "aproject/core/stats.py", repo) == {2}
     stats.write_text("X = 1\nZ = 3\n")  # a deletion marks the line after it
-    assert m.changed_lines("main", "openinterpretability/core/stats.py", repo) == {2}
-    new = repo / "openinterpretability" / "core" / "new.py"
+    assert m.changed_lines("main", "aproject/core/stats.py", repo) == {2}
+    new = repo / "aproject" / "core" / "new.py"
     new.write_text("A = 1\n")
-    assert m.changed_lines("main", "openinterpretability/core/new.py", repo) is None
+    assert m.changed_lines("main", "aproject/core/new.py", repo) is None
 
 
 def test_selected_runs_only_the_changed_functions_mutants_and_caps_them(repo, monkeypatch):
     m = _script()
-    stats = repo / "openinterpretability" / "core" / "stats.py"
+    stats = repo / "aproject" / "core" / "stats.py"
     stats.write_text("def f():\n    return 1\n\n\ndef g():\n    return 2\n")
     _git(repo, "commit", "-qam", "functions")
     _git(repo, "checkout", "-qb", "work")
@@ -182,7 +186,7 @@ def test_selected_runs_only_the_changed_functions_mutants_and_caps_them(repo, mo
     utils.get_mutant_name = lambda path, name: f"{str(path)[:-3].replace('/', '.')}.{name}"
     monkeypatch.setitem(sys.modules, "mutmut.mutation.file_mutation", mutation)
     monkeypatch.setitem(sys.modules, "mutmut.utils.format_utils", utils)
-    keys, total = m.selected(["openinterpretability/core/stats.py"], "main", repo)
+    keys, total = m.selected(["aproject/core/stats.py"], "main", repo)
     assert total == 3 and all(".x_g__mutmut_" in k for k in keys)
     monkeypatch.setattr(m, "CAP", 2)
     assert m.sample(keys, cap=m.CAP) == m.sample(keys, cap=2) and len(m.sample(keys, cap=2)) == 2
@@ -192,7 +196,7 @@ def test_main_with_no_mutant_in_the_changed_functions_runs_nothing(monkeypatch, 
     calls: list = []
     _fake_mutmut(monkeypatch, "", calls)
     script = _script()
-    monkeypatch.setattr(script, "changed_files", lambda base: ["openinterpretability/x.py"])
+    monkeypatch.setattr(script, "changed_files", lambda base: ["aproject/x.py"])
     monkeypatch.setattr(script, "tests_for", lambda paths: [])
     monkeypatch.setattr(script, "copied", lambda: [])
     monkeypatch.setattr(script, "selected", lambda paths, base: ([], 0))
@@ -218,19 +222,17 @@ def test_function_spans_name_functions_as_mutmut_names_their_mutants():
 def test_a_moved_file_counts_only_the_lines_it_changed(repo):
     # #6628: a module that moves to labinacan/ is not new code.
     m = _script()
-    stats = repo / "openinterpretability" / "core" / "stats.py"
+    stats = repo / "aproject" / "core" / "stats.py"
     stats.write_text("".join(f"V{i} = {i}\n" for i in range(12)))
     _git(repo, "commit", "-qam", "longer")
     _git(repo, "checkout", "-qb", "move")
     (repo / "labinacan").mkdir()
-    _git(repo, "mv", "openinterpretability/core/stats.py", "labinacan/stats.py")
+    _git(repo, "mv", "aproject/core/stats.py", "labinacan/stats.py")
     moved = repo / "labinacan" / "stats.py"
     moved.write_text(moved.read_text().replace("V3 = 3", "V3 = 30"))
     _git(repo, "add", "labinacan/stats.py")
     merge_base = m._git(repo, "merge-base", "main", "HEAD")[0]
-    assert m.renamed_from(merge_base, "labinacan/stats.py", repo) == [
-        "openinterpretability/core/stats.py"
-    ]
+    assert m.renamed_from(merge_base, "labinacan/stats.py", repo) == ["aproject/core/stats.py"]
     assert m.renamed_from(merge_base, "scripts/tool.py", repo) == []
     assert m.changed_lines("main", "labinacan/stats.py", repo) == {4}
     assert "labinacan/stats.py" in m.changed_files("main", repo)
@@ -239,7 +241,7 @@ def test_a_moved_file_counts_only_the_lines_it_changed(repo):
 def test_a_file_moved_with_a_new_module_at_its_old_path_counts_only_its_edits(repo):
     # #6628: builder/css.py moved to labinacan/, and a thin entry point took its place.
     m = _script()
-    stats = repo / "openinterpretability" / "core" / "stats.py"
+    stats = repo / "aproject" / "core" / "stats.py"
     stats.write_text("".join(f"V{i} = {i}\n" for i in range(12)))
     _git(repo, "commit", "-qam", "longer")
     _git(repo, "checkout", "-qb", "move")
@@ -247,11 +249,9 @@ def test_a_file_moved_with_a_new_module_at_its_old_path_counts_only_its_edits(re
     moved = repo / "labinacan" / "stats.py"
     moved.write_text(stats.read_text().replace("V3 = 3", "V3 = 30"))
     stats.write_text("from labinacan.stats import V1\n")
-    _git(repo, "add", "labinacan/stats.py", "openinterpretability/core/stats.py")
+    _git(repo, "add", "labinacan/stats.py", "aproject/core/stats.py")
     merge_base = m._git(repo, "merge-base", "main", "HEAD")[0]
-    assert m.renamed_from(merge_base, "labinacan/stats.py", repo) == [
-        "openinterpretability/core/stats.py"
-    ]
+    assert m.renamed_from(merge_base, "labinacan/stats.py", repo) == ["aproject/core/stats.py"]
     assert m.changed_lines("main", "labinacan/stats.py", repo) == {4}
 
 
