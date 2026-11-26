@@ -93,8 +93,8 @@ class PushRecorder:
             for key in self.SUMS:
                 value = getattr(mlp.act, key).float()
                 kept[key] = kept.get(key, 0) + value
-            # A correlation over the batch's tokens is not a sum, so a step in parts keeps
-            # the parts' correlations weighted by their shares, an approximation.
+            # A correlation over the batch's tokens is not a sum. So a step in parts keeps
+            # the parts' correlations, weighted by their shares. That is an approximation.
             for key in self.MEANS:
                 value = getattr(mlp.act, key).float()
                 kept[key] = kept.get(key, 0) + share * value
