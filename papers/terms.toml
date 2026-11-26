@@ -1,0 +1,75 @@
+# This project's own terms, which a paper says in plain words (#6851). scripts/paper_terms.py
+# finds them in each preprint's prose, captions, figure titles and X thread. Each pattern is a
+# Python regular expression. "pole" is not here: it is the field's term, from Cammarata (2026),
+# and each paper defines it once in its Method with the citation (#6851, the maintainer's
+# choice). "hard negatives" is a standard ML term and is not here either.
+
+[[term]]
+name = "VERIFIED"
+pattern = '\bVERIFIED\b'
+plain = "passed the adversarial review"
+
+[[term]]
+name = "REJECTED"
+pattern = '\bREJECTED\b'
+plain = "failed the adversarial review"
+
+[[term]]
+name = "NEEDS_REVISION"
+pattern = '\bNEEDS_REVISION\b'
+plain = "passed some of the review's tests, not all"
+
+[[term]]
+name = "registry"
+pattern = '(?i)\bregistry\b'
+plain = "our set of tested explanations, with the dataset named in the Method"
+
+[[term]]
+name = "sister"
+pattern = '\bsisters?\b'
+plain = "a matching neuron in another model"
+
+[[term]]
+name = "proposer"
+pattern = '(?i)\bproposers?\b'
+plain = "the model that writes the explanation"
+
+[[term]]
+name = "reviewer"
+pattern = '(?i)\breviewer (?:agent|model)s?\b|\bthe reviewer\b'
+plain = "the model that writes the test prompts"
+
+[[term]]
+name = "probe"
+pattern = '(?i)(?<!linear )(?<!sparse )\bprobes?\b'
+plain = "test prompt; a linear or sparse probe of activations is the field's term"
+
+[[term]]
+name = "holdout"
+pattern = '(?i)\bholdouts?\b'
+plain = "a prompt that the explanation predicts will fire the neuron"
+
+[[term]]
+name = "gate"
+pattern = '(?i)\b(?:probe|review|review.s|specificity|sensitivity|necessity|sufficiency|causal) gates?\b|\bgates? of (?:an|the|its) (?:adversarial )?review\b'
+plain = "the name of the test: specificity, sensitivity, necessity or sufficiency"
+
+[[term]]
+name = "activation line"
+pattern = '(?i)\bactivation line\b'
+plain = "a threshold at a quarter of the neuron's maximum activation"
+
+[[term]]
+name = "concept map"
+pattern = '(?i)\bconcept maps?\b'
+plain = "a description of the map, such as a shared two-dimensional map of the explanations"
+
+[[term]]
+name = "command"
+pattern = 'open-interpretability'
+plain = "a description; the command goes in the Reproduce appendix"
+
+[[term]]
+name = "exchange/"
+pattern = '\bexchange/'
+plain = "a description; the path goes in the Reproduce appendix"
