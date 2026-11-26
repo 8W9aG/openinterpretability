@@ -4,7 +4,9 @@
 #   DIST_NAME     the project's distribution, which `install` reinstalls.
 #   PACKAGES      its Python packages, for vulture, interrogate and Vale.
 #   TEST_WRAPPER  a command that each test run goes through, or nothing.
-#   BUILD_COMMAND the command that builds the site into $(DIST_DIR).
+#   BUILD_COMMAND the command that builds the site into $(DIST_DIR). It should start with
+#                 $(BUILD_WRAPPER), which CI sets to a memory cap.
+#   CACHE_DIR_COMMAND  a command that prints the project's cache folder, for CI's caches.
 #   CSS_MODULE    the module that writes the site's stylesheet.
 #   PROJECT_LINT  a target of its own checks, which `lint` runs, or nothing.
 #
@@ -18,7 +20,7 @@ ifndef PACKAGES
 $(error Set PACKAGES before including labinacan.mk)
 endif
 
-.PHONY: install test coverage mutation vulture typecheck lint markdown shell vale ste format build css search-index serve clean
+.PHONY: install packages cache-dir test coverage mutation vulture typecheck lint markdown shell vale ste format build css search-index serve clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -27,6 +29,14 @@ DIST_DIR ?= dist
 # plain sync removed its command with the old one.
 install:
 	uv sync --reinstall-package $(DIST_NAME)
+
+# The project's Python packages, one line: the generic workflow reads them (`make -s packages`).
+packages:
+	@echo $(PACKAGES)
+
+# The project's cache folder, one line: CI caches its subfolders (`make -s cache-dir`).
+cache-dir:
+	@$(CACHE_DIR_COMMAND)
 
 # Single-threaded in each process: the tests use tiny models, and thread pools contending
 # with other jobs on the machine have hung the suite.
@@ -40,14 +50,14 @@ test:
 	@mkdir -p logs
 	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run $(TEST_WRAPPER) pytest -n $(TEST_WORKERS) 2>&1 | tee logs/test-last.log'
 
-# The suite with branch coverage (#3166): it fails below [tool.coverage.report] fail_under.
-# Then diff-cover requires [tool.diff_cover] fail_under of the lines this branch changes
+# The suite with branch coverage (#3166) of PACKAGES: it fails below fail_under in .coveragerc.
+# Then diff-cover requires fail_under in .diff-cover.toml of the lines this branch changes
 # against origin/main, as CI does on a pull request (#5855). About twice as slow as `make test`, so `make test` skips it.
 COVERAGE_BASE ?= origin/main
 coverage:
 	@mkdir -p logs
-	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run $(TEST_WRAPPER) pytest -n $(TEST_WORKERS) --cov --cov-report=xml --cov-report=term 2>&1 | tee logs/coverage-last.log'
-	uv run diff-cover coverage.xml -c pyproject.toml --compare-branch=$(COVERAGE_BASE)
+	bash -o pipefail -c 'OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 uv run $(TEST_WRAPPER) pytest -n $(TEST_WORKERS) $(addprefix --cov=,$(PACKAGES)) --cov-report=xml --cov-report=term 2>&1 | tee logs/coverage-last.log'
+	uv run diff-cover coverage.xml -c .diff-cover.toml --compare-branch=$(COVERAGE_BASE)
 
 # Mutation testing (scripts/mutation.py). With BASE, for example BASE=origin/main, it mutates
 # the package files that the branch changes and runs the tests that import them (#5856).
@@ -116,7 +126,7 @@ shell:
 # purpose, so the run leaves them out. Vale is
 # a Go binary, not a Python package: install it with `brew install vale` or from vale.sh.
 # `make lint` runs it, so a long sentence fails locally as it does in CI.
-# CI runs this target with the version pinned in .github/workflows/ci.yml. Vale exits
+# CI runs this target with the version pinned in .github/workflows/labinacan-ci.yml. Vale exits
 # non-zero only on errors, so the STE rules that gate are at level `error`.
 VALE_PATHS ?= $(PACKAGES) scripts tests
 vale:

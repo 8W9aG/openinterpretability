@@ -182,7 +182,7 @@ Part of the review of how to fix a model's behaviour (#4784). These pages cover 
 
 ## Catastrophic interference and forgetting
 
-Part of the review of interference, weight-space programming and low-rank fine-tuning (#4782). These pages ask what a change to a network's weights does to what it already knows.
+Part of the review of interference, weight-space programming and low-rank fine-tuning (#4782). These pages ask what a change to a network's weights does to what it already knows. The synthesis of all four areas is [Interference, weight-space programming and LoRA](interference-weight-programming-and-lora.md).
 
 | Page | Status | Why |
 | --- | --- | --- |
@@ -217,7 +217,7 @@ Part of the review of interference, weight-space programming and low-rank fine-t
 
 ## Weight-space programming and fast weights
 
-Part of #4782. These pages ask whether one network can write another's weights, and whether reading weights alone can check an explanation.
+Part of #4782. These pages ask whether one network can write another's weights, and whether reading weights alone can check an explanation. The synthesis of all four areas is [Interference, weight-space programming and LoRA](interference-weight-programming-and-lora.md).
 
 | Page | Status | Why |
 | --- | --- | --- |
@@ -248,7 +248,7 @@ Part of #4782. These pages ask whether one network can write another's weights, 
 
 ## LoRA and low-rank fine-tuning
 
-Part of #4782. These pages ask how a low-rank or parameter-efficient fine-tune moves the registry's units. They also ask whether a VERIFIED unit keeps its explanation after an adapter is merged.
+Part of #4782. These pages ask how a low-rank or parameter-efficient fine-tune moves the registry's units. They also ask whether a VERIFIED unit keeps its explanation after an adapter is merged. The synthesis of all four areas is [Interference, weight-space programming and LoRA](interference-weight-programming-and-lora.md).
 
 | Page | Status | Why |
 | --- | --- | --- |
@@ -272,7 +272,7 @@ Part of #4782. These pages ask how a low-rank or parameter-efficient fine-tune m
 
 ## Bridges: editing, merging and task vectors
 
-Part of #4782. These pages link weight edits and merged task updates to the units the registry explains.
+Part of #4782. These pages link weight edits and merged task updates to the units the registry explains. The synthesis of all four areas is [Interference, weight-space programming and LoRA](interference-weight-programming-and-lora.md).
 
 | Page | Status | Why |
 | --- | --- | --- |
@@ -300,6 +300,12 @@ Part of #4782. These pages link weight edits and merged task updates to the unit
 | [Don't Give Me the Details, Just the Summary! Topic-Aware Convolutional Neural Networks for Extreme Summarization](xsum.md) (Narayan, Cohen and Lapata, 2018) | used | The source of XSum, the second narrow stage of `papers/sequential-tuning/`. Each summary is the BBC article's introductory sentence. Our citation checks out: the 1,500-character cut shortens 58% of the sampled training articles, and no sampled pair is empty. No licence is stated. |
 | [The Pile: An 800GB Dataset of Diverse Text for Language Modeling](the-pile.md) (Gao, Biderman, Black et al., 2020) | used | The source of the registry's scan corpus, through the `NeelNanda/pile-10k` subset, and of three papers' data. Our citations check out. The subset and its licence are the dataset card's, not the Pile's. |
 | [Universal Dependencies v2: An Evergrowing Multilingual Treebank Collection](universal-dependencies-v2.md) (Nivre, de Marneffe, Ginter et al., 2020) | used | One scheme of parts of speech and relations for 157 treebanks in 90 languages. The source of the `ud-upos` and `ud-deprel` presets and of one paper's labels. Our citation checks out. The licences come from each treebank, not the paper. |
+
+## Writing papers
+
+| Page | Status | Why |
+| --- | --- | --- |
+| [Best-Paper-Writing-Skill](best-paper-writing-skill.md) (gulucaptain, 2026) | planned | A writing skill fitted to 55 award papers. Its abstract budget (#6929) and takeaway-first captions (#6930) suit `write-paper`. Its ban on limits in the abstract and introduction does not, and its held-out test reports no result. |
 
 ## Philosophy of mind
 

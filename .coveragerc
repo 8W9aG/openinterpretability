@@ -1,0 +1,14 @@
+[run]
+# Branch coverage of the project's packages (#3166). `make coverage` and CI's "Lint and
+# tests" job measure it; `make test` doesn't, because coverage makes the suite about twice
+# as slow. They name the packages with --cov, from PACKAGES (labinacan.mk), so this file
+# holds no value of a project (#6630).
+branch = true
+
+[report]
+# The whole package is covered (#5855). A line that no test can reach in CI is marked
+# `# pragma: no cover` (or `no branch`) with a comment that gives the reason. Never lower
+# this. The lines that a pull request changes are held to fail_under in .diff-cover.toml.
+fail_under = 100
+skip_covered = true
+show_missing = true

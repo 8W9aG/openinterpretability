@@ -1,0 +1,23 @@
+# PyMarkdown's rules for any project from the template (#6630). scripts/check_markdown.py
+# passes this file with --config.
+plugins:
+  # The docs write one paragraph per line.
+  md013:
+    enabled: false
+  # Keep a Changelog repeats `### Added` under each version.
+  md024:
+    siblings_only: true
+  # A step's command block sits tight under its numbered list item in the skills.
+  md031:
+    list_items: false
+  # A code span here is often a model token, whose leading space is part of the token (` the`).
+  md038:
+    enabled: false
+  # The body of an agent definition is its prompt, and the PR template is a form. Neither
+  # starts with a title.
+  md041:
+    enabled: false
+extensions:
+  # Skills, agents and Hub cards start with YAML front matter.
+  front-matter:
+    enabled: true

@@ -14,6 +14,7 @@ path that holds a ``[tool.labinacan]`` table counts. Until then, the working dir
 
 from __future__ import annotations
 
+import shlex
 import tomllib
 from dataclasses import dataclass
 from email.utils import parseaddr
@@ -252,3 +253,35 @@ def site_url() -> str:
         True
     """
     return config().site_url
+
+
+def shell_lines(c: ProjectConfig) -> list[str]:
+    """The values that commands in the generic skills need, as shell assignments.
+
+    A skill runs ``eval "$(uv run python -m labinacan.config)"``, then names ``$REPO`` and
+    the others, so it holds no value of a project (#6630). Each value is quoted for the
+    shell.
+
+    Args:
+        c: The project's config.
+
+    Returns:
+        One ``NAME=value`` line for each value.
+
+    Examples:
+        >>> [line.split("=")[0] for line in shell_lines(config())]
+        ['NAME', 'PACKAGE', 'COMMAND', 'REPO', 'MAINTAINER', 'SITE_URL']
+    """
+    values = {
+        "NAME": c.name,
+        "PACKAGE": c.package,
+        "COMMAND": c.command,
+        "REPO": c.repo,
+        "MAINTAINER": c.maintainer,
+        "SITE_URL": c.site_url,
+    }
+    return [f"{name}={shlex.quote(value)}" for name, value in values.items()]
+
+
+if __name__ == "__main__":
+    print("\n".join(shell_lines(config())))

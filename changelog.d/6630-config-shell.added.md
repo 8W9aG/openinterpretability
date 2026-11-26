@@ -1,0 +1,1 @@
+- `python -m labinacan.config` prints the project's values as shell assignments, so that a generic skill's commands name `$REPO` and the others, not this project's values (#6630).
