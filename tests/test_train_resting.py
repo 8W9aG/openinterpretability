@@ -417,6 +417,26 @@ def test_each_norm_condition_centres_the_norms_it_names():
     assert len(new) == 8 and all(CONDITIONS[n].dropout == 0.0 for n in new)
 
 
+def test_the_norm_set_conditions_centre_the_final_norm_and_every_block_norm_of_one_kind():
+    """#6785: the final norm with all four ln_2, against all four ln_1."""
+    build = lambda name: _centred(build_model(CONDITIONS[name], vocab_size=50, seed=0))  # noqa: E731
+    assert build("gelu_final_all_ln2_dropout_0") == {
+        "ln_f",
+        "L0.ln_2",
+        "L1.ln_2",
+        "L2.ln_2",
+        "L3.ln_2",
+    }
+    assert build("gelu_final_all_ln1_dropout_0") == {
+        "ln_f",
+        "L0.ln_1",
+        "L1.ln_1",
+        "L2.ln_1",
+        "L3.ln_1",
+    }
+    assert all(CONDITIONS[f"gelu_final_all_ln{j}_dropout_0"].dropout == 0.0 for j in (1, 2))
+
+
 def test_a_spec_that_names_no_norm_of_the_model_is_an_error():
     from resting_modules import centred_norm_names
 
