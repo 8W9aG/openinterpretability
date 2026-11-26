@@ -112,3 +112,39 @@ def test_the_plan_runs_the_instruct_model_then_top_and_random_at_each_k():
     assert top5[3] == [(0, n) for n in range(595, 600)]
     randoms = [p for p in plan if p[:2] == ("random", 5)]
     assert [p[2] for p in randoms] == [0, 1] and all(len(p[3]) == 5 for p in randoms)
+
+
+import wrapper_prune_check as check  # noqa: E402
+import wrapper_prune_stats as stats  # noqa: E402
+
+
+def _pole(slug, condition, k, seed, keeps, base_passes=True):
+    return {"table": "pole", "slug": slug, "condition": condition, "k": k, "seed": seed,
+            "keeps": keeps, "base_passes": base_passes}  # fmt: skip
+
+
+def test_changes_count_recovered_and_lost_poles_against_the_instruct_model():
+    rows = [
+        _pole("a", "none", 0, None, False), _pole("b", "none", 0, None, False),
+        _pole("c", "none", 0, None, True), _pole("d", "none", 0, None, True),
+        _pole("e", "none", 0, None, False, base_passes=False),
+        _pole("a", "top", 5, None, True), _pole("b", "top", 5, None, True),
+        _pole("c", "top", 5, None, False), _pole("d", "top", 5, None, True),
+        _pole("a", "random", 5, 0, False), _pole("b", "random", 5, 0, True),
+        _pole("c", "random", 5, 0, True), _pole("d", "random", 5, 0, True),
+    ] + [{"table": "summary", "condition": c, "k": k, "seed": s, "held_kl": kl,
+          "neurons": n}
+         for c, k, s, kl, n in (("none", 0, None, 0.1, []), ("top", 5, None, 0.3, [(1, 2)]),
+                                ("random", 5, 0, 0.1, [(1, 7)]))]  # fmt: skip
+    top, rand = stats.changes(rows)
+    assert (top["recovered"], top["lost"], top["held_kl"]) == (2, 1, 0.3)
+    assert (top["failed_on_instruct"], top["kept_on_instruct"]) == (2, 2)
+    assert "recovered_p" not in top
+    assert (rand["recovered"], rand["lost"]) == (1, 0)
+    assert rand["recovered_p"] == 1.0 and rand["lost_p"] == 1.0
+    assert stats.layers_of_top(rows) == [{"table": "top_layers", "k": 5, "layers": [(1, 1)]}]
+
+
+def test_ranked_orders_the_scores_highest_first():
+    scores = {"0": [0.1, 0.5], "3": [0.9, -1.0]}
+    assert check.ranked(scores, 2) == [(3, 0, 0.9), (0, 1, 0.5)]
