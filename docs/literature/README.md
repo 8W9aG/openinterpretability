@@ -119,6 +119,7 @@ Part of the review of how to fix a model's behaviour (#4784). These pages report
 | [MQuAKE](mquake.md) (Zhong, Wu, Manning, Potts and Chen, 2023) | planned | Editors that recall over 88% of edited facts answer only 0.3–16.0% of the multi-hop questions that follow. So a test on the edited prompt alone overstates a fix. Its single-fact control bears on #5015. |
 | [Editing Large Language Models: Problems, Methods, and Opportunities](editing-llms-survey.md) (Yao et al., 2023) | planned | A same-conditions comparison of about a dozen editing methods, on four properties. Single-neuron edits did poorly on GPT-J. Its Distract-Neighbour test is the copy habit behind #4781 (#5015). |
 | [Language Models Can Rewrite Their Own Weights](models-rewrite-own-weights.md) (Fan et al., 2026) | planned | A 27B model edits a direction or clips weight outliers, with no gradients. Its edit gains 6.6 points only after a framework check, and 1.1 without one. No random-direction control, so it bears on #5069 and #4782. |
+| [Mechanistic Failure Modes of Weight Pruning in Transformer Language Models](pruning-failure-modes.md) (Faumi and Sumanathilaka, 2026) | planned | On GPT-2 small, magnitude pruning of 30% of MLP neurons drops IOI accuracy to 17.7%. It reverses the Name Movers' direct logit effect, though activation patching shows them only degraded. One random mask per condition, and the text disagrees on which neurons are removed. It motivates #6400: a pole that keeps can still change its effect downstream. |
 
 ## Fixing models: why models give wrong answers
 
