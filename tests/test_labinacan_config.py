@@ -190,7 +190,7 @@ def test_no_generic_file_holds_a_value_of_this_project():
     flows = ROOT / ".github" / "workflows"
     skills = ROOT / ".claude" / "skills"
     generic = [ROOT / "labinacan.mk", flows / "labinacan-ci.yml", flows / "links.yml"]  # #6630
-    generic += [skills / "semantic-versioning" / "SKILL.md"]
+    generic += [skills / name / "SKILL.md" for name in ("semantic-versioning", "write-paper")]
     assert hits(generic, values, short_values(cfg.config())) == {}
 
 
