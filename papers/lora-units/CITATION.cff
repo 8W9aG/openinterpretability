@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: If you use this paper, please cite it as below.
+type: article
+title: Are rank-1 LoRA directions as explainable as native neurons?
+authors:
+- given-names: Will
+  family-names: Sackfield
+- name: Open Interpretability
+date-released: '2026-11-26'
+version: preprint
+url: https://open-interpretability.com/research/lora-units/index.html
+repository-code: https://github.com/8W9aG/openinterpretability

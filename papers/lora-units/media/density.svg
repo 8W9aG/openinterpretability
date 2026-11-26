@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 310" width="760" height="310" role="img">
+<title>A strip chart on a log scale. The adapter directions are active on a mean of 6.4% of tokens, and the native poles on 0.39%.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="310" rx="10"/>
+<text x="20.0" y="30.0" class="title">The LoRA directions are active on about 17 times as many tokens</text>
+<text x="20.0" y="50.0" class="sub">Each mark is one unit: the share of its scan&#x27;s tokens at or above a quarter of its maximum,</text>
+<text x="20.0" y="68.0" class="sub">the review&#x27;s line for active. The bars are each arm&#x27;s mean.</text>
+<path class="grid" d="M252.9 122.0L252.9 242.0"/>
+<text x="252.9" y="257.0" class="small" text-anchor="middle">0.01%</text>
+<path class="grid" d="M367.1 122.0L367.1 242.0"/>
+<text x="367.1" y="257.0" class="small" text-anchor="middle">0.1%</text>
+<path class="grid" d="M481.4 122.0L481.4 242.0"/>
+<text x="481.4" y="257.0" class="small" text-anchor="middle">1%</text>
+<path class="grid" d="M595.7 122.0L595.7 242.0"/>
+<text x="595.7" y="257.0" class="small" text-anchor="middle">10%</text>
+<path class="grid" d="M710.0 122.0L710.0 242.0"/>
+<text x="710.0" y="257.0" class="small" text-anchor="middle">100%</text>
+<text x="470.0" y="273.0" class="small" text-anchor="middle">active share of the scan&#x27;s tokens (log scale)</text>
+<text x="20.0" y="156.0" class="head">rank-1 LoRA down_proj directions</text>
+<path class="fc2 ring" d="M561.6 138.6L567.0 148.3L556.2 148.3Z"/>
+<path class="fc2 ring" d="M543.0 146.6L548.4 156.3L537.6 156.3Z"/>
+<path class="fc2 ring" d="M590.1 154.6L595.5 164.3L584.7 164.3Z"/>
+<path class="fc2 ring" d="M590.4 142.6L595.8 152.3L585.0 152.3Z"/>
+<path class="fc2 ring" d="M591.5 150.6L596.9 160.3L586.1 160.3Z"/>
+<path class="fc2 ring" d="M590.2 138.6L595.6 148.3L584.8 148.3Z"/>
+<path class="fc2 ring" d="M568.5 146.6L573.9 156.3L563.1 156.3Z"/>
+<path class="fc2 ring" d="M571.2 154.6L576.6 164.3L565.8 164.3Z"/>
+<path class="fc2 ring" d="M576.4 142.6L581.8 152.3L571.0 152.3Z"/>
+<path class="fc2 ring" d="M622.4 150.6L627.8 160.3L617.0 160.3Z"/>
+<path class="fc2 ring" d="M569.0 138.6L574.4 148.3L563.6 148.3Z"/>
+<path class="fc2 ring" d="M533.9 146.6L539.3 156.3L528.5 156.3Z"/>
+<path class="fc2 ring" d="M592.7 154.6L598.1 164.3L587.3 164.3Z"/>
+<path class="fc2 ring" d="M526.1 142.6L531.5 152.3L520.7 152.3Z"/>
+<path class="fc2 ring" d="M553.2 150.6L558.6 160.3L547.8 160.3Z"/>
+<path class="fc2 ring" d="M573.0 138.6L578.4 148.3L567.6 148.3Z"/>
+<path class="fc2 ring" d="M569.2 146.6L574.6 156.3L563.8 156.3Z"/>
+<path class="fc2 ring" d="M523.1 154.6L528.5 164.3L517.7 164.3Z"/>
+<path class="fc2 ring" d="M567.6 142.6L573.0 152.3L562.2 152.3Z"/>
+<path class="fc2 ring" d="M542.2 150.6L547.6 160.3L536.8 160.3Z"/>
+<path class="range sc2" d="M573.9 134.0L573.9 170.0"/>
+<text x="20.0" y="216.0" class="head">random native poles</text>
+<circle class="fc1 ring" cx="322.9" cy="204.0" r="4.5"/>
+<circle class="fc1 ring" cx="398.0" cy="212.0" r="4.5"/>
+<circle class="fc1 ring" cx="494.6" cy="220.0" r="4.5"/>
+<circle class="fc1 ring" cx="418.4" cy="208.0" r="4.5"/>
+<circle class="fc1 ring" cx="351.2" cy="216.0" r="4.5"/>
+<circle class="fc1 ring" cx="300.3" cy="204.0" r="4.5"/>
+<circle class="fc1 ring" cx="296.3" cy="212.0" r="4.5"/>
+<circle class="fc1 ring" cx="544.5" cy="220.0" r="4.5"/>
+<circle class="fc1 ring" cx="340.1" cy="208.0" r="4.5"/>
+<circle class="fc1 ring" cx="407.4" cy="216.0" r="4.5"/>
+<circle class="fc1 ring" cx="361.6" cy="204.0" r="4.5"/>
+<circle class="fc1 ring" cx="355.1" cy="212.0" r="4.5"/>
+<circle class="fc1 ring" cx="456.3" cy="220.0" r="4.5"/>
+<circle class="fc1 ring" cx="382.8" cy="208.0" r="4.5"/>
+<circle class="fc1 ring" cx="299.3" cy="216.0" r="4.5"/>
+<circle class="fc1 ring" cx="335.6" cy="204.0" r="4.5"/>
+<circle class="fc1 ring" cx="364.3" cy="212.0" r="4.5"/>
+<circle class="fc1 ring" cx="352.5" cy="220.0" r="4.5"/>
+<circle class="fc1 ring" cx="424.6" cy="208.0" r="4.5"/>
+<circle class="fc1 ring" cx="443.9" cy="216.0" r="4.5"/>
+<path class="range sc1" d="M434.7 194.0L434.7 230.0"/>
+</svg>

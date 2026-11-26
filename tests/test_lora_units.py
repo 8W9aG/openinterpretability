@@ -142,3 +142,121 @@ def test_loading_with_no_verified_neuron_has_no_percentile_or_share():
 def test_texts_join_question_thinking_and_answer():
     row = {"question": "2+2?", "deepseek_thinking_trajectory": "Add.", "deepseek_attempt": "4"}
     assert lu.texts([row, row]) == ["Question: 2+2?\n\nThinking: Add.\n\nAnswer: 4"] * 2
+
+
+import json  # noqa: E402
+
+import lora_units_stats as ls  # noqa: E402
+
+
+def _record(layer, status, gates, *, lora=False, seed=None, active=0.01, spec=0.9):
+    """One registry record of the study, with what the stats read."""
+    ident = {"layer": layer}
+    submission = {"identifier": ident, "provenance": {"selection": "manual"}}
+    if lora:
+        ident["superposition_id"] = f"s{layer}"
+        submission["superposition_profile"] = {"method": "rank-one-lora"}
+    else:
+        ident.update(neuron_idx=layer * 10, pole="positive")
+        submission["provenance"] = {"selection": "random", "seed": seed}
+    metrics = {"specificity": spec, "sensitivity": 0.9, "balanced_accuracy": 0.9,
+               "active_share": active, "gates": gates}  # fmt: skip
+    return {"submission": submission,
+            "verdict": {"status": status, "confidence_score": 0.8, "metrics": metrics}}  # fmt: skip
+
+
+def _write(wiki, layer, name, stamp, record):
+    folder = wiki / "experiments" / ls.MODEL_DIR / f"L{layer}" / name
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / f"{stamp}.json").write_text(json.dumps(record))
+
+
+def test_collect_keeps_the_study_and_the_newest_record_of_each_unit(tmp_path):
+    ok = {"specificity": True, "sensitivity": True}
+    _write(tmp_path, 2, "Ss2", "20261126T1", _record(2, "REJECTED", ok, lora=True))
+    _write(tmp_path, 2, "Ss2", "20261126T2", _record(2, "VERIFIED", ok, lora=True))
+    _write(tmp_path, 3, "N30-positive", "20261126T1", _record(3, "NEEDS_REVISION", ok, seed=5170))
+    _write(tmp_path, 4, "N40-positive", "20261126T1", _record(4, "VERIFIED", ok, seed=1))
+    units = ls.collect(tmp_path)
+    assert [(u["arm"], u["unit"], u["status"]) for u in units] == [
+        ("adapter", "s2", "VERIFIED"),
+        ("native", "N30-positive", "NEEDS_REVISION"),
+    ]
+    assert units[1]["seed"] == 5170 and units[0]["failed"] == []
+
+
+def test_unit_row_lists_the_failed_gates():
+    record = _record(5, "NEEDS_REVISION", {"specificity": False, "sensitivity": True, "a": False})
+    row = ls.unit_row(record, "native", "x.json")
+    assert row["failed"] == ["a", "specificity"]
+    assert row["unit"] == "N50-positive" and row["record"] == "x.json"
+
+
+def _units():
+    rows = []
+    for i in range(4):
+        rows.append({"arm": "adapter", "status": "VERIFIED" if i == 0 else "REJECTED",
+                     "specificity": 0.2, "sensitivity": 1.0, "balanced_accuracy": 0.6,
+                     "active_share": 0.05, "failed": ["specificity"] if i else []})  # fmt: skip
+        rows.append({"arm": "native", "status": "VERIFIED" if i < 3 else "NEEDS_REVISION",
+                     "specificity": 0.9, "sensitivity": 0.7, "balanced_accuracy": 0.8,
+                     "active_share": None if i == 3 else 0.004, "failed": []})  # fmt: skip
+    return rows
+
+
+def test_arm_row_counts_verdicts_and_means_skip_missing_values():
+    row = ls.arm_row(_units(), "native")
+    assert (row["units"], row["verified"], row["needs_revision"], row["rejected"]) == (4, 3, 1, 0)
+    assert row["verified_share"] == 0.75
+    assert row["verified_interval"][0] < 0.75 < row["verified_interval"][1]
+    assert row["mean_active_share"] == pytest.approx(0.004)
+
+
+def test_test_rows_compare_the_arms():
+    rows = {r["measure"]: r for r in ls.test_rows(_units())}
+    assert rows["verified_share"]["test"] == "fisher_exact"
+    assert 0 < rows["verified_share"]["p"] <= 1
+    assert rows["specificity"]["difference"] == pytest.approx(-0.7)
+    assert rows["active_share"]["difference"] == pytest.approx(0.046)
+
+
+def test_gate_rows_count_each_arms_failures():
+    assert ls.gate_rows(_units()) == [
+        {"table": "gate", "gate": "specificity", "adapter": 3, "native": 0}
+    ]
+
+
+def test_permutation_p_is_seeded_and_at_least_its_floor():
+    a, b = [0.1, 0.2, 0.3], [0.2, 0.3, 0.4]
+    assert ls.permutation_p(a, b, n=500, seed=1) == ls.permutation_p(a, b, n=500, seed=1)
+    assert ls.permutation_p([0.0] * 10, [1.0] * 10, n=99) == pytest.approx(0.01)
+
+
+def test_sign_p_is_symmetric():
+    assert ls.sign_p(2, 10) == ls.sign_p(8, 10)
+    assert ls.sign_p(0, 4) == pytest.approx(0.125)
+
+
+def test_loading_row_skips_layers_with_no_verified_neuron():
+    rows = [{"table": "loading", "verified": 1, "median_percentile": 0.9,
+             "share_of_norm": 0.2, "share_expected": 0.1},
+            {"table": "loading", "verified": 0, "median_percentile": None,
+             "share_of_norm": None, "share_expected": 0.0},
+            {"table": "unit"}]  # fmt: skip
+    got = ls.loading_row(rows)
+    assert (got["layers"], got["verified"], got["layers_above"], got["norm_ratio"]) == (
+        1,
+        1,
+        1,
+        2.0,
+    )
+
+
+def test_training_record_gives_the_steps_losses_and_cosines():
+    adapters = lu.attach(_model(layers=1), seed=2)
+    initial = {name: a.lora_A.detach().clone() for name, a in adapters.items()}
+    got = lu.training_record(adapters, initial, fitted=17, before=1.234567, after=1.0)
+    assert got["steps"] == lu.EPOCHS * (17 // lu.ACCUM)
+    assert (got["held_out_loss_before"], got["held_out_loss_after"]) == (1.23457, 1.0)
+    assert got["cos_to_init"] == {p: 1.0 for p in lu.PROJS}
+    assert got["model"] == lu.MODEL and got["table"] == "training"

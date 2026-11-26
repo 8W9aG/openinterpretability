@@ -1,0 +1,35 @@
+{
+ "source": "media/verdicts.svg",
+ "sha256": "d32305e2e1e5915afa35ae472bab91f82b9dee97d0b43d5a4b3d4fc38e2e8bb4",
+ "files": [
+  "social.mp4",
+  "social.png"
+ ],
+ "figures": {
+  "density": {
+   "sha256": "4d74c0957532b047973c4d7bca3218223d790cfc587b56a0260110ab4df98ee1",
+   "files": [
+    "social-density.png"
+   ]
+  },
+  "gates": {
+   "sha256": "8d7f5b2273988d119460512a7df78ef34ca998b48a00d8d58b34e683ca3959d8",
+   "files": [
+    "social-gates.png"
+   ]
+  },
+  "loading": {
+   "sha256": "4ca12e9703e534059a1e1dee8fe0e0ef6d303203c0a014861ae2cdb618e898d3",
+   "files": [
+    "social-loading.png"
+   ]
+  },
+  "verdicts": {
+   "sha256": "d32305e2e1e5915afa35ae472bab91f82b9dee97d0b43d5a4b3d4fc38e2e8bb4",
+   "files": [
+    "social-verdicts.mp4",
+    "social-verdicts.png"
+   ]
+  }
+ }
+}

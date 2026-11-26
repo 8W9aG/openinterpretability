@@ -1,7 +1,7 @@
 """Rank-1 LoRA adapter directions of Qwen2.5-0.5B as registry units (#5166).
 
 Ward et al. (``docs/literature/rank-1-lora-reasoning-signals.md``) train a rank-1 LoRA on a
-reasoning model, and read each adapter's ``lora_A`` as a unit: one scalar per token, the
+reasoning model. They read each adapter's ``lora_A`` as a unit: one scalar per token, the
 projection of the adapted matrix's input on ``lora_A``. This script trains such a LoRA on
 the MLP projections of every layer of Qwen2.5-0.5B, on s1K-1.1 as they did. The base
 weights stay frozen.
@@ -50,6 +50,12 @@ class RankOne(torch.nn.Module):
     """
 
     def __init__(self, base: torch.nn.Linear, generator: torch.Generator):
+        """Wrap ``base``, and draw ``lora_A`` from ``generator``.
+
+        Args:
+            base: The frozen linear layer.
+            generator: The generator of the ``lora_A`` initialisation.
+        """
         super().__init__()
         self.base = base
         a = INIT * torch.randn(base.in_features, generator=generator) / base.in_features**0.5
@@ -153,6 +159,59 @@ def main() -> None:
     """Train the rank-1 LoRA, then write its units."""
 
 
+def fit_adapters(model, adapters: dict, batches: list[torch.Tensor]) -> None:  # pragma: no cover
+    """Train the adapters in float32 with AdamW: EPOCHS passes, ACCUM trajectories per step.
+
+    Args:
+        model: The model, with the adapters attached and its base weights frozen.
+        adapters: The adapters, from :func:`attach`.
+        batches: Token ids, one training trajectory each.
+    """
+    params = [p for a in adapters.values() for p in (a.lora_A, a.lora_B)]
+    for p in params:
+        p.data = p.data.float()
+    optimiser = torch.optim.AdamW(params, lr=LR, weight_decay=0.0)
+    order = random.Random(SEED)
+    for _ in range(EPOCHS):
+        for step, i in enumerate(order.sample(range(len(batches)), len(batches))):
+            (model(batches[i], labels=batches[i]).loss / ACCUM).backward()
+            if (step + 1) % ACCUM == 0:
+                optimiser.step()
+                optimiser.zero_grad()
+
+
+def training_record(
+    adapters: dict, initial: dict, fitted: int, before: float, after: float
+) -> dict:
+    """The ``training.json`` record: the settings, the held-out loss and the cosine to init.
+
+    Args:
+        adapters: The trained adapters.
+        initial: Each adapter's ``lora_A`` before training, by name.
+        fitted: The number of training trajectories.
+        before: The held-out loss of the base model.
+        after: The held-out loss with the adapters.
+    """
+    return {
+        "table": "training",
+        "model": MODEL,
+        "data": "simplescaling/s1K-1.1",
+        "train": TRAIN,
+        "held_out": HELD_OUT,
+        "max_tokens": MAX_TOKENS,
+        "accum": ACCUM,
+        "lr": LR,
+        "alpha": ALPHA,
+        "seed": SEED,
+        "epochs": EPOCHS,
+        "init": INIT,
+        "steps": EPOCHS * (fitted // ACCUM),
+        "cos_to_init": cos_to_init(adapters, initial),
+        "held_out_loss_before": round(before, 5),
+        "held_out_loss_after": round(after, 5),
+    }
+
+
 @main.command()
 @click.option("--device", default="cuda", show_default=True)
 def train(device: str) -> None:  # pragma: no cover - trains the model
@@ -174,47 +233,24 @@ def train(device: str) -> None:  # pragma: no cover - trains the model
     corpus = texts(rows)
 
     def ids(i):
+        """The token ids of trajectory ``i``, cut to MAX_TOKENS.
+
+        Args:
+            i: The trajectory's row.
+        """
         return tokenizer(corpus[i], return_tensors="pt").input_ids[:, :MAX_TOKENS].to(device)
 
     fit_ids, held_ids = [ids(i) for i in fit], [ids(i) for i in held]
     before = mean_loss(model, held_ids)
     adapters = attach(model)
-    params = [p for a in adapters.values() for p in (a.lora_A, a.lora_B)]
-    for p in params:
-        p.data = p.data.float()
-    optimiser = torch.optim.AdamW(params, lr=LR, weight_decay=0.0)
     initial = {name: a.lora_A.detach().clone() for name, a in adapters.items()}
-    # EPOCHS passes over the training trajectories, ACCUM of them per optimiser step.
-    order = random.Random(SEED)
-    for _ in range(EPOCHS):
-        for step, i in enumerate(order.sample(range(len(fit_ids)), len(fit_ids))):
-            (model(fit_ids[i], labels=fit_ids[i]).loss / ACCUM).backward()
-            if (step + 1) % ACCUM == 0:
-                optimiser.step()
-                optimiser.zero_grad()
+    fit_adapters(model, adapters, fit_ids)
     after = mean_loss(model, held_ids)
     OUT.mkdir(parents=True, exist_ok=True)
     tensors = {f"{name}.{part}": getattr(a, part).detach().float().cpu().contiguous()
                for name, a in adapters.items() for part in ("lora_A", "lora_B")}  # fmt: skip
     save_file(tensors, str(OUT / "adapters.safetensors"))
-    meta = {
-        "table": "training",
-        "model": MODEL,
-        "data": "simplescaling/s1K-1.1",
-        "train": TRAIN,
-        "held_out": HELD_OUT,
-        "max_tokens": MAX_TOKENS,
-        "accum": ACCUM,
-        "lr": LR,
-        "alpha": ALPHA,
-        "seed": SEED,
-        "epochs": EPOCHS,
-        "init": INIT,
-        "steps": EPOCHS * (len(fit_ids) // ACCUM),
-        "cos_to_init": cos_to_init(adapters, initial),
-        "held_out_loss_before": round(before, 5),
-        "held_out_loss_after": round(after, 5),
-    }
+    meta = training_record(adapters, initial, len(fit_ids), before, after)
     (OUT / "training.json").write_text(json.dumps(meta, indent=1) + "\n")
     click.echo(json.dumps(meta))
 
