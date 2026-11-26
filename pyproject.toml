@@ -312,6 +312,7 @@ only_mutate = [
     "openinterpretability/builder/standing.py",
     "openinterpretability/agents/reviewer.py",
     "openinterpretability/planner.py",
+    "openinterpretability/builder/significance.py",
 ]
 # The repository data that the selected tests read.
 also_copy = ["wiki/circuits", ".github/workflows"]

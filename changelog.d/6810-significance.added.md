@@ -1,0 +1,1 @@
+- **`builder/significance.py` joins the verdict code that `make mutation` mutates.** New tests pin its strength lines, its rounding, the even-chance direction, the record's own policy and the memo. All 1,941 mutants of the five files die, in about 2.5 minutes (#6810).
