@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 MARKERS = {
-    "#": (".py", ".sh", ".yml", ".yaml", ".toml", "Makefile"),
+    "#": (".py", ".sh", ".yml", ".yaml", ".toml", ".mk", "Makefile"),
     "//": (".js", ".mjs"),
     "{#": (".html", ".jinja", ".j2"),
 }

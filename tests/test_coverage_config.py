@@ -14,7 +14,7 @@ def test_changed_lines_must_all_be_covered():
 
 def test_make_and_ci_read_the_threshold_from_pyproject():
     # A number on the command line would override pyproject.toml, and drift from it.
-    for path in ("Makefile", ".github/workflows/ci.yml"):
+    for path in ("labinacan.mk", ".github/workflows/ci.yml"):  # labinacan.mk: #6630
         text = (ROOT / path).read_text().splitlines()
         runs = [line for line in text if "diff-cover coverage.xml" in line]
         assert runs and all("-c pyproject.toml" in r and "--fail-under" not in r for r in runs)

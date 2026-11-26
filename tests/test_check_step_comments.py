@@ -18,6 +18,7 @@ spec.loader.exec_module(check)
         ("a.sh", "# 2) Build."),
         ("ci.yml", "      # 10. Upload."),
         ("Makefile", "# 3. Lint."),
+        ("labinacan.mk", "# 3. Lint."),
         ("site.js", "  // 1. Read the tokens."),
         ("page.html", "{# 2. The header. #}"),
     ],
