@@ -13,15 +13,18 @@ predictor gets no credit for depth alone. The predictors are these:
 * ``inverse_weight_norm``: the change's size relative to the site's own weights.
 
 It also gives the known cases: the copy heads' ranks among the heads, and the traffic of
-the least active neurons.
+the dormant neurons. The correlations use the even draw (the decile neurons and every
+head), and the top sites are summarised apart.
 
-    uv run python scripts/traffic_stats.py papers/traffic-map/results.jsonl
+    uv run python scripts/traffic_stats.py papers/traffic-map/results.jsonl \
+        papers/traffic-map/results.activity.jsonl
 """
 
 from __future__ import annotations
 
 import json
 import random
+import statistics
 import sys
 from pathlib import Path
 
@@ -30,6 +33,7 @@ import click
 PREDICTORS = ("traffic", "unweighted", "count", "loss_fisher", "inverse_weight_norm")
 MEASURES = ("flips", "mean_drift")
 COPY_HEADS = ((3, 3), (4, 0), (4, 7))  # the copy failure's heads (#4781)
+DORMANT = 0.01  # a dormant pole is active on under 1% of tokens (scripts/dormant_rank.py)
 SHUFFLES = 10_000
 BOOTSTRAPS = 2_000
 SEED = 5231
@@ -92,7 +96,7 @@ def tested_sites(rows: list[dict]) -> list[dict]:
         s = sites[t["kind"], t["site_layer"], t["index"]]
         out.append({**{k: s[k] for k in ("kind", "layer", "index", "traffic", "unweighted",
                                          "count", "loss_fisher")},
-                    "inverse_weight_norm": 1 / s["weight_norm"],
+                    "inverse_weight_norm": 1 / s["weight_norm"], "draw": t.get("draw"),
                     "flips": t["flips"], "mean_drift": t["mean_drift"]})  # fmt: skip
     return out
 
@@ -127,6 +131,32 @@ def correlation(sites: list[dict], predictor: str, measure: str) -> dict:
             "sites": len(sites), "rho": rho and round(rho, 4),
             "ci95": [low and round(low, 4), high and round(high, 4)],
             "shuffle_p": p_value(rho, at_least)}  # fmt: skip
+
+
+def difference(sites: list[dict], other: str, measure: str) -> dict:
+    """ρ of traffic less ρ of another predictor, with a paired bootstrap 95% interval.
+
+    Each replicate draws the sites once, and computes both ρ on the same draw.
+
+    Args:
+        sites: From :func:`tested_sites`.
+        other: The predictor to compare with traffic.
+        measure: One of :data:`MEASURES`.
+    """
+    y = [s[measure] for s in sites]
+    a, b = [s["traffic"] for s in sites], [s[other] for s in sites]
+    rng, diffs = random.Random(SEED), []
+    for _ in range(BOOTSTRAPS):
+        pick = [rng.randrange(len(y)) for _ in y]
+        ra = spearman([a[i] for i in pick], [y[i] for i in pick])
+        rb = spearman([b[i] for i in pick], [y[i] for i in pick])
+        if ra is not None and rb is not None:
+            diffs.append(ra - rb)
+    diffs.sort()
+    return {"table": "difference", "predictor": other, "measure": measure,
+            "difference": round(spearman(a, y) - spearman(b, y), 4),
+            "ci95": [round(diffs[int(0.025 * len(diffs))], 4),
+                     round(diffs[int(0.975 * len(diffs)) - 1], 4)]}  # fmt: skip
 
 
 def within_layer(sites: list[dict], predictor: str, measure: str) -> dict:
@@ -174,38 +204,88 @@ def within_layer(sites: list[dict], predictor: str, measure: str) -> dict:
             "shuffle_p": p_value(rho, at_least)}  # fmt: skip
 
 
-def known_cases(rows: list[dict]) -> dict:
-    """The copy heads' ranks by traffic among all heads, and the quiet neurons' traffic.
+def known_cases(rows: list[dict], activity: list[dict]) -> dict:
+    """The copy heads' ranks by traffic, and the dormant neurons' traffic against the rest.
+
+    A neuron is dormant when both of its poles are active on under :data:`DORMANT` of the
+    sample's tokens. The last layer's neurons are left out, because no pole lies above them.
 
     Args:
         rows: The rows of ``scripts/traffic_map.py``.
+        activity: The rows of ``scripts/traffic_dormant.py``.
     """
-    heads = sorted((r for r in rows if r["table"] == "site" and r["kind"] == "head"),
-                   key=lambda r: -r["traffic"])  # fmt: skip
+    sites = [r for r in rows if r["table"] == "site"]
+    heads = sorted((r for r in sites if r["kind"] == "head"), key=lambda r: -r["traffic"])
     rank = {(r["layer"], r["index"]): i + 1 for i, r in enumerate(heads)}
+    within = {}
+    for a, b in COPY_HEADS:
+        layer = [r for r in heads if r["layer"] == a]
+        within[f"L{a}/H{b}"] = [(r["layer"], r["index"]) for r in layer].index((a, b)) + 1
+    shares = {(r["layer"], r["index"]): r for r in activity}
+    last = max(r["layer"] for r in sites if r["kind"] == "mlp")
+    neurons = [r for r in sites if r["kind"] == "mlp" and r["layer"] < last]
+    order = sorted(neurons, key=lambda r: -r["traffic"])
+    place = {(r["layer"], r["index"]): i + 1 for i, r in enumerate(order)}
+    dormant = [r for r in neurons
+               if max(shares[r["layer"], r["index"]][p] for p in ("positive", "negative"))
+               < DORMANT]  # fmt: skip
+    rest = [r["traffic"] for r in neurons if r not in dormant]
     return {"table": "known", "heads": len(heads),
-            "copy_head_ranks": {f"L{a}/H{b}": rank[a, b] for a, b in COPY_HEADS}}  # fmt: skip
+            "copy_head_ranks": {f"L{a}/H{b}": rank[a, b] for a, b in COPY_HEADS},
+            "copy_head_ranks_in_layer": within, "neurons": len(neurons),
+            "dormant": [{"layer": r["layer"], "index": r["index"], "traffic": r["traffic"],
+                         "rank": place[r["layer"], r["index"]]} for r in dormant],
+            "median_traffic_rest": round(statistics.median(rest), 6)}  # fmt: skip
+
+
+def draw_summary(sites: list[dict]) -> list[dict]:
+    """Each draw's sites, flips and drift: the decile draw, the heads and the top sites.
+
+    Args:
+        sites: From :func:`tested_sites`.
+    """
+    out = []
+    for draw in ("decile", "head", "top"):
+        part = [s for s in sites if s["draw"] == draw]
+        if part:
+            out.append({"table": "draw", "draw": draw, "sites": len(part),
+                        "flips": sum(s["flips"] for s in part),
+                        "sites_with_flips": sum(s["flips"] > 0 for s in part),
+                        "median_traffic": round(statistics.median(s["traffic"] for s in part), 6),
+                        "median_drift": round(statistics.median(s["mean_drift"] for s in part), 6),
+                        "max_flips": max(s["flips"] for s in part)})  # fmt: skip
+    return out
 
 
 @click.command()
 @click.argument("results", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-def main(results: Path) -> None:
-    """Print each predictor's correlation with each measure, then the known cases.
+@click.argument("activity", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def main(results: Path, activity: Path) -> None:
+    """Print each draw, each predictor's correlation with each measure, then the known cases.
+
+    The correlations use the even draw only: the decile neurons and every head.
 
     Args:
         results: The rows of ``scripts/traffic_map.py``.
+        activity: The rows of ``scripts/traffic_dormant.py``.
     """
     rows = [json.loads(line) for line in results.read_text().splitlines() if line]
     sites = tested_sites(rows)
+    for row in draw_summary(sites):
+        click.echo(json.dumps(row))
+    even = [s for s in sites if s["draw"] in ("decile", "head")]
     for kind in ("all", "mlp", "head"):
-        part = [s for s in sites if kind in ("all", s["kind"])]
+        part = [s for s in even if kind in ("all", s["kind"])]
         for measure in MEASURES:
             for predictor in PREDICTORS:
                 row = correlation(part, predictor, measure)
                 click.echo(json.dumps({**row, "kind": kind}))
                 if kind == "all":
                     click.echo(json.dumps(within_layer(part, predictor, measure)))
-    click.echo(json.dumps(known_cases(rows)))
+                if kind == "all" and predictor != "traffic":
+                    click.echo(json.dumps(difference(part, predictor, measure)))
+    shares = [json.loads(line) for line in activity.read_text().splitlines() if line]
+    click.echo(json.dumps(known_cases(rows, shares)))
 
 
 if __name__ == "__main__":

@@ -64,13 +64,18 @@ def test_a_change_has_the_norm_and_touches_only_the_site():
     assert torch.equal(change, again)
 
 
-def test_sites_are_sampled_by_decile_of_traffic_with_every_head():
+def test_sites_are_sampled_by_decile_of_traffic_with_every_head_then_the_top():
     rows = [{"kind": "mlp", "traffic": float(i)} for i in range(100)]
     rows += [{"kind": "head", "traffic": 0.0} for _ in range(3)]
-    got = tm.sample_sites(rows, per_decile=2, seed=1)
-    assert len(got) == 2 * 10 + 3
-    deciles = [int(r["traffic"]) // 10 for r in got if r["kind"] == "mlp"]
+    got = tm.sample_sites(rows, per_decile=2, seed=1, top=4)
+    draws = [d for d, _ in got]
+    assert draws == ["decile"] * 20 + ["head"] * 3 + ["top"] * 4
+    deciles = [int(r["traffic"]) // 10 for d, r in got if d == "decile"]
     assert deciles == sorted(deciles) and set(deciles) == set(range(10))
+    tops = [r["traffic"] for d, r in got if d == "top"]
+    assert tops == sorted(tops, reverse=True) and min(tops) >= 90
+    decile_ids = {id(r) for d, r in got if d == "decile"}
+    assert not decile_ids & {id(r) for d, r in got if d == "top"}  # no site is tested twice
 
 
 def test_ranks_and_spearman():
@@ -92,6 +97,7 @@ def test_tested_sites_join_the_map_and_the_measures():
              "mean_drift": 0.01}]  # fmt: skip
     (got,) = ts.tested_sites(rows)
     assert got["traffic"] == 3.0 and got["inverse_weight_norm"] == 4.0 and got["flips"] == 4
+    assert got["draw"] is None  # a row from before the draws were named
 
 
 def test_correlation_of_a_perfect_predictor():
@@ -100,10 +106,28 @@ def test_correlation_of_a_perfect_predictor():
     assert got["rho"] == 1.0 and got["shuffle_p"] < 0.01 and got["ci95"][0] == 1.0
 
 
-def test_known_cases_rank_the_copy_heads():
+def test_known_cases_rank_the_copy_heads_and_find_the_dormant_neurons():
     rows = [_site("head", layer, h, float(10 * layer + h)) for layer in range(6) for h in range(8)]
-    got = ts.known_cases(rows)
+    rows += [_site("mlp", 0, j, float(j)) for j in range(4)] + [_site("mlp", 1, 0, 0.0)]
+    activity = [{"layer": 0, "index": j, "positive": 0.5 if j < 3 else 0.001,
+                 "negative": 0.5 if j < 3 else 0.002} for j in range(4)]  # fmt: skip
+    got = ts.known_cases(rows, activity)
     assert got["heads"] == 48 and got["copy_head_ranks"]["L4/H7"] == 9
+    assert got["copy_head_ranks_in_layer"] == {"L3/H3": 5, "L4/H0": 8, "L4/H7": 1}
+    assert got["neurons"] == 4  # the last layer's neuron is left out
+    assert got["dormant"] == [{"layer": 0, "index": 3, "traffic": 3.0, "rank": 1}]
+    assert got["median_traffic_rest"] == 1.0
+
+
+def test_draw_summary_keeps_the_draws_apart():
+    sites = [{"draw": "decile", "flips": 0, "traffic": 1.0, "mean_drift": 0.1},
+             {"draw": "decile", "flips": 2, "traffic": 3.0, "mean_drift": 0.3},
+             {"draw": "top", "flips": 5, "traffic": 9.0, "mean_drift": 0.5}]  # fmt: skip
+    decile, top = ts.draw_summary(sites)
+    assert decile == {"table": "draw", "draw": "decile", "sites": 2, "flips": 2,
+                      "sites_with_flips": 1, "median_traffic": 2.0, "median_drift": 0.2,
+                      "max_flips": 2}  # fmt: skip
+    assert top["draw"] == "top" and top["max_flips"] == 5
 
 
 def test_within_layer_ranks_take_depth_away():
@@ -116,3 +140,15 @@ def test_within_layer_ranks_take_depth_away():
         s["traffic"] = float(s["flips"] % 10)  # follows the order within each layer
     got = ts.within_layer(sites, "traffic", "flips")
     assert got["rho"] == pytest.approx(1.0) and got["shuffle_p"] < 0.01
+
+
+def test_difference_of_a_better_predictor_is_positive():
+    sites = [
+        {"traffic": float(i), "loss_fisher": float((i * 7) % 12), "flips": i} for i in range(12)
+    ]
+    got = ts.difference(sites, "loss_fisher", "flips")
+    assert got["difference"] > 0 and got["ci95"][0] > 0
+    same = ts.difference(
+        [{**s, "loss_fisher": s["traffic"]} for s in sites], "loss_fisher", "flips"
+    )
+    assert same["difference"] == 0 and same["ci95"] == [0, 0]

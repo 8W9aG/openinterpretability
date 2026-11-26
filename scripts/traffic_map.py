@@ -53,6 +53,7 @@ from openinterpretability.interference.keep import (  # noqa: E402
 
 MODEL = "EleutherAI/pythia-70m"
 PER_DECILE = 6  # neuron sites tested from each decile of traffic
+TOP = 10  # the neuron sites of most traffic, tested apart from the even draw
 SEED = 5231
 NOISE_NORM = 1.0  # the Frobenius norm of every test change; see the paper's Method
 
@@ -228,13 +229,21 @@ def pole_use(records, base) -> dict[str, float]:
     return out
 
 
-def sample_sites(site_rows: list[dict], per_decile: int = PER_DECILE, seed: int = SEED) -> list:
-    """Neuron sites spread evenly over the deciles of traffic, and every head.
+def sample_sites(site_rows: list[dict], per_decile: int = PER_DECILE, seed: int = SEED,
+                 top: int = TOP) -> list[tuple[str, dict]]:  # fmt: skip
+    """Neuron sites spread evenly over the deciles of traffic, every head, then the top sites.
+
+    The top sites are the ``top`` neuron sites of most traffic that the decile draw missed.
+    They test the map's high end, and the statistics keep them apart from the even draw.
 
     Args:
         site_rows: The ``site`` rows.
         per_decile: The neuron sites from each decile.
         seed: The seed of the draw.
+        top: The number of top neuron sites to add.
+
+    Returns:
+        ``(draw, row)`` pairs, where the draw is ``decile``, ``head`` or ``top``.
     """
     gen = torch.Generator().manual_seed(seed)
     neurons = sorted((r for r in site_rows if r["kind"] == "mlp"), key=lambda r: r["traffic"])
@@ -242,8 +251,10 @@ def sample_sites(site_rows: list[dict], per_decile: int = PER_DECILE, seed: int 
     for d in range(10):
         part = neurons[len(neurons) * d // 10 : len(neurons) * (d + 1) // 10]
         picks = torch.randperm(len(part), generator=gen)[:per_decile].tolist()
-        chosen += [part[i] for i in sorted(picks)]
-    return chosen + [r for r in site_rows if r["kind"] == "head"]
+        chosen += [("decile", part[i]) for i in sorted(picks)]
+    chosen += [("head", r) for r in site_rows if r["kind"] == "head"]
+    drawn = {id(r) for _, r in chosen}
+    return chosen + [("top", r) for r in reversed(neurons) if id(r) not in drawn][:top]
 
 
 def site_change(model, row: dict, norm: float, seed: int) -> dict[str, torch.Tensor]:
@@ -321,9 +332,9 @@ def main(wiki_dir, out, device, norm, limit) -> None:
     lines = base_rows(records, on_base, MODEL) + sites
     lines += [{"table": "use", "slug": s, "use": round(u, 6)} for s, u in use.items()]
     tested = sample_sites(sites)
-    for i, row in enumerate(tested[: limit or None]):
-        fields = {"model": MODEL, "condition": "site", "kind": row["kind"], "site_layer":
-                  row["layer"], "index": row["index"], "seed": i, "norm": norm,
+    for i, (draw, row) in enumerate(tested[: limit or None]):
+        fields = {"model": MODEL, "condition": "site", "draw": draw, "kind": row["kind"],
+                  "site_layer": row["layer"], "index": row["index"], "seed": i, "norm": norm,
                   "sample_tokens": SAMPLE_TOKENS}  # fmt: skip
         change = site_change(runner.model, row, norm, SEED + i)
         summary, *poles = run_condition(runner, batches, records, base, state, change, fields)
