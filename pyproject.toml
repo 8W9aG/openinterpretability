@@ -319,6 +319,7 @@ only_mutate = [
     "openinterpretability/core/errata.py",
     "openinterpretability/planner_states.py",
     "openinterpretability/planner_models.py",
+    "openinterpretability/agents/review_measurements.py",
 ]
 # The repository data that the selected tests read.
 also_copy = ["wiki/circuits", ".github/workflows"]
