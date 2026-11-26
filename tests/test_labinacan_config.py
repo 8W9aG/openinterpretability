@@ -14,7 +14,15 @@ LABINACAN = ROOT / "labinacan"
 # Generic scripts that #6629 makes read the config, before #6630 moves them under labinacan/.
 GENERIC_SCRIPTS = [
     ROOT / "scripts" / f"{n}.py"
-    for n in ("claims", "issue_state", "linear_sync", "next_issue", "papers", "exchange")
+    for n in (
+        "claims",
+        "issue_state",
+        "linear_sync",
+        "next_issue",
+        "papers",
+        "exchange",
+        "brand_images",
+    )
 ]
 TEXT = {".py", ".html", ".css", ".js", ".md", ".txt", ".toml", ".json", ".svg", ".xml"}
 
@@ -36,6 +44,13 @@ env_prefix = "APROJECT"
 linear_team = "APR"
 maintainer = "someone"
 hf_dataset = "someone/a-project-inputs"
+
+[tool.labinacan.brand]
+folder = "brand"
+tile = "#000000"
+ink = { light = "#111111", dark = "#EEEEEE" }
+colours = { red = "#FF0000" }
+cells = [[0, 0, 3, "red"], [1, 0, 0, ""]]
 """
 
 
@@ -65,6 +80,9 @@ def test_the_config_reads_both_tables_of_the_first_path_that_has_them(tmp_path, 
         repo_url="https://github.com/someone/a-project", x_url="https://x.com/aproject/",
         contact_email="team@example.org", linear_team="APR", maintainer="someone",
         hf_dataset="someone/a-project-inputs",
+        brand=cfg.Brand(folder="brand", tile="#000000",
+                        ink={"light": "#111111", "dark": "#EEEEEE"}, colours={"red": "#FF0000"},
+                        cells=((0, 0, 1.0, "red"), (1, 0, 0.0, ""))),
     )  # fmt: skip
     assert cfg.config().repo == "someone/a-project"
     assert cfg.env("CHROME") == "APROJECT_CHROME"
