@@ -43,4 +43,4 @@ Each fix is a public pull request. Its title says what the change does, not what
 ## What this does not show
 
 - The audit read the source. It did not attack a running system. It did not look at the settings of GitHub, PyPI, Hugging Face or Cloudflare beyond what the source shows.
-- The scope was the repository as it was on 2026-11-14. Each release now runs the same audit on what changed since the last release (`.claude/skills/release/SKILL.md`, step 4).
+- The scope was the repository as it was on 2026-11-14. Each release now runs the same audit on what changed since the last release (`.claude/skills/release/SKILL.md`, *Before the release*, step 3).
