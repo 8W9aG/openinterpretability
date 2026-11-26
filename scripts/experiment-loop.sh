@@ -143,7 +143,8 @@ describes and note it in the PR description.
   abandon it, say why in the PR and land it with only its ledger entry (wiki/ledger/).
   Don't close it.
 - If \`open-interpretability next\` says new experiments are paused, stop at once: claim nothing,
-  and end with RESULT: none paused.
+  and end with RESULT: none paused. To check a pause, run \`open-interpretability pause --status\`.
+  A bare \`open-interpretability pause\` sets one.
 - Finish on a clean working tree. End your reply with one line:
   RESULT: <slug> <verdict> <PR url> <merged|open>   (or RESULT: none <reason>)
 EOF
