@@ -1,8 +1,9 @@
-"""What ``scripts/mutation.py`` mutates and what it leaves out, from the config (#6631).
+"""The project's packages and generated files, from its config, for the scripts (#6631).
 
 The packages are ``[tool.mutmut] source_paths``, the list that mutmut itself copies. The
-large folders that no unit test reads are ``[tool.labinacan] mutation_skip``. So the script
-names no package or folder of a project.
+large folders that no unit test reads are ``[tool.labinacan] mutation_skip``. The files
+that a tool writes, which the checks of hand-written files skip, are ``[tool.labinacan]
+generated``. So no script names a package, a folder or a file of a project.
 """
 
 from __future__ import annotations
@@ -57,3 +58,22 @@ def not_copied(root: Path = Path(".")) -> set[str]:
         True
     """
     return {*packages(root), "tests", *_tables(root)[1].get("mutation_skip", ())}
+
+
+def generated(root: Path = Path(".")) -> tuple[str, ...]:
+    """The project's generated files, as ``fnmatch`` patterns: ``[tool.labinacan] generated``.
+
+    The checks of hand-written files skip them: the line limit, Markdown style and step
+    comments.
+
+    Args:
+        root: The repository's root.
+
+    Returns:
+        The patterns, relative to ``root``.
+
+    Examples:
+        >>> "wiki/*" in generated(Path(__file__).resolve().parents[1])
+        True
+    """
+    return tuple(_tables(root)[1].get("generated", ()))

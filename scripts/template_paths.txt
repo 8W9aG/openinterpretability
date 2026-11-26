@@ -63,7 +63,7 @@ scripts/leftover_terms.txt
 scripts/leftovers_baseline.txt
 scripts/linear_sync.py
 scripts/mutation.py
-scripts/mutation_paths.py
+scripts/repo_config.py
 scripts/mutation_runs.py
 scripts/next_issue.py
 scripts/papers.py
