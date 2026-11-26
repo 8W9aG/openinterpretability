@@ -1,1 +1,0 @@
-- **Breaking.** The build's on-disk memo (`DiskMemo`) and the sitemap and `robots.txt` now live in labinacan: `labinacan/site/disk_memo.py` and `labinacan/site/feeds.py` (#6628). `DiskMemo` takes its cache folder as a function, and this repo passes `core.cache_dirs.build_cache`. `builder/feeds.py` keeps the feed of new VERIFIED units.

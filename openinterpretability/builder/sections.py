@@ -6,9 +6,9 @@ from collections.abc import Set as AbstractSet
 from importlib.metadata import metadata
 from pathlib import Path
 
+from labinacan.site.brand import write_brand
 from labinacan.site.sections import render_sections
 from openinterpretability import DISTRIBUTION
-from openinterpretability.builder.brand import write_brand
 from openinterpretability.builder.explanation_pages import render_explanations
 from openinterpretability.builder.taxonomy_view import taxonomy_rows
 from openinterpretability.core.licenses import DATA_TERMS

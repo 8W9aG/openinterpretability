@@ -19,7 +19,6 @@ openinterpretability/benchmark.py
 openinterpretability/blends.py
 openinterpretability/builder/agents.py
 openinterpretability/builder/aligned.py
-openinterpretability/builder/brand.py
 labinacan/site/changelog_page.py
 openinterpretability/builder/charts.py
 openinterpretability/builder/circuit_pages.py

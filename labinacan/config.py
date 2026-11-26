@@ -4,7 +4,8 @@ A generic file holds no value that differs between projects. It reads the value 
 ``[project]`` gives the distribution's name, which is also its command, its one-line
 description, its URLs and its maintainer. ``[tool.labinacan]`` gives the rest. That is the
 project's name as people read it, its Python package and the prefix of its environment
-variables. It is also its Linear team and the maintainer's GitHub login.
+variables. It is also its Linear team, the maintainer's GitHub login and its Hugging Face
+dataset.
 
 The project tells this module where its ``pyproject.toml`` is, with :func:`use`. The first
 path that holds a ``[tool.labinacan]`` table counts. Until then, the working directory's
@@ -23,6 +24,45 @@ _PATHS: list[Path] = [Path("pyproject.toml")]
 
 
 @dataclass(frozen=True)
+class Brand:
+    """The project's brand: what its mark and wordmark are drawn from."""
+
+    folder: str  # the folder of the brand's files, inside the project's package
+    tile: str  # the colour of the mark's tile
+    ink: dict[str, str]  # the wordmark's colour, by "light" and "dark"
+    colours: dict[str, str]  # the mark's colours, by name
+    # The mark's cells, each (column, row, share filled, colour name). An empty cell has
+    # share 0 and colour "".
+    cells: tuple[tuple[int, int, float, str], ...]
+
+
+def brand_of(table: dict | None) -> Brand | None:
+    """The brand in a ``[tool.labinacan.brand]`` table, or None when there is no table.
+
+    Args:
+        table: The table. Each cell gives the share filled in thirds.
+
+    Returns:
+        The brand.
+
+    Examples:
+        >>> brand_of(None) is None
+        True
+        >>> b = brand_of({"folder": "b", "tile": "#000", "ink": {}, "colours": {},
+        ...               "cells": [[1, 2, 1, "red"], [0, 0, 0, ""]]})
+        >>> b.cells == ((1, 2, 1 / 3, "red"), (0, 0, 0.0, ""))
+        True
+    """
+    if table is None:
+        return None
+    return Brand(
+        folder=table["folder"], tile=table["tile"], ink=dict(table["ink"]),
+        colours=dict(table["colours"]),
+        cells=tuple((col, row, thirds / 3, colour) for col, row, thirds, colour in table["cells"]),
+    )  # fmt: skip
+
+
+@dataclass(frozen=True)
 class ProjectConfig:
     """The values of one project that the generic code reads."""
 
@@ -37,6 +77,8 @@ class ProjectConfig:
     contact_email: str
     linear_team: str  # the key of the Linear team that mirrors the issues, such as "ABC"
     maintainer: str  # the maintainer's GitHub login
+    hf_dataset: str  # the Hugging Face dataset of the public inputs, as "owner/name"
+    brand: Brand | None = None  # [tool.labinacan.brand], or None for a project with no brand
 
     @property
     def repo(self) -> str:
@@ -104,6 +146,7 @@ def config() -> ProjectConfig:
         True
     """
     for path in _PATHS:
+        # The first path that holds both tables counts, as use() says.
         if (found := _tables(path)) is not None:
             project, own = found
             urls = project["urls"]
@@ -119,6 +162,8 @@ def config() -> ProjectConfig:
                 contact_email=contact_email(project["maintainers"][0]),
                 linear_team=own["linear_team"],
                 maintainer=own["maintainer"],
+                hf_dataset=own["hf_dataset"],
+                brand=brand_of(own.get("brand")),
             )
     raise LookupError(f"no [tool.labinacan] table in {', '.join(map(str, _PATHS))}")
 

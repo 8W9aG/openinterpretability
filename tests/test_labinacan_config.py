@@ -1,6 +1,8 @@
 """The project's config, and the rule that no generic file holds its values (#6629)."""
 
+import importlib
 import re
+import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -12,7 +14,16 @@ ROOT = Path(__file__).parents[1]
 LABINACAN = ROOT / "labinacan"
 # Generic scripts that #6629 makes read the config, before #6630 moves them under labinacan/.
 GENERIC_SCRIPTS = [
-    ROOT / "scripts" / f"{n}.py" for n in ("claims", "issue_state", "linear_sync", "next_issue")
+    ROOT / "scripts" / f"{n}.py"
+    for n in (
+        "claims",
+        "issue_state",
+        "linear_sync",
+        "next_issue",
+        "papers",
+        "exchange",
+        "brand_images",
+    )
 ]
 TEXT = {".py", ".html", ".css", ".js", ".md", ".txt", ".toml", ".json", ".svg", ".xml"}
 
@@ -33,6 +44,14 @@ package = "aproject"
 env_prefix = "APROJECT"
 linear_team = "APR"
 maintainer = "someone"
+hf_dataset = "someone/a-project-inputs"
+
+[tool.labinacan.brand]
+folder = "brand"
+tile = "#000000"
+ink = { light = "#111111", dark = "#EEEEEE" }
+colours = { red = "#FF0000" }
+cells = [[0, 0, 3, "red"], [1, 0, 0, ""]]
 """
 
 
@@ -61,6 +80,10 @@ def test_the_config_reads_both_tables_of_the_first_path_that_has_them(tmp_path, 
         description="research on something.", site_url="https://example.org/",
         repo_url="https://github.com/someone/a-project", x_url="https://x.com/aproject/",
         contact_email="team@example.org", linear_team="APR", maintainer="someone",
+        hf_dataset="someone/a-project-inputs",
+        brand=cfg.Brand(folder="brand", tile="#000000",
+                        ink={"light": "#111111", "dark": "#EEEEEE"}, colours={"red": "#FF0000"},
+                        cells=((0, 0, 1.0, "red"), (1, 0, 0.0, ""))),
     )  # fmt: skip
     assert cfg.config().repo == "someone/a-project"
     assert cfg.env("CHROME") == "APROJECT_CHROME"
@@ -91,6 +114,7 @@ def test_this_project_reads_its_own_values():
     assert cfg.env("QUIET") == "OPENINTERPRETABILITY_QUIET"
     c = cfg.config()
     assert (c.repo, c.linear_team, c.maintainer) == ("8W9aG/openinterpretability", "OPE", "8W9aG")
+    assert c.hf_dataset == "sackfield/open-interpretability-exchange"
 
 
 def project_values(c: cfg.ProjectConfig) -> set[str]:
@@ -105,7 +129,7 @@ def project_values(c: cfg.ProjectConfig) -> set[str]:
     repo = urlparse(c.repo_url).path.strip("/")
     return {
         c.name, c.package, c.command, c.env_prefix, urlparse(c.site_url).netloc, repo,
-        c.contact_email, cfg.x_handle(c.x_url), c.maintainer,
+        c.contact_email, cfg.x_handle(c.x_url), c.maintainer, c.hf_dataset,
     }  # fmt: skip
 
 
@@ -162,3 +186,29 @@ def test_no_generic_file_holds_a_value_of_this_project():
     assert values >= {"open-interpretability.com", "8W9aG/openinterpretability"}  # a set, not a URL
     assert hits(LABINACAN, values, short_values(cfg.config())) == {}
     assert hits(GENERIC_SCRIPTS, values, short_values(cfg.config())) == {}
+
+
+def test_the_paper_and_exchange_scripts_take_their_values_from_the_config():
+    sys.path.insert(0, str(ROOT / "scripts"))
+    # Imported by name. Ruff sorts a script as first-party only where a folder of its name
+    # sits at the root. exchange/ is a local, ignored folder, so the sort would differ.
+    exchange = importlib.import_module("exchange")
+    papers = importlib.import_module("papers")
+
+    c = cfg.config()
+    assert {"name": c.name} == papers.GROUP and c.repo_url == papers.REPO
+    assert f"{c.site_url}research/" == papers.SITE
+    assert c.hf_dataset == exchange.REPO and c.package in exchange.CITING
+    assert f"[{c.name}]({c.repo_url})" in exchange.CARD
+
+
+def test_the_citation_file_agrees_with_the_config():
+    # CITATION.cff is this project's own file (GitHub and Zenodo read it), so it keeps its
+    # values. They must be the config's.
+    import yaml
+
+    cff = yaml.safe_load((ROOT / "CITATION.cff").read_text(encoding="utf-8"))
+    c = cfg.config()
+    assert cff["repository-code"] == c.repo_url and cff["url"] == c.site_url
+    assert cff["title"].startswith(f"{c.name}: ")
+    assert c.name in cff["message"] and c.package in cff["message"]
