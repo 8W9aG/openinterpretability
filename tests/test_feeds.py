@@ -1,10 +1,10 @@
-"""The site's sitemap, feed and robots.txt (``builder/feeds.py``, ``labinacan/site/feeds.py``)."""
+"""The site's sitemap, feed and robots.txt (``builder/feeds.py``, ``labinacan.site.feeds``)."""
 
 import xml.etree.ElementTree as ET
 
 import pytest
-
 from labinacan.site.feeds import NOINDEX
+
 from openinterpretability.builder.compiler import compile_site
 from openinterpretability.core.project import site_url
 from tests.test_compiler import experiment

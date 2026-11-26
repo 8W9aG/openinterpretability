@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import Field
-
 from labinacan.strict import StrictModel
+from pydantic import Field
 
 __all__ = ["StrictModel", "UnitFloat"]
 

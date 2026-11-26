@@ -36,8 +36,8 @@ from collections import Counter
 from collections.abc import Iterable
 
 import torch
-
 from labinacan.progress import Progress
+
 from openinterpretability.explain_groups import HEAD
 
 DRAWS = 4  # random sets for the baseline

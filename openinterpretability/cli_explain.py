@@ -14,8 +14,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import click
-
 from labinacan.progress import Stages
+
 from openinterpretability import explain_plan
 from openinterpretability.cli import _load_runner, cli, wiki_dir_option, with_model_options
 from openinterpretability.cli_patch import patch_options, patch_target

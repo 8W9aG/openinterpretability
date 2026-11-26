@@ -5,9 +5,9 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-
 from labinacan.site import pii
 from labinacan.site import takedowns as td
+
 from openinterpretability.builder import registry_pii
 from openinterpretability.builder.wiki import write_experiment_page
 from openinterpretability.checks import check_registry

@@ -13,12 +13,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from jinja2 import ChoiceLoader, Environment, PackageLoader, StrictUndefined, select_autoescape
-from pydantic import ValidationError
-
 from labinacan.sensitive import is_offensive
 from labinacan.site.parallel import in_background, render_in_parallel
 from labinacan.site.pii import save_spans, scrub
 from labinacan.site.render import Renderer, clean_owned, number_filters, write_redirect
+from pydantic import ValidationError
+
 from openinterpretability import __version__
 from openinterpretability import sisters as sister_lib
 from openinterpretability.builder import charts, palette, pieces, statuses
@@ -311,7 +311,7 @@ def compile_site(
     hand_over(records, experiments, archive and archive.paths)  # each slim record's file
     # Statistics read the true text: build_tree counts near-duplicate probes, and the queries
     # group readings by explanation. Only what the site publishes is scrubbed. The two
-    # exports run in the background while the pages render (labinacan/site/parallel.py).
+    # exports run in the background while the pages render (labinacan.site.parallel).
     stats_result = in_background(lambda: _true_text_stats(experiments, draws, corpus_sources), jobs)
     scrub_experiments(experiments)  # what the pages show: the record and its errata notes
     parquet = in_background(lambda: export_registry(experiments, output_dir, corpus_sources), jobs)

@@ -5,7 +5,6 @@ import multiprocessing
 from types import SimpleNamespace
 
 import pytest
-
 from labinacan.site.parallel import in_background, render_in_parallel
 
 pytestmark = pytest.mark.skipif(

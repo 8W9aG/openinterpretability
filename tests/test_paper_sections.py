@@ -1,4 +1,4 @@
-"""Section ids and the contents list of a paper page (labinacan/site/research.py, #3139)."""
+"""Section ids and the contents list of a paper page (labinacan.site.research, #3139)."""
 
 from labinacan.site.contents import anchor as _anchor
 from labinacan.site.research import _read_paper

@@ -10,6 +10,7 @@ same cell wins.
 """
 
 from labinacan.site.palette import badge_text
+
 from openinterpretability.builder.palette import STATUS_HEX, token
 
 STOPPED = "STOPPED"  # a neuron whose scans all stopped

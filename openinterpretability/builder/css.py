@@ -6,6 +6,7 @@ python -m openinterpretability.builder.css --site dist
 from __future__ import annotations
 
 from labinacan.site import css
+
 from openinterpretability.builder import palette
 from openinterpretability.core.legacy_names import cache_base
 

@@ -124,7 +124,7 @@ jobs:
       - name: Check registry consistency
         run: open-interpretability check
       # The personal-data matches of each text that earlier builds searched
-      # (labinacan/site/pii.py), so this build searches only new text.
+      # (labinacan.site.pii), so this build searches only new text.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: ~/.cache/openinterpretability/pii

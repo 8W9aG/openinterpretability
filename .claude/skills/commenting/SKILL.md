@@ -129,7 +129,7 @@ def find_transcript(agent: str) -> Path:
     """
 ```
 
-A docstring that says what, but not why (`labinacan/strict.py`):
+A docstring that says what, but not why (`labinacan.strict`):
 
 ```python
 # Before: no docstring

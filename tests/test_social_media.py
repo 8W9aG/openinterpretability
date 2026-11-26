@@ -9,7 +9,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import pytest
-
 from labinacan.site.social_media import stale
 from labinacan.social.feed import Media, read_feed
 from labinacan.social.poster import SEGMENT, XPoster
@@ -62,6 +61,7 @@ def _paper(root: Path, animated: bool) -> Path:
 @pytest.mark.parametrize("animated", [False, True])
 def test_the_feed_and_the_link_card_carry_the_drawn_figure(tmp_path, animated):
     from labinacan.site.research_feeds import PUBLISHED_FEED
+
     from openinterpretability.builder.compiler import compile_site
 
     out = tmp_path / "dist"

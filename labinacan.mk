@@ -6,7 +6,7 @@
 #   TEST_WRAPPER  a command that each test run goes through, or nothing.
 #   BUILD_COMMAND the command that builds the site into $(DIST_DIR). It should start with
 #                 $(BUILD_WRAPPER), which CI sets to a memory cap. Default: labinacan's
-#                 build (labinacan/site/build.py, #6631).
+#                 build (labinacan.site.build, #6631).
 #   CACHE_DIR_COMMAND  a command that prints the project's cache folder, for CI's caches.
 #                 Default: ~/.cache/<the project's command>.
 #   CSS_MODULE    the module that writes the site's stylesheet. Default: labinacan's, in

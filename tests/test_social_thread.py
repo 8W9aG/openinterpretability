@@ -5,13 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-
 from labinacan.site.research import _thread
 from labinacan.site.research_feeds import published_feed
 from labinacan.social import run as social
 from labinacan.social.feed import Entry, Media, Tweet, read_feed
 from labinacan.social.thread import THREAD, Prepared, load_thread, prepare, problems
 from labinacan.social.thread import Tweet as ThreadTweet
+
 from tests.test_social_poster import _Scripted
 
 ROOT = Path(__file__).resolve().parents[1]

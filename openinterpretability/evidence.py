@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import click
-
 from labinacan import sensitive  # cheap: Presidio loads only on the first search
+
 from openinterpretability.audit_options import selection as chosen_selection
 
 

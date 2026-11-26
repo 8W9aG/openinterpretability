@@ -1,9 +1,8 @@
-"""Posting to X: refused figures, video and text-only posts (labinacan/social/poster.py)."""
+"""Posting to X: refused figures, video and text-only posts (labinacan.social.poster)."""
 
 import io
 
 import pytest
-
 from labinacan.social import poster
 from labinacan.social.poster import XPoster
 

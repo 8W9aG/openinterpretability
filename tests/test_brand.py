@@ -1,6 +1,6 @@
 """The brand: the mark, favicon, social card and one accent colour (#3289).
 
-The code is labinacan/site/brand.py, and the brand is in pyproject.toml (#6629).
+The code is labinacan.site.brand, and the brand is in pyproject.toml (#6629).
 """
 
 import struct
@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 
 from labinacan.config import config
 from labinacan.site import brand
+
 from openinterpretability.builder import palette
 from openinterpretability.builder.compiler import compile_site
 
@@ -45,8 +46,7 @@ def test_the_accent_has_one_name():
     colours = palette.tailwind_colors()
     assert colours["brand-700"] == "#047857" and len(palette.BRAND_HEX) == 11
     found = subprocess.run(
-        ["git", "grep", "-l", "emerald-[0-9]", "--", "openinterpretability/builder/templates",
-         "labinacan/site/templates"],
+        ["git", "grep", "-l", "emerald-[0-9]", "--", "openinterpretability/builder/templates"],
         capture_output=True, text=True, check=False,
     ).stdout  # fmt: skip
     assert found == ""  # templates name the accent `brand-`, defined once in palette.py

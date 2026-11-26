@@ -14,8 +14,8 @@ import itertools
 import math
 
 import pytest
-
 from labinacan.site.palette import badge_text
+
 from openinterpretability.builder import palette
 
 CVD = {
