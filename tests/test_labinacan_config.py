@@ -187,7 +187,8 @@ def test_no_generic_file_holds_a_value_of_this_project():
     assert values >= {"open-interpretability.com", "8W9aG/openinterpretability"}  # a set, not a URL
     assert hits(LABINACAN, values, short_values(cfg.config())) == {}
     assert hits(GENERIC_SCRIPTS, values, short_values(cfg.config())) == {}
-    generic = [ROOT / "labinacan.mk", ROOT / ".github" / "workflows" / "labinacan-ci.yml"]  # #6630
+    flows = ROOT / ".github" / "workflows"
+    generic = [ROOT / "labinacan.mk", flows / "labinacan-ci.yml", flows / "links.yml"]  # #6630
     assert hits(generic, values, short_values(cfg.config())) == {}
 
 

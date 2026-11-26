@@ -1,6 +1,8 @@
 name: Check links
 
-# A weekly link check (#3170). It runs on a schedule, not per PR, so that a flaky host
+# A weekly link check (#3170). This file holds no value of a project (#6630): the project
+# gives its build (`make build`) and its cache folder (`make -s cache-dir`) through make.
+# It runs on a schedule, not per PR, so that a flaky host
 # never blocks a merge. `make lint` already checks the relative links in hand-written
 # Markdown on each PR (scripts/check_markdown.py).
 #
@@ -39,29 +41,33 @@ jobs:
         with:
           enable-cache: true
           cache-dependency-glob: uv.lock
-      - name: Install dependencies (CPU-only torch)
+      - name: Install dependencies (scripts/ci-install.sh, the project's)
         run: |
           ./scripts/ci-install.sh
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: The project's cache folder
+        id: dirs
+        env:
+          UV_NO_SYNC: "1"  # keep the packages that ci-install.sh put in .venv
+        run: echo "cache=$(make -s cache-dir)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
-          path: ~/.cache/openinterpretability/pii
+          path: ${{ steps.dirs.outputs.cache }}/pii
           key: pii-spans-${{ github.run_id }}
           restore-keys: pii-spans-
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
-          path: ~/.cache/openinterpretability/pr-authors
+          path: ${{ steps.dirs.outputs.cache }}/pr-authors
           key: pr-authors-${{ github.run_id }}
           restore-keys: pr-authors-
       - name: Build site
         env:
           GITHUB_TOKEN: ${{ github.token }}  # reads PR authors from the API
           CAPPED_SWAP: 2G
-        run: |
-          scripts/capped.sh 6G 4G -- \
-            open-interpretability build --wiki-dir wiki --output-dir dist
-          python -m openinterpretability.builder.css --site dist
-          python -m pagefind --site dist
+          UV_NO_SYNC: "1"
+        # The project's build under a memory cap (scripts/capped.sh), then the stylesheet
+        # and the search index, as `make build` runs them.
+        run: make build BUILD_WRAPPER="scripts/capped.sh 6G 4G --"
       - name: Check internal links and anchors
         shell: bash
         run: |

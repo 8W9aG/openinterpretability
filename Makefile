@@ -5,7 +5,10 @@ PACKAGES := openinterpretability labinacan
 # The heavy lock keeps two heavy jobs, such as a test run and a timing, from overlapping.
 TEST_WRAPPER := python -m openinterpretability.core.heavy_lock
 CSS_MODULE := openinterpretability.builder.css
-BUILD_COMMAND = uv run open-interpretability build --wiki-dir $(WIKI_DIR) --output-dir $(DIST_DIR)
+BUILD_COMMAND = $(BUILD_WRAPPER) uv run open-interpretability build --wiki-dir $(WIKI_DIR) \
+	--output-dir $(DIST_DIR)
+CACHE_DIR_COMMAND = uv run python -c \
+	"from openinterpretability.core.legacy_names import cache_base; print(cache_base())"
 PROJECT_LINT := project-lint
 
 include labinacan.mk
