@@ -4,7 +4,8 @@ A generic file holds no value that differs between projects. It reads the value 
 ``[project]`` gives the distribution's name, which is also its command, its one-line
 description, its URLs and its maintainer. ``[tool.labinacan]`` gives the rest. That is the
 project's name as people read it, its Python package and the prefix of its environment
-variables. It is also its Linear team and the maintainer's GitHub login.
+variables. It is also its Linear team, the maintainer's GitHub login and its Hugging Face
+dataset.
 
 The project tells this module where its ``pyproject.toml`` is, with :func:`use`. The first
 path that holds a ``[tool.labinacan]`` table counts. Until then, the working directory's
@@ -37,6 +38,7 @@ class ProjectConfig:
     contact_email: str
     linear_team: str  # the key of the Linear team that mirrors the issues, such as "ABC"
     maintainer: str  # the maintainer's GitHub login
+    hf_dataset: str  # the Hugging Face dataset of the public inputs, as "owner/name"
 
     @property
     def repo(self) -> str:
@@ -119,6 +121,7 @@ def config() -> ProjectConfig:
                 contact_email=contact_email(project["maintainers"][0]),
                 linear_team=own["linear_team"],
                 maintainer=own["maintainer"],
+                hf_dataset=own["hf_dataset"],
             )
     raise LookupError(f"no [tool.labinacan] table in {', '.join(map(str, _PATHS))}")
 
