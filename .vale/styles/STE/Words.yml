@@ -1,8 +1,7 @@
 # The banned-word list: words outside the STE dictionary, each with an approved word to
 # use. Our own list, not the ASD dictionary: ASD-STE100 Issue 9 forbids reproduction of
 # it without ASD's written authority (issues labelled "area: code quality and tooling").
-# Technical names ("pole", "probe", "verdict", "scan") are allowed; the commenting skill
-# lists them.
+# A project's technical names are allowed. The commenting skill's project.md lists them.
 extends: substitution
 message: "Use '%s', not '%s'."
 level: error

@@ -114,7 +114,7 @@ def test_the_build_hands_the_sections_what_it_was_given(project, monkeypatch):
     report = site_build.build(project / "dist", papers_dir=project / "p", posts_dir=project / "q")
     assert seen["report"] is report and len(seen["own"]) == 1
     assert seen["papers_dir"] == project / "p" and seen["posts_dir"] == project / "q"
-    assert seen["pdfs"] is False and seen["research_index"] == {"explained": False}
+    assert seen["pdfs"] is False and "research_index" not in seen  # labinacan has no explanations
 
 
 def test_the_brand_is_drawn_into_the_site_folder(tmp_path, restore, monkeypatch):  # noqa: F811
@@ -175,3 +175,11 @@ def test_a_project_base_is_a_part_of_each_page_not_a_page(tmp_path):
     (tmp_path / "base.html").write_text("{% block content %}{% endblock %}")
     (tmp_path / "about.html").write_text("about")
     assert site_build.own_pages(tmp_path) == ["about.html", "index.html"]
+
+
+def test_the_pages_name_home_and_the_projects_version(project, monkeypatch):
+    monkeypatch.setattr(site_build, "_version", lambda: "1.2.3")
+    out = project / "dist"
+    site_build.build(out)
+    assert ">Home</a>" in (out / "research" / "index.html").read_text()
+    assert "A Project 1.2.3" in (out / "index.html").read_text()

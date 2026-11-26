@@ -13,7 +13,13 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
+from fnmatch import fnmatch
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from repo_config import generated  # noqa: E402  (a script beside this one)
+
+GENERATED = generated(Path(__file__).resolve().parents[1])  # skipped: a tool writes them
 
 MARKERS = {
     "#": (".py", ".sh", ".yml", ".yaml", ".toml", ".mk", "Makefile"),
@@ -44,12 +50,12 @@ def offences(path: str, text: str) -> list[str]:
 
 
 def main() -> int:
-    """Check every tracked file outside ``wiki/``. Exit 1 on any offence."""
+    """Check every tracked file but the generated ones. Exit 1 on any offence."""
     files = subprocess.run(["git", "ls-files"], capture_output=True, text=True, check=True)
     found = []
     for name in files.stdout.splitlines():
         path = Path(name)
-        if name.startswith("wiki/") or not path.is_file():
+        if any(fnmatch(name, p) for p in GENERATED) or not path.is_file():
             continue
         try:
             found += offences(name, path.read_text(encoding="utf-8"))

@@ -39,7 +39,7 @@ def badge_text(hex_colour: str) -> str:
         ``#111111`` on a light fill, else ``#FFFFFF``.
 
     Examples:
-        >>> badge_text("#FDE047"), badge_text("#1D4ED8")
+        >>> badge_text("#FACC15"), badge_text("#1D4ED8")
         ('#111111', '#FFFFFF')
     """
     light = luminance(hex_colour) > 0.25  # pragma: no mutate, equivalent: no 8-bit colour is 0.25

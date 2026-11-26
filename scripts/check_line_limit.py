@@ -21,27 +21,26 @@ import sys
 from fnmatch import fnmatch
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from repo_config import generated  # noqa: E402  (a script beside this one)
+
+ROOT = Path(__file__).resolve().parents[1]
+
 MAX_LINES = 500
 MAX_FUNCTION_LINES = 40
 EXEMPT_MARKER = re.compile(r"#\s*long-function:\s*\S")
 
 EXEMPT = (
+    *generated(ROOT),  # the project's generated files (scripts/repo_config.py)
     # A copy of publicsuffix.org's list, not code.
     "labinacan/data/public_suffix_list.dat",
     "tests/*",
-    "wiki/*",  # generated experiment pages
-    "docs/analyses/*.jsonl",  # generated analysis rows
-    "data/pole-effects/*.json",  # generated tables (open-interpretability pole-effects)
-    "data/concept-maps/*.json",  # generated maps (open-interpretability map, #4422)
     "docs/literature/map.json",  # generated literature map (scripts/literature_map.py)
     "papers/*/results*.jsonl",  # generated result rows of a paper
     "papers/*/README.md",  # a paper is one page, however long its argument
     "papers/*/media/*.svg",  # generated figures, one mark to a line (scripts/paper_figures.py)
     "posts/*/media/*.svg",  # a post's generated figures (scripts/figures_explain_post.py)
-    "posts/*/media/data.json",  # a post's measured figure data (scripts/explain_post_data.py)
     "scripts/*_baseline.txt",  # generated ratchet lists, one function to a line, that only shrink
-    "benchmark/*.jsonl",  # frozen benchmark data (open-interpretability benchmark freeze)
-    "hf_models/*.jsonl",  # dictionary training logs
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
     "CHANGELOG.md",  # one file that grows with each release, not code
     "uv.lock",
