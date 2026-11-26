@@ -1,8 +1,7 @@
 """The figures of papers/weight-average-keep/README.md, from its results.jsonl (#5404).
 
-The steps along the line to the instruct model are circles in the first colour, and the
-random changes of each step's size are triangles in the second, as in
-papers/random-change-keep (figures_random_change_keep).
+The steps along the line to the instruct model are circles in the first colour. The random
+changes of each step's size are triangles in the second, as in papers/random-change-keep.
 """
 
 import math

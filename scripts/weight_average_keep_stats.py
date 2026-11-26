@@ -3,11 +3,12 @@
 It adds these rows to the results file's ``summary`` and ``pole`` rows:
 
 * ``step``: for each α, the poles that keep under α·Δ and under the random change of its
-  size (each seed), with the token KL, and how many of α = 1's flips also flip at α.
+  size, for each seed. Each row also has the token KL, and how many of α = 1's flips also
+  flip at α.
 * ``paired``: exact McNemar tests on the paired poles. Each α is set against the random
   change of its size, and α = 0.5 and α = 0.75 against α = 1.
-* ``path``: for each pole that flips at some α in (0, 1.5], its keep at every positive α,
-  and whether its flips form one run that starts at some α and lasts to α = 1.5.
+* ``path``: for each pole that flips at some α in (0, 1.5], its keep at every positive α.
+  It also says whether its flips form one run that starts at some α and lasts to α = 1.5.
 
     uv run python scripts/weight_average_keep_stats.py papers/weight-average-keep/results.jsonl
 """
