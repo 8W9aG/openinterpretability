@@ -1,0 +1,25 @@
+# The paper's X thread (labinacan/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Fine-tuning may add a thin wrapper that pruning a few neurons removes. Does that bring back
+    the neuron explanations that instruction tuning breaks? We pruned Qwen2.5-0.5B-Instruct's
+    neurons by gradient times weight. {link}
+  media: [recovery]
+- section: Does pruning by gradient times weight bring the failed explanations back?
+  text: >-
+    A few come back. Pruning the top 5 neurons brings back 16 of the 63 explanations that
+    instruction tuning breaks. Five random neurons of the same layers bring back 0 to 4.
+- section: What does the prune cost?
+  text: >-
+    It breaks 26 others, and 158 at 500 neurons. The KL to the base model rises, from 0.075 to
+    2.37, where the score predicted a fall.
+  media: [grid]
+- section: Why does the score fail?
+  text: >-
+    For half of the top 10 neurons, pruning one alone raises the KL. Neuron 813 of layer 2
+    raises it by 0.112, with an ordinary write.
+- section: Conclusion
+  text: >-
+    In Qwen2.5-0.5B, instruction tuning's effect on the explained neurons is not a thin
+    wrapper that this score can find. {link}

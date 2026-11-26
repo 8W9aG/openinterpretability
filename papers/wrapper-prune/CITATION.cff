@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: If you use this paper, please cite it as below.
+type: article
+title: Does pruning a few instruct-model neurons bring back the explanations that instruction tuning breaks?
+authors:
+- given-names: Will
+  family-names: Sackfield
+- name: Open Interpretability
+date-released: '2026-11-26'
+version: preprint
+url: https://open-interpretability.com/research/wrapper-prune/index.html
+repository-code: https://github.com/8W9aG/openinterpretability
