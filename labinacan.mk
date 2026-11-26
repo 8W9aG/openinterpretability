@@ -4,7 +4,9 @@
 #   DIST_NAME     the project's distribution, which `install` reinstalls.
 #   PACKAGES      its Python packages, for vulture, interrogate and Vale.
 #   TEST_WRAPPER  a command that each test run goes through, or nothing.
-#   BUILD_COMMAND the command that builds the site into $(DIST_DIR).
+#   BUILD_COMMAND the command that builds the site into $(DIST_DIR). It should start with
+#                 $(BUILD_WRAPPER), which CI sets to a memory cap.
+#   CACHE_DIR_COMMAND  a command that prints the project's cache folder, for CI's caches.
 #   CSS_MODULE    the module that writes the site's stylesheet.
 #   PROJECT_LINT  a target of its own checks, which `lint` runs, or nothing.
 #
@@ -18,7 +20,7 @@ ifndef PACKAGES
 $(error Set PACKAGES before including labinacan.mk)
 endif
 
-.PHONY: install packages test coverage mutation vulture typecheck lint markdown shell vale ste format build css search-index serve clean
+.PHONY: install packages cache-dir test coverage mutation vulture typecheck lint markdown shell vale ste format build css search-index serve clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -31,6 +33,10 @@ install:
 # The project's Python packages, one line: the generic workflow reads them (`make -s packages`).
 packages:
 	@echo $(PACKAGES)
+
+# The project's cache folder, one line: CI caches its subfolders (`make -s cache-dir`).
+cache-dir:
+	@$(CACHE_DIR_COMMAND)
 
 # Single-threaded in each process: the tests use tiny models, and thread pools contending
 # with other jobs on the machine have hung the suite.
