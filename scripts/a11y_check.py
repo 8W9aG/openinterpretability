@@ -1,14 +1,15 @@
 """Accessibility check of the built site with axe-core (issue #3280).
 
-It opens five pages of a built site in Chromium: home, a model, a layer, a neuron and
-an experiment. It opens each one in the light and the dark colour scheme. It runs
+It opens a sample of the pages of a built site in Chromium. These are home, the first page
+of each kind in ``[tool.labinacan] a11y_pages``, and Research. It opens each one in the
+light and the dark colour scheme. It runs
 axe-core's WCAG 2.0 A and AA and WCAG 2.1 AA rules on each one. It fails on any
 violation of impact "serious" or "critical", and prints each one with the element that
 fails.
 
 axe-core is one JavaScript file. The check downloads it at ``AXE_VERSION``, checks it
-against ``AXE_SHA256`` and keeps it in ``~/.cache/openinterpretability``. Playwright is not a
-project dependency, so run the check with it added:
+against ``AXE_SHA256`` and keeps it in the project's cache folder, ``~/.cache/<package>``.
+Playwright is not a project dependency, so run the check with it added:
 
     make sample-run
     uv run --with playwright==1.65.2 playwright install chromium
@@ -19,11 +20,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import sys
 import urllib.request
 from pathlib import Path
 
-from openinterpretability.core.legacy_names import cache_base
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from repo_config import a11y_pages, package  # noqa: E402  (a script beside this one)
 
 AXE_VERSION = "4.10.2"
 AXE_SHA256 = "b511cd9dec01c76f4b2ad1723b66b6db37d4c2eb4ed199076e1829d9ee7b75e3"
@@ -31,6 +34,12 @@ AXE_URL = f"https://cdn.jsdelivr.net/npm/axe-core@{AXE_VERSION}/axe.min.js"
 AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21aa"]
 FAIL_IMPACTS = {"serious", "critical"}
 SCHEMES = ("light", "dark")
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def cache_base() -> Path:
+    """The project's cache folder: ``$XDG_CACHE_HOME/<package>``, else ``~/.cache/<package>``."""
+    return Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / package(ROOT)
 
 
 def sample_pages(site: Path) -> list[str]:
@@ -40,10 +49,7 @@ def sample_pages(site: Path) -> list[str]:
     kind that the site has no page for is left out.
     """
     kinds = [
-        "models/*/index.html",
-        "models/*/L*/index.html",
-        "models/*/L*/N*.html",
-        "models/*/L*/N*-*/*.html",
+        *a11y_pages(ROOT),  # the project's own kinds of page
         "research/index.html",
         "research/*/index.html",  # tables that scroll, and the index's figure links (#5649)
     ]

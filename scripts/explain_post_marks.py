@@ -6,9 +6,9 @@ crosses, arrows, units and travelling rings.
 
 import textwrap
 
+from labinacan.figures.motion import animate, reveal, translate
+from labinacan.figures.svg import Figure
 from openinterpretability.builder.explanation_figures import DEFS, EXTRA
-from openinterpretability.figures.motion import animate, reveal, translate
-from openinterpretability.figures.svg import Figure
 
 CYCLE = "10s"
 END = 80.0  # percent of the cycle at which the last mark shows; the rest holds the final frame

@@ -21,8 +21,8 @@ from explain_post_marks import (
     _unit,
 )
 
-from openinterpretability.figures.motion import animate
-from openinterpretability.figures.svg import WIDTH, Panel, number
+from labinacan.figures.motion import animate
+from labinacan.figures.svg import WIDTH, Panel, number
 
 ROOT = Path(__file__).parents[1]
 

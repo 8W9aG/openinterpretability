@@ -21,6 +21,8 @@ strength is size and width, and sign is a line style.
 
 from __future__ import annotations
 
+from labinacan.figures.motion import reveal
+from labinacan.figures.svg import WIDTH, Figure, number
 from openinterpretability.builder.explanation_figures import (
     CYCLE,
     DEFS,
@@ -30,8 +32,6 @@ from openinterpretability.builder.explanation_figures import (
     _finish,
 )
 from openinterpretability.core.answer_records import parse_unit
-from openinterpretability.figures.motion import reveal
-from openinterpretability.figures.svg import WIDTH, Figure, number
 
 LEFT, RIGHT = 130, WIDTH - 130  # the units' columns lie between the tokens and the answer
 MAX_SCALE = 2.0  # a unit's mark grows to at most twice its size on the original prompt

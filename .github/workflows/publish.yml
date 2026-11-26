@@ -1,6 +1,6 @@
 name: Publish to PyPI
 
-# Publishes `open-interpretability` to PyPI each time a GitHub release is published (issue
+# Publishes the project's distribution to PyPI each time a GitHub release is published (issue
 # #3251). The `release` skill publishes one for every version. The job builds the wheel and
 # the sdist, checks that the release's tag is the package's version, and uploads them with
 # PyPI's trusted publishing: a short-lived token that PyPI gives to this workflow, in the
@@ -19,14 +19,22 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      name: ${{ steps.version.outputs.name }}  # the distribution's name on PyPI
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
       - name: Check that the release's tag is the package's version
+        id: version
         env:
           TAG: ${{ github.event.release.tag_name }}
+        # The package and the distribution's name come from pyproject.toml (#6631).
         run: |
-          version=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' openinterpretability/__init__.py)
+          read -r package name < <(python3 -c 'import tomllib
+          c = tomllib.load(open("pyproject.toml", "rb"))
+          print(c["tool"]["labinacan"]["package"], c["project"]["name"])')
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+          version=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' "${package}/__init__.py")
           if [ "v${version}" != "${TAG}" ]; then
             echo "::error::release ${TAG} is not the package's version v${version}"
             exit 1
@@ -47,7 +55,7 @@ jobs:
     # workflow file and this environment, and no other.
     environment:
       name: pypi
-      url: https://pypi.org/project/open-interpretability/
+      url: https://pypi.org/project/${{ needs.build.outputs.name }}/
     permissions:
       id-token: write  # for the OIDC token that trusted publishing exchanges
     steps:
