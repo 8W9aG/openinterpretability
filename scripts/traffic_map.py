@@ -6,13 +6,14 @@ move the registry's VERIFIED explanations, to first order:
 
     traffic(s) = Σ_p use_p · ‖∂R_p/∂θ_s‖
 
-Here R_p is pole p's mean peak strength over its own probes, as a share of its scale, and
-use_p is its share of active tokens on the corpus sample. The script writes a ``site`` row
-for every site, with its traffic, the count of poles that it reaches, the sum without the
-use weight, the diagonal Fisher of the loss over its weights and its weight norm.
+Here R_p is pole p's mean peak strength over its own probes, as a share of its scale.
+use_p is the pole's share of active tokens on the corpus sample. The script writes a
+``site`` row for every site. The row gives the traffic, the count of poles that the site
+reaches and the sum without the use weight. It also gives the diagonal Fisher of the loss
+over the site's weights, and the weight norm.
 
 Then it tests the map. It adds Gaussian noise of one fixed norm at each of a sample of
-sites, and runs the batched keep test of ``scripts/random_delta_keep.py`` on every
+sites. Then it runs the batched keep test of ``scripts/random_delta_keep.py`` on every
 VERIFIED pole. Each tested site's row gives the poles that flip and the mean drift of
 their probes' peaks.
 
