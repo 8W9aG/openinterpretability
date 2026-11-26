@@ -135,9 +135,11 @@ jobs:
         run: make ste
       - name: Tests, with branch coverage
         # Side by side, one process per core (#3266). It fails if the total is below
-        # [tool.coverage.report] fail_under (#3166).
+        # fail_under in .coveragerc (#3166). The packages come from `make -s packages`.
         # --durations shows the slowest tests, so a creep toward the timeout shows early.
-        run: pytest -n auto --cov --cov-report=xml --cov-report=term --durations=15
+        run: |
+          pytest -n auto $(make -s packages | sed 's/[^ ]*/--cov=&/g') \
+            --cov-report=xml --cov-report=term --durations=15
       - name: Why a test worker died
         # A crashed xdist worker loses its stderr. Each worker's faulthandler dump goes to
         # logs/faulthandler-<worker>.log (tests/conftest.py), and the kernel log names an
@@ -151,12 +153,12 @@ jobs:
           sudo dmesg | grep -i -E "out of memory|oom-kill|killed process" \
             || echo "No out-of-memory kill in the kernel log."
       - name: Coverage of the changed lines (diff-cover)
-        # [tool.diff_cover] fail_under of the lines that the pull request changes must be
+        # fail_under in .diff-cover.toml of the lines that the pull request changes must be
         # tested (#3166, #5855).
         if: github.event_name == 'pull_request'
         env:
           BASE_REF: ${{ github.base_ref }}
-        run: diff-cover coverage.xml -c pyproject.toml --compare-branch="origin/$BASE_REF"
+        run: diff-cover coverage.xml -c .diff-cover.toml --compare-branch="origin/$BASE_REF"
 
   mutation:
     name: Mutation testing

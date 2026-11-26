@@ -2,7 +2,7 @@
 
 This checks hand-written Markdown only. The pages under `wiki/` are generated, and their
 text comes from models and corpora. tests/test_markdown_templates.py lints their templates
-through a rendered sample. The style rules are in `[tool.pymarkdown]` in `pyproject.toml`.
+through a rendered sample. The style rules are in `.pymarkdown.yml` (#6630).
 
 Run with `make lint`. CI runs it in the lint step.
 """
@@ -47,15 +47,18 @@ def markdown_files() -> list[Path]:
     return [REPO / f for f in names if (REPO / f).exists()]
 
 
+CONFIG = ".pymarkdown.yml"  # PyMarkdown's rules, relative to the root
+
+
 def style_problems(files: list[Path]) -> list[str]:
     """One line for each PyMarkdown finding in ``files``. PyMarkdown errors raise.
 
-    The working directory is the repository root because PyMarkdown reads `pyproject.toml` there.
+    The working directory is the repository root, where `.pymarkdown.yml` is.
     """
     if not files:
         return []
     result = subprocess.run(
-        [sys.executable, "-m", "pymarkdown", "scan", *map(str, files)],
+        [sys.executable, "-m", "pymarkdown", "--config", CONFIG, "scan", *map(str, files)],
         capture_output=True,
         text=True,
         cwd=REPO,
