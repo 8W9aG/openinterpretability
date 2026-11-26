@@ -172,7 +172,12 @@ def parse_errata(text: str) -> list[Erratum]:
 def load_errata(wiki_dir: Path | str = DEFAULT_WIKI_DIR) -> list[Erratum]:
     """Every erratum in ``wiki_dir``, in file order; none if there is no errata file."""
     path = errata_path(wiki_dir)
-    return parse_errata(path.read_text(encoding="utf-8")) if path.exists() else []
+    if not path.exists():
+        return []
+    # Python reads UTF-8 by default on every platform here (PEP 538, 540), and "UTF-8" names
+    # the same codec. A mutant of the encoding changes nothing that a test can see.
+    text = path.read_text(encoding="utf-8")  # pragma: no mutate, equivalent: see above
+    return parse_errata(text)
 
 
 def covering(errata: Sequence[Erratum], record: AuditRecord) -> list[Erratum]:

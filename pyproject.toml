@@ -313,6 +313,7 @@ only_mutate = [
     "openinterpretability/agents/reviewer.py",
     "openinterpretability/planner.py",
     "openinterpretability/builder/significance.py",
+    "openinterpretability/core/errata.py",
 ]
 # The repository data that the selected tests read.
 also_copy = ["wiki/circuits", ".github/workflows"]
@@ -324,6 +325,7 @@ pytest_add_cli_args = ["-p", "no:cacheprovider", "-o", "addopts=-ra", "-q"]
 # That gave "timeout" in one run and "killed" in another (#6829). 10 gives such a mutant 300 s.
 timeout_constant = 10
 pytest_add_cli_args_test_selection = [
+    "tests/test_errata_edges.py",
     "tests/test_core_stats.py",
     "tests/test_builder_significance.py",
     "tests/test_covariance.py",
