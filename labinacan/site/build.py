@@ -113,7 +113,8 @@ def build(
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     report = SiteReport(output_dir)
-    common = {**project_links(), "site_title": config().name, "version": _version()}
+    common = {**project_links(), "site_title": config().name, "home_label": "Home"}
+    common["version"] = _version()
     render = Renderer(environment(templates), output_dir, common, report)
 
     def pages(render) -> None:
@@ -128,7 +129,7 @@ def build(
             report.pages.extend(write_brand(output_dir))
 
     render_sections(render, report, (pages,), papers_dir=papers_dir, posts_dir=posts_dir,
-                    pdfs=pdfs, research_index={"explained": False})  # fmt: skip
+                    pdfs=pdfs)  # fmt: skip
     write_site_files(output_dir, report.pages, common["site_url"])
     return report
 

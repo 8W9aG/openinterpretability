@@ -214,3 +214,20 @@ def test_a_literature_review_is_never_posted(tmp_path):
     args = ["social", "post", "--state", str(tmp_path / "s.json")]
     missing = CliRunner().invoke(cli, args, env={"X_API_KEY": ""})
     assert "secrets are not set" in missing.output
+
+
+def test_compose_spends_its_budget_to_the_last_character():
+    # #6631: the boundaries of the body's budget, and of a head that is too long alone.
+    from labinacan.social.message import LIMIT, LINK, compose, weight
+
+    room = LIMIT - LINK - 1  # the text before the link's line
+    assert compose("a b", "c", "L") == "a b c\nL"  # the default separator is one space
+    exact = "h" * (room - 1)  # leaves a budget of 0 for the body after the separator
+    assert compose(exact, "body", "L") == exact + "\nL"  # no body fits, so the head alone
+    one = "h" * (room - 2)  # leaves a budget of 1
+    assert (
+        compose(one, "body", "L").startswith(one + " ") and weight(compose(one, "b", "L")) <= LIMIT
+    )
+    # With no body, the head alone gets the room: one that fits stays whole, one over is cut.
+    assert compose("h" * room, "", "L") == "h" * room + "\nL"
+    assert compose("h" * (room + 1), "", "L") == "\nL"  # one word, too long, so nothing fits

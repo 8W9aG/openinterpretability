@@ -10,4 +10,4 @@ Use them exactly, with the meaning that `docs/PROTOCOL.md` gives: `pole`, `unit`
 
 - The `ERA` example came from `openinterpretability/corpus.py`.
 - A qualified name in this package reads ``:func:`openinterpretability.core.costs.stage` ``.
-- The command in an indented example is `open-interpretability …`, which Vale's sentence count skips.
+- A command example of `open-interpretability …` is indented 4 spaces, so that Vale's sentence count skips it.

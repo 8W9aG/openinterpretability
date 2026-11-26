@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", function () {
       svg.classList.add("focusing");
       var mark = a.querySelector(".paper");
       if (mark) mark.classList.add("focus");
-      if (a.dataset.cluster) {  // the pole's whole region stays bright
+      if (a.dataset.cluster) {  // the point's whole region stays bright
         svg.querySelectorAll('a[data-cluster="' + a.dataset.cluster + '"] .paper').forEach(function (m) { m.classList.add("near"); });
         var region = svg.querySelector('.region[data-region="' + a.dataset.cluster + '"]');
         if (region) region.classList.add("lit");
