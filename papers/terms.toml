@@ -51,7 +51,7 @@ plain = "a prompt that the explanation predicts will fire the neuron"
 
 [[term]]
 name = "gate"
-pattern = '(?i)\b(?:the|probe|review|review.s|specificity|sensitivity|necessity|sufficiency|causal) gates?\b'
+pattern = '(?i)\b(?:probe|review|review.s|specificity|sensitivity|necessity|sufficiency|causal) gates?\b|\bgates? of (?:an|the|its) (?:adversarial )?review\b'
 plain = "the name of the test: specificity, sensitivity, necessity or sufficiency"
 
 [[term]]

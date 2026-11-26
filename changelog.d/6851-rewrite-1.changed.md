@@ -1,0 +1,1 @@
+- Three preprints say the project's terms in plain words, and define *pole* in their Method after Cammarata (2026): `why-neurons-rest`, `copy-first-unit` and `spd-input-projections` (#6851). The gate pattern no longer matches a method's own gates, such as SPD's.

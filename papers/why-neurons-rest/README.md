@@ -8,7 +8,7 @@ Training moves most of GPT-2's neurons to a median pre-activation $h$ of about �
 
 A transformer's MLP neuron applies an activation function to its pre-activation $h$, and GPT-2 uses GELU (Hendrycks & Gimpel, 2016). GELU is not monotone. Below 0 its output is negative, falls to a minimum at −0.75 and then rises back toward 0. We call this minimum *GELU's dip*. We call the median of a neuron's $h$ over tokens its *rest*: the level where the neuron sits on a typical token. At random initialisation a neuron rests at about 0. In trained GPT-2 small (Radford et al., 2019), most neurons rest near −1, below the dip (Table 1).
 
-The rest matters for anyone who reads neurons one at a time. We study each sign of a neuron apart, and call one sign a *pole*. An explanation of a pole is *VERIFIED* when it passes every gate of an adversarial review, in which a second model writes probes meant to break it. A neuron that rests below 0 keeps its negative pole active on most tokens. The registry's protocol stops before the review on such a *default-on* pole, because no probe can stay silent on it. Most of GPT-2's neurons rest below GELU's dip, and that resting level is most of what a default-on pole costs. A protocol that ignores the rest must first know where it comes from.
+The rest matters for anyone who reads neurons one at a time. We study each sign of a neuron apart, and call one sign a *pole*, after Cammarata (2026), as the Method defines. An explanation of a pole *passes the adversarial review* when it passes every test of a review in which a second model writes test prompts meant to break it. A neuron that rests below 0 keeps its negative pole active on most tokens. Our protocol stops before the review on such a *default-on* pole, because no test prompt can stay silent on it. Most of GPT-2's neurons rest below GELU's dip, and that resting level is most of what a default-on pole costs. A protocol that ignores the rest must first know where it comes from.
 
 The paper on default-on negative poles found that the input weights set the rest, by turning against the MLP's mean input. It did not find what in training makes them do so. We therefore ask what in training sets the level where a neuron rests. We train small GPT-2s from fresh weights and change one thing at a time: the activation, the width, dropout, weight decay, the optimizer and its rate, and the routes by which the loss reaches the MLP's output.
 
@@ -42,7 +42,7 @@ The paper bears on research question 5, *What makes a neuron rest, stay dead or 
 
 ## Method
 
-**Terms.** For each neuron, $h_t$ is its pre-activation on token $t$, and the rest is the median of $h_t$ over tokens. A layer's rest is the median over its neurons. The *offset* is $\mathbf{w} \cdot \bar{x}$, with $\mathbf{w}$ the neuron's input weights and $\bar{x}$ the mean of the MLP's input. A neuron's weights are *against the mean input* when its offset is below 0. At each step we recorded $-\partial L / \partial h$ summed over the batch's tokens, for each neuron:
+**Terms.** A neuron in a transformer's MLP layer can carry a different meaning when it is strongly positive and when it is strongly negative. Following Cammarata (2026), we study one side at a time, and call it a *pole*. For each neuron, $h_t$ is its pre-activation on token $t$, and the rest is the median of $h_t$ over tokens. A layer's rest is the median over its neurons. The *offset* is $\mathbf{w} \cdot \bar{x}$, with $\mathbf{w}$ the neuron's input weights and $\bar{x}$ the mean of the MLP's input. A neuron's weights are *against the mean input* when its offset is below 0. At each step we recorded $-\partial L / \partial h$ summed over the batch's tokens, for each neuron:
 
 $$
 p = -\sum_t \frac{\partial L}{\partial h_t}
@@ -403,6 +403,7 @@ Training sets where a neuron rests through a weak push on its rest that is stead
 ## References
 
 - Biderman, S., Schoelkopf, H., Anthony, Q., Bradley, H., O'Brien, K., Hallahan, E., Khan, M. A., Purohit, S., Prashanth, U. S. S., Raff, E., Skowron, A., Sutawika, L., & van der Wal, O. (2023). *Pythia: A suite for analyzing large language models across training and scaling*. ICML 2023. [arXiv:2304.01373](https://arxiv.org/abs/2304.01373).
+- Cammarata, N. (2026). *Neural networks are already clean*. Goodfire research essay. [already-clean.goodfire.com](https://already-clean.goodfire.com/).
 - Dohare, S., Hernandez-Garcia, J. F., Lan, Q., Rahman, P., Mahmood, A. R., & Sutton, R. S. (2024). *Loss of plasticity in deep continual learning*. Nature, 632, 768–774. [doi:10.1038/s41586-024-07711-7](https://doi.org/10.1038/s41586-024-07711-7).
 - Dugas, C., Bengio, Y., Bélisle, F., Nadeau, C., & Garcia, R. (2001). *Incorporating second-order functional knowledge for better option pricing*. Advances in Neural Information Processing Systems 13 (NIPS 2000), 472–478. [NeurIPS proceedings](https://proceedings.neurips.cc/paper/2000/hash/44968aece94f667e4095002d140b5896-Abstract.html).
 - Elfwing, S., Uchibe, E., & Doya, K. (2017). *Sigmoid-weighted linear units for neural network function approximation in reinforcement learning*. [arXiv:1702.03118](https://arxiv.org/abs/1702.03118).
