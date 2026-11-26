@@ -244,3 +244,13 @@ def test_the_shell_lines_quote_each_value_and_name_this_project():
         env={**os.environ, "OUT": out},
     ).stdout.split()
     assert shell == [c.repo, c.maintainer, c.site_url]
+
+
+# runpy warns that the module is already imported, which is harmless here.
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
+def test_the_module_prints_the_shell_lines_when_run(capsys):
+    # In this process, so that coverage sees the main guard (the subprocess above it doesn't).
+    import runpy
+
+    runpy.run_module("labinacan.config", run_name="__main__")
+    assert capsys.readouterr().out.splitlines() == cfg.shell_lines(cfg.config())
