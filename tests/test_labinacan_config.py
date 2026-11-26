@@ -172,7 +172,6 @@ def test_no_generic_file_holds_a_value_of_this_project():
 def test_the_paper_and_exchange_scripts_take_their_values_from_the_config():
     sys.path.insert(0, str(ROOT / "scripts"))
     import exchange
-
     import papers
 
     c = cfg.config()
