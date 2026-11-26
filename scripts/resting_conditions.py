@@ -165,3 +165,7 @@ CONDITIONS |= {f"gelu_{n[5:]}": replace(c, activation="gelu")  # each ReLU norm 
 CONDITIONS |= {f"gelu_final_L{i}_ln{j}_dropout_0":  # the final norm and one block norm (#6465)
                replace(BASE, centre_norms=f"final,L{i}.ln_{j}", dropout=0.0)
                for i in range(N_LAYER) for j in (1, 2)}  # fmt: skip
+CONDITIONS |= {f"gelu_final_all_ln{j}_dropout_0":  # the final norm and every ln_j (#6785)
+               replace(BASE, dropout=0.0,
+                       centre_norms=",".join(["final", *(f"L{i}.ln_{j}" for i in range(N_LAYER))]))
+               for j in (1, 2)}  # fmt: skip
