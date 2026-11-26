@@ -69,3 +69,19 @@ def test_the_site_shows_the_status(tmp_path):
     assert '/issues/3"' not in page  # a reference in brackets is not work left
     assert "papers/p/CITATION.cff" in page
     assert "Preprint" in (tmp_path / "site" / "research" / "index.html").read_text()
+
+
+def test_a_preprint_abstract_over_the_cap_fails_and_a_published_one_is_left(tmp_path):
+    root = _papers(tmp_path)
+    readme = root / "p" / "README.md"
+    long = " ".join(["word"] * (papers.ABSTRACT_WORDS - 1) + ["$a + b = c$"])
+    readme.write_text(PAPER.replace("The abstract.", long))
+    papers.new("p", "#12 (x).", root)
+    assert papers.check(root) == []  # at the cap, with the formula as one word
+    readme.write_text(readme.read_text().replace(long, long + " more"))
+    assert papers.check(root) == [
+        f"p: the abstract has {papers.ABSTRACT_WORDS + 1} words, "
+        f"over the cap of {papers.ABSTRACT_WORDS} (write-paper)"
+    ]
+    papers.publish("p", root, today="2026-11-20")
+    assert papers.check(root) == []  # a published paper is frozen, whatever its length

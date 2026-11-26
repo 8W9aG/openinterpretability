@@ -28,7 +28,7 @@ List the paper in `papers/README.md`, with the date it is published before it: `
 
 A paper has the arc of the papers we review, in this order. `tests/test_papers.py` checks the fixed sections and their order.
 
-1. **Title and abstract.** A level 1 title, then one paragraph that can stand alone. It states the problem, the approach, the key numbers and what they imply. The Research index shows it, so don't start it with a citation or a path, and give it no heading.
+1. **Title and abstract.** A level 1 title, then one paragraph that can stand alone. It states the problem, the approach, the one or two numbers that carry the claim, and what they imply. Keep it to about 130–220 words. `scripts/papers.py check` fails a preprint whose abstract has more than 220 words, and it counts a `$…$` formula as one word (#6929). Other numbers go to the results sections, because the Research index shows the abstract alone. Don't start it with a citation or a path, and give it no heading.
 2. **Introduction.** Motivate the question for the field, not for the project. Say what earlier work leaves open. Then give a bulleted list of the paper's contributions, and link the question to `docs/research-questions.md`.
 3. **Related work.** At least one paragraph that places the paper among the outside work it cites. Say where it agrees and where it differs. The reviews in `docs/literature/` are the first place to look.
 4. **Method.** Define each term and the notation once, then the setup: model, units, data and measures.

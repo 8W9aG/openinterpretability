@@ -62,6 +62,7 @@ scripts/linear_sync.py
 scripts/mutation.py
 scripts/mutation_runs.py
 scripts/next_issue.py
+scripts/paper_abstract.py
 scripts/paper_terms.py
 scripts/papers.py
 scripts/repo_config.py
