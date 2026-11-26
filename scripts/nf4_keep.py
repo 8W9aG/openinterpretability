@@ -17,8 +17,8 @@ afterwards (``random_delta_keep.changed``):
 
 Each VERIFIED pole of the base model is then tested again as ``scripts/base_instruct.py``
 tests it, with the batched readings of ``scripts/random_delta_keep.py``. Each pole row also
-gives the drift of each probe's peak, as a share of the pole's scale, as
-``docs/analyses/half-precision-reproduce.md`` measures it.
+gives the drift of each probe's peak, as a share of the pole's scale. That is the measure
+of ``docs/analyses/half-precision-reproduce.md``.
 
     uv run python scripts/nf4_keep.py --base Qwen/Qwen2.5-0.5B --device cuda --out 0.5b.jsonl
 """

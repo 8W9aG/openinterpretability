@@ -1,16 +1,16 @@
 """The analyses of papers/nf4-keep/README.md, from the rows of scripts/nf4_keep.py (#5158).
 
-``drift`` prints the drift of the probes' peaks for each model and condition. That is the
-share of probes whose peak drifts by less than each mark, and the 99% and 99.9% points, as
-``docs/analyses/half-precision-reproduce.md`` gives them.
+``drift`` prints the drift of the probes' peaks for each model and condition. It gives the
+share of probes whose peak drifts by less than each mark. It also gives the 99% and 99.9%
+points, as ``docs/analyses/half-precision-reproduce.md`` does.
 
 ``paired`` compares NF4 with each seed of its matched random change, on the same poles.
 
 ``normality`` runs Appendix F's test of the QLoRA paper (Dettmers et al., 2023). It is a
-Shapiro-Wilk test of each VERIFIED pole's weights: its ``gate_proj`` and ``up_proj`` rows
-and its ``down_proj`` column, on the base model, at the 5% level. It writes one row for
-each pole. It then prints whether the poles with a non-normal weight lose their explanation
-under NF4 more often, with Fisher's exact test. It needs SciPy::
+Shapiro-Wilk test of each VERIFIED pole's weights, on the base model, at the 5% level.
+The weights are its ``gate_proj`` and ``up_proj`` rows and its ``down_proj`` column. It
+writes one row for each pole. It then prints whether the poles with a non-normal weight
+lose their explanation under NF4 more often, with Fisher's exact test. It needs SciPy::
 
     uv run python scripts/nf4_keep_stats.py drift papers/nf4-keep/results.jsonl
     uv run python scripts/nf4_keep_stats.py paired papers/nf4-keep/results.jsonl \\
@@ -217,8 +217,9 @@ def instruct_overlap(rows: list[dict], instruct_rows: list[dict], model: str) ->
 def paired(results: Path, instruct: Path | None) -> None:
     """Print NF4 against each seed of its random change, on the same poles, one line each.
 
-    The rows are those of ``scripts/random_change_stats.py``: the flips under each change,
-    the exact McNemar test, and the overlap of the flips with its hypergeometric test.
+    The rows are those of ``scripts/random_change_stats.py``. They give the flips under each
+    change and the exact McNemar test. They also give the overlap of the flips, with its
+    hypergeometric test.
 
     Args:
         results: The rows of ``scripts/nf4_keep.py``.
