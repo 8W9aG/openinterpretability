@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from labinacan.config import config
+
 PAPERS = Path(__file__).parents[1] / "papers"
 WRITTEN = sorted(path.parent.name for path in PAPERS.glob("*/results.jsonl"))
 CITATION = re.compile(
@@ -172,4 +174,4 @@ def test_every_paper_names_the_maintainer_first(paper):
     # The maintainer is the first author of every paper, and the group the second (#5260).
     root = yaml.safe_load((PAPERS.parent / "CITATION.cff").read_text(encoding="utf-8"))
     cff = yaml.safe_load((PAPERS / paper / "CITATION.cff").read_text(encoding="utf-8"))
-    assert cff["authors"] == [*root["authors"], {"name": "Open Interpretability"}]
+    assert cff["authors"] == [*root["authors"], {"name": config().name}]

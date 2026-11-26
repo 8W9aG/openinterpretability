@@ -36,7 +36,7 @@ def test_trusted_authors_are_eligible(monkeypatch, author):
     assert issue_state.eligibility("1")[0]
 
 
-@pytest.mark.parametrize("title", ["Nightly reproduction failed", "Deploy registry failed on main"])
+@pytest.mark.parametrize("title", sorted(issue_state.automatic_titles()))
 def test_workflow_issue_needs_a_workflows_title(monkeypatch, title):
     _stub(monkeypatch, "github-actions[bot]", title=title)
     assert issue_state.eligibility("1")[0]
@@ -64,12 +64,20 @@ def test_an_edit_by_someone_else_after_the_thumbs_up_needs_a_new_approval(monkey
     assert not ok and "edited by someone after" in why
 
 
-def test_titles_are_read_from_the_workflows():
-    assert issue_state.automatic_titles() == {
-        "Nightly reproduction failed",
-        "Deploy registry failed on main",
-        "Posting to X failed on main",
-    }
+def test_titles_are_read_from_the_configured_workflows_only():
+    # Each listed workflow exists and names its titles in TITLE: lines. Others are not read.
+    assert issue_state.AUTOMATIC_WORKFLOWS and all(
+        w.exists() for w in issue_state.AUTOMATIC_WORKFLOWS
+    )
+
+    def titles(path: Path) -> set[str]:
+        lines = (line.strip() for line in path.read_text().splitlines())
+        return {line.removeprefix("TITLE:").strip() for line in lines if line.startswith("TITLE:")}
+
+    listed = set().union(*(titles(w) for w in issue_state.AUTOMATIC_WORKFLOWS))
+    assert issue_state.automatic_titles() == listed and listed
+    others = set(issue_state.WORKFLOWS.glob("*.yml")) - set(issue_state.AUTOMATIC_WORKFLOWS)
+    assert not issue_state.automatic_titles() & set().union(*(titles(w) for w in others))
 
 
 def test_in_progress_is_refused_for_an_ineligible_issue(monkeypatch):

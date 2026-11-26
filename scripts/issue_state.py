@@ -64,6 +64,7 @@ from claims import (  # noqa: E402
     reply_key,
     unclaim,
 )
+from repo_config import automatic_workflows  # noqa: E402
 
 from labinacan.config import config  # noqa: E402  (claims points it at this repository)
 
@@ -86,7 +87,8 @@ PROPOSED = "proposed"
 MUSE = "muse"
 WORKFLOWS = Path(__file__).parents[1] / ".github/workflows"
 # Workflows that open an issue when they fail, each under the fixed titles in its TITLE envs.
-AUTOMATIC_WORKFLOWS = (WORKFLOWS / "reproduce-nightly.yml", WORKFLOWS / "deploy.yml")
+# The project lists them in [tool.labinacan] automatic_issue_workflows (scripts/repo_config.py).
+AUTOMATIC_WORKFLOWS = tuple(WORKFLOWS / name for name in automatic_workflows(WORKFLOWS.parents[1]))
 
 
 def workflow_titles(workflow: Path) -> set[str]:

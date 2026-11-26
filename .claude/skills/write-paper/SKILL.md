@@ -29,7 +29,7 @@ List the paper in `papers/README.md`, with the date it is published before it: `
 A paper has the arc of the papers we review, in this order. `tests/test_papers.py` checks the fixed sections and their order.
 
 1. **Title and abstract.** A level 1 title, then one paragraph that can stand alone. It states the problem, the approach, the key numbers and what they imply. The Research index shows it, so don't start it with a citation or a path, and give it no heading.
-2. **Introduction.** Motivate the question for the field, not for the registry. Say what earlier work leaves open. Then give a bulleted list of the paper's contributions, and link the question to `docs/research-questions.md`.
+2. **Introduction.** Motivate the question for the field, not for the project. Say what earlier work leaves open. Then give a bulleted list of the paper's contributions, and link the question to `docs/research-questions.md`.
 3. **Related work.** At least one paragraph that places the paper among the outside work it cites. Say where it agrees and where it differs. The reviews in `docs/literature/` are the first place to look.
 4. **Method.** Define each term and the notation once, then the setup: model, units, data and measures.
 5. **One section per experiment**, titled by what it asks. Each one gives the question, the setup, the result with its table or figure, and how to read it.
@@ -52,7 +52,7 @@ Write in a formal, academic register. Use the third person or "we", not "I" or "
 **Before and after.** The old form read like a list:
 
 ```text
-At step 16,000, the median correlation of a pole's activations with its final
+At step 16,000, the median correlation of a unit's activations with its final
 activations is 0.48, with a range of 0.29 to 0.74. It is 0.72 at step 64,000 and 0.93
 at step 128,000.
 ```
@@ -60,10 +60,10 @@ at step 128,000.
 The new form argues:
 
 ```text
-Although the loss is within 1% of its final value by step 16,000, the poles are far
+Although the loss is within 1% of its final value by step 16,000, the units are far
 from their final form at that step: their activations correlate with their final
 activations at a median of only 0.48 (Table 1). The correlation keeps rising, to 0.72
-at step 64,000 and 0.93 at step 128,000, which suggests that the poles keep changing
+at step 64,000 and 0.93 at step 128,000, which suggests that the units keep changing
 long after the loss settles.
 ```
 
@@ -72,7 +72,7 @@ long after the loss settles.
 Write maths in LaTeX. The site typesets it at build time (`labinacan/site/maths.py`), and GitHub renders it too. A formula that the site can't read stops the build.
 
 - **Write each equation, formula and maths symbol in LaTeX.** Use `$...$` inline: `$\mathrm{silu}(g) \cdot u$`, `$1.3 \times 10^{-5}$`, `$\sigma$`, `$R^2$`, `$\alpha = -0.5$`.
-- **Give each definition that the method depends on a block equation of its own**, such as the pole, the clamp or the KL metric. Put `$$` on its own line before and after the formula.
+- **Give each definition that the method depends on a block equation of its own**, such as the unit, the clamp or the KL metric. Put `$$` on its own line before and after the formula.
 - **Define each symbol the first time it occurs**, in the sentence that uses it.
 - **Keep plain numbers as text**, in prose and in tables: "12 layers", "3.72 nats", "0.28–0.82". A ratio such as "1.9×" is a plain number too. A number in scientific notation is maths: `$2.6 \times 10^{-5}$`.
 - **Keep code identifiers in backticks**, not in LaTeX: `silu`, `--clamp`.
@@ -84,7 +84,7 @@ Cite each outside idea, method, model and dataset where the paper uses it. Do th
 
 1. **Read the source.** Find the passage that supports the claim, in the paper itself. A summary, an abstract or a model's memory isn't enough. Web pages can fail to load, so download the PDF if you must. Record a failed read, and don't cite what you couldn't read.
 2. **Cite the claim, not only the work.** Check who said what. For example, Sun et al. (2024) report massive activations, and Xiao et al. (2023) name attention sinks. Citing one for the other's idea is an error.
-3. **Mark your own steps.** When you take an idea further than its source, say that the step is yours. A toy model's result is not a claim about GPT-2.
+3. **Mark your own steps.** When you take an idea further than its source, say that the step is yours. A toy model's result is not a claim about a large model.
 4. **Check the details.** Take the title, the authors, the year, the venue and the identifier from the source's own page. Give a link in each reference.
 5. **Cite data with its version and licence.** Give the dataset, the commit that was used, and what its card says about the licence. If the card names no citation or no licence, say so.
 6. **Point to work in this repo with a link.** For notes or earlier studies that have since moved, link to a commit, so that the text stays readable. Don't describe an earlier study without saying where its numbers are.

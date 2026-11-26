@@ -30,7 +30,7 @@ def _write(root: Path, rel: str, sentences: list[int]) -> str:
 
 
 def test_only_a_papers_own_text_gets_the_paper_profile():
-    assert ste_prose.is_paper("papers/neuron-development/README.md")
+    assert ste_prose.is_paper("papers/a-paper/README.md")
     assert not ste_prose.is_paper("papers/README.md")
     assert not ste_prose.is_paper("docs/analyses/x.md")
 

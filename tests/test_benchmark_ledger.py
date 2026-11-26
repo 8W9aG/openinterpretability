@@ -16,7 +16,7 @@ MACHINE = {"platform": "Linux-6.8-x86_64", "processor": "x86_64", "cpus": 4,
 
 
 def _run(scan_mb=1000, wall_s=60.0, machine=MACHINE):
-    memory = {"metric": "rss", "models": {"gpt2": {"scan_mb": scan_mb, "scan_s": 30.0}}}
+    memory = {"metric": "rss", "models": {"m1": {"scan_mb": scan_mb, "scan_s": 30.0}}}
     perf = {"machine": machine, "workloads": {"scan": {"wall_s": wall_s, "cpu_s": 100.0,
                                                        "peak_mb": 900.0}}}  # fmt: skip
     return memory, perf
@@ -29,7 +29,7 @@ def _row(**kwargs):
 def test_a_row_flattens_every_measure_and_names_the_runner():
     r = _row()
     assert r["measures"] == {
-        "memory/gpt2/scan_mb": 1000, "memory/gpt2/scan_s": 30.0,
+        "memory/m1/scan_mb": 1000, "memory/m1/scan_s": 30.0,
         "perf/scan/wall_s": 60.0, "perf/scan/cpu_s": 100.0, "perf/scan/peak_mb": 900.0,
     }  # fmt: skip
     assert r["runner"] == {"system": "Linux", "arch": "x86_64", "cpus": 4, "device": "cpu"}
@@ -43,7 +43,7 @@ def test_check_waits_for_history_then_compares_with_the_median():
     history = [_row(scan_mb=m) for m in (1000, 1010, 990)]
     assert ledger.check(_row(scan_mb=1240), history)[0] == []  # within 1.25x of 1000
     (line,) = ledger.check(_row(scan_mb=1300), history)[0]
-    assert line.startswith("memory/gpt2/scan_mb: 1300 against a median of 1000")
+    assert line.startswith("memory/m1/scan_mb: 1300 against a median of 1000")
     assert ledger.check(_row(wall_s=89.0), history)[0] == []  # times get 1.5x
     (line,) = ledger.check(_row(wall_s=91.0), history)[0]
     assert "perf/scan/wall_s" in line
