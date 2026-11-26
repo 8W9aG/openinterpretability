@@ -2,6 +2,7 @@
 
 Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its recorded output, and `media/` holds its figures. `scripts/paper_figures.py` draws the figures from the results, and a test fails if they differ. The site's Research section publishes the papers listed here, newest first, by the date before each one: the day it was first published. The `write-paper` skill describes how to write one.
 
+- 2026-11-26: [Do neuron explanations survive 4-bit NF4 rounding?](nf4-keep/README.md)
 - 2026-11-25: [How many VERIFIED explanations could a weight-only check test?](token-set-ceiling/README.md)
 - 2026-11-25: [Tuning or size? A matched random change for neuron explanations under instruction tuning](random-change-keep/README.md)
 - 2026-11-24: [Which MLP neurons carry the base-to-instruct difference?](instruct-difference/README.md)
