@@ -23,10 +23,13 @@ import sys
 import tokenize
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from repo_config import packages  # noqa: E402  (a script beside this one)
+
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / "scripts" / "body_comments_baseline.txt"
 MIN_LINES = 20
-FOLDERS = ("openinterpretability/", "labinacan/", "scripts/")
+FOLDERS = (*(f"{p}/" for p in packages(ROOT)), "scripts/")  # scripts/repo_config.py
 
 
 def _comments(source: str) -> set[int]:

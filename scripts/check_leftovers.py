@@ -93,8 +93,8 @@ def hits(path: Path, terms: list[re.Pattern]) -> int:
         >>> import tempfile
         >>> with tempfile.TemporaryDirectory() as tmp:
         ...     f = Path(tmp) / "a.md"
-        ...     _ = f.write_text("A neuron, and Neurons.")
-        ...     hits(f, [re.compile(r"(?i)\\bneurons?\\b")])
+        ...     _ = f.write_text("A widget, and Widgets.")
+        ...     hits(f, [re.compile(r"(?i)\\bwidgets?\\b")])
         2
     """
     text = path.read_text(encoding="utf-8", errors="replace")

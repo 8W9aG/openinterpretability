@@ -36,8 +36,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from mutation_paths import not_copied, packages  # noqa: E402  (a script beside this one)
 from mutation_runs import repeat  # noqa: E402
+from repo_config import not_copied, packages  # noqa: E402  (a script beside this one)
 
 FAILING = ("survived", "no tests", "timeout", "suspicious")
 # With --base, at most this many mutants run, a seeded sample of those in the changed
@@ -313,7 +313,7 @@ def copied(root: Path = Path(".")) -> list[str]:
 
     The fixed config copies only what the verdict tests read. A changed file can bring in
     any test, so this copies every tracked top-level entry but the ones that
-    ``mutation_paths.not_copied`` names. A folder that holds a left-out path is copied entry
+    ``repo_config.not_copied`` names. A folder that holds a left-out path is copied entry
     by entry, for the same reason.
 
     Args:

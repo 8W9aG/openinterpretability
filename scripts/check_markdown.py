@@ -1,8 +1,9 @@
 """Fail on a Markdown style problem or a broken relative link.
 
-This checks hand-written Markdown only. The pages under `wiki/` are generated, and their
-text comes from models and corpora. tests/test_markdown_templates.py lints their templates
-through a rendered sample. The style rules are in `.pymarkdown.yml` (#6630).
+This checks hand-written Markdown only. The project's generated pages are skipped
+(`[tool.labinacan] generated`), and their text comes from models and corpora.
+tests/test_markdown_templates.py lints their templates through a rendered sample. The style
+rules are in `.pymarkdown.yml` (#6630).
 
 Run with `make lint`. CI runs it in the lint step.
 """
@@ -17,12 +18,14 @@ from fnmatch import fnmatch
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from repo_config import generated  # noqa: E402  (a script beside this one)
+
 REPO = Path(__file__).resolve().parents[1]
 
 EXEMPT = (
-    "wiki/*",  # generated pages
-    "openinterpretability/builder/templates/*",  # Jinja, not Markdown, until rendered
-    "labinacan/site/templates/*",
+    *generated(REPO),  # the project's generated files (scripts/repo_config.py)
+    "*/templates/*",  # Jinja, not Markdown, until rendered
     ".claude/skills/asd-ste100/*",  # vendored as is from danyuchn/asd-ste100-skill
 )
 

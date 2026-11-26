@@ -128,6 +128,19 @@ hf_dataset = "sackfield/open-interpretability-exchange"  # the public inputs (sc
 # Left out of mutmut's copy of the repository: no unit test reads the 840 MB of records
 # (scripts/mutation.py, #6631).
 mutation_skip = ["wiki/experiments"]
+# The files that a tool writes, which the checks of hand-written files skip (scripts/repo_config.py).
+# The workflows whose failure issues an agent may work, under their fixed titles
+# (scripts/issue_state.py). The link check is left out on purpose.
+automatic_issue_workflows = ["reproduce-nightly.yml", "deploy.yml"]
+generated = [
+  "wiki/*",  # the experiment pages and records
+  "docs/analyses/*.jsonl",  # analysis rows
+  "data/pole-effects/*.json",  # open-interpretability pole-effects
+  "data/concept-maps/*.json",  # open-interpretability map (#4422)
+  "posts/*/media/data.json",  # a post's measured figure data (scripts/explain_post_data.py)
+  "benchmark/*.jsonl",  # frozen benchmark data (open-interpretability benchmark freeze)
+  "hf_models/*.jsonl",  # dictionary training logs
+]
 
 [tool.labinacan.brand]
 # The brand: the mark, the wordmark and the social image (labinacan/site/brand.py, #6629).
@@ -146,6 +159,12 @@ cells = [
   [0, 2, 2, "blue"], [1, 2, 0, ""], [2, 2, 3, "orange"],
 ]
 
+[tool.labinacan.size_budget]
+# scripts/repo_size.py warns in CI past these, and never fails (issue #3254). 1,000 MB is
+# GitHub's recommended largest repository. Where records live in the long term is open.
+tracked_mb = 1000
+files = 20000
+
 [tool.openinterpretability]
 # Models `open-interpretability next` explores: most draws go to the smallest model whose share is
 # below `coverage_target` verified (default 80%), the rest to the others (`others_share`, default 0.2;
@@ -159,12 +178,6 @@ models = ["Qwen/Qwen2.5-0.5B", "Qwen/Qwen2.5-1.5B", "openai-community/gpt2", "El
 # Models that may be audited but that CI can't run: every record must be signed, and
 # reproduction trusts the signature (openinterpretability.planner.signed_models). Not explored.
 signed_models = ["meta-llama/Llama-3.1-8B-Instruct"]
-
-[tool.openinterpretability.size_budget]
-# scripts/repo_size.py warns in CI past these, and never fails (issue #3254). 1,000 MB is
-# GitHub's recommended largest repository. Where records live in the long term is open.
-tracked_mb = 1000
-files = 20000
 
 [tool.openinterpretability.window_tokens]
 # Scan window for models that read fewer positions than the corpus's longest documents.

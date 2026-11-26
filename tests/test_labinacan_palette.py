@@ -20,7 +20,7 @@ def test_dark_and_light_channels_take_their_own_curves():
 
 
 def test_badge_text_is_dark_on_light_fills_and_white_on_dark_ones():
-    assert badge_text("#FDE047") == "#111111"
+    assert badge_text("#FACC15") == "#111111"
     assert badge_text("#1D4ED8") == "#FFFFFF"
 
 
