@@ -23,6 +23,7 @@ from pathlib import Path
 
 ENV = "OPENINTERPRETABILITY_PAUSE_FILE"
 DEFAULT_MINUTES = 120
+DEFAULT_REASON = "a measurement needs a quiet machine"
 EXIT_PAUSED = 75  # EX_TEMPFAIL from sysexits.h: try again later
 
 
@@ -74,10 +75,27 @@ def read(now: datetime | None = None) -> Pause | None:
     return pause
 
 
+def origin() -> str:
+    """Who sets a pause: the user, the process, the working directory and the agent, if any.
+
+    The process is gone a second later. The directory and the agent's ID tell an agent's
+    pause from the maintainer's (#6839). The agent's ID is
+    ``$OPENINTERPRETABILITY_AGENT``, the variable that ``scripts/claims.py`` reads.
+
+    Returns:
+        One line, such as ``ann, process 42, in /home/ann/repo, agent agent-1a2b``.
+    """
+    from labinacan.config import env
+
+    who = f"{getpass.getuser()}, process {os.getpid()}, in {os.getcwd()}"
+    agent = os.environ.get(env("AGENT"), "").strip()
+    return f"{who}, agent {agent}" if agent else who
+
+
 def start(reason: str, minutes: float = DEFAULT_MINUTES, now: datetime | None = None) -> Pause:
     """Pause new experiments for ``minutes``, and return the pause."""
     now = now or datetime.now(UTC)
-    who = f"{getpass.getuser()}, process {os.getpid()}"
+    who = origin()
     until = now + timedelta(minutes=minutes)
     pause = Pause(reason, who, now.isoformat(), until.isoformat())
     path = pause_file()

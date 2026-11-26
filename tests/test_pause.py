@@ -3,6 +3,7 @@
 The measurement needs a quiet machine.
 """
 
+import getpass
 import os
 import subprocess
 from datetime import UTC, datetime, timedelta
@@ -80,3 +81,46 @@ def test_the_loop_script_waits_only_for_exit_75():
     assert "slept" in run(75)  # paused: it waits
     assert run(0).strip().endswith("returned")  # not paused
     assert run(2).strip().endswith("returned")  # an older openinterpretability without `pause`
+
+
+def test_a_bare_pause_while_one_stands_only_shows_it(monkeypatch):
+    # An agent that runs `pause` to check must not extend the pause (#6839).
+    runner = CliRunner()
+    runner.invoke(cli, ["pause", "--reason", "timing devices", "--for", "5"])
+    before = pause.pause_file().read_bytes()
+    result = runner.invoke(cli, ["pause"])
+    assert result.exit_code == pause.EXIT_PAUSED and "timing devices" in result.output
+    assert pause.pause_file().read_bytes() == before  # nothing changed
+
+
+def test_a_bare_pause_with_none_standing_sets_one_with_the_defaults():
+    result = CliRunner().invoke(cli, ["pause"])
+    assert result.exit_code == 0 and "Replaced" not in result.output
+    current = pause.read()
+    assert current.reason == pause.DEFAULT_REASON
+    span = datetime.fromisoformat(current.until) - datetime.fromisoformat(current.since)
+    assert span == timedelta(minutes=pause.DEFAULT_MINUTES)
+
+
+def test_an_explicit_option_replaces_a_standing_pause():
+    runner = CliRunner()
+    runner.invoke(cli, ["pause", "--reason", "timing devices", "--for", "5"])
+    longer = runner.invoke(cli, ["pause", "--for", "30"])
+    assert longer.exit_code == 0 and "Replaced the earlier pause" in longer.output
+    current = pause.read()
+    assert current.reason == pause.DEFAULT_REASON
+    span = datetime.fromisoformat(current.until) - datetime.fromisoformat(current.since)
+    assert span == timedelta(minutes=30)
+    other = runner.invoke(cli, ["pause", "--reason", "a benchmark"])
+    assert other.exit_code == 0 and pause.read().reason == "a benchmark"
+
+
+def test_the_pause_says_where_it_came_from(monkeypatch, tmp_path):
+    from labinacan.config import env
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv(env("AGENT"), raising=False)
+    by = pause.start("timing devices", now=NOW).by
+    assert by == f"{getpass.getuser()}, process {os.getpid()}, in {tmp_path}"
+    monkeypatch.setenv(env("AGENT"), " agent-1a2b ")
+    assert pause.start("timing devices", now=NOW).by == f"{by}, agent agent-1a2b"
