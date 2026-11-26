@@ -465,12 +465,39 @@ def test_accumulated_gradient_is_the_whole_batchs(micro_batch):  # #6499
     assert not parts_loss.requires_grad
 
 
-def test_push_rows_are_refused_with_a_micro_batch():  # #6499
+def test_spread_bins_are_refused_with_a_micro_batch():  # #6499, #6806
     import click
     from train_resting import train
 
     with pytest.raises(click.UsageError, match="micro-batch"):
-        train("dropout_0", 0, 1, 1, None, None, "cpu", None, "x", push_every=1, micro_batch=8)
+        train("dropout_0", 0, 1, 1, None, None, "cpu", None, "x", push_every=1,
+              spread_bins=True, micro_batch=8)  # fmt: skip
+
+
+@pytest.mark.parametrize("micro_batch", [2, 3])  # 3 leaves a smaller last part
+def test_the_push_of_a_step_in_parts_is_the_whole_batchs(micro_batch):  # #6806
+    from resting_push import PushRecorder
+
+    def window(parts: int) -> dict:
+        model = build_model(CONDITIONS["dropout_0"], vocab_size=50, seed=0)
+        recorder = PushRecorder(model)
+        batch = torch.randint(50, (8, 6), generator=torch.Generator().manual_seed(0))
+        accumulate(model, batch, parts, recorder)
+        recorder.before_step()
+        acts = [m.act for m in recorder.mlps]
+        return {
+            **{k: [v.clone() for v in vs] for k, vs in recorder.window.items()},
+            "offset": [o["cosine"] for o in recorder.offset],
+            "slope": [a.mean_slope for a in acts],
+            "out": [a.mean_output for a in acts],
+        }
+
+    whole, parts = window(0), window(micro_batch)
+    for key in ("push", "output_push", "push_weights", "push_slope", "slope", "out"):
+        for a, b in zip(whole[key], parts[key], strict=True):
+            assert torch.allclose(a, b, atol=1e-5), key
+    assert parts["offset"] == pytest.approx(whole["offset"], abs=1e-4)
+    assert any(float(v.abs().sum()) > 0 for v in whole["push"])
 
 
 def test_scale_conditions_change_only_batch_or_size():  # #6499

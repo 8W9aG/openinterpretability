@@ -2,7 +2,7 @@
 
 Training moves most of GPT-2's neurons to a median pre-activation $h$ of about −1, as [the paper on default-on negative poles](../default-on-poles/README.md) found. That is below GELU's minimum at −0.75. That paper also found that the input weights do this. It did not find why. This paper trains small GPT-2s and changes one thing at a time. It finds a small push on each neuron's rest that is steady over many steps, and that the optimizer's step size sets how far the push takes the rest.
 
-**Status:** Preprint. Work left: #6806 (the causes of the push that are still open).
+**Status:** Preprint. Work left: #6935 (the 32× batch runs on a token sample large enough for one pass).
 
 ## Introduction
 
@@ -548,6 +548,24 @@ for SEED in 0 1; do  # Table 26, on an NVIDIA GPU with 12 GB (#6499)
         --part scale_every_250 --out $OUT
   done
 done
+for SEED in 0 1; do  # Table 27, on an NVIDIA GPU with 12 GB (#6806)
+  C=pythia_size_batch_32x
+  uv run python scripts/train_resting.py train --seed $SEED --condition $C --steps 2000 --eval-every 250 \
+      --micro-batch 32 --part training_pythia_scale --save-every 250 --save-dir ckpt \
+      --cache tokens.pt --device cuda --out $OUT
+  uv run python scripts/pretrained_push.py small --condition $C --seed $SEED --save-dir ckpt \
+      --step 0 --step 250 --step 500 --step 1000 --step 2000 --part scale_pythia --out $OUT
+  uv run python scripts/pretrained_push.py small --condition $C --seed $SEED --save-dir ckpt \
+      --part scale_every_250 --out $OUT
+done
+# Table 28 (#6806): the push in training, at a 32x batch and on the baseline
+uv run python scripts/train_resting.py train --seed 0 --condition pythia_batch_32x --steps 2000 \
+    --eval-every 250 --micro-batch 32 --push-every 100 --part training_batch_push \
+    --push-part push_batch_32x --cache tokens.pt --device cuda --out $OUT
+uv run python scripts/train_resting.py train --seed 0 --condition dropout_0 --steps 16000 \
+    --eval-every 2000 --push-every 100 --part training_batch_push --push-part push_batch_base \
+    --cache tokens.pt --device cuda --out $OUT
+uv run python scripts/batch_push_compare.py $OUT
 uv run python scripts/ln_offset.py gpt2 --out $OUT
 uv run python scripts/ln_offset.py small --checkpoint ckpt/gelu_seed0_step4000.pt --out $OUT
 for F in ckpt/gelu_seed1_step*.pt ckpt/relu_seed0_step*.pt ckpt/gelu_seed0_step0.pt; do
@@ -947,6 +965,43 @@ Thinning the checkpoints to Pythia's spacing leaves the test where it was (Table
 
 Neither change alone gives Pythia's result (Table 26). Each brings the push's match with the next move down to Pythia's. At Pythia's spacing the correlation is +0.05 to +0.09 on all four runs, against +0.13 to +0.15 for the no-dropout runs and +0.07 for Pythia-70m. With the 32× batch, the sign of the push matches the move in 49% and 54% of neurons, against Pythia's 51%. But the push still points down in most checkpoints and layers. The 32× batch has 7 and 10 of 15, inside the range of the no-dropout seeds. Pythia-70m's size, counted over L0–L5 as Pythia is, has 25 and 18 of 30, against Pythia's 13 of 30. Read at every checkpoint, the order is the same. The push points down in 16 and 18 of 27 with the 32× batch, 26 and 22 of 27 with the size, and 21 of 27 with `pythia_all` at our size (Table 20). The correlation is +0.07 to +0.10, against +0.12 to +0.16.
 
-So a larger batch and a larger model each make the push a weaker guide to the next move, and neither makes it point down less often than in the small models. Two cautions apply. First, at each step the 32× run sees 32 times the tokens, so at each checkpoint it is further trained. Its loss at step 2,000 is 5.15, against 5.79, and its rest is shallower, with L1 at −0.31 against −0.66. Its weaker match can come from a model that is further along, and not from a weaker push. Second, the runs do not record the push in training, because `PushRecorder` reads the gradient of one forward pass, and these steps take 32 or 4. #6806 holds both causes together, and the push in training at a larger batch.
+So a larger batch and a larger model each make the push a weaker guide to the next move, and neither makes it point down less often than in the small models. Two cautions apply. First, at each step the 32× run sees 32 times the tokens, so at each checkpoint it is further trained. Its loss at step 2,000 is 5.15, against 5.79, and its rest is shallower, with L1 at −0.31 against −0.66. Its weaker match can come from a model that is further along, and not from a weaker push. Second, the runs did not record the push in training. #6806 tests both changes together, and records the push in training at a 32× batch (Tables 27 and 28).
+
+**Batch and size together don't give Pythia's result either** (#6806). Runs labelled `training_pythia_scale` with the condition `pythia_size_batch_32x` train Pythia-70m's size with 32 times our batch, on seeds 0 and 1, for 2,000 steps. Each step goes through the model in 32 parts of 32 windows, as for the 32× batch. The rows labelled `scale_pythia` and `scale_every_250` read the runs, as in Table 26.
+
+| Test | Size and 32× batch, seed 0 | Size and 32× batch, seed 1 | L0–L5, seed 0 | L0–L5, seed 1 | Pythia-70m, L0–L5 |
+| --- | --- | --- | --- | --- | --- |
+| Checkpoints and layers with the push down, at Pythia's spacing | 14 of 15 | 13 of 15 | 24 of 30 | 20 of 30 | 13 of 30 |
+| Push against the next move, median | +0.03 | +0.07 | +0.06 | +0.07 | +0.07 |
+| Push against the next move, above 0 | 11 of 12 | 12 of 12 | 22 of 24 | 22 of 24 | 27 of 30 |
+| Neurons whose push has the sign of their move, median | 52% | 52% | 53% | 52% | 51% |
+| Push down, steps 0 to 750 only | 11 of 12 | 10 of 12 | 19 of 24 | 16 of 24 | |
+| Loss at step 1,000 | 4.94 | 4.93 | | | |
+| Loss at step 2,000 | 5.69 | 5.72 | | | |
+
+**Table 27.** The checkpoint test on Pythia-70m's size with 32 times our batch, read at Pythia's spacing as in Table 26. The row "steps 0 to 750 only" reads the checkpoints every 250 steps up to step 750, before the loss turns. The columns without L0–L5 count L1–L3.
+
+The two changes together bring the push's match with the next move to Pythia's, but not its direction (Table 27). At Pythia's spacing, the correlation of the push with the next move is +0.03 to +0.07, against +0.07 for Pythia-70m. The sign of the push matches the move in 52% and 53% of neurons, against 51%. But the push points down in 24 and 20 of 30 checkpoints and layers, against Pythia's 13 of 30.
+
+These runs overfit their training sample. The sample holds 15.3 million tokens, and a 32× batch over 2,000 steps reads about 262 million, or the sample about 17 times. The held-out loss falls to 4.94 at step 1,000, then rises to 5.69 by step 2,000, while the 4× batch of Pythia-70m's size reads the sample about twice and keeps falling to 5.07. Read only up to step 750, before the loss turns, the push still points down in 19 and 16 of 24 checkpoints and layers. So the memorisation does not explain the direction of the push. The small 32× model of Table 26 also reads its sample about 17 times, although its held-out loss still falls. #6935 holds runs on a sample large enough for one pass.
+
+**A 32× batch makes the push less steady, not weaker** (#6806). `PushRecorder` now adds the push over the parts of a step, each part weighted by its share of the batch. So `train --push-every` records the push of the whole batch when the step goes through the model in parts. A test checks that a step in parts records the same push as the whole batch in one pass. Runs labelled `training_batch_push` record the push every 100 steps. The 32× batch runs for 2,000 steps, with rows labelled `push_batch_32x`. The no-dropout baseline runs for 16,000 steps, which reads as many tokens as 500 steps of the 32× batch, with rows labelled `push_batch_base`. Table 28 compares the two at the same steps, at the same tokens and at the same loss.
+
+| Range | Steps | Loss | Median push | Mean over root mean square | Rest's move, per 100 steps | Windows with the push down |
+| --- | --- | --- | --- | --- | --- | --- |
+| 32× batch, same steps | 1,000–2,000 | 5.36–5.15 | $-4.5 \times 10^{-6}$ | −0.0085 | −0.0084 | 10 of 10 |
+| Baseline, same steps | 1,000–2,000 | to 5.79 | $-3.8 \times 10^{-6}$ | −0.0218 | −0.0245 | 10 of 10 |
+| 32× batch, same tokens | 0–500 | to 5.71 | $-4.6 \times 10^{-6}$ | −0.0136 | −0.0251 | 4 of 5 |
+| Baseline, same tokens | 0–16,000 | to 5.09 | $-2.0 \times 10^{-6}$ | −0.0082 | −0.0085 | 159 of 160 |
+| 32× batch, same loss | 1,500–2,000 | 5.21–5.15 | $-4.0 \times 10^{-6}$ | −0.0069 | −0.0072 | 5 of 5 |
+| Baseline, same loss | 8,000–12,000 | 5.21–5.12 | $-1.6 \times 10^{-6}$ | −0.0051 | −0.0031 | 40 of 40 |
+
+**Table 28.** The push on the rest in training, at a 32× batch and on the no-dropout baseline, on seed 0. Each value is the median over L1–L3, then the mean over the range's windows of 100 steps. The ratio of the push's mean to its root mean square over a window is how steady it is: Adam moves a parameter by about the rate times this ratio.
+
+At the same step, the 32× batch's push is as large as the baseline's, and points down in every window, but it is less steady (Table 28). From step 1,000 to 2,000, its median push is $-4.5 \times 10^{-6}$ against $-3.8 \times 10^{-6}$. But its ratio of mean to root mean square is −0.0085, against −0.0218, which is 2.6 times smaller. So Adam moves the rest less, by −0.0084 per 100 steps against −0.0245, about 3 times less. This fits the 32× batch's shallower rest in Table 26, at −0.31 against −0.66.
+
+At the same loss, the 32× batch's push is larger and steadier than the baseline's. The baseline reaches the 32× batch's loss at step 2,000 only after about 10,000 steps. There, its push is $-1.6 \times 10^{-6}$ with a ratio of −0.0051, against the 32× batch's $-4.0 \times 10^{-6}$ and −0.0069. At the same number of tokens, the baseline has taken 32 times as many steps and is further trained, with a loss of 5.09 against 5.71, so that comparison mixes the two.
+
+So the 32× batch does not weaken the push, and it does not make it point up. At each step it makes the push less steady, so the rest moves less, and at each checkpoint the model is further trained. A less steady push is a weaker guide to the next move, which fits the weaker match of Table 26. But the push's direction stays down, as the checkpoint test of Tables 26 and 27 also finds.
 
 The warm-up deepens the rest, as a higher rate does. At step 2,000, L1 rests at −1.48, against −0.66 for the no-dropout run at 3e-4 (Table 4). Pythia's rate without the warm-up deepens the rest further. At step 2,000, L1 rests at −2.63, against −1.48 with the warm-up. With all of Pythia's parts, it rests at −0.93.
