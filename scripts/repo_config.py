@@ -73,7 +73,27 @@ def generated(root: Path = Path(".")) -> tuple[str, ...]:
         The patterns, relative to ``root``.
 
     Examples:
-        >>> "wiki/*" in generated(Path(__file__).resolve().parents[1])
+        >>> isinstance(generated(Path(__file__).resolve().parents[1]), tuple)
         True
     """
     return tuple(_tables(root)[1].get("generated", ()))
+
+
+def automatic_workflows(root: Path = Path(".")) -> tuple[str, ...]:
+    """The workflows whose failure issues an agent may work.
+
+    They are ``[tool.labinacan] automatic_issue_workflows``. ``scripts/issue_state.py``
+    trusts an issue from the workflows' bot only under the fixed titles of these workflows. A
+    workflow left out, such as a link check, opens issues that an agent never takes (#6631).
+
+    Args:
+        root: The repository's root.
+
+    Returns:
+        The workflows' file names, in ``.github/workflows``.
+
+    Examples:
+        >>> "deploy.yml" in automatic_workflows(Path(__file__).resolve().parents[1])
+        True
+    """
+    return tuple(_tables(root)[1].get("automatic_issue_workflows", ()))

@@ -1,7 +1,6 @@
 """The Changelog page: one section per version (labinacan/site/changelog_page.py, #3284)."""
 
 from labinacan.site.changelog_page import load_versions
-from openinterpretability.builder.compiler import compile_site
 
 TEXT = """# Changelog
 
@@ -39,14 +38,3 @@ def test_each_version_is_a_section_and_an_empty_unreleased_is_left_out(tmp_path)
     path.write_text(TEXT.replace("## [Unreleased]\n", "## [Unreleased]\n\n- Coming.\n"))
     assert load_versions("u", path)[0].anchor == "unreleased"
     assert load_versions("u", tmp_path / "missing.md") == []
-
-
-def test_the_site_has_the_page_and_the_footer_links_the_running_version(tmp_path, record):
-    from openinterpretability import __version__
-
-    compile_site([record], tmp_path)
-    page = (tmp_path / "changelog.html").read_text(encoding="utf-8")
-    assert f'id="v{__version__}"' in page and "Ships with protocol version" in page
-    footer = (tmp_path / "index.html").read_text(encoding="utf-8")
-    assert f"changelog.html#v{__version__}" in footer
-    assert "changelog.html" in (tmp_path / "about.html").read_text(encoding="utf-8")

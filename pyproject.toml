@@ -129,6 +129,9 @@ hf_dataset = "sackfield/open-interpretability-exchange"  # the public inputs (sc
 # (scripts/mutation.py, #6631).
 mutation_skip = ["wiki/experiments"]
 # The files that a tool writes, which the checks of hand-written files skip (scripts/repo_config.py).
+# The workflows whose failure issues an agent may work, under their fixed titles
+# (scripts/issue_state.py). The link check is left out on purpose.
+automatic_issue_workflows = ["reproduce-nightly.yml", "deploy.yml"]
 generated = [
   "wiki/*",  # the experiment pages and records
   "docs/analyses/*.jsonl",  # analysis rows
