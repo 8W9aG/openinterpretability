@@ -11,7 +11,7 @@
 (?i)\bregistry\b
 \bprobes?\b
 \bsisters?\b
-(?i)\bcircuits?\b
+\bcircuits?\b
 \bSAEs?\b
 (?i)transcoder
 (?i)pythia

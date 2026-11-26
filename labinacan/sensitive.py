@@ -58,7 +58,7 @@ _NOT_A_PHONE = re.compile(r"(?:1[5-9]|20)\d\d\b|\d+\.\d+$")
 _NOT_A_PHONE_SHAPE = re.compile(
     r"(?<![\d.])0\.\d|\s{2,}|/|--|(?<![\d.])\d{1,3}(?:\.\d{1,3}){3}(?![\d.])|(?:\b\d\s+){3}"
 )
-# RFC 2606 reserves these for examples, so an address here is nobody's. Reviewers' probes use them.
+# RFC 2606 reserves these for examples, so an address here is nobody's. Test prompts use them.
 _RESERVED_DOMAINS = {"example.com", "example.net", "example.org"}
 # A window of tokens can end inside an address, so its domain is cut or missing.
 _EMAIL_CUT = re.compile(r"(?<![\w.+%-])[\w.+%-]*\w[\w.+%-]*@[\w.-]*$")
@@ -154,7 +154,7 @@ def _is_public_ip(address: str) -> bool:
 
 
 def _keeps(kind: str, match: str) -> bool:
-    """Our rules on top of Presidio's, from what it matched in the registry's documents."""
+    """Our rules on top of Presidio's, from what it matched in the project's documents."""
     if kind == "phone":
         enough_digits = sum(c.isdigit() for c in match) >= MIN_PHONE_DIGITS
         return enough_digits and not _NOT_A_PHONE_SHAPE.search(match)

@@ -188,4 +188,4 @@ Flag:
 
 `.vale/styles/STE/SentenceLength.yml` splits each comment or docstring into sentences itself, because Vale does not do this for source code. A sentence ends at `.`, `!` or `?` before a space. A closing quote or bracket may come between. A sentence also ends at a colon that ends a line, and where a list item (`-` or `*`) starts. So `0.5` and `e.g.` do not end a sentence. End each list item with a full stop.
 
-Some lines do not count, because they are not prose. These are lines indented 4 or more spaces in a docstring (a formula, a file layout, a literal block). Indented command examples (the project's command, `uv …`, `make …`, `git …`, `python …`) do not count either. Vale's `vale off` comments do not work in Python files, so restructure the text instead.
+Some lines do not count, because they are not prose. These are lines indented 4 or more spaces in a docstring (a formula, a file layout, a literal block). Command examples indented 2 or more spaces (`uv …`, `make …`, `git …`, `python …`) do not count either. Vale's `vale off` comments do not work in Python files, so restructure the text instead.
