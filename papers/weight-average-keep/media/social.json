@@ -1,0 +1,29 @@
+{
+ "source": "media/keeps.svg",
+ "sha256": "8d8d3d05963dc3914cbe1538e0c1652211384eda9c884295e0a3442f3ca89ada",
+ "files": [
+  "social.mp4",
+  "social.png"
+ ],
+ "figures": {
+  "keeps": {
+   "sha256": "8d8d3d05963dc3914cbe1538e0c1652211384eda9c884295e0a3442f3ca89ada",
+   "files": [
+    "social-keeps.mp4",
+    "social-keeps.png"
+   ]
+  },
+  "kl": {
+   "sha256": "40eef42a96c4b9d98badc7b14b956cebafeacef277636ab49bde92c4ba08f414",
+   "files": [
+    "social-kl.png"
+   ]
+  },
+  "path": {
+   "sha256": "272e9c44b643de5cea6e4545740d50e7845c70b07b598a703091bf1386119e71",
+   "files": [
+    "social-path.png"
+   ]
+  }
+ }
+}

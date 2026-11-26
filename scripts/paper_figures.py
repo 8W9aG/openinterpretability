@@ -34,6 +34,7 @@ import figures_template_tuning
 import figures_token_set
 import figures_traffic_map
 import figures_transfer
+import figures_weight_average_keep
 import figures_why_rest
 import figures_why_rest_equal
 import figures_why_rest_push
@@ -105,6 +106,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         "template-or-tuning": figures_template_tuning.build(_rows("template-or-tuning")),
         "token-set-ceiling": figures_token_set.build(_rows("token-set-ceiling")),
         "traffic-map": figures_traffic_map.build(_rows("traffic-map")),
+        "weight-average-keep": figures_weight_average_keep.build(_rows("weight-average-keep")),
         "wrapper-prune": figures_wrapper_prune.build(_rows("wrapper-prune")),
         "sequential-tuning": figures_sequential_tuning.build(_rows("sequential-tuning")),
         "why-neurons-rest": {
