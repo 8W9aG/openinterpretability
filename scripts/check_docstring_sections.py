@@ -32,11 +32,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from check_docstring_args import entries
+from repo_config import packages  # noqa: E402  (a script beside this one)
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / "scripts" / "docstring_sections_baseline.txt"
-PACKAGE = ("openinterpretability/", "labinacan/")  # the packages (#6628)
+PACKAGE = tuple(f"{p}/" for p in packages(ROOT))  # the packages (scripts/repo_config.py)
 RETURNS = re.compile(r"^(\s*)Returns:\s*$", re.M)
 YIELDS = re.compile(r"^(\s*)Yields:\s*$", re.M)
 RAISES = re.compile(r"^(\s*)Raises:\s*$")
