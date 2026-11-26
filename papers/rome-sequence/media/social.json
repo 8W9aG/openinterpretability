@@ -1,0 +1,23 @@
+{
+ "source": "media/decay.svg",
+ "sha256": "0bc25f47f078e11be144ec9243ffcf972de29d3ee446530e98ffccbf77224ec2",
+ "files": [
+  "social.mp4",
+  "social.png"
+ ],
+ "figures": {
+  "decay": {
+   "sha256": "0bc25f47f078e11be144ec9243ffcf972de29d3ee446530e98ffccbf77224ec2",
+   "files": [
+    "social-decay.mp4",
+    "social-decay.png"
+   ]
+  },
+  "edits": {
+   "sha256": "54580f9b27815d48a25e878019f9a9cc7614bc78806cdd491133104a79b3ecaf",
+   "files": [
+    "social-edits.png"
+   ]
+  }
+ }
+}
