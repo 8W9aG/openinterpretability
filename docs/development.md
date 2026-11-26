@@ -122,6 +122,19 @@ A step that can run for minutes reports its progress, so a slow run doesn't look
 | `openinterpretability/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
 | `labinacan/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
 
+## labinacan and its template
+
+`labinacan/` holds the parts of this project that don't depend on its research. They are the site, papers, posts, literature pages, brand and R2 sync. It is also a package on PyPI, from [8W9aG/labinacan](https://github.com/8W9aG/labinacan) (#6736). This repository moves to the PyPI package in #7003.
+
+A new project starts from [8W9aG/labinacan-template](https://github.com/8W9aG/labinacan-template), a copier template (#7002):
+
+```bash
+uvx copier copy --trust gh:8W9aG/labinacan-template my-project   # answer the questions
+uvx copier update --trust                                        # later, in the project
+```
+
+The questions write the project's config and brand. A task then sets up its GitHub repository with `gh`. The template's README gives the steps.
+
 ## Static site and data
 
 The site, served at [open-interpretability.com](https://open-interpretability.com/), is built from the wiki's experiment archive (`wiki/experiments/**/<id>.json`). That archive holds every experiment, including null and superseded results. Within each neuron, experiments are ordered by how conclusive their evidence is, in either direction (`openinterpretability/builder/significance.py`). The site's search runs in the browser, with Pagefind for text and DuckDB-Wasm for SQL over `registry.parquet`.
