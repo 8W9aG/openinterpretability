@@ -8,7 +8,7 @@
   {% block generator %}{% endblock %}
   {% if canonical %}<link rel="canonical" href="{{ canonical }}">{% endif %}
   {% block feeds %}{% endblock %}
-  {# The brand (builder/brand.py): the mark as favicon, and the card a shared link shows. #}
+  {# The brand (labinacan/site/brand.py): the mark as favicon, and the card a shared link shows. #}
   <link rel="icon" href="{{ root }}assets/mark.svg" type="image/svg+xml">
   <link rel="icon" href="{{ root }}assets/mark-32.png" type="image/png" sizes="32x32">
   <meta name="description" content="{{ description[0] | upper }}{{ description[1:] }}">
