@@ -1,4 +1,4 @@
-"""The posting run of the social feeds (labinacan/social/run.py)."""
+"""The posting run of the social feeds (labinacan.social.run)."""
 
 from __future__ import annotations
 

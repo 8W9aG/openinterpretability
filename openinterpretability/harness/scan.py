@@ -235,6 +235,7 @@ def batches(
     (:class:`~labinacan.progress.Progress`).
     """
     from labinacan.progress import Progress
+
     from openinterpretability.harness.devices import batch_scale
 
     if not pieces:

@@ -4,9 +4,9 @@ import json
 
 import pyarrow.parquet as pq
 import pytest
-
 from labinacan.sensitive import is_offensive
 from labinacan.site.pii import REMOVED_TEXT, REMOVED_TOKEN, redact_text, redact_tokens
+
 from openinterpretability.builder.compiler import compile_site
 from openinterpretability.builder.registry_pii import _scrub_attribution, scrub_record
 from openinterpretability.core.schemas import AuditRecord

@@ -1,4 +1,4 @@
-"""Progress lines for long steps (labinacan/progress.py, issue #3971)."""
+"""Progress lines for long steps (labinacan.progress, issue #3971)."""
 
 from labinacan.progress import Progress
 

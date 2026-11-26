@@ -12,7 +12,7 @@ posts/
     └── media/       its figures, if it has any
 ```
 
-A post has the same form as a paper, and the same code builds it (`labinacan/site/research.py`). So the same rules apply:
+A post has the same form as a paper, and the same code builds it (`labinacan.site.research`). So the same rules apply:
 
 - **The title.** `README.md` starts with a level 1 heading.
 - **The summary.** The first paragraph after the title is the summary. The index and the feed show it, so it must make sense alone.
@@ -52,7 +52,7 @@ It writes `social.png` (the final frame), `social.mp4` (one loop, when the figur
 
 ## The thread on X
 
-Write the post's X thread in `thread.yaml`, in the same PR (#5833). The rules are the paper's (`.claude/skills/write-paper/SKILL.md`, *Figures and animations*, and `labinacan/social/thread.py`):
+Write the post's X thread in `thread.yaml`, in the same PR (#5833). The rules are the paper's (`.claude/skills/write-paper/SKILL.md`, *Figures and animations*, and `labinacan.social.thread`):
 
 - 2 to 10 tweets, each about one `##` section.
 - Each tweet is 280 characters or fewer, with each link counting as 23.

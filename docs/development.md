@@ -94,7 +94,7 @@ Otherwise delete it. Don't add a name to the whitelist to keep code that nothing
 
 A step that can run for minutes reports its progress, so a slow run doesn't look like a stuck one (#3142).
 
-- **A loop over many items** counts them with `Progress` (`labinacan/progress.py`). It prints one line to stderr at most once a minute, with the count, the time so far and the time left. A step that ends within a minute prints nothing new. `OPENINTERPRETABILITY_PROGRESS_SECONDS` changes the interval.
+- **A loop over many items** counts them with `Progress` (`labinacan.progress`). It prints one line to stderr at most once a minute, with the count, the time so far and the time left. A step that ends within a minute prints nothing new. `OPENINTERPRETABILITY_PROGRESS_SECONDS` changes the interval.
 - **The experiment loop** prints a `loop:` line at each stage of an iteration. The stages are the draw, the claim, each step, posting, the wait for checks and the merge. Each line goes to the console and to the iteration's log in `logs/`. The `RESULT` line that ends an iteration keeps its form.
 - **A command that already prints a line per item**, such as `coverage`, needs nothing more.
 
@@ -120,11 +120,19 @@ A step that can run for minutes reports its progress, so a slow run doesn't look
 | `posts/` | Posts, one folder each, in the form of a paper with no fixed sections ([`posts.md`](posts.md)). The site publishes them as its Posts section |
 | `openinterpretability/benchmark.py`, `benchmark/` | The explainer benchmark ([benchmark.md](benchmark.md)): freezing, sealing and scoring, and its frozen versions |
 | `openinterpretability/builder/` | Jinja2 + Tailwind static site, `registry.parquet` export, DuckDB-computed leaderboards |
-| `labinacan/sync/r2.py` | MD5/ETag delta sync to R2 with cache headers |
+| `labinacan.sync.r2` | MD5/ETag delta sync to R2 with cache headers, from the `labinacan` package |
 
 ## labinacan and its template
 
-`labinacan/` holds the parts of this project that don't depend on its research. They are the site, papers, posts, literature pages, brand and R2 sync. It is also a package on PyPI, from [8W9aG/labinacan](https://github.com/8W9aG/labinacan) (#6736). This repository moves to the PyPI package in #7003.
+The `labinacan` package holds the parts of this project that don't depend on its research. They are the site, papers, posts, literature pages, brand and R2 sync. It comes from [8W9aG/labinacan](https://github.com/8W9aG/labinacan) (#6736), and this project installs it from [PyPI](https://pypi.org/project/labinacan/) (#7003). `pyproject.toml` pins one exact version, so a change to labinacan reaches this project only as a version bump that a PR reviews. The project's values for it, such as its name and brand, are in `[tool.labinacan]` in `pyproject.toml`.
+
+A fix to labinacan flows in three steps:
+
+1. Open a PR to [8W9aG/labinacan](https://github.com/8W9aG/labinacan) with the fix and its test. That repo has its own CI, tests and mutation testing.
+2. Release it there. Bump its version and date its `CHANGELOG.md`, then push a tag `v<version>`. The tag's workflow publishes the package to PyPI.
+3. Bump the pin here, in `[project] dependencies` of `pyproject.toml`. Run `uv lock`, then `make check-all`, and open a PR with a changelog fragment that names the new version.
+
+Do not edit the installed package in `.venv`. A change there is lost at the next `uv sync`, and no other project gets it.
 
 A new project starts from [8W9aG/labinacan-template](https://github.com/8W9aG/labinacan-template), a copier template (#7002):
 

@@ -3,6 +3,7 @@
 import json
 
 from labinacan.site.literature_pages import load_reviews
+
 from openinterpretability.builder.compiler import compile_site
 
 REPO = "https://github.com/o/r"

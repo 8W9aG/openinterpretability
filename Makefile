@@ -1,7 +1,7 @@
 # This project's Make targets. The generic ones are in labinacan.mk, which reads the values
 # below (#6630). The targets here are this project's own.
 DIST_NAME := open-interpretability
-PACKAGES := openinterpretability labinacan
+PACKAGES := openinterpretability
 # The heavy lock keeps two heavy jobs, such as a test run and a timing, from overlapping.
 TEST_WRAPPER := python -m openinterpretability.core.heavy_lock
 CSS_MODULE := openinterpretability.builder.css
