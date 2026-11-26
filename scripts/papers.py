@@ -44,6 +44,10 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from labinacan.config import config, site_url, use  # noqa: E402
+
+use(Path(__file__).resolve().parents[1] / "pyproject.toml")  # this repository's values (#6629)
+
 from labinacan.site.alphaxiv import ALPHAXIV, ALPHAXIV_URL, cited_alphaxiv  # noqa: E402
 from labinacan.site.research import (  # noqa: E402
     _ENTRY,
@@ -55,9 +59,9 @@ from labinacan.site.research import (  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 PAPERS = ROOT / "papers"
-GROUP = {"name": "Open Interpretability"}
-SITE = "https://open-interpretability.com/research/"
-REPO = "https://github.com/8W9aG/openinterpretability"
+GROUP = {"name": config().name}  # the group author of every paper, after its people
+SITE = f"{site_url()}research/"
+REPO = config().repo_url
 PREPRINT = "preprint"
 PUBLISHED = "1.0"
 DIST = ROOT / "dist"  # where make build writes the site, with each paper's PDF
