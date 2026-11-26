@@ -107,3 +107,9 @@ def test_the_mark_is_drawn_from_the_brand_in_the_config():
             mark.count(f'height="{2 * thirds}" rx="1" fill="{b.colours[c]}"') for c in set(bars)
         )
         assert drawn == len(bars), thirds
+
+
+def test_the_brand_can_be_written_again_over_an_earlier_build(tmp_path):
+    site = tmp_path / "not" / "made" / "yet"  # the folders are made as needed
+    first = brand.write_brand(site)
+    assert brand.write_brand(site) == first  # the assets folder may exist already

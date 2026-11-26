@@ -75,8 +75,9 @@ def _cells(indent: str) -> list[str]:
         x, y = 5 + 8 * col, 5 + 8 * row
         out.append(f'{indent}<rect x="{x}" y="{y}" width="6" height="6" rx="1" '
                    'fill="#ffffff" fill-opacity="0.16"/>')  # fmt: skip
-        if share:
-            h, top = round(6 * share, 2), round(y + 6 - 6 * share, 2)
+        if share:  # a share is in thirds (config.brand_of), so 6 * share is whole
+            h = 6 * share
+            top = y + 6 - h
             out.append(f'{indent}<rect x="{x}" y="{top:g}" width="6" height="{h:g}" '
                        f'rx="1" fill="{brand.colours[colour]}"/>')  # fmt: skip
     return out
@@ -132,5 +133,11 @@ def write_svgs(folder: Path | None = None) -> None:
         ['logo.svg', 'mark.svg']
     """
     folder = folder or source()
-    (folder / "mark.svg").write_text(mark_svg(), encoding="utf-8")
-    (folder / "logo.svg").write_text(logo_svg(), encoding="utf-8")
+    (folder / "mark.svg").write_text(
+        mark_svg(),
+        encoding="utf-8",  # pragma: no mutate, equivalent: the text is ASCII
+    )
+    (folder / "logo.svg").write_text(
+        logo_svg(),
+        encoding="utf-8",  # pragma: no mutate, equivalent: the text is ASCII
+    )
