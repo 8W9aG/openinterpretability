@@ -114,7 +114,7 @@ The first question is whether the start from the neurons fits the model better w
 
 ![KL over training from each start, with both projections and with the down projections alone. The two starts end level only on the down projections](media/whole-model.svg)
 
-**Figure 1.** The KL of the model's output with every mask at its causal importance, on the run's held-out pieces, through 50,000 steps of training. The left panel is runs C and D, which decompose both projections. The right panel is runs A and B, which decompose the down projections alone. Lower is better.
+**Figure 1.** The start from the neurons keeps its lead once the input projections are in. The KL of the model's output with every mask at its causal importance, on the run's held-out pieces, through 50,000 steps of training. The left panel is runs C and D, which decompose both projections. The right panel is runs A and B, which decompose the down projections alone. Lower is better.
 
 | Run | Sites | Start | Active | KL | Loss gap left | Objective (SD) | Importance term | Output term |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -139,13 +139,13 @@ The whole-model result could hide a trade between sites. The second question is 
 
 ![Input projections move through training from each start. From the neurons they fit far better and keep more subcomponents active](media/training.svg)
 
-**Figure 2.** Each dot is one layer's input projection, moving through training from step 5,000 to the last step. The horizontal axis is the active subcomponents per token, and the vertical axis is the explained variance. Each faint line is the path of one dot. The dots rest on their last measured point.
+**Figure 2.** From the neurons, input projections keep more active and fit far better. Each dot is one layer's input projection, moving through training from step 5,000 to the last step. The horizontal axis is the active subcomponents per token, and the vertical axis is the explained variance. Each faint line is the path of one dot. The dots rest on their last measured point.
 
 The two runs spend their budget differently. Run D keeps more active on the input projections (2,456 against 1,706) and fewer on the down projections (2,730 against 3,445). So no input projection is compared at the same count. In Figure 2, each layer's input projection fits better in run D than in run C at every evaluation from step 5,000. In most of those evaluations it also keeps more subcomponents active.
 
 ![Neurons per token needed to reach each run's fit, per active subcomponent. Run D is above run C at every site](media/yardstick.svg)
 
-**Figure 3.** Neurons per active subcomponent for each site and run. It is the neurons per token that reach a run's fit on the baseline's curve, divided by the run's active count. Above 1, SPD beats the neuron baseline. The input baseline picks the best neurons for this error. The down baseline ignores cancellation, so it is easier to beat.
+**Figure 3.** At every site, an active subcomponent does more work from the neurons. Neurons per active subcomponent for each site and run. It is the neurons per token that reach a run's fit on the baseline's curve, divided by the run's active count. Above 1, SPD beats the neuron baseline. The input baseline picks the best neurons for this error. The down baseline ignores cancellation, so it is easier to beat.
 
 | Layer | C: active | C: EV | D: active | D: EV | Best neurons, C's count | Best neurons, D's count | C: neurons per active | D: neurons per active |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -191,7 +191,7 @@ The third question is whether training from random directions finds the neurons.
 
 ![Closest-neuron cosine per layer. Run D stays near 1 and run C stays near a random direction](media/alignment.svg)
 
-**Figure 4.** The median closest-neuron cosine of each layer's subcomponents after 50,000 steps, for the input projections and the down projections. The horizontal line is a random direction's 0.07.
+**Figure 4.** Neither start crosses over: neurons stay neurons, random stays random. The median closest-neuron cosine of each layer's subcomponents after 50,000 steps, for the input projections and the down projections. The horizontal line is a random direction's 0.07.
 
 | Layer | C: cosine | C: with start | C: alive | D: cosine | D: over 0.7 | D: alive |
 | --- | --- | --- | --- | --- | --- | --- |

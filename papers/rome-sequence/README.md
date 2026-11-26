@@ -67,7 +67,7 @@ The question is whether the 88 explanations above layer 2 fail gradually, at a j
 
 ![As ROME edits pile up, the explanations above the layer fade steadily, with no threshold, and more slowly than under random edits of the same size.](media/decay.svg)
 
-**Figure 1.** The VERIFIED poles above layer 2 of pythia-70m that still pass their probes, against the weight distance of layer 2, at each checkpoint of 0 to 100 edits. Circles are the ROME sequence, and triangles the random sequence of the same norms. The curves are $88 \, e^{-h d}$, fitted to each sequence. The marks appear in order of edits.
+**Figure 1.** As ROME edits pile up, the explanations above the layer fade steadily, with no threshold, and more slowly than under random edits of the same size. The VERIFIED poles above layer 2 of pythia-70m that still pass their probes, against the weight distance of layer 2, at each checkpoint of 0 to 100 edits. Circles are the ROME sequence, and triangles the random sequence of the same norms. The curves are $88 \, e^{-h d}$, fitted to each sequence. The marks appear in order of edits.
 
 **Table 1.** The explanations above layer 2 that keep, out of 88, with a 95% Wilson interval, at selected checkpoints, with the weight distance and the loss. The last column is the exact McNemar $p$ of ROME against random over the same poles.
 
@@ -99,7 +99,7 @@ The question is what drives the decline in the number of edits. Later edits are 
 
 ![Later edits are larger, and the loss rises with them.](media/edits.svg)
 
-**Figure 2.** Left: the Frobenius norm of each of the 100 ROME edits, in the order made. Right: the language-model loss on 20,000 corpus tokens after each checkpoint, for the ROME sequence (circles) and the random sequence of the same norms (triangles).
+**Figure 2.** Later edits are larger, and the loss rises with them. Left: the Frobenius norm of each of the 100 ROME edits, in the order made. Right: the language-model loss on 20,000 corpus tokens after each checkpoint, for the ROME sequence (circles) and the random sequence of the same norms (triangles).
 
 This accounts for the shape in the number of edits. One of the steepest falls in explanations comes between edits 5 and 10, from 77 to 57, which is where the edits grow from about 6 to 15 to 24 in norm. Counted in weight distance, however, that interval loses no more than the rest. So what looks like an acceleration over the number of edits is the growth of the edits themselves.
 

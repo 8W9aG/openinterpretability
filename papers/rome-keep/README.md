@@ -59,7 +59,7 @@ It breaks fewer in total, although the difference is not significant. Above laye
 
 ![A ROME edit at layer 2 leaves every pole below it intact, and breaks fewer above it than a random edit of its size.](media/keep.svg)
 
-**Figure 1.** The share of pythia-70m's VERIFIED explanations at each layer that still pass their probes, over 10 ROME edits at layer 2 and 10 random rank-one edits of the same norm. Circles are ROME and triangles the random edits. Every pole at layers 0 to 2 keeps under every edit.
+**Figure 1.** A ROME edit at layer 2 leaves every pole below it intact, and breaks fewer above it than a random edit of its size. The share of pythia-70m's VERIFIED explanations at each layer that still pass their probes, over 10 ROME edits at layer 2 and 10 random rank-one edits of the same norm. Circles are ROME and triangles the random edits. Every pole at layers 0 to 2 keeps under every edit.
 
 ROME also moves the activations above it less. The median correlation of a pole's activations with its base activations is 0.9988 under ROME, against 0.9962 under the random edits. By layer, ROME keeps 97.1%, 96.0% and 98.8% at layers 3 to 5, and the random edits 96.8%, 93.1% and 97.1%. One reason may be the edit's form. A ROME edit moves another input's output in proportion to $(C^{-1}k^*)^\top k$, as Hu et al. (2025) write for edits of facts, and the second moment makes that small on most corpus tokens. A random edit of the same norm writes on every token whose hidden state has a component along $u'$. We did not test this account.
 
@@ -69,7 +69,7 @@ The poles that flip sit near a gate. We cut the 87 poles above layer 2 into quar
 
 ![Each edit flips a few poles above layer 2, and none at or below it.](media/flips.svg)
 
-**Figure 2.** Each cell is one of pythia-70m's 176 VERIFIED poles, by layer, nearest a gate first within each layer. The first 89 cells, shaded, are layers 0 to 2. A circle marks a pole that flips under the frame's ROME edit, and a triangle one that flips under its random edit. Each frame is one measured fact.
+**Figure 2.** Each edit flips a few poles above layer 2, and none at or below it. Each cell is one of pythia-70m's 176 VERIFIED poles, by layer, nearest a gate first within each layer. The first 89 cells, shaded, are layers 0 to 2. A circle marks a pole that flips under the frame's ROME edit, and a triangle one that flips under its random edit. Each frame is one measured fact.
 
 Under ROME, a pole's alignment with the edit's write predicts its flip. The AUROC is 0.67, and a shuffle of the outcomes within each fact and layer reaches it in fewer than 1 of 1,000 draws ($p = 0.0009$). Under the random edits the AUROC is 0.55 ($p = 0.14$). So under ROME, the poles whose input weights align with the edit's write flip more often. A random edit's write has no direction of its own, so its flips depend less on alignment, although they sit near a gate just as ROME's do. We did not test margin and alignment together.
 

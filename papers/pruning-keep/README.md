@@ -47,7 +47,7 @@ Most explanations survive half of their weights going, and half survive nine ten
 
 ![Magnitude pruning keeps most explanations, and random pruning of as many weights does not.](media/keep.svg)
 
-**Figure 1.** The share of Pythia-70m's 127 VERIFIED explanations that still pass their probes after the stated share of each neuron's input weights is zeroed. Circles are magnitude pruning, and triangles are random pruning of the same number of weights. The bars are 95% Wilson intervals.
+**Figure 1.** Magnitude pruning keeps most explanations, and random pruning of as many weights does not. The share of Pythia-70m's 127 VERIFIED explanations that still pass their probes after the stated share of each neuron's input weights is zeroed. Circles are magnitude pruning, and triangles are random pruning of the same number of weights. The bars are 95% Wilson intervals.
 
 **Table 1.** The explanations that keep, for each level and method, out of 127, with each pole's median correlation with its unpruned activations.
 
@@ -69,7 +69,7 @@ Much of it does not. With magnitude pruning, each pole's activations correlate w
 
 ![Each pole's correlation with its unpruned activations at 50, 75 and 90% pruning, for both methods.](media/pearson.svg)
 
-**Figure 2.** Each mark is one pole: Pearson's r between its activations before and after pruning, on 20,000 tokens of web text. Circles are magnitude pruning, and triangles random pruning. The frames step through the three levels and rest on 90%.
+**Figure 2.** As more weights go, magnitude pruning keeps each pole's activations, and random pruning does not. Each mark is one pole: Pearson's r between its activations before and after pruning, on 20,000 tokens of web text. Circles are magnitude pruning, and triangles random pruning. The frames step through the three levels and rest on 90%.
 
 The correlation does not tell which explanations keep. At 90% magnitude pruning, the median correlation is 0.546 for the poles that keep and 0.542 for those that fail. The same holds at the other levels: 0.948 against 0.914 at 50%, and 0.783 against 0.777 at 75%. The correlation covers every token, most of which sit far below the pole's activation line. The probes test the top of the range, which the largest weights carry.
 

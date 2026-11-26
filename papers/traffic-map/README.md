@@ -61,7 +61,7 @@ The question is whether sites of high traffic are where a change of fixed norm d
 
 ![The more traffic a site carries, the further one random change there moves the registry's explanations.](media/traffic.svg)
 
-**Figure 1.** Traffic against mean drift for every tested site of pythia-70m, after Gaussian noise of norm 1 at the site. Circles are the 60 neurons of the even draw, triangles the 48 heads, and squares the 10 neurons of most traffic. The x axis is on a log scale, and sites of no traffic sit at "none". The figure adds the draws one at a time, and rests with all three.
+**Figure 1.** The more traffic a site carries, the further one random change there moves the registry's explanations. Traffic against mean drift for every tested site of pythia-70m, after Gaussian noise of norm 1 at the site. Circles are the 60 neurons of the even draw, triangles the 48 heads, and squares the 10 neurons of most traffic. The x axis is on a log scale, and sites of no traffic sit at "none". The figure adds the draws one at a time, and rests with all three.
 
 **Table 1.** Spearman's $\rho$ of each predictor with each measure, over the 108 sites of the even draw, with a bootstrap 95% interval. Every shuffle $p$ is at most 0.0001, except where shown.
 
@@ -83,7 +83,7 @@ The question is whether traffic ranks the sites within one layer, where depth is
 
 ![Much of what predicts the damage is depth. Within a layer, traffic and the loss Fisher predict it about as well.](media/predictors.svg)
 
-**Figure 2.** Spearman's $\rho$ of each predictor with mean drift (left) and with flips (right), over the 108 sites of the even draw. Blue dots are $\rho$ over all sites, with a bootstrap 95% interval. Orange dots are $\rho$ within each kind and layer. "Flat" marks the count, which is constant within a layer.
+**Figure 2.** Much of what predicts the damage is depth. Within a layer, traffic and the loss Fisher predict it about as well. Spearman's $\rho$ of each predictor with mean drift (left) and with flips (right), over the 108 sites of the even draw. Blue dots are $\rho$ over all sites, with a bootstrap 95% interval. Orange dots are $\rho$ within each kind and layer. "Flat" marks the count, which is constant within a layer.
 
 **Table 2.** Spearman's $\rho$ within each kind and layer, with the shuffle $p$ from 10,000 shuffles within them.
 

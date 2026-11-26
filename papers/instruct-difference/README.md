@@ -49,7 +49,7 @@ The KL is computed in float32 on the device, over the response positions only. O
 
 ![Each layer's VERIFIED poles carry little of the base-to-instruct difference](media/layers.svg)
 
-**Figure 1.** The share of the KL that patching each layer's poles removes, over every response token. Left: into the instruct model. Right: into the base model. The band is the VERIFIED poles' 95% interval. The panels' scales differ.
+**Figure 1.** Each layer's VERIFIED poles carry little of the base-to-instruct difference. The share of the KL that patching each layer's poles removes, over every response token. Left: into the instruct model. Right: into the base model. The band is the VERIFIED poles' 95% interval. The panels' scales differ.
 
 ### Into the instruct model
 

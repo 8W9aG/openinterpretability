@@ -62,7 +62,7 @@ The first question is whether the poles have taken their final form by the time 
 
 ![Training loss settles by step 16,000, but the VERIFIED poles keep changing](media/development.svg)
 
-**Figure 1.** Left: the median correlation of the 85 positive poles with their final activations, by training step on a log scale. The band holds the middle half of the poles, and the dashed line is the median of the first 9. Right: the mean next-token loss on the same 300 windows. In each panel a moving dot steps through the 20 checkpoints, and a counter names the step. So the poles can be seen still moving after the loss has stopped. The vertical line marks step 16,000, by which the loss is within 1% of its final value.
+**Figure 1.** Training loss settles by step 16,000, but the VERIFIED poles keep changing. Left: the median correlation of the 85 positive poles with their final activations, by training step on a log scale. The band holds the middle half of the poles, and the dashed line is the median of the first 9. Right: the mean next-token loss on the same 300 windows. In each panel a moving dot steps through the 20 checkpoints, and a counter names the step. So the poles can be seen still moving after the loss has stopped. The vertical line marks step 16,000, by which the loss is within 1% of its final value.
 
 A correlation with the final checkpoint must reach 1 at the end, so a pole that drifts steadily looks as if it forms late. Correlations between adjacent checkpoints test this (Figure 2, right). Between steps 8,000 and 16,000 the median is 0.79. It is 0.78 between steps 16,000 and 32,000, and again between 32,000 and 64,000. It is 0.82 between steps 64,000 and 128,000. Each doubling of steps after the loss settles thus moves the poles about as much as the doubling before it. The poles keep moving through the second half of training, so the late change is not only an effect of the measure.
 
@@ -72,7 +72,7 @@ The second question is whether each pole's explanation holds from some step onwa
 
 ![Half the explanations hold only after the loss settles, and the poles keep moving](media/holding.svg)
 
-**Figure 2.** Left: the share of the 86 explanations that hold without a break from each step on. The dashed line is the first 9. Right: each positive pole's correlation with the checkpoint before, as the median and a band for the middle half of the poles. The vertical line marks step 16,000.
+**Figure 2.** Half the explanations hold only after the loss settles, and the poles keep moving. Left: the share of the 86 explanations that hold without a break from each step on. The dashed line is the first 9. Right: each positive pole's correlation with the checkpoint before, as the median and a band for the middle half of the poles. The vertical line marks step 16,000.
 
 | Pole | Holds without a break from | Correlation 0.5 first reached | Correlation at step 16,000 |
 | --- | --- | --- | --- |
@@ -121,7 +121,7 @@ Only two poles lose their explanation by a wide margin, and both move back towar
 
 ![A grid of the 13 poles against the checkpoints from step 16,000 to 143,000. Most failures are one or two probes short, and most poles pass again before the final step.](media/savings.svg)
 
-**Figure 3.** The 13 poles whose explanations hold at step 16,000 and fail at a later checkpoint. A circle holds, and a triangle fails, with the number of probes by which it fell short of the nearer gate. The rows above the line pass again at an intermediate checkpoint. The final checkpoint holds for every pole by selection.
+**Figure 3.** Most explanations that fail after step 16,000 miss by a probe or two, then pass again. The 13 poles whose explanations hold at step 16,000 and fail at a later checkpoint. A circle holds, and a triangle fails, with the number of probes by which it fell short of the nearer gate. The rows above the line pass again at an intermediate checkpoint. The final checkpoint holds for every pole by selection.
 
 | Pole | Short at 32,000 | Short at 64,000 | Short at 128,000 | First intermediate pass after a failure |
 | --- | --- | --- | --- | --- |
@@ -151,7 +151,7 @@ Dohare et al. (2024) find that networks that lose plasticity in continual learni
 
 ![Pythia-70m's deep MLP layers collapse early, recover, then slowly lose rank](media/dormant.svg)
 
-**Figure 4.** Left: the share of each layer's 4,096 poles that are dormant by the sign rule, by training step on a log scale. Right: each layer's effective rank on 2,000 tokens. Step 0 is the random initialisation.
+**Figure 4.** Pythia-70m's deep MLP layers collapse early, recover, then slowly lose rank. Left: the share of each layer's 4,096 poles that are dormant by the sign rule, by training step on a log scale. Right: each layer's effective rank on 2,000 tokens. Step 0 is the random initialisation.
 
 | Step | Dormant L3 / L4 / L5 (%) | Never-firing L5 (%) | Dormant at the line, L0–L5 (%) | Effective rank L0 / L1 / L2 / L3 / L4 / L5 |
 | ---: | --- | ---: | --- | --- |

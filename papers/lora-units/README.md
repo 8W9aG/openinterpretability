@@ -68,7 +68,7 @@ The first question is the headline comparison: under the same audit, what share 
 
 ![The same audit verifies far fewer LoRA directions than native neurons](media/verdicts.svg)
 
-**Figure 1.** Each square is one audited unit, ordered by layer, with its layer under it. The upper row holds the 20 rank-1 LoRA `down_proj` poles, and the lower row the 20 random native poles. A filled square passed the review, a grey square passed some tests but not all, and a pale square failed. The squares appear one by one.
+**Figure 1.** The same audit verifies far fewer LoRA directions than native neurons. Each square is one audited unit, ordered by layer, with its layer under it. The upper row holds the 20 rank-1 LoRA `down_proj` poles, and the lower row the 20 random native poles. A filled square passed the review, a grey square passed some tests but not all, and a pale square failed. The squares appear one by one.
 
 **Table 1.** The verdicts of each arm, with the share that passed and its 95% Wilson interval.
 
@@ -85,7 +85,7 @@ A verdict summarises several tests, and the arms could fail for different reason
 
 ![The LoRA directions fail on the hard negatives, not on the held-out positives](media/gates.svg)
 
-**Figure 2.** Each mark is one unit: its specificity, the share of hard negatives on which it stayed below the threshold, against its sensitivity, the share of held-out positives on which it fired. Triangles are adapter poles and circles are native poles. The grey lines are the two tests' limits, 0.80 and 0.60, and a unit must be right of the first and above the second to pass both.
+**Figure 2.** The LoRA directions fail on the hard negatives, not on the held-out positives. Each mark is one unit: its specificity, the share of hard negatives on which it stayed below the threshold, against its sensitivity, the share of held-out positives on which it fired. Triangles are adapter poles and circles are native poles. The grey lines are the two tests' limits, 0.80 and 0.60, and a unit must be right of the first and above the second to pass both.
 
 **Table 2.** The number of units in each arm that failed each test. A unit can fail more than one test.
 
@@ -104,7 +104,7 @@ A pole that fails its hard negatives may simply be active on much of the text. T
 
 ![The LoRA directions are active on about 17 times as many tokens](media/density.svg)
 
-**Figure 3.** Each mark is one unit's active share of the scan's tokens, on a log scale. The vertical bar is each arm's mean. Triangles are adapter poles and circles are native poles.
+**Figure 3.** The LoRA directions are active on about 17 times as many tokens. Each mark is one unit's active share of the scan's tokens, on a log scale. The vertical bar is each arm's mean. Triangles are adapter poles and circles are native poles.
 
 The adapter poles are active on a mean of 6.4% of the scan's tokens, against 0.39% for the native poles, about 17 times as many. The permutation test of the difference gives $p$ below $10^{-4}$, the floor of 20,000 relabellings. The ranges barely overlap: the least active adapter pole is active on 2.3% of tokens, and only 1 of the 20 native poles is active on more. No adapter pole reached the default-on limit of half the tokens, so the review audited all of them as detectors. A unit that is active on several percent of all text is hard to explain with one short rule, which fits the specificity failures above.
 
@@ -116,7 +116,7 @@ If fine-tuning built its directions from the model's explainable neurons, the ex
 
 ![The adapters put no extra weight on the explained neurons](media/loading.svg)
 
-**Figure 4.** For each layer, the median percentile of the layer's explained neurons in the `down_proj` adapter's $\lvert a \rvert$, from 0 for the smallest weight to 1 for the largest. A random set of neurons gives 0.5, the grey line. The mark's area grows with the number of explained neurons in the layer.
+**Figure 4.** The adapters put no extra weight on the explained neurons. For each layer, the median percentile of the layer's explained neurons in the `down_proj` adapter's $\lvert a \rvert$, from 0 for the smallest weight to 1 for the largest. A random set of neurons gives 0.5, the grey line. The mark's area grows with the number of explained neurons in the layer.
 
 Across 24 layers and 346 explained neurons, the median of the layer medians is 0.56. 14 of 24 layers lie above 0.5, which a sign test does not separate from chance ($p$ = 0.54). The explained neurons hold 1.04 times their expected share of $\lVert a \rVert^2$. So the adapters neither favour nor avoid the explained neurons. Fine-tuning moved each direction to reduce the loss, and that direction is not built from the units that we can explain.
 

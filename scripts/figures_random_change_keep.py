@@ -93,7 +93,7 @@ def keep(rows: list[dict]) -> Figure:
     randoms = summaries(rows, MODELS[0][0], "random_all")
     fig = Figure(
         ["On Qwen2.5-0.5B, a random change of the instruct change's",
-         "size breaks as many explanations; on 1.5B, far fewer"],
+         "size breaks as many explanations, but on 1.5B far fewer"],
         ["Each mark is the share of VERIFIED explanations that still pass their probes, with a",
          "95% interval. Each random change has the norm of the instruct change in every matrix."],
         f"Two panels, one for each Qwen2.5 model. Each has four rows: the instruct change and "
