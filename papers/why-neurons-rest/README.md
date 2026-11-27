@@ -2,7 +2,7 @@
 
 Training moves most of GPT-2's neurons to a median pre-activation $h$ of about −1, as [the paper on default-on negative poles](../default-on-poles/README.md) found. That is below GELU's minimum at −0.75. That paper also found that the input weights do this. It did not find why. This paper trains small GPT-2s and changes one thing at a time. It finds a small push on each neuron's rest that is steady over many steps, and that the optimizer's step size sets how far the push takes the rest.
 
-**Status:** Preprint. Work left: #7140 (Pythia's window of 2,048 tokens at the same tokens per step).
+**Status:** Preprint. Work left: #7202 (why Pythia's window deepens the rest, and Pythia's full batch).
 
 ## Introduction
 
@@ -351,7 +351,7 @@ The last question is whether trained models show the push that the small models 
 
 **Table 14.** The push in trained GPT-2 small, over 50 batches of 32 windows from the corpus sample, with no optimizer step.
 
-GPT-2's training run is not public, but Pythia's checkpoints are (Biderman et al., 2023). Pythia-70m's checkpoints do not show the push clearly (Table 15). Its rest forms by step 4,000, through its weights, as in the small models. But the push at each checkpoint points down in only a few layers, and its sign matches each neuron's next move at chance. The same test finds the push at the checkpoints of a small model (Table 19). So Pythia's push is weaker or less steady, or its far-apart checkpoints hide it. No part of Pythia's training setup weakens the push in a small model, alone or together (Table 20). A batch of 32 times ours brings the push's match with the next move down to Pythia's, but the push still points down in most checkpoints and layers. Pythia-70m's size does the same (Table 26). Trained on one pass of Pythia's own data, Pythia-70m's size with that batch still pushes down as often (Table 29).
+GPT-2's training run is not public, but Pythia's checkpoints are (Biderman et al., 2023). Pythia-70m's checkpoints do not show the push clearly (Table 15). Its rest forms by step 4,000, through its weights, as in the small models. But the push at each checkpoint points down in only a few layers, and its sign matches each neuron's next move at chance. The same test finds the push at the checkpoints of a small model (Table 19). So Pythia's push is weaker or less steady, or its far-apart checkpoints hide it. No part of Pythia's training setup weakens the push in a small model, alone or together (Table 20). A batch of 32 times ours brings the push's match with the next move down to Pythia's, but the push still points down in most checkpoints and layers. Pythia-70m's size does the same (Table 26). Trained on one pass of Pythia's own data, Pythia-70m's size with that batch still pushes down as often (Table 29). With Pythia's window of 2,048 tokens as well, the push's direction moves to Pythia's, but the rest deepens far past it (Table 30).
 
 | Step | Loss | Rest, L0–L5 | Layers with the push down | Push against the next move |
 | --- | --- | --- | --- | --- |
@@ -570,6 +570,16 @@ for SEED in 0 1; do  # Table 29, on an NVIDIA GPU with 12 GB
     uv run python scripts/pretrained_push.py small --condition $C --seed $SEED --save-dir ckpt_one_pass \
         --part one_pass_every_250 --out $OUT
   done
+done
+for SEED in 0 1; do  # Table 30 (#7140), on an NVIDIA GPU with 12 GB
+  C=pythia_size_batch_32x_window
+  uv run python scripts/train_resting.py train --seed $SEED --condition $C --steps 2000 --eval-every 250 \
+      --micro-batch 4 --part training_window --save-every 250 --save-dir ckpt_window \
+      --cache tokens_280m.pt --device cuda --out $OUT
+  uv run python scripts/pretrained_push.py small --condition $C --seed $SEED --save-dir ckpt_window \
+      --step 0 --step 250 --step 500 --step 1000 --step 2000 --part window_pythia --out $OUT
+  uv run python scripts/pretrained_push.py small --condition $C --seed $SEED --save-dir ckpt_window \
+      --part window_every_250 --out $OUT
 done
 # Table 28 (#6806): the push in training, at a 32x batch and on the baseline
 uv run python scripts/train_resting.py train --seed 0 --condition pythia_batch_32x --steps 2000 \
@@ -1035,6 +1045,23 @@ So the 32× batch does not weaken the push, and it does not make it point up. At
 
 The memorisation is gone, and the checkpoint test of Pythia-70m's size is the same (Table 29). With one pass, the held-out loss of the size and 32× batch falls at every checkpoint, to 4.04 and 4.05 at step 2,000, against 5.69 and 5.72 on the old sample. But the push still points down in 24 and 19 of 30 checkpoints and layers, against 24 and 20 before and Pythia's 13. Its rest at step 2,000 is about the same, −1.06 and −1.24 against −1.09 and −1.17. So repeated data does not explain why this model's push points down more often than Pythia's.
 
-The small model with the 32× batch moves toward Pythia. Its push points down in 5 and 6 of 15, against 7 and 10 before, and in 14 and 11 of 27 at every checkpoint, against 16 and 18. That is about Pythia's share. Its match with the next move and its rest don't change. Two seeds with a gap this size can't separate the data's effect from the seeds' spread, so we read it only as a direction. The one-pass sample also changes the data, from the first 10,000 Pile documents to Pythia's own order, so the test does not separate repetition from the data itself. Two parts of Pythia's setup are still not tried here: its window of 2,048 tokens, against our 128, and its batch, still 16 times ours. #7140 tests the window.
+The small model with the 32× batch moves toward Pythia. Its push points down in 5 and 6 of 15, against 7 and 10 before, and in 14 and 11 of 27 at every checkpoint, against 16 and 18. That is about Pythia's share. Its match with the next move and its rest don't change. Two seeds with a gap this size can't separate the data's effect from the seeds' spread, so we read it only as a direction. The one-pass sample also changes the data, from the first 10,000 Pile documents to Pythia's own order, so the test does not separate repetition from the data itself. Two parts of Pythia's setup were still not tried: its window of 2,048 tokens, against our 128, and its batch, still 16 times ours. Table 30 tries the window.
+
+**Pythia's window moves the push's direction toward Pythia's, and deepens the rest far past it** (#7140). Runs labelled `training_window` train `pythia_size_batch_32x_window` on the one-pass sample, on seeds 0 and 1, for 2,000 steps. It is Pythia-70m's size with Pythia's window of 2,048 tokens. It has 64 windows a step, so a step reads 131,072 tokens, as the 32× batch does. The rows labelled `window_pythia` and `window_every_250` read the runs, as in Table 29. The held-out windows stay 128 tokens long, so the readings use the first 128 of the model's 2,048 positions.
+
+| Test, L0–L5 | Window of 2,048, seed 0 | Window of 2,048, seed 1 | Window of 128, seed 0 (Table 29) | Window of 128, seed 1 (Table 29) | Pythia-70m |
+| --- | --- | --- | --- | --- | --- |
+| Checkpoints and layers with the push down, at Pythia's spacing | 19 of 30 | 13 of 30 | 24 of 30 | 19 of 30 | 13 of 30 |
+| Push against the next move, median | +0.10 | +0.07 | +0.07 | +0.06 | +0.07 |
+| Neurons whose push has the sign of their move, median | 53% | 51% | 52% | 51% | 51% |
+| Push down at every checkpoint | 29 of 54 | 29 of 54 | 41 of 54 | 33 of 54 | |
+| Loss at step 2,000 | 4.35 | 4.33 | 4.04 | 4.05 | |
+| Rest of L1 at step 2,000 | −4.41 | −4.57 | −1.06 | −1.24 | |
+
+**Table 30.** The checkpoint test with Pythia's window of 2,048 tokens, against the 128-token windows of Table 29, both on the one-pass sample. Every column counts L0–L5. The losses are on the 128-token held-out windows.
+
+Pythia's window brings the push's direction toward Pythia's (Table 30). The push points down in 19 and 13 of 30 checkpoints and layers, against 24 and 19 with 128-token windows. Seed 1 matches Pythia-70m's 13. At every checkpoint, it points down in 29 of 54 on both seeds, against 41 and 33. The match with the next move doesn't change. So of the parts of Pythia's setup tried here, the window is the first to move the push's direction.
+
+The rest goes the other way. At step 2,000, L1 rests at −4.41 and −4.57, about four times as deep as with 128-token windows, and far below Pythia-70m's −0.39 to −0.64 over its six layers at the same step (Table 15). The held-out loss on 128-token windows is higher too, at 4.35 against 4.04. A model trained on long windows may read short ones differently, and Pythia's rotary positions differ from our learned ones. So the window brings the direction of the push to Pythia's but not the depth of the rest. #7202 asks why.
 
 The warm-up deepens the rest, as a higher rate does. At step 2,000, L1 rests at −1.48, against −0.66 for the no-dropout run at 3e-4 (Table 4). Pythia's rate without the warm-up deepens the rest further. At step 2,000, L1 rests at −2.63, against −1.48 with the warm-up. With all of Pythia's parts, it rests at −0.93.

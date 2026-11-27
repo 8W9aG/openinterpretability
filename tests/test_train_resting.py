@@ -517,3 +517,22 @@ def test_evaluate_reads_every_layer_of_a_deeper_model():  # #6499
 
     model = build_model(CONDITIONS["pythia_size"], vocab_size=50, seed=0)
     assert len(evaluate(model, torch.randint(50, (2, 8)))["layers"]) == PYTHIA_70M_LAYERS
+
+
+def test_pythias_window_keeps_the_tokens_per_step_and_sets_the_positions():
+    from default_on_poles import WINDOW_TOKENS
+    from resting_conditions import CONDITIONS, PYTHIA_WINDOW, TRAIN_WINDOW
+    from train_resting import build_model
+
+    assert TRAIN_WINDOW == WINDOW_TOKENS  # the training window is the scan's window
+    short, long = CONDITIONS["pythia_size_batch_32x"], CONDITIONS["pythia_size_batch_32x_window"]
+    assert short.window == TRAIN_WINDOW and long.window == PYTHIA_WINDOW
+    assert long.batch * long.window == short.batch * short.window
+    assert (long.n_layer, long.n_embd) == (short.n_layer, short.n_embd)
+    tokens = torch.arange(5000)
+    batch = sample_batch(tokens, torch.Generator().manual_seed(0), 3, window=2048)
+    assert batch.shape == (3, 2048)
+    assert torch.equal(batch[:, 1:] - batch[:, :-1], torch.ones(3, 2047, dtype=batch.dtype))
+    assert sample_batch(tokens, torch.Generator().manual_seed(0), 2).shape == (2, TRAIN_WINDOW)
+    tiny = replace(long, n_layer=1, n_embd=16)
+    assert build_model(tiny, 50, 0).config.n_positions == PYTHIA_WINDOW

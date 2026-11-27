@@ -24,7 +24,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from default_on_poles import (
     GPT2,
-    WINDOW_TOKENS,
     load_split,
     random_init_runner,
     read_mlp_inputs,
@@ -35,6 +34,7 @@ from resting_conditions import (
     CONDITIONS,
     N_HEAD,
     SGD_MOMENTUM,
+    TRAIN_WINDOW,
     Condition,
 )
 from resting_modules import Activation, centre_norms, keeper, offset_stats, parallel_forward, warmup
@@ -58,7 +58,7 @@ def build_model(condition: Condition, vocab_size: int, seed: int):
     torch.manual_seed(seed)
     config = GPT2Config(
         vocab_size=vocab_size,
-        n_positions=WINDOW_TOKENS,
+        n_positions=condition.window,
         n_layer=condition.n_layer,
         n_embd=condition.n_embd,
         n_head=N_HEAD,
@@ -111,11 +111,12 @@ def training_tokens(tokenizer, corpus: Path, cache: Path) -> torch.Tensor:
 
 
 def sample_batch(
-    tokens: torch.Tensor, generator: torch.Generator, size: int = BATCH
-) -> torch.Tensor:
-    """Return ``size`` random windows of the training tokens."""
-    starts = torch.randint(len(tokens) - WINDOW_TOKENS, (size,), generator=generator)
-    return torch.stack([tokens[s : s + WINDOW_TOKENS] for s in starts.tolist()])
+    tokens: torch.Tensor, generator: torch.Generator, size: int = BATCH,
+    window: int = TRAIN_WINDOW,
+) -> torch.Tensor:  # fmt: skip
+    """Return ``size`` random windows of the training tokens, each ``window`` tokens long."""
+    starts = torch.randint(len(tokens) - window, (size,), generator=generator)
+    return torch.stack([tokens[s : s + window] for s in starts.tolist()])
 
 
 @torch.no_grad()
@@ -242,7 +243,7 @@ def train(
             click.echo(f"{name} seed {seed} step {step} {time.time() - start:.0f}s", err=True)
         if step == steps:
             break
-        batch = sample_batch(tokens, generator, condition.batch).to(device)
+        batch = sample_batch(tokens, generator, condition.batch, condition.window).to(device)
         optimizer.zero_grad()
         loss = accumulate(model, batch, micro_batch, recorder)
         if not loss.isfinite():
