@@ -19,6 +19,7 @@ Status marks how the work relates to this repo:
 | [Harness-Delta Attribution](harness-delta-attribution.md) (Ding, Lu, Yu et al., 2026) | not applicable | In 21 harness searches, shortcuts explain 54% of the gain and extra compute 14%. Held-out data missed a shortcut that it shared. The registry's reviews face the same risk, and `docs/analyses/retries.md` measures part of it. |
 | [The Winner's Curse in LLM Self-Improvement Loops](winners-curse-self-improvement.md) (Hu and Tang, 2026) | not applicable | Keep-if-better overstates a loop's gain by 13–20 points at 16 selection items, and 64 unused items remove the bias. By its model, retries overstate registry verdicts by about 0.006 in balanced accuracy on average. Held-out scores and `replicate` draws already test them. |
 | [Reflections on Trusting Trust, Revisited](trusting-trust-revisited.md) (Roesner and Kohno, 2026) | not applicable | A poisoned self-evaluation benchmark made three coding agents that rewrite themselves write insecure code, and the poison survived clean evolution. Outside text reaches this repo's agents only as data, but changes to its own gates merge like any other maintainer PR. |
+| [Who Verifies the Verifier?](who-verifies-the-verifier.md) (Zhang, Wang, Cui, Li, Qiu, Zhu and He, 2026) | planned | A verifier that evolves with its agent stays valid only against ten held-out items. Without them, it collapses to always-pass while the agent's score holds. The review's references were each measured once. #4034 and #3565 would give it a reference to rerun. |
 
 ## Explanation scoring
 
