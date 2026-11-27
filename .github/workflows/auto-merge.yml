@@ -121,7 +121,8 @@ jobs:
           import sys
           sys.path.insert(0, "openinterpretability/core")
           from record_kinds import reproducible
-          outside = [f for f in open(sys.argv[1]).read().split() if not reproducible(f)]
+          # One name per line, as the API lists them: a name is checked whole, never split.
+          outside = [f for f in open(sys.argv[1]).read().splitlines() if f and not reproducible(f)]
           print("\n".join(outside))
           sys.exit(0 if outside else 1)
           PY
