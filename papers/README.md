@@ -5,6 +5,7 @@ Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its re
 - 2026-11-26: [Does pruning a few instruct-model neurons bring back the explanations that instruction tuning breaks?](wrapper-prune/README.md)
 - 2026-11-26: [Do neuron explanations come back on the weight average of a base and an instruct model?](weight-average-keep/README.md)
 - 2026-11-26: [A traffic map of neuron explanations: which sites of pythia-70m does a change disturb?](traffic-map/README.md)
+- 2026-11-26: [Does a verified answer route keep on the instruct model?](route-keep/README.md)
 - 2026-11-26: [How do neuron explanations fail as ROME edits pile up at one layer?](rome-sequence/README.md)
 - 2026-11-26: [Which neuron explanations survive a ROME edit?](rome-keep/README.md)
 - 2026-11-26: [Do neuron explanations survive 4-bit NF4 rounding?](nf4-keep/README.md)

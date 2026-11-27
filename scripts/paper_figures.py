@@ -27,6 +27,7 @@ import figures_pruning_keep
 import figures_random_change_keep
 import figures_rome_keep
 import figures_rome_sequence
+import figures_route_keep
 import figures_sequential_tuning
 import figures_spd_input
 import figures_syntax
@@ -97,6 +98,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         "random-change-keep": figures_random_change_keep.build(_rows("random-change-keep")),
         "rome-keep": figures_rome_keep.build(_rows("rome-keep")),
         "rome-sequence": figures_rome_sequence.build(_rows("rome-sequence")),
+        "route-keep": figures_route_keep.build(_rows("route-keep")),
         "spd-input-projections": figures_spd_input.build(_rows("spd-input-projections")),
         "syntax-positive-controls": figures_syntax.build(
             _rows("syntax-positive-controls"),
