@@ -1,7 +1,7 @@
 """Why the greedy coverage plan stalled, and what a joint plan needs (#7061).
 
-It plans ``explain`` for a seeded sample of copy-family prompts on pythia-70m
-(``docs/analyses/copy-family.jsonl``, #5232): 6 train and 2 retain prompts. No LLM is called.
+It plans ``explain`` for a seeded sample of 8 copy-family prompts on pythia-70m: 6 train and
+2 retain prompts. The family is ``docs/analyses/copy-family.jsonl`` (#5232). No LLM is called.
 For each prompt it compares four plans of unit experiments:
 
 - ``attribution``: the plan before #7061. It tries the first 120 candidates and picks at most 60.
