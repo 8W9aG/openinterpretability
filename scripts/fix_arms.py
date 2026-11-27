@@ -1,20 +1,20 @@
 """A fitting harness for the phase 4a arms A–F of the copy-family fix (#7006, #5220 §3).
 
-Each arm changes the base model in its own way, so that it gives the right unit on the
-copy family's train prompts (``docs/analyses/copy-family.jsonl``, #5232):
+Each arm makes the base model give the right unit on the copy family's train prompts.
+The family is ``docs/analyses/copy-family.jsonl`` (#5232). The arms are these.
 
-- **A** trains a low-rank change of the copy heads' OV, a deliberate negative control.
-- **B** trains a low-rank change of the MLP outputs of the fact layers.
+- **A** trains a low-rank change of the copy heads' OV. It is a negative control.
+- **B** trains a low-rank change of the fact layers' MLP outputs.
 - **C** trains the same change on every MLP.
 - **D** trains it on random heads, with as many parameters as B.
-- **E** puts a few-shot prefix before each prompt, and changes no weight.
-- **F** solves a closed-form edit at B's middle layer (MEMIT's least squares), and its
-  AlphaEdit variant, which leaves the retain prompts' keys unchanged.
+- **E** puts a few-shot prefix before each prompt. It changes no weight.
+- **F** solves a closed-form edit at B's middle layer, with MEMIT's least squares.
+  Its AlphaEdit variant keeps the retain prompts' keys unchanged.
 
-Each fit of A–D and F is written as a draft patch (``docs/patches.md``, #5229), checked at
-zero strength, and given the interference report of #5230. Each fit also writes one row
-to ``fits.jsonl``, with its learning measures and the report's summary. Sub-issue #7007
-runs the arms on the real prompts. No fit writes to the registry.
+Each fit of A–D and F becomes a draft patch (``docs/patches.md``, #5229). The harness
+checks it at zero strength and runs the interference report of #5230 on it. Each fit
+also writes one row to ``fits.jsonl``, with its measures and the report's summary.
+Sub-issue #7007 runs the arms on the real prompts. No fit writes to the registry.
 
     uv run python scripts/fix_arms.py --device cuda --out runs/fix-arms
 """
