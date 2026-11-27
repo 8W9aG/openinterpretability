@@ -62,16 +62,26 @@ def members_of(model: ModelNode, unit: UnitNode) -> list[Member]:
     return sorted(members, key=lambda m: (-abs(m.weight), m.neuron_idx))
 
 
+# The members of a superposition that get a page and a link back, by |weight|. The sparse
+# superpositions have at most 16 members. A rank-one LoRA direction (#7025) weighs every
+# neuron of its layer. A page for each would add thousands of pages that say nothing
+# (#7107). Its record and the registry export keep every member.
+MEMBER_PAGES = 32
+
+
 def add_members(models: Sequence[ModelNode]) -> None:
     """Give each superposition its members, and link each member neuron back to it.
 
-    A member neuron with no experiment of its own gets a unit with no experiments in its
-    layer's ``members``. The site renders that unit as a short page.
+    Only the :data:`MEMBER_PAGES` largest members by |weight| are kept, and
+    ``member_count`` says how many there are in all. A kept member neuron with no
+    experiment of its own gets a unit with no experiments in its layer's ``members``. The
+    site renders that unit as a short page.
     """
     for model in models:
         for layer in model.layers:
             for unit in layer.superpositions:
-                unit.members = members_of(model, unit)
+                found = members_of(model, unit)
+                unit.member_count, unit.members = len(found), found[:MEMBER_PAGES]
                 for m in unit.members:
                     neuron = _neuron(model, layer, m)
                     neuron.part_of.append(Membership(unit, m.relative))

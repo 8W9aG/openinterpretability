@@ -71,6 +71,7 @@ class UnitNode:
     standings: dict[str, Standing] = field(default_factory=dict)  # per pole (or head, feature)
     superposition_id: str | None = None  # a superposition's id
     members: list = field(default_factory=list)  # a superposition's members, by |weight|
+    member_count: int = 0  # all of its members; ``members`` holds at most MEMBER_PAGES of them
     profile: SuperpositionProfile | None = None  # a superposition's, from its newest record
     part_of: list = field(default_factory=list, repr=False, compare=False)  # a neuron's
 

@@ -156,6 +156,19 @@ jobs:
             open-interpretability build --wiki-dir wiki --output-dir dist
           python -m openinterpretability.builder.css --site dist
           python -m pagefind --site dist
+      - name: Install rclone
+        # A release binary, pinned and checked, as Vale is in labinacan-ci.yml. The sync
+        # uploads with it: many small files go up much faster than through boto3 (#7107).
+        env:
+          RCLONE_VERSION: v1.76.0
+          RCLONE_SHA256: b00f00b3266c3764413afe599d3ec316f6f43b3e0ea8a0bc1d186d2133e46df7
+        run: |
+          zip="rclone-${RCLONE_VERSION}-linux-amd64.zip"
+          curl -sSfL --retry 5 --retry-delay 5 -o "$RUNNER_TEMP/$zip" \
+            "https://github.com/rclone/rclone/releases/download/${RCLONE_VERSION}/$zip"
+          echo "$RCLONE_SHA256  $RUNNER_TEMP/$zip" | sha256sum --check
+          unzip -q -j "$RUNNER_TEMP/$zip" "*/rclone" -d "$RUNNER_TEMP/rclone"
+          echo "$RUNNER_TEMP/rclone" >> "$GITHUB_PATH"
       - name: Sync to R2
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
@@ -171,7 +184,8 @@ jobs:
         shell: bash
         run: |
           status=0
-          open-interpretability deploy --dist-dir dist --bucket "$R2_BUCKET" --delete 2>&1 \
+          open-interpretability deploy --dist-dir dist --bucket "$R2_BUCKET" --delete \
+            --uploader rclone 2>&1 \
             | tee deploy.log || status=$?
           {
             echo "### Registry deploy"
