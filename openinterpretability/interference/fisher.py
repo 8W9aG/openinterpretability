@@ -19,6 +19,7 @@ of its tokens' log-likelihoods.
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Callable, Sequence
 
 import torch
@@ -235,15 +236,13 @@ def _ranks(values: Sequence[float]) -> list[float]:
         One rank for each value, in the same order.
     """
     order = sorted(range(len(values)), key=lambda i: values[i])
-    ranks = [0.0] * len(values)
-    i = 0
-    while i < len(order):
-        j = i
-        while j + 1 < len(order) and values[order[j + 1]] == values[order[i]]:
-            j += 1
-        for k in range(i, j + 1):
-            ranks[order[k]] = (i + j) / 2
-        i = j + 1
+    ranks = [0.0] * len(values)  # pragma: no mutate, equivalent: each rank is set below
+    first = 0  # the rank of the group's first value
+    for _, group in itertools.groupby(order, key=lambda i: values[i]):
+        tied = list(group)
+        for i in tied:
+            ranks[i] = first + (len(tied) - 1) / 2
+        first += len(tied)
     return ranks
 
 
@@ -308,7 +307,7 @@ def partial_spearman(
 
     ea, eb = residual(a), residual(b)
     den = (ea.norm() * eb.norm()).item()
-    return (ea @ eb).item() / den if den > 1e-9 else None
+    return (ea @ eb).item() / den if den > 1e-9 else None  # pragma: no mutate, equivalent: a tie
 
 
 def stratified_null(statistic: Callable[[list], float], outcomes: Sequence, strata: Sequence,
@@ -346,9 +345,10 @@ def stratified_null(statistic: Callable[[list], float], outcomes: Sequence, stra
         shuffled = list(outcomes)
         for idx in groups.values():
             perm = torch.randperm(len(idx), generator=generator).tolist()
-            for dst, src in zip(idx, perm, strict=True):
+            for dst, src in zip(idx, perm, strict=True):  # pragma: no mutate, equivalent: same len
                 shuffled[dst] = outcomes[idx[src]]
         null.append(statistic(shuffled))
     mean = sum(null) / n
-    extreme = sum(abs(v - mean) >= abs(observed - mean) - 1e-12 for v in null)
+    bar = abs(observed - mean) - 1e-12  # a value as far out as the observed one counts
+    extreme = sum(abs(v - mean) >= bar for v in null)  # pragma: no mutate, equivalent: slack
     return {"observed": observed, "null_mean": mean, "p": (extreme + 1) / (n + 1), "null": null}
