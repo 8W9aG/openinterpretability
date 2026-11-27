@@ -1,12 +1,12 @@
 {
  "source": "media/keep.svg",
- "sha256": "5a075b10cb2301c10678f8748e2d70d50db8e1435d2e203311b6e1b0d059cdc5",
+ "sha256": "f52bee054bfbc16ba52fabaa54496e9ad2453ce5c31ad9b4442ad868b41202df",
  "files": [
   "social.png"
  ],
  "figures": {
   "keep": {
-   "sha256": "5a075b10cb2301c10678f8748e2d70d50db8e1435d2e203311b6e1b0d059cdc5",
+   "sha256": "f52bee054bfbc16ba52fabaa54496e9ad2453ce5c31ad9b4442ad868b41202df",
    "files": [
     "social-keep.png"
    ]

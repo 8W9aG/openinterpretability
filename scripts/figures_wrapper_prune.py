@@ -114,7 +114,7 @@ def grid(rows: list[dict]) -> Figure:
     ks, states = top_states(rows, order)
     fig = Figure(
         ["As more neurons go, top pruning breaks", "explanations at every margin"],
-        [f"Each cell is one of Qwen2.5-0.5B's {len(order)} VERIFIED poles, nearest a gate first. "
+        [f"Each cell is one of Qwen2.5-0.5B's {len(order)} passing poles, nearest a gate first. "
          "Circles pass again after",
          "failing on the instruct model, triangles fail after keeping, dark cells still fail."],
         f"A grid of {len(order)} cells. The frames step through K = "

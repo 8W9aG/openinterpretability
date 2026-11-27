@@ -31,8 +31,8 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="427" rx="10"/>
 <text x="20.0" y="30.0" class="title">On Qwen2.5-0.5B, instruction tuning and random changes</text>
 <text x="20.0" y="53.0" class="title">flip many of the same poles: those near a gate</text>
-<text x="20.0" y="73.0" class="sub">Each cell is one of Qwen2.5-0.5B&#x27;s 361 VERIFIED poles, nearest a gate first. A filled cell flips:</text>
-<text x="20.0" y="91.0" class="sub">it passes its probes on the base model and fails on the changed one.</text>
+<text x="20.0" y="73.0" class="sub">Each cell is one of Qwen2.5-0.5B&#x27;s 361 passing poles, nearest a gate first. A filled cell flips:</text>
+<text x="20.0" y="91.0" class="sub">it passes its test prompts on the base model and fails on the changed one.</text>
 <rect class="fwash" x="40.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
 <rect class="fwash" x="58.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
 <rect class="fwash" x="76.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>

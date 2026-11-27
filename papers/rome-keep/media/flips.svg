@@ -31,7 +31,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="337" rx="10"/>
 <text x="20.0" y="30.0" class="title">Each edit flips a few poles above layer 2,</text>
 <text x="20.0" y="53.0" class="title">and none at or below it</text>
-<text x="20.0" y="73.0" class="sub">Each cell is one of pythia-70m&#x27;s 176 VERIFIED poles, by layer, nearest a gate first within each.</text>
+<text x="20.0" y="73.0" class="sub">Each cell is one of pythia-70m&#x27;s 176 passing poles, by layer, nearest a gate first within each.</text>
 <text x="20.0" y="91.0" class="sub">The first 89 cells are layers 0 to 2. Circles flip under ROME, triangles under the random edit.</text>
 <rect class="fneutral soft" x="40.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
 <rect class="fneutral soft" x="58.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>

@@ -3,8 +3,8 @@
 - section: Introduction
   text: >-
     How many of a neuron's weights does its explanation need? We zeroed the smallest input
-    weights of Pythia-70m's 127 VERIFIED neurons and ran each explanation's own probes
-    again. {link}
+    weights of Pythia-70m's 127 reviewed neurons and ran each explanation's own test
+    prompts again. {link}
   media: [keep]
 - section: Does an explanation survive magnitude pruning?
   text: >-
