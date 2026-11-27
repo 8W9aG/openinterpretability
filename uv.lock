@@ -2053,7 +2053,7 @@ wheels = [
 
 [[package]]
 name = "labinacan"
-version = "0.1.3"
+version = "0.1.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2066,9 +2066,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "tldextract" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/54/b2/9cfa15fac22522fd6568e3a8b6ffc020ea6cf1c04c9d838cddccc5f732e9/labinacan-0.1.3.tar.gz", hash = "sha256:9af944a6f92cd58ff8636aafa4b64c248cf7eb71b33238483f75790b25e47973", size = 1694571, upload-time = "2026-11-27T02:52:24.797Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/b3/997e96a5225a77188ff6e3bd8f6bea138ff0f0dd570efea54d410ff7651c/labinacan-0.1.4.tar.gz", hash = "sha256:265e13e95de0d46c59f49773ee8c39f2abdc08c37989ad9b3782177406ae6a18", size = 1697590, upload-time = "2026-11-27T07:28:17.069Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e4/c8/69005fe46b4cd4e98d52dc5ec0e1fb587a7a5ae037d5b01963d49c66f524/labinacan-0.1.3-py3-none-any.whl", hash = "sha256:210a16cb8c0967db1f906bb3e58416219b6432e710363aec14f1b10df8774b9c", size = 1705438, upload-time = "2026-11-27T02:52:22.944Z" },
+    { url = "https://files.pythonhosted.org/packages/41/ea/06676f872a7f487a51513137a44f6abed0b3f9a0ecc610696ed6b63f143d/labinacan-0.1.4-py3-none-any.whl", hash = "sha256:b13c0eb0701050cd29adde61b5f3266b0ef61b764518c8d59b31601aefcd356d", size = 1706898, upload-time = "2026-11-27T07:28:15.413Z" },
 ]
 
 [package.optional-dependencies]
@@ -3365,7 +3365,7 @@ requires-dist = [
     { name = "igraph", marker = "extra == 'map'", specifier = ">=0.11" },
     { name = "instructor", specifier = ">=1.3.0" },
     { name = "jinja2", specifier = ">=3.1.3" },
-    { name = "labinacan", extras = ["pii", "r2"], specifier = "==0.1.3" },
+    { name = "labinacan", extras = ["pii", "r2"], specifier = "==0.1.4" },
     { name = "latex2mathml", specifier = ">=3.81.1" },
     { name = "leidenalg", marker = "extra == 'map'", specifier = ">=0.10.2" },
     { name = "litellm", specifier = ">=1.40.0" },
