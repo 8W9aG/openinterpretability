@@ -3,8 +3,9 @@
 <section class="mt-6" aria-labelledby="members">
   <h2 id="members" class="text-base font-semibold">Members</h2>
   <p class="mt-1 text-xs text-slate-500">
-    This superposition is a sparse direction over the neurons of layer {{ neuron.layer }}. Its strength at a token is the positive part of the projection on that direction.
+    This superposition is a direction over the neurons of layer {{ neuron.layer }}. Its strength at a token is the positive part of the projection on that direction.
     Each weight is relative to the largest weight magnitude, and the list is sorted by magnitude.
+    {% if neuron.member_count > neuron.members | length %}It has {{ "{:,}".format(neuron.member_count) }} members, and the {{ neuron.members | length }} largest are shown here. The record holds all of them.{% endif %}
     {% if neuron.profile %}Method: <code>{{ neuron.profile.method }}</code>. Source: <code>{{ neuron.profile.source }}</code>.{% endif %}
   </p>
   <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
