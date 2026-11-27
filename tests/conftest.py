@@ -249,6 +249,18 @@ def _outside_claude_code(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _not_quiet(monkeypatch):
+    """Run every test with the progress and stage lines on (#7230).
+
+    ``explain --json`` sets the quiet variable, and the experiments it starts inherit it.
+    Their ``make test`` would then see no progress lines. A test that wants quiet sets it.
+    """
+    from labinacan.progress import QUIET_ENV
+
+    monkeypatch.delenv(QUIET_ENV, raising=False)
+
+
+@pytest.fixture(autouse=True)
 def no_name_model(monkeypatch):
     """Scans in tests find no names: the real model is a 460 MB download."""
     monkeypatch.setattr("openinterpretability.names.person_matches", lambda text: ())
