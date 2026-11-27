@@ -112,7 +112,15 @@ def picks(rows: list[dict]) -> Figure:
              ("prune", "every unit, pruned", "fc3"))  # fmt: skip
 
     def needed(row, name):
-        """The experiments that plan ``name`` needs for a coverage of 1.0."""
+        """The experiments that plan ``name`` needs for a coverage of 1.0.
+
+        Args:
+            row: The prompt's row of results.
+            name: The plan.
+
+        Returns:
+            The number of experiments.
+        """
         return row["prune"]["1.0"] if name == "prune" else row[name]["to_1.0"]
 
     lazy = [needed(r, "lazy") for r in prompts]
