@@ -94,7 +94,7 @@ def _reordered(ops: list[tuple[str, Op]], order: Sequence[str]) -> list[tuple[st
         raise PatchError("an order op names refs that the history doesn't hold")
     by_ref = dict(ops)
     out = list(ops)
-    for place, name in zip(places, order, strict=True):
+    for place, name in zip(places, order, strict=True):  # pragma: no mutate, equivalent: same len
         out[place] = (name, by_ref[name])
     return out
 
@@ -190,7 +190,10 @@ def merge(parents: Sequence[str], ops: Sequence[Op], message: dict[str, Any], lo
     """
     if len(parents) < 2:
         raise PatchError("a merge has two or more parents")
-    base = lookup(parents[0]).base
+    bases = {lookup(p).base for p in parents}
+    if len(bases) != 1:
+        raise PatchError(f"a merge's parents must share one base, not {sorted(bases)}")
+    (base,) = bases
     found = [c for i, a in enumerate(parents) for b in parents[i + 1 :]
              for c in conflicts(a, b, lookup)]  # fmt: skip
     ordered = {t for op in ops if op.type == "order" for t in op.targets}
@@ -242,7 +245,7 @@ def rebase(chain: Sequence[str], onto: str | None, base: str, lookup: Lookup) ->
 
 def _renamed(op: Op, renamed: dict[str, str]) -> Op:
     def fix(name: str) -> str:
-        pid, _, rest = name.partition(":")
+        pid, _, rest = name.partition(":")  # pragma: no mutate, equivalent: one colon in a ref
         return f"{renamed[pid]}:{rest}" if rest and pid in renamed else name
 
     gate = fix(op.gate) if op.gate else None
