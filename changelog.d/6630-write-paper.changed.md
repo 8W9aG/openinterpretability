@@ -1,1 +1,0 @@
-- The `write-paper` skill is now generic: this project's authors, site, terms and model papers are in its `project.md` (#6630).
