@@ -5,7 +5,7 @@ from labinacan import config as _config
 from openinterpretability.core.legacy_names import adopt_legacy_env
 from openinterpretability.core.paths import CLONE_PYPROJECT, DEFAULT_PYPROJECT, PACKAGED_PYPROJECT
 
-__version__ = "0.6.0"
+__version__ = "0.6.1"
 # The name on PyPI, and of the installed distribution (issue #3251). The import name is
 # `openinterpretability` (issue #4089).
 DISTRIBUTION = "open-interpretability"
