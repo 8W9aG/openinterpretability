@@ -229,3 +229,71 @@ def test_without_a_report_or_retain_prompts_a_fit_still_writes_its_row(runner, f
     row = fa.record(run, fit)
     assert "interference" not in row and row["retain"]["n"] == 0
     assert not (tmp_path / "run" / "reports").exists()
+
+
+import fix_removal as fr  # noqa: E402
+
+
+def test_cloze_counts_the_prompts_whose_copied_unit_outranks_the_right_one(runner, family):
+    model, tok = runner.model, runner.tokenizer
+    # The fake tokenizer reads characters, so units without a space get distinct tokens.
+    items = [ff.Item(i.prompt, "x", "y") for i in family.train[:3]]
+    logits = ff.last_logits(model, tok, [i.prompt for i in items])
+    x, y = ff.token(tok, "x"), ff.token(tok, "y")
+    assert x != y
+    want = round(float((logits[:, y] > logits[:, x]).float().mean()), 4)
+    assert fr.cloze_old_first(model, tok, items) == want
+    swapped = [ff.Item(i.prompt, i.copied, i.right) for i in items]
+    assert fr.cloze_old_first(model, tok, swapped) == round(1 - want, 4)  # no ties here
+    assert fr.cloze_old_first(model, tok, []) is None
+
+
+def test_the_residual_mean_skips_padding_and_the_projection_removes_the_direction(runner):
+    from openinterpretability.patches.graph import Graph, hook_point
+
+    model, tok = runner.model, runner.tokenizer
+    one = fr.resid_mean(model, tok, ["ab has"], 0)
+    padded = fr.resid_mean(model, tok, ["ab has", "ab has"], 0)
+    assert torch.allclose(one, padded, atol=1e-5)
+    direction = torch.randn(one.shape[0])
+    seen = []
+    with fr.projected_out(model, 0, direction):
+        handle = hook_point(Graph(model), "blocks.0.hook_resid_post", lambda x: seen.append(x))
+        try:
+            ff.last_logits(model, tok, ["ab has"])
+        finally:
+            handle.remove()
+    assert float((seen[0] @ (direction / direction.norm())).abs().max()) < 1e-4
+    with fr.projected_out(model, 0, torch.zeros_like(direction)):  # a zero direction is a no-op
+        assert torch.allclose(fr.resid_mean(model, tok, ["ab has"], 0), one, atol=1e-5)
+    assert fr.last_layer(["blocks.0.mlp.W_out", "blocks.1.attn.W_O"]) == 1
+
+
+def test_the_placebo_swaps_each_train_unit_for_another_unit_word(family):
+    got = fr.placebo(family)
+    assert [i.prompt for i in got.train] == [i.prompt for i in family.train]
+    assert all(i.right in {" q", " r", " s"} for i in got.train)  # never " x" or " y"
+    assert [i.copied for i in got.train] == [i.copied for i in family.train]
+    assert got.heldout == family.heldout and got.retain == family.retain
+    assert fr.placebo(family) == got and fr.placebo(family, seed=1) != got
+    with pytest.raises(ValueError, match="no placebo unit"):
+        fr.placebo(ff.Family([ff.Item("a", " x", " y")], [], []))
+
+
+def test_each_fit_row_has_both_removal_tests_and_p_is_b_on_the_placebo(runner, family, tmp_path):
+    run = fa.Run(runner, MODEL, family, tmp_path / "run", tmp_path / "c.jsonl", 64,
+                 tmp_path / "wiki", "cpu", with_report=False)  # fmt: skip
+    rows = list(fa.fits(run, "BPE", LAYOUT, _batches(), lambdas=(0.0,), ranks=(1,), steps=3))
+    assert [r["arm"] for r in rows] == ["B", "P", "E"]
+    b, p, e = rows
+    assert p["targets"] == b["targets"] and Path(p["draft"]).name == "P-l0.0-r1.json"
+    assert json.loads(Path(p["draft"]).read_text())["message"]["arm"] == "P"
+    for row in (b, p):
+        direction = row["removal"]["direction"]
+        assert direction["layer"] == 1 and direction["norm"] > 0
+        assert direction["n"] == 1 and 0 <= direction["cloze_old_first"] <= 1
+        assert 0 <= row["removal"]["cloze_old_first"] <= 1
+    assert set(e["removal"]) == {"cloze_old_first"}
+    base = fr.base_row(runner.model, runner.tokenizer, family)
+    assert base["table"] == "base" and base["heldout"]["n"] == 1
+    assert base["removal"]["cloze_old_first"] in (0.0, 1.0)

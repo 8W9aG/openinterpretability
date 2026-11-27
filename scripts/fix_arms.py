@@ -10,6 +10,12 @@ The family is ``docs/analyses/copy-family.jsonl`` (#5232). The arms are these.
 - **E** puts a few-shot prefix before each prompt. It changes no weight.
 - **F** solves a closed-form edit at B's middle layer, with MEMIT's least squares.
   Its AlphaEdit variant keeps the retain prompts' keys unchanged.
+- **P** is a placebo: arm B trained on the same prompts. Each prompt has a random unit word
+  in place of its right unit (#7151, ``scripts/fix_removal.py``).
+
+Each row also gives two tests of whether the fix removed the failure or hid it (#7151). One
+compares the right and the copied unit in cloze form. The other reads the held-out measures
+with the fix's mean direction projected out. The first row is the base model's.
 
 Each fit of A–D and F becomes a draft patch (``docs/patches.md``, #5229). The harness
 checks it at zero strength and runs the interference report of #5230 on it. Each fit
@@ -51,6 +57,7 @@ from fix_family import (  # noqa: E402
     read_family,
     token,
 )  # fmt: skip
+from fix_removal import base_row, cloze_old_first, placebo, removal_tests  # noqa: E402
 
 LAMBDAS = (0.0, 0.1, 1.0, 10.0)  # the weights of the retain KL term (#5220 §3)
 RANKS = (1, 4)  # the ranks of each trained change
@@ -360,9 +367,11 @@ def record(run: Run, fit: Fit) -> dict:
     _, ops = checked(path, model)
     with applied(model, ops):
         found = evaluate(model, run.runner.tokenizer, run.family)
+    targets = [t for t, _, _ in fit.ops]
+    removal = removal_tests(model, run.runner.tokenizer, run.family, ops, targets)
     row = {"table": "fit", "arm": fit.arm, **fit.settings, "draft": str(path),
            "params": sum(a.numel() + b.numel() for _, a, b in fit.ops),
-           "targets": [t for t, _, _ in fit.ops], **found,
+           "targets": targets, **found, "removal": removal,
            "loss": [round(fit.losses[0], 4), round(fit.losses[-1], 4)] if fit.losses
            else None}  # fmt: skip
     if run.with_report:
@@ -381,14 +390,17 @@ def prompt_row(run: Run, shots: int = SHOTS) -> dict:
         shots: The examples in the prefix.
     """
     prefix = few_shot(run.family, shots)
-    found = evaluate(run.runner.model, run.runner.tokenizer, run.family, prefix)
+    model, tokenizer = run.runner.model, run.runner.tokenizer
+    found = evaluate(model, tokenizer, run.family, prefix)
+    # E changes no weight, so it has no direction to remove: only the cloze test applies.
+    cloze = cloze_old_first(model, tokenizer, run.family.heldout, prefix)
     return {"table": "fit", "arm": "E", "shots": shots, "prefix": prefix, "draft": None,
-            "params": 0, **found}  # fmt: skip
+            "params": 0, **found, "removal": {"cloze_old_first": cloze}}  # fmt: skip
 
 
 def fits(run: Run, arms: str, layout: Layout, batches: list[torch.Tensor],
          lambdas=LAMBDAS, ranks=RANKS, steps: int = STEPS):  # fmt: skip
-    """Each fit of ``arms``, as a row, in order: A–D over λ and rank, E, then F.
+    """Each fit of ``arms``, as a row, in order: A–D and P over λ and rank, E, then F.
 
     F's ranks are ``ranks`` and the edit as solved, which is not cut to a low rank.
 
@@ -401,10 +413,13 @@ def fits(run: Run, arms: str, layout: Layout, batches: list[torch.Tensor],
         ranks: The rank sweep.
         steps: The optimiser steps of each trained fit.
     """
-    for arm in (a for a in arms if a in "ABCD"):
+    for arm in (a for a in arms if a in "ABCDP"):
+        # P is B's sites and recipe, fitted on the placebo's units.
+        trained, family = ("B", placebo(run.family)) if arm == "P" else (arm, run.family)
         for lam in lambdas:
             for rank in ranks:
-                fit = fit_trained(run.runner, arm, run.family, layout, lam, rank, steps)
+                fit = fit_trained(run.runner, trained, family, layout, lam, rank, steps)
+                fit.arm = arm
                 yield record(run, fit)
     if "E" in arms:
         yield prompt_row(run)
@@ -420,7 +435,7 @@ def fits(run: Run, arms: str, layout: Layout, batches: list[torch.Tensor],
 @click.option("--family", "family_file", default=FAMILY, show_default=True,
               type=click.Path(exists=True, dir_okay=False, path_type=Path))  # fmt: skip
 @click.option("--out", type=click.Path(file_okay=False, path_type=Path), required=True)
-@click.option("--arms", default="ABCDEF", show_default=True)
+@click.option("--arms", default="ABCDPEF", show_default=True)
 @click.option("--corpus", default="corpus.jsonl", type=click.Path(path_type=Path))
 @click.option("--tokens", default=20_000, show_default=True)
 @click.option("--wiki-dir", default="wiki", type=click.Path(path_type=Path))
@@ -453,6 +468,7 @@ def main(model_name, family_file, out, arms, corpus, tokens, wiki_dir, no_report
     batches = sample_windows(runner.tokenizer, tokens, corpus)
     out.mkdir(parents=True, exist_ok=True)
     with open(out / "fits.jsonl", "w", encoding="utf-8") as f:
+        f.write(json.dumps(base_row(runner.model, runner.tokenizer, run.family)) + "\n")
         for row in fits(run, arms, Layout(), batches):
             f.write(json.dumps(row) + "\n")
             f.flush()
