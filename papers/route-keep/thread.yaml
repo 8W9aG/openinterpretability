@@ -1,0 +1,21 @@
+# The paper's X thread (labinacan/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    A route says which units of a model produce one answer. Does a route that passed our full
+    review on Qwen2.5-0.5B still pass on its instruct model, with no new search? {link}
+  media: [gates]
+- section: Does the route keep?
+  text: >-
+    The answer is unchanged, and the route still suffices: alone, it brings back 0.57 of the
+    answer. But ablating it removes only 0.35 of what ablating every unit does, against 0.59
+    before. It fails with all five seeds.
+- section: Where does the answer go?
+  text: >-
+    Patching through the route falls from 0.81 to 0.37. Tuning kept the old route and added
+    other paths to the same answer.
+  media: [patching]
+- section: Conclusion
+  text: >-
+    A test that keeps only the circuit would call this route intact, and one that removes it
+    would call it broken. A keep test of a route should report both. {link}

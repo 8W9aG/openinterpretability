@@ -1,0 +1,23 @@
+{
+ "source": "media/gates.svg",
+ "sha256": "0d4fa16f6f77e47ad34df49daf60219207fe25e41579abca5ae4f2f43e89a2bc",
+ "files": [
+  "social.mp4",
+  "social.png"
+ ],
+ "figures": {
+  "gates": {
+   "sha256": "0d4fa16f6f77e47ad34df49daf60219207fe25e41579abca5ae4f2f43e89a2bc",
+   "files": [
+    "social-gates.mp4",
+    "social-gates.png"
+   ]
+  },
+  "patching": {
+   "sha256": "5d32d3bad308f682e1309580269f7f644090867a0ca0fd7c5817bef1a8df8e60",
+   "files": [
+    "social-patching.png"
+   ]
+  }
+ }
+}
