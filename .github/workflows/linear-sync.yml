@@ -32,6 +32,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           persist-credentials: false
+      # The scripts import labinacan, which comes from PyPI (#7097).
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
       - name: Sync
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
@@ -45,4 +47,6 @@ jobs:
             echo "::notice::No LINEAR_API_KEY: nothing to sync."
             exit 0
           fi
-          python3 scripts/linear_sync.py ${{ inputs.dry_run && '--dry-run' || '' }}
+          pin=$(python3 scripts/labinacan_pin.py)
+          uv run --no-project --with "$pin" \
+            python scripts/linear_sync.py ${{ inputs.dry_run && '--dry-run' || '' }}
