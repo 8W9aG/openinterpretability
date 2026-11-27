@@ -91,7 +91,7 @@ def keep(rows: list[dict]) -> Figure:
     fig = Figure(
         ["A neuron's Fisher importance does not tell", "whether its explanation keeps"],
         [
-            "Each mark is a VERIFIED pole of Qwen2.5-0.5B: its neuron's Fisher, as a percentile "
+            "Each mark is a passing pole of Qwen2.5-0.5B: its neuron's Fisher, as a percentile "
             "within its layer.",
             f"AUC {number(t['observed'], 3)} against a within-layer null of "
             f"{number(t['null_mean'], 3)} (p = {number(t['p'], 2)}). The ticks are medians.",
@@ -268,10 +268,10 @@ def kl(rows: list[dict]) -> Figure:
     fig = Figure(
         ["The output KL at a pole's own texts does not", "tell whether its explanation keeps"],
         [
-            "Each dot is one measure's AUROC for predicting that a VERIFIED pole fails on the "
+            "Each dot is one measure's AUROC for predicting that a passing pole fails on the "
             "instruct model.",
-            "KL(instruct ‖ base) at the pole's probes or top contexts, on plain text or in the "
-            "chat template. 0.5 is chance.",
+            "KL(instruct ‖ base) at the pole's test prompts or top contexts, on plain text or in "
+            "the chat template. 0.5 is chance.",
         ],
         f"A dot plot of {len(tests)} AUROCs, one per model, measure and mode. On Qwen2.5-0.5B "
         "all four lie between 0.49 and 0.55. On Qwen2.5-1.5B they lie between 0.58 and "
