@@ -29,6 +29,7 @@ Status marks how the work relates to this repo:
 | [Understanding AI from the Inside](understanding-ai-from-the-inside.md) (Barez, Wu et al., 2026) | planned | A 183-page survey with an evaluation protocol and guardrails for automated interpretability. The registry already has most of both. Its missing guardrail, a blind human audit of a random sample of verdicts, is #4034. |
 | [Automated Interpretability Metrics Do Not Distinguish Trained and Random Transformers](random-transformers-autointerp.md) (Heap, Lawson, Farnik and Aitchison, 2025) | planned | SAE latents on random-init Pythia score about as well on fuzzing and detection as on trained ones. The protocol's verdicts do separate trained and random GPT-2. #5758 would test the repo's scores |
 | [Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](llm-as-a-judge-mt-bench.md) (Zheng, Chiang, Sheng, Zhuang et al., 2023) | planned | GPT-4 agrees with expert humans on chat answers about as often as they agree with each other. But judges change verdicts when two answers swap places. Our judge never compares two candidates. #7084 tests whether the order of its windows moves a score. |
+| [Large Language Models are not Fair Evaluators](llm-judges-not-fair.md) (Wang, Li, Chen et al., 2023) | planned | Swapping two responses flips ChatGPT's verdict on 66 of 80 questions. Judging in both orders, with evidence before scores, raises GPT-4's agreement with people from 52.7% to 62.5%. The repo's judge isn't pairwise, but #7084 tests its order. |
 
 ## Model architecture
 
