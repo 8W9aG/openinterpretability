@@ -21,5 +21,6 @@
   media: [flips]
 - section: Conclusion
   text: >-
-    On Qwen2.5-1.5B, NF4 keeps more explanations than a random change of its size, 66
-    against 58 to 62. The weights' normality does not tell which explanations break. {link}
+    On Qwen2.5-1.5B, NF4 keeps 66 explanations, against 57 to 67 for ten random changes of
+    its size: more than 9 of 10, but not clearly gentler than noise. The weights' normality
+    does not tell which explanations break. {link}

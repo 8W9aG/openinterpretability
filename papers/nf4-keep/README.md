@@ -1,6 +1,6 @@
 # Do neuron explanations survive 4-bit NF4 rounding?
 
-QLoRA fine-tunes a language model on top of base weights stored in 4-bit NormalFloat (NF4), and it reports that this rounding costs little on benchmarks. Whether the rounding keeps what single neurons do is a separate question. We rounded every linear weight of Qwen2.5-0.5B and Qwen2.5-1.5B to NF4, with QLoRA's 16 values and a scale for each block of 64 weights. Then we re-tested each neuron explanation that had passed an adversarial review. On Qwen2.5-0.5B, 281 of 362 explanations keep (77.6%), and random changes with NF4's error norm in every matrix keep 283 to 294 (paired McNemar $p \geq 0.18$). On Qwen2.5-1.5B, 66 of 75 keep (88.0%), against 58 to 62 under the random changes. The median peak moves by 1.7% of the pole's scale on Qwen2.5-0.5B and 1.5% on Qwen2.5-1.5B. The 99% points are 33% and 21%, against 3.2% for bfloat16 in this repo's earlier test. The poles that NF4 flips are mostly those near one of the review's thresholds, and they overlap with those that instruction tuning flips. Half or more of the poles have weights that fail QLoRA's normality test, but failing it does not reliably predict a lost explanation. NF4 is therefore a change of about the size of instruction tuning, for explanations, and a QLoRA run starts from a model whose explanations have already moved.
+QLoRA fine-tunes a language model on top of base weights stored in 4-bit NormalFloat (NF4), and it reports that this rounding costs little on benchmarks. Whether the rounding keeps what single neurons do is a separate question. We rounded every linear weight of Qwen2.5-0.5B and Qwen2.5-1.5B to NF4, with QLoRA's 16 values and a scale for each block of 64 weights. Then we re-tested each neuron explanation that had passed an adversarial review. On Qwen2.5-0.5B, 281 of 362 explanations keep (77.6%), and ten random changes with NF4's error norm in every matrix keep 277 to 299 (paired McNemar $p \geq 0.057$). On Qwen2.5-1.5B, 66 of 75 keep (88.0%), against 57 to 67 under the random changes, within their range. The median peak moves by 1.7% of the pole's scale on Qwen2.5-0.5B and 1.5% on Qwen2.5-1.5B. The 99% points are 33% and 21%, against 3.2% for bfloat16 in this repo's earlier test. The poles that NF4 flips are mostly those near one of the review's thresholds, and overlap with those that instruction tuning flips. Half or more of the poles have weights that fail QLoRA's normality test, but failing it does not reliably predict a lost explanation. NF4 is a change of about the size of instruction tuning, for explanations, and a QLoRA run starts from a model whose explanations have already moved.
 
 **Status:** Preprint. Work left: #6878 (QLoRA's bfloat16 compute and double quantization).
 
@@ -45,7 +45,7 @@ $$
 \varepsilon_W = \lVert \hat{W} - W \rVert_F \, \frac{Z}{\lVert Z \rVert_F}, \qquad Z_{ij} \sim \mathcal{N}(0, 1).
 $$
 
-It has three seeds. It matches NF4's size in each matrix, but not its form: NF4's error is bounded within each block, and it scales with the block's largest weight.
+It uses ten seeds, 0 to 9. It matches NF4's size in each matrix, but not its form: NF4's error is bounded within each block, and it scales with the block's largest weight.
 
 **The keep test.** This is the test of the base-instruct analysis, as the paper on random changes runs it. Each pole's test prompts run on the base model and on the changed model. On the changed model, the line is the record's line times the ratio of the pole's maximum after the change to its maximum before. Both maxima come from the same 20,000 tokens of our scan corpus. So "fires" means the same share of the pole's own range on both models. An explanation *reproduces* when it passes both tests on the base model, and it *keeps* when it passes them on the changed model too. A pole *flips* when it reproduces and does not keep. The keep share has a 95% Wilson interval, and the exact McNemar test compares two changes on the same poles.
 
@@ -61,28 +61,28 @@ It has three seeds. It matches NF4's size in each matrix, but not its form: NF4'
 
 Most do. On Qwen2.5-0.5B, 281 of the 362 explanations that reproduce keep under NF4, 77.6% (95% interval 73.1–81.6%). On Qwen2.5-1.5B, 66 of 75 keep, 88.0% (78.7–93.6%) (Figure 1, Table 1). These shares are close to those of instruction tuning on the same models, 82.6% and 86.7% in the paper on random changes. On Qwen2.5-0.5B, NF4's error even has about the norm of the instruct change, 36.38 against 36.34. On Qwen2.5-1.5B, NF4's error is almost six times the instruct change's norm, 95.88 against 16.88, yet it breaks no more explanations.
 
-![NF4 rounding keeps most explanations, and on Qwen2.5-1.5B more than a random change of the same size.](media/keep.svg)
+![NF4 rounding keeps most explanations, and on Qwen2.5-1.5B more than 9 of 10 random changes of the same size.](media/keep.svg)
 
-**Figure 1.** NF4 rounding keeps most explanations, and on Qwen2.5-1.5B more than a random change of the same size. The share of each model's passing explanations that still pass their test prompts under each change, with 95% Wilson intervals. Circles are NF4 rounding, triangles are random changes with NF4's error norm in every matrix, one for each seed, and the green circle is bfloat16 rounding.
+**Figure 1.** NF4 rounding keeps most explanations, and on Qwen2.5-1.5B more than 9 of 10 random changes of the same size. The share of each model's passing explanations that still pass their test prompts under each change, with 95% Wilson intervals. Circles are NF4 rounding, triangles are random changes with NF4's error norm in every matrix, one for each seed, and the green circle is bfloat16 rounding.
 
-**Table 1.** The explanations that keep under each change, out of those that reproduce on the base model, with the norm of the change and the median correlation of each pole's activations with its base activations. A random row gives the range over its three seeds.
+**Table 1.** The explanations that keep under each change, out of those that reproduce on the base model, with the norm of the change and the median correlation of each pole's activations with its base activations. A random row gives the range over its ten seeds.
 
 | Model | Change | Norm | Keep | Share | Median $r$ |
 | --- | --- | --- | --- | --- | --- |
 | Qwen2.5-0.5B | NF4 | 36.38 | 281 of 362 | 77.6% | 0.947 |
-| Qwen2.5-0.5B | random, NF4's norm | 36.38 | 283–294 | 78.2–81.2% | 0.935–0.937 |
+| Qwen2.5-0.5B | random, NF4's norm | 36.38 | 277–299 | 76.5–82.6% | 0.932–0.937 |
 | Qwen2.5-0.5B | bfloat16 | 0 | 362 of 362 | 100% | 1.000 |
 | Qwen2.5-1.5B | NF4 | 95.88 | 66 of 75 | 88.0% | 0.954 |
-| Qwen2.5-1.5B | random, NF4's norm | 95.89 | 58–62 | 77.3–82.7% | 0.941–0.945 |
+| Qwen2.5-1.5B | random, NF4's norm | 95.89 | 57–67 | 76.0–89.3% | 0.941–0.947 |
 | Qwen2.5-1.5B | bfloat16 | 0 | 75 of 75 | 100% | 1.000 |
 
 The bfloat16 rounding changes nothing. Both models are stored in bfloat16, so their float32 weights are already bfloat16 values, and rounding them again is exact. Its row is a check of the method, not a measurement. The bfloat16 comparison that the issue asked for therefore rests on the earlier analysis, which also rounded the activations.
 
 ## Is NF4 gentler than a random change of its size?
 
-On Qwen2.5-1.5B it seems to be, and on Qwen2.5-0.5B it is not. On Qwen2.5-0.5B, NF4 flips 81 poles and the three random changes flip 68, 76 and 79, with paired McNemar $p$ of 0.18, 0.65 and 0.91 (Table 4 in Appendix B). On Qwen2.5-1.5B, NF4 flips 9 poles and the random changes flip 16, 17 and 13. Each seed's paired test alone is not significant ($p$ = 0.092, 0.077 and 0.42), but all three point the same way. NF4 also moves the activations a little less than its random change on both models, to a median correlation of 0.947 against 0.935 to 0.937 on Qwen2.5-0.5B, and 0.954 against 0.941 to 0.945 on Qwen2.5-1.5B.
+Not clearly, on either model. On Qwen2.5-0.5B, NF4 flips 81 poles, and the ten random changes flip 63 to 85, with a mean of 74.1. Only one seed flips more than NF4, and no paired McNemar test reaches 0.05, although the smallest $p$ is 0.057 (Table 4 in Appendix B). On Qwen2.5-1.5B, NF4 flips 9 poles, and the random changes flip 8 to 18, with a mean of 14.6. NF4 flips fewer than nine of the ten seeds. With the first three seeds alone, all three pointed the same way, at $p$ = 0.092, 0.077 and 0.42. The seven later seeds give one paired $p$ below 0.05 (0.049, seed 7), which is about what ten uncorrected tests give by chance, and one seed (seed 9) that flips fewer poles than NF4. If NF4 and the ten draws were exchangeable, NF4 would rank second or better of eleven with probability 2/11, or 0.18. NF4 also moves the activations a little less than its random change on both models, to a median correlation of 0.947 against 0.932 to 0.937 on Qwen2.5-0.5B, and 0.954 against 0.941 to 0.947 on Qwen2.5-1.5B.
 
-A reason is in NF4's form. Its error in a block is bounded by the block's own scale, and a block with small weights gets a small error. The random change spreads the same norm evenly. So NF4 puts less error on the weights that are already small. Whether that is what spares the explanations of Qwen2.5-1.5B is a hypothesis that this paper does not test.
+If the difference on Qwen2.5-1.5B is real, a reason may lie in NF4's form. Its error in a block is bounded by the block's own scale, and a block with small weights gets a small error. The random change spreads the same norm evenly. So NF4 puts less error on the weights that are already small. Whether that is what spares the explanations of Qwen2.5-1.5B is a hypothesis that this paper does not test.
 
 ## How far do the test prompts' readings drift?
 
@@ -93,16 +93,16 @@ Much further than under bfloat16, at the tail. The median test prompt's reading 
 | Model | Change | Test prompts | Under 1% | Under 5% | 99% point | 99.9% point | Largest |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Qwen2.5-0.5B | NF4 | 6,953 | 37.4% | 75.3% | 33.5% | 121.8% | 154.8% |
-| Qwen2.5-0.5B | random | 6,953 | 34.1–34.8% | 72.1–73.3% | 32.4–36.0% | 79.6–102.7% | 127.7–191.0% |
+| Qwen2.5-0.5B | random | 6,953 | 33.1–34.8% | 71.5–73.3% | 31.8–37.2% | 70.6–102.7% | 116.6–266.1% |
 | Qwen2.5-1.5B | NF4 | 1,910 | 42.0% | 76.7% | 21.4% | 35.4% | 78.3% |
-| Qwen2.5-1.5B | random | 1,910 | 39.5–40.6% | 72.7–74.9% | 26.7–29.1% | 38.8–48.2% | 73.4–77.1% |
+| Qwen2.5-1.5B | random | 1,910 | 39.4–41.0% | 71.1–75.5% | 25.2–29.1% | 38.8–51.7% | 52.2–77.9% |
 | three models | bfloat16 | 681 | – | – | 3.2% | 5.1% | 6.0% |
 
 The drift is large, and yet most explanations keep. The keep test rescales each pole's line by the change in its maximum, so a pole whose whole range shrinks still fires on the same texts. Most drift is of this kind. The median scale ratio is 0.964 on Qwen2.5-0.5B and 0.971 on Qwen2.5-1.5B. The test prompts that cross a line are fewer than the drift suggests.
 
 ## Which poles flip?
 
-The poles that flip are mostly those near a gate. On Qwen2.5-0.5B, cut into quarters of 90 or 91 poles by margin, NF4 flips 39 poles in the quarter nearest a gate, 18 in the next, 15 in the third and 9 in the furthest (Figure 2). The random changes give 27 to 34, 19 to 29, 13 to 17 and 4 to 6. On Qwen2.5-1.5B, NF4 flips 4, 3, 2 and 0, in quarters of 18 or 19.
+The poles that flip are mostly those near a gate. On Qwen2.5-0.5B, cut into quarters of 90 or 91 poles by margin, NF4 flips 39 poles in the quarter nearest a gate, 18 in the next, 15 in the third and 9 in the furthest (Figure 2). The ten random changes give 26 to 38, 18 to 29, 10 to 18 and 3 to 7. On Qwen2.5-1.5B, NF4 flips 4, 3, 2 and 0, in quarters of 18 or 19.
 
 ![On Qwen2.5-0.5B, NF4 and random changes of its size flip many of the same poles, near a gate.](media/flips.svg)
 
@@ -135,21 +135,21 @@ NF4 rounding is not a small change for explanations. It keeps about four in five
 
 The flips say more about the poles than about the change. Under NF4, under a random change and under instruction tuning, the poles that flip are largely the same ones, and they sit near a gate on the base model. An explanation that barely passed its review is fragile under any change of this size. This agrees with the paper on random changes, which found the same overlap between instruction tuning and noise on Qwen2.5-0.5B. It suggests that a keep test should report the base margin of the poles it loses, because a loss near a gate is weak evidence that the change did something specific.
 
-On Qwen2.5-1.5B, NF4 seems gentler than random noise of its size, although no single seed's test is significant. Its error is bounded by each block's scale, so it puts little error on small weights. This agrees with QLoRA's design: NF4 aims to spend its 16 values where the weights lie. It does not mean that the weights' normality matters for explanations. Half or more of the poles here have a non-normal weight vector, far more than in LLaMA 7B, and that barely predicts which explanations break.
+On Qwen2.5-1.5B, NF4 may be gentler than random noise of its size, but ten seeds do not show it: NF4 flips fewer poles than nine of them, which a rank test puts at $p$ = 0.18. Its error is bounded by each block's scale, so it puts little error on small weights. This agrees with QLoRA's design: NF4 aims to spend its 16 values where the weights lie. It does not mean that the weights' normality matters for explanations. Half or more of the poles here have a non-normal weight vector, far more than in LLaMA 7B, and that barely predicts which explanations break.
 
 ## Limitations
 
 - **Two models of one family.** Both are Qwen2.5, and both are stored in bfloat16. Another family could round differently.
 - **Rounding only, with float32 compute.** QLoRA computes in bfloat16 after it dequantizes, and it quantizes the block scales again. Here the model computes in float32 and has no double quantization. So this measures the rounding of the weights alone.
 - **bfloat16 was a check, not a measure.** The models' weights are already bfloat16, so rounding them to bfloat16 changed nothing. The comparison with bfloat16 rests on an earlier analysis, of fewer and different records, that also rounded the activations.
-- **Few random seeds.** The random change has three seeds. On Qwen2.5-1.5B, they range from 58 to 62 keeps, and no single paired test is significant.
+- **Ten random seeds.** The null uses ten draws, so a rank test of NF4 against it cannot reach a $p$ below 1/11. On Qwen2.5-1.5B, a single draw can move the null's range: the tenth seed keeps 67 poles, where the other nine keep 57 to 61.
 - **A rescaled line.** The keep test rescales the line by the change in each pole's maximum. A rounding that shifts a pole's whole range does not count against it.
 - **Eight normality tests.** The one test below 0.05 is about what chance gives among eight. QLoRA's authors note that the test's $p$-value may not be accurate at large sample sizes, and the vectors here hold 896 to 8,960 weights.
 - **Our poles.** The poles are our passing poles, not a random sample of the models' neurons.
 
 ## Conclusion
 
-Most passing explanations keep through NF4 rounding: 281 of 362 on Qwen2.5-0.5B and 66 of 75 on Qwen2.5-1.5B. That is about as many as instruction tuning keeps. The rounding moves the test prompts' readings much further than bfloat16 does, and the explanations it breaks are mostly the fragile ones near a gate, which other changes break too. On Qwen2.5-1.5B, NF4 keeps more explanations than a random change of its size. Its weights' normality does not tell which explanations break.
+Most passing explanations keep through NF4 rounding: 281 of 362 on Qwen2.5-0.5B and 66 of 75 on Qwen2.5-1.5B. That is about as many as instruction tuning keeps. The rounding moves the test prompts' readings much further than bfloat16 does, and the explanations it breaks are mostly the fragile ones near a gate, which other changes break too. On Qwen2.5-1.5B, NF4 keeps more explanations than 9 of 10 random changes of its size, which is not enough to call it gentler than noise. Its weights' normality does not tell which explanations break.
 
 ## References
 
@@ -166,6 +166,13 @@ Each run reads every VERIFIED pole of the model from `wiki/`, with errata applie
     uv run python scripts/nf4_keep.py --base Qwen/Qwen2.5-0.5B --device cuda --out 0.5b.jsonl
     uv run python scripts/nf4_keep.py --base Qwen/Qwen2.5-1.5B --device cuda --out 1.5b.jsonl
     cat 0.5b.jsonl 1.5b.jsonl > runs.jsonl
+    # Seeds 3 to 9 of the random change (#7072), on the registry at the paper's commit
+    mkdir snapshot && git archive b65ba2cba wiki | tar -x -C snapshot
+    for m in 0.5B 1.5B; do
+        uv run python scripts/nf4_keep.py --base Qwen/Qwen2.5-$m --device cuda \
+            --wiki-dir snapshot/wiki --condition random_nf4 --first-seed 3 --seeds 7 \
+            --poles-from papers/nf4-keep/results.jsonl --out seeds-$m.jsonl
+    done
     uv run --with scipy==1.16.3 python scripts/nf4_keep_stats.py normality runs.jsonl --out normality.jsonl
     cat runs.jsonl normality.jsonl > papers/nf4-keep/results.jsonl
     uv run python scripts/nf4_keep_stats.py drift papers/nf4-keep/results.jsonl
@@ -174,7 +181,7 @@ Each run reads every VERIFIED pole of the model from `wiki/`, with errata applie
     uv run python -c "import sys; sys.path.insert(0, 'scripts'); import json, random_change_stats as s; rows = [json.loads(l) for l in open('papers/nf4-keep/results.jsonl')]; [print(r) for m in ('Qwen/Qwen2.5-0.5B', 'Qwen/Qwen2.5-1.5B') for r in s.by_margin(rows, m) + s.activity(rows, m)]"
     uv run python scripts/paper_figures.py
 
-`results.jsonl` holds a `base` row for each pole, with its readings on the base model. It holds a `summary` row for each model, condition and seed, with the keep share, its interval, the poles that flip and the norm of the change. Each `pole` row gives a pole's readings under one condition and seed, whether it keeps, its scale ratio, its correlation and the drift of each probe. Each `normality` row gives the Shapiro-Wilk $p$-values of a pole's three weight vectors, and the `normality_keep` rows give Table 3. The poles that a run selects depend on the registry on the day it runs.
+`results.jsonl` holds a `base` row for each pole, with its readings on the base model. It holds a `summary` row for each model, condition and seed, with the keep share, its interval, the poles that flip and the norm of the change. Each `pole` row gives a pole's readings under one condition and seed, whether it keeps, its scale ratio, its correlation and the drift of each probe. Each `normality` row gives the Shapiro-Wilk $p$-values of a pole's three weight vectors, and the `normality_keep` rows give Table 3. The poles that a run selects depend on the registry on the day it runs. Seeds 0 to 2 ran on 2026-11-25. Seeds 3 to 9 ran on 2026-11-27, on `wiki/` as it stood at the paper's commit, because three of the paper's poles had newer records by then. `--poles-from` keeps the paper's poles and reports any whose base readings differ, and none did. The `pole` and `summary` rows of seeds 3 to 9 follow the paper's other rows in `results.jsonl`.
 
 ### B. Paired tests for each seed
 
@@ -185,9 +192,23 @@ Each run reads every VERIFIED pole of the model from `wiki/`, with errata applie
 | Qwen2.5-0.5B | 0 | 81 | 68 | 47 | 34 | 0.18 | 34 | 15.22 | $1.5 \times 10^{-8}$ |
 | Qwen2.5-0.5B | 1 | 81 | 76 | 42 | 37 | 0.65 | 39 | 17.01 | $1.8 \times 10^{-10}$ |
 | Qwen2.5-0.5B | 2 | 81 | 79 | 42 | 40 | 0.91 | 39 | 17.68 | $9.3 \times 10^{-10}$ |
+| Qwen2.5-0.5B | 3 | 81 | 68 | 41 | 28 | 0.15 | 40 | 15.22 | $1.5 \times 10^{-13}$ |
+| Qwen2.5-0.5B | 4 | 81 | 63 | 49 | 31 | 0.057 | 32 | 14.10 | $3.0 \times 10^{-8}$ |
+| Qwen2.5-0.5B | 5 | 81 | 69 | 45 | 33 | 0.21 | 36 | 15.44 | $8.0 \times 10^{-10}$ |
+| Qwen2.5-0.5B | 6 | 81 | 76 | 45 | 40 | 0.66 | 36 | 17.01 | $3.0 \times 10^{-8}$ |
+| Qwen2.5-0.5B | 7 | 81 | 78 | 43 | 40 | 0.83 | 38 | 17.45 | $3.1 \times 10^{-9}$ |
+| Qwen2.5-0.5B | 8 | 81 | 85 | 39 | 43 | 0.74 | 42 | 19.02 | $1.1 \times 10^{-10}$ |
+| Qwen2.5-0.5B | 9 | 81 | 79 | 37 | 35 | 0.91 | 44 | 17.68 | $6.2 \times 10^{-14}$ |
 | Qwen2.5-1.5B | 0 | 9 | 16 | 3 | 10 | 0.092 | 6 | 1.92 | 0.0022 |
 | Qwen2.5-1.5B | 1 | 9 | 17 | 4 | 12 | 0.077 | 5 | 2.04 | 0.024 |
 | Qwen2.5-1.5B | 2 | 9 | 13 | 5 | 9 | 0.42 | 4 | 1.56 | 0.043 |
+| Qwen2.5-1.5B | 3 | 9 | 15 | 6 | 12 | 0.24 | 3 | 1.80 | 0.25 |
+| Qwen2.5-1.5B | 4 | 9 | 15 | 6 | 12 | 0.24 | 3 | 1.80 | 0.25 |
+| Qwen2.5-1.5B | 5 | 9 | 14 | 5 | 10 | 0.30 | 4 | 1.68 | 0.057 |
+| Qwen2.5-1.5B | 6 | 9 | 16 | 3 | 10 | 0.092 | 6 | 1.92 | 0.0022 |
+| Qwen2.5-1.5B | 7 | 9 | 18 | 4 | 13 | 0.049 | 5 | 2.16 | 0.032 |
+| Qwen2.5-1.5B | 8 | 9 | 14 | 5 | 10 | 0.30 | 4 | 1.68 | 0.057 |
+| Qwen2.5-1.5B | 9 | 9 | 8 | 6 | 5 | 1.00 | 3 | 0.96 | 0.05 |
 
 ### C. Who did the work
 

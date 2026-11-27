@@ -53,9 +53,10 @@ def keep(rows: list[dict]) -> Figure:
     """
     small = summaries(rows, MODELS[1][0], "nf4")[0]
     randoms = summaries(rows, MODELS[1][0], "random_nf4")
+    below = sum(r["keeps"] < small["keeps"] for r in randoms)
     fig = Figure(
-        ["NF4 rounding keeps most explanations, and on Qwen2.5-1.5B",
-         "more than a random change of the same size"],
+        ["NF4 rounding keeps most explanations, and on Qwen2.5-1.5B more",
+         f"than {below} of {len(randoms)} random changes of the same size"],
         ["Each mark is the share of passing explanations that still pass their tests, with a",
          "95% interval. Each random change has the norm of NF4's error in every matrix."],
         f"Two panels, one for each Qwen2.5 model, with three rows: NF4 rounding, random "
@@ -64,7 +65,9 @@ def keep(rows: list[dict]) -> Figure:
         f"{min(r['keeps'] for r in randoms)} to {max(r['keeps'] for r in randoms)} under the "
         f"random changes.",
     )  # fmt: skip
-    top, height = fig.body_top + 30, 120
+    seeds = max(len(summaries(rows, m, "random_nf4")) for m, _ in MODELS)
+    step = min(6.0, 36 / max(seeds - 1, 1))  # the seeds of one row fit in its band
+    top, height = fig.body_top + 30, 150
     names = [n for n, _ in LABELS]
     for slot, (model, label) in enumerate(MODELS):
         panel = Panel(fig, (190 + slot * 290, top, 250, height), (0.6, 1.0), (0, len(names)))
@@ -78,7 +81,7 @@ def keep(rows: list[dict]) -> Figure:
             which, colour = SHAPES[condition]
             got = summaries(rows, model, condition)
             for j, r in enumerate(got):
-                dy = (j - (len(got) - 1) / 2) * 6  # each seed on its own line, in seed order
+                dy = (j - (len(got) - 1) / 2) * step  # each seed on its own line, in seed order
                 low, high = r["keep_ci95"]
                 fig.line(panel.x(low), y + dy, panel.x(high), y + dy, f"range s{colour} soft")
                 _mark(fig, which, panel.x(r["keep_share"]), y + dy, 3.6, f"f{colour} ring")
