@@ -38,8 +38,9 @@ def test_auto_merge_waits_for_the_run_that_leaving_draft_starts():
     wait = names.index("Wait for the CI run that leaving draft starts")
     assert wait < next(i for i, n in enumerate(names) if n.startswith("Auto-merge if"))
     assert steps[wait]["if"] == "github.event.action == 'ready_for_review'"
-    assert "actions/workflows/$workflow/runs" in steps[wait]["run"]
-    assert "for workflow in ci.yml labinacan-ci.yml" in steps[wait]["run"]  # both (#6630)
+    # Every pull_request run of the head commit, whichever workflow holds the checks (#6992).
+    assert "actions/runs?head_sha=$HEAD_SHA&event=pull_request" in steps[wait]["run"]
+    assert 'all(.status == \\"completed\\")' in steps[wait]["run"]
     names = [str(job["name"]) for w in ("ci.yml", "labinacan-ci.yml")
              for job in _load(w)["jobs"].values()]  # fmt: skip
     assert set(REQUIRED) <= set(names)  # static, so a skipped job still reports its name

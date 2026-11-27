@@ -1,8 +1,13 @@
-name: Deploy registry
+name: Deploy
 
 # Rebuild dist/ from main and delta-sync it to Cloudflare R2 whenever main changes. The
-# build is deterministic, so when no experiment changed the sync uploads, deletes and
-# purges nothing.
+# build is deterministic, so when no page changed the sync uploads, deletes and purges
+# nothing.
+#
+# This file holds no value of a project (#6992), as labinacan-ci.yml holds none. The project
+# gives its values through make (`make deploy-prepare`, `make build`, `make -s cache-dir`)
+# and through labinacan.config, which names its command. With no R2 bucket set
+# (vars.R2_BUCKET), the job builds the site and stops: it syncs and posts nothing.
 #
 # A push deploys at once. A merge by the auto-merge bot uses the workflow token, which
 # starts no workflow, so it gets no push run (issue #3989). The schedule catches those:
@@ -29,11 +34,11 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read  # the build reads each record's PR author (builder/users.py)
+  pull-requests: read  # a build may read each record's PR author
   actions: read  # the schedule reads the last successful deploy
 
 concurrency:
-  group: deploy-registry
+  group: deploy
   cancel-in-progress: false  # never interrupt a sync halfway
 
 jobs:
@@ -71,8 +76,7 @@ jobs:
   deploy:
     name: Build and sync to R2
     needs: changed
-    # Skipped (not failed) until the deploy is configured; see docs/development.md "Deploy".
-    if: ${{ vars.R2_BUCKET != '' && needs.changed.outputs.deploy == 'true' }}
+    if: ${{ needs.changed.outputs.deploy == 'true' }}
     runs-on: ubuntu-latest
     outputs:  # for report-x: a failed post leaves the deploy green (#5528)
       x_outcome: ${{ steps.x.outcome }}
@@ -82,10 +86,11 @@ jobs:
     timeout-minutes: 60
     environment: production
     env:
-      # Read-only, for the evidence blobs that `check` and the build download. Without a
-      # token the downloads are anonymous and get a lower rate limit. The publish step
-      # sets its own write token.
+      # Read-only, for what the project's steps and the build download from Hugging Face.
+      # Without a token the downloads are anonymous and get a lower rate limit.
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      UV_NO_SYNC: "1"  # keep the packages that ci-install.sh put in .venv
+      R2_BUCKET: ${{ vars.R2_BUCKET }}  # empty: build only
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -96,8 +101,7 @@ jobs:
           # gives its tagged commit: the release PR's merge on main, tagged minutes later.
           # A commit that merged after it deploys on the next push or scheduled run.
           ref: ${{ github.sha }}
-          # `open-interpretability check` checks the errata file's signature at the time it landed,
-          # which needs main's history (openinterpretability/signing.py landing_times).
+          # A project's steps may read main's history, such as the time that a file landed.
           fetch-depth: 0
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d  # v10.4.0
         with:
@@ -107,39 +111,34 @@ jobs:
         run: |
           ./scripts/ci-install.sh
           echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
-      # The evidence blobs of slim records (openinterpretability/core/evidence.py, issue #3254), so
-      # this build fetches only the blobs of new records from the dataset.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+      - name: Read the project's command and cache folder
+        # The cache folder is written from ~, so that the cache's path stays the same text
+        # on every runner.
+        run: |
+          eval "$(python -m labinacan.config)"
+          cache=$(make -s cache-dir)
+          {
+            echo "COMMAND=$COMMAND"
+            echo "CACHE_DIR=${cache/#$HOME/\~}"
+          } >> "$GITHUB_ENV"
+      # What earlier builds kept in the project's cache folder, such as the personal-data
+      # matches of each text (labinacan.site.pii), so this build does only new work. It is
+      # saved after the build even when a later step fails, so a slow first run is not lost.
+      - name: Restore the project's cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
-          path: ~/.cache/openinterpretability/evidence
-          key: evidence-blobs-${{ github.run_id }}
-          restore-keys: evidence-blobs-
-      - name: Publish the evidence of merged records
-        # Merged code only: this job checks out main. It uploads the blobs that main's slim
-        # records need and the dataset lacks, from the evidence branches (issue #3254). A
-        # PR's CI holds no write token, so nothing from an unmerged PR is published.
+          path: ${{ env.CACHE_DIR }}
+          key: deploy-cache-${{ github.run_id }}
+          restore-keys: deploy-cache-
+      - name: The project's steps before the build (make deploy-prepare)
+        # Merged code only: this job checks out main. A PR's CI holds no write token, so a
+        # step that publishes something publishes nothing from an unmerged PR.
         env:
-          HF_TOKEN: ${{ secrets.HF_EVIDENCE_TOKEN }}
-        run: open-interpretability evidence publish
-      - name: Check registry consistency
-        run: open-interpretability check
-      # The personal-data matches of each text that earlier builds searched
-      # (labinacan.site.pii), so this build searches only new text.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
-        with:
-          path: ~/.cache/openinterpretability/pii
-          key: pii-spans-${{ github.run_id }}
-          restore-keys: pii-spans-
-      # The author of the PR that merged each record without a contributor
-      # (openinterpretability/builder/users.py), so this build asks GitHub only for new PRs.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
-        with:
-          path: ~/.cache/openinterpretability/pr-authors
-          key: pr-authors-${{ github.run_id }}
-          restore-keys: pr-authors-
+          HF_WRITE_TOKEN: ${{ secrets.HF_EVIDENCE_TOKEN }}
+        run: make deploy-prepare
       - name: Build site
         env:
-          GITHUB_TOKEN: ${{ github.token }}  # reads PR authors from the API
+          GITHUB_TOKEN: ${{ github.token }}  # a build may read PR authors from the API
           # Swap that the build may use above its cap (scripts/capped.sh).
           CAPPED_SWAP: 2G
         # The build runs under a 6G cap plus 2G of swap, out of the runner's 16 GB
@@ -151,12 +150,16 @@ jobs:
         # default jobs its process memory peaked at 2.8-2.9 GiB, down from 14.0 GiB (#4737).
         # The cap leaves room above that and gives the runner agent the rest. The warning
         # above 4G shows a regression early.
-        run: |
-          scripts/capped.sh 6G 4G -- \
-            open-interpretability build --wiki-dir wiki --output-dir dist
-          python -m openinterpretability.builder.css --site dist
-          python -m pagefind --site dist
+        run: make build BUILD_WRAPPER="scripts/capped.sh 6G 4G --"
+      - name: Save the project's cache
+        if: ${{ always() }}
+        continue-on-error: true  # a rerun of this run finds its key taken
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+        with:
+          path: ${{ env.CACHE_DIR }}
+          key: deploy-cache-${{ github.run_id }}
       - name: Install rclone
+        if: ${{ env.R2_BUCKET != '' }}
         # A release binary, pinned and checked, as Vale is in labinacan-ci.yml. The sync
         # uploads with it: many small files go up much faster than through boto3 (#7107).
         env:
@@ -170,25 +173,25 @@ jobs:
           unzip -q -j "$RUNNER_TEMP/$zip" "*/rclone" -d "$RUNNER_TEMP/rclone"
           echo "$RUNNER_TEMP/rclone" >> "$GITHUB_PATH"
       - name: Sync to R2
+        if: ${{ env.R2_BUCKET != '' }}
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_BUCKET: ${{ vars.R2_BUCKET }}
-          # Optional: purge changed URLs from the Cloudflare cache (custom domain only).
+          # Optional: purge changed URLs from the Cloudflare cache (custom domain only). The
+          # URLs start with [project.urls] Homepage of pyproject.toml.
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          OPENINTERPRETABILITY_SITE_URL: ${{ vars.OPENINTERPRETABILITY_SITE_URL }}
         # `shell: bash` sets pipefail. With the default shell, `| tee` hid a failed deploy:
         # on 2026-11-15 a refused cache purge (HTTP 401) left the run green.
         shell: bash
         run: |
           status=0
-          open-interpretability deploy --dist-dir dist --bucket "$R2_BUCKET" --delete \
+          "$COMMAND" deploy --dist-dir dist --bucket "$R2_BUCKET" --delete \
             --uploader rclone 2>&1 \
             | tee deploy.log || status=$?
           {
-            echo "### Registry deploy"
+            echo "### Deploy"
             echo
             tail -n 2 deploy.log
           } >> "$GITHUB_STEP_SUMMARY"
@@ -199,7 +202,9 @@ jobs:
       # cache key can't be overwritten, so each run saves under its own key, and the restore
       # takes the newest. With no cache, the first run records every entry and posts nothing.
       # With the secrets unset, nothing is posted. A failure here never fails the deploy.
+      # With no R2 bucket nothing went live, so nothing is posted.
       - name: Restore the social state
+        if: ${{ env.R2_BUCKET != '' }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
           path: .social
@@ -207,6 +212,7 @@ jobs:
           restore-keys: social-x-
       - name: Post new results to X
         id: x
+        if: ${{ env.R2_BUCKET != '' }}
         continue-on-error: true
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
@@ -220,7 +226,7 @@ jobs:
           args=()
           for id in $REPOST; do args+=(--repost "$id"); done
           # --record: what posted, outside .social, which the cache would bring back (#5840)
-          open-interpretability social post --record x-posted.json "${args[@]}" 2>&1 | tee x.log
+          "$COMMAND" social post --record x-posted.json "${args[@]}" 2>&1 | tee x.log
       - name: Keep the posts for the link PR
         id: posted
         if: ${{ always() && hashFiles('x-posted.json') != '' }}
@@ -240,7 +246,7 @@ jobs:
           echo "error=$error" >> "$GITHUB_OUTPUT"
           echo "Posting to X failed: $error. The deploy itself passed." >> "$GITHUB_STEP_SUMMARY"
       - name: Save the social state
-        if: ${{ always() && hashFiles('.social/x.json') != '' }}
+        if: ${{ always() && env.R2_BUCKET != '' && hashFiles('.social/x.json') != '' }}
         continue-on-error: true  # a rerun of this run finds its key taken
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
         with:
@@ -278,7 +284,8 @@ jobs:
           GH_TOKEN: ${{ secrets.LEDGER_TOKEN || github.token }}
           RUN: ${{ github.run_id }}
         run: |
-          uv run --quiet open-interpretability social link x-posted.json
+          eval "$(uv run --quiet python -m labinacan.config)"
+          uv run --quiet "$COMMAND" social link x-posted.json
           if [ -z "$(git status --porcelain -- papers posts)" ]; then
             echo "No folder to link."
             exit 0
@@ -314,7 +321,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      TITLE: Deploy registry failed on main
+      TITLE: Deploy failed on main
       RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       HEAD: ${{ github.sha }}
       # Each failed job as a line: id, name, and its failed steps.
@@ -388,7 +395,7 @@ jobs:
             echo "Commit: $HEAD"
             echo "Error: $ERROR"
             echo
-            echo "The deploy passed, but \`open-interpretability social post\` failed. The"
+            echo "The deploy passed, but posting to X failed. The"
             echo "posts wait for a later run. The log says why:"
             echo "\`gh run view $GITHUB_RUN_ID --log\`, step *Post new results to X*."
           } > issue.md

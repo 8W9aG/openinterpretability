@@ -10,15 +10,24 @@ BUILD_COMMAND = $(BUILD_WRAPPER) uv run open-interpretability build --wiki-dir $
 CACHE_DIR_COMMAND = uv run python -c \
 	"from openinterpretability.core.legacy_names import cache_base; print(cache_base())"
 PROJECT_LINT := project-lint
+DEPLOY_PREPARE := project-deploy-prepare
 
 include labinacan.mk
 
-.PHONY: project-lint perf check check-all stats maps sample-run loop
+.PHONY: project-lint project-deploy-prepare perf check check-all stats maps sample-run loop
 
 # This project's checks inside `make lint`: the data files, and the old package name.
 project-lint:
 	uv run python scripts/check_data_files.py
 	python3 scripts/check_old_name.py
+
+# What the deploy runs before its build (deploy.yml, `make deploy-prepare`, #6992). First it
+# publishes the evidence blobs that main's slim records need and the dataset lacks, from the
+# evidence branches (#3254). HF_WRITE_TOKEN is the dataset's write token. Then it checks
+# every record, as `make check-all` does.
+project-deploy-prepare:
+	HF_TOKEN="$$HF_WRITE_TOKEN" uv run open-interpretability evidence publish
+	uv run open-interpretability check
 
 # Wall time, CPU time and peak memory of fixed workloads, checked against
 # docs/analyses/perf-baseline.json (scripts/perf_bench.py). Not in CI: runner timings vary.

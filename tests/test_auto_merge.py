@@ -1,7 +1,8 @@
 """The auto-merge rules of ``.github/workflows/auto-merge.yml``.
 
-The test runs the workflow's own script with a stand-in ``gh`` on ``PATH``. The stand-in
-answers from a list of the PR's files and writes each ``gh pr merge`` call to a log.
+The test runs the workflow's own scripts with a stand-in ``gh`` on ``PATH``. The stand-in
+answers from a list of the PR's files and from this repository's files, as the contents API
+would at the base commit. It writes each ``gh pr merge`` call to a log.
 """
 
 import json
@@ -26,6 +27,9 @@ elif args[:2] == ["pr", "view"] and "changedFiles" in args:
     print(state["changed_files"])
 elif args[:2] == ["pr", "view"]:
     print("false")
+elif args[0] == "api" and "/contents/" in args[1]:
+    path = args[1].split("/contents/")[1].split("?")[0]
+    sys.stdout.write(state["contents"][path])
 elif args[0] == "api":
     query = args[args.index("--jq") + 1]
     for f in state["files"]:
@@ -39,10 +43,10 @@ elif args[0] == "api":
 """
 
 
-def _script() -> str:
-    """The run script of the step that turns auto-merge on."""
+def _script(start: str) -> str:
+    """The run script of the step whose name starts with ``start``."""
     steps = yaml.safe_load(WORKFLOW.read_text())["jobs"]["enable"]["steps"]
-    return next(s["run"] for s in steps if "Auto-merge" in s.get("name", ""))
+    return next(s["run"] for s in steps if s.get("name", "").startswith(start))
 
 
 def _env() -> dict:
@@ -52,30 +56,41 @@ def _env() -> dict:
 
 
 REPO = "8W9aG/openinterpretability"
+MAINTAINER = "the-owner"  # github.repository_owner, which GitHub fills in
+ROOT = WORKFLOW.parents[2]
+RULE = "openinterpretability/core/record_kinds.py"
 
 
-def _run(tmp_path, author, sender, files, changed_files=None, head_repo=REPO):
+def _contents(pyproject: str | None = None) -> dict:
+    """The files that the contents API gives at the base commit: this repository's own."""
+    text = (ROOT / "pyproject.toml").read_text() if pyproject is None else pyproject
+    return {"pyproject.toml": text, RULE: (ROOT / RULE).read_text()}
+
+
+def _run(tmp_path, author, sender, files, changed_files=None, head_repo=REPO, contents=None):
     gh = tmp_path / "bin" / "gh"
     gh.parent.mkdir(exist_ok=True)
     gh.write_text(FAKE_GH.format(python=sys.executable))
     gh.chmod(0o755)
     state = tmp_path / "state.json"
-    state.write_text(json.dumps({"files": files, "changed_files": changed_files or len(files)}))
-    log = tmp_path / "merge.log"
+    state.write_text(json.dumps({"files": files, "changed_files": changed_files or len(files),
+                                 "contents": contents or _contents()}))  # fmt: skip
+    log, github_env = tmp_path / "merge.log", tmp_path / "github.env"
     log.write_text("")
+    github_env.write_text("")
     env = {
         **os.environ, **{k: str(v) for k, v in _env().items()},
         "PATH": f"{gh.parent}{os.pathsep}{os.environ['PATH']}",
         "FAKE_STATE": str(state), "FAKE_LOG": str(log),
-        "GITHUB_STEP_SUMMARY": str(tmp_path / "summary.md"),
-        "REPO": "8W9aG/openinterpretability", "PR": "7", "HEAD_SHA": "abc",
-        "AUTHOR": author, "SENDER": sender, "HEAD_REPO": head_repo,
+        "GITHUB_STEP_SUMMARY": str(tmp_path / "summary.md"), "GITHUB_ENV": str(github_env),
+        "REPO": REPO, "PR": "7", "HEAD_SHA": "abc", "BASE_SHA": "base",
+        "MAINTAINER": MAINTAINER, "AUTHOR": author, "SENDER": sender, "HEAD_REPO": head_repo,
     }  # fmt: skip
-    # The job's sparse checkout of the base branch gives it this one file (#4792).
-    kinds = tmp_path / "openinterpretability" / "core" / "record_kinds.py"
-    kinds.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(WORKFLOW.parents[2] / "openinterpretability" / "core" / "record_kinds.py", kinds)
-    subprocess.run(["bash", "-c", _script()], env=env, cwd=tmp_path, check=True)
+    # The first step reads the rule, and passes its function on through GITHUB_ENV.
+    subprocess.run(["bash", "-c", _script("Read the project's rule")], env=env, cwd=tmp_path,
+                   check=True)  # fmt: skip
+    env |= dict(line.split("=", 1) for line in github_env.read_text().splitlines() if line)
+    subprocess.run(["bash", "-c", _script("Auto-merge")], env=env, cwd=tmp_path, check=True)
     return log.read_text()
 
 
@@ -83,6 +98,39 @@ ADDED_WIKI = [{"filename": "wiki/experiments/m/L0/N1-positive/r.json", "status":
 CODE = [{"filename": "openinterpretability/cli.py", "status": "modified"}]
 
 pytestmark = pytest.mark.skipif(shutil.which("bash") is None, reason="needs bash")
+
+
+def test_the_maintainer_is_the_owner_and_the_rule_comes_from_the_config():
+    env = yaml.safe_load(WORKFLOW.read_text())["jobs"]["enable"]["env"]
+    assert env["MAINTAINER"] == "${{ github.repository_owner }}"
+    assert f'auto_merge_rule = "{RULE}:reproducible"' in (ROOT / "pyproject.toml").read_text()
+
+
+def test_the_maintainers_own_pr_auto_merges(tmp_path):
+    assert "--auto" in _run(tmp_path, MAINTAINER, MAINTAINER, CODE)
+
+
+def test_the_maintainers_pr_that_someone_else_pushed_gets_the_rule(tmp_path):
+    assert "--auto" not in _run(tmp_path, MAINTAINER, "someone", CODE)
+    assert "--auto" in _run(tmp_path, MAINTAINER, "someone", ADDED_WIKI)
+
+
+def test_with_no_rule_only_the_maintainer_and_dependabot_auto_merge(tmp_path):
+    # The template's case: [tool.labinacan] names no auto_merge_rule.
+    bare = '[project]\nname = "a-project"\n\n[tool.labinacan]\nname = "A Project"\n'
+    contents = _contents(bare)
+    assert "--auto" not in _run(tmp_path, "someone", "someone", ADDED_WIKI, contents=contents)
+    assert "--auto" in _run(tmp_path, MAINTAINER, MAINTAINER, CODE, contents=contents)
+    summary = (tmp_path / "summary.md").read_text()
+    assert "Auto-merge on: opened by" in summary
+
+
+def test_the_rule_is_read_at_the_base_commit_with_no_checkout():
+    steps = yaml.safe_load(WORKFLOW.read_text())["jobs"]["enable"]["steps"]
+    assert not any("uses" in s for s in steps)  # nothing of the PR is checked out
+    read = _script("Read the project's rule")
+    assert "contents/pyproject.toml?ref=$BASE_SHA" in read
+    assert "contents/${rule%%:*}?ref=$BASE_SHA" in read
 
 
 def test_dependabot_updates_auto_merge_when_dependabot_pushed(tmp_path):
