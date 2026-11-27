@@ -49,7 +49,8 @@ def test_the_lock_command_needs_a_command(capsys):
 
 
 def test_legacy_variables_are_adopted_into_the_mapping_given():
-    environ = {"OPENINTERP_B": "2", "OPENINTERP_A": "1", "PATH": "/bin",
+    old = legacy_names.LEGACY_ENV_PREFIX
+    environ = {old + "B": "2", old + "A": "1", "PATH": "/bin",
                "OPENINTERPRETABILITY_C": "3"}  # fmt: skip
     with pytest.warns(DeprecationWarning) as caught:
         adopted = legacy_names.adopt_legacy_env(environ)
@@ -102,7 +103,7 @@ def test_a_pause_that_ends_is_gone_even_when_its_file_cant_be_removed(pause_path
 
 
 def test_legacy_variables_are_read_from_the_process_by_default(monkeypatch):
-    environ = {"OPENINTERP_X": "1"}
+    environ = {legacy_names.LEGACY_ENV_PREFIX + "X": "1"}
     monkeypatch.setattr(os, "environ", environ)
     with pytest.warns(DeprecationWarning):
         assert legacy_names.adopt_legacy_env() == ["OPENINTERPRETABILITY_X"]
