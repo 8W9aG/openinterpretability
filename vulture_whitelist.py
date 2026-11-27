@@ -239,3 +239,4 @@ post_command  # the click command 'open-interpretability social post' (labinacan
 link_command  # the click command 'open-interpretability social link' (labinacan.cli, #5840)
 normality  # the click command 'nf4_keep_stats.py normality' (scripts/nf4_keep_stats.py, #5158)
 _.motion  # Figure.motion, the CSS animation that labinacan.figures.svg renders, installed from PyPI (#7003)
+_.right_heldout  # scripts/fix_family.py: read by name in evaluate() (#7006)
