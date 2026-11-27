@@ -92,6 +92,12 @@ def patching(rows: list[dict]) -> Figure:
                 for p in base["reviewer_patching"]]  # fmt: skip
 
     def value(row, key):
+        """The route's patching share on one corrupted prompt.
+
+        Args:
+            row: The model's ``gate`` row.
+            key: ``patching`` for the route's own prompt, else a reviewer's prompt.
+        """
         return row["patching"] if key == "patching" else row["reviewer_patching"][key]
 
     falls = sum(value(tuned, k) < 0.5 for _, k in prompts)
