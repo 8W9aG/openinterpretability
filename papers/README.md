@@ -14,7 +14,7 @@ Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its re
 - 2026-11-25: [How many neuron explanations could a weight-only check test?](token-set-ceiling/README.md)
 - 2026-11-25: [Tuning or size? A matched random change for neuron explanations under instruction tuning](random-change-keep/README.md)
 - 2026-11-24: [Which MLP neurons carry the base-to-instruct difference?](instruct-difference/README.md)
-- 2026-11-24: [What error rate does the review's activation line imply? A conformal line for 784 VERIFIED poles](conformal-line/README.md)
+- 2026-11-24: [What error rate does the review's firing line imply? A conformal line for 784 explained neuron poles](conformal-line/README.md)
 - 2026-11-23: [Is it the template or the tuning? Why neuron explanations fail inside a chat model's prompt format](template-or-tuning/README.md)
 - 2026-11-23: [Do neuron explanations survive a sequence of narrow fine-tunes?](sequential-tuning/README.md)
 - 2026-11-22: [How many of a neuron's weights does its explanation need?](pruning-keep/README.md)
