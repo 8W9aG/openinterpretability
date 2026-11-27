@@ -19,7 +19,7 @@ Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its re
 - 2026-11-23: [Do neuron explanations survive a sequence of narrow fine-tunes?](sequential-tuning/README.md)
 - 2026-11-22: [How many of a neuron's weights does its explanation need?](pruning-keep/README.md)
 - 2026-11-22: [Does Fisher importance predict which explanations survive instruction tuning?](fisher-keep/README.md)
-- 2026-11-20: [One concept map for four models](shared-concept-space/README.md)
+- 2026-11-20: [One shared map of explanations for four models](shared-concept-space/README.md)
 - 2026-11-19: [Why Pythia-70m copies the first clause's unit](copy-first-unit/README.md)
 - 2026-11-16: [When Pythia-70m's VERIFIED neurons form](neuron-development/README.md)
 - 2026-11-15: [Do explanations carry across models?](explanations-across-models/README.md)

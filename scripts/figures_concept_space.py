@@ -48,7 +48,7 @@ def fill(rows: list[dict]) -> Figure:
     points = sorted((r for r in rows if r["kind"] == "point"), key=lambda r: (r["first"], r["x"]))
     fig = Figure(
         ["Every model's poles fill one shared space, and none keeps a region to itself"],
-        [f"The {len(points):,} studied poles of {len(models)} models on the shared concept map,",
+        [f"The {len(points):,} studied poles of {len(models)} models on one shared map,",
          "shown in the order they were first studied. Shape and colour give the model."],
         "A scatter of about two thousand points in one connected cloud. Points of all four "
         "models appear across the whole cloud as the dates advance.",

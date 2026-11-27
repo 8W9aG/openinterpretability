@@ -59,7 +59,7 @@ def decay(rows: list[dict]) -> Figure:
     fig = Figure(
         ["As ROME edits pile up, the explanations above the layer fade steadily,",
          "with no threshold, and more slowly than under random edits of the same size"],
-        [f"Each mark is a checkpoint: the {n0} VERIFIED poles above layer 2 that still pass, "
+        [f"Each mark is a checkpoint: the {n0} reviewed poles above layer 2 that still pass, "
          "against ‖ΔW‖/‖W₀‖.",
          "The curves are N·exp(−h·distance), fitted to each sequence."],
         f"Keeps fall from {n0} to {seqs['rome'][-1]['keeps_above']} under ROME and to "

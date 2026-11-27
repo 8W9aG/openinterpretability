@@ -31,7 +31,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="485" rx="10"/>
 <text x="20.0" y="30.0" class="title">As ROME edits pile up, the explanations above the layer fade steadily,</text>
 <text x="20.0" y="53.0" class="title">with no threshold, and more slowly than under random edits of the same size</text>
-<text x="20.0" y="73.0" class="sub">Each mark is a checkpoint: the 88 VERIFIED poles above layer 2 that still pass, against ‖ΔW‖/‖W₀‖.</text>
+<text x="20.0" y="73.0" class="sub">Each mark is a checkpoint: the 88 reviewed poles above layer 2 that still pass, against ‖ΔW‖/‖W₀‖.</text>
 <text x="20.0" y="91.0" class="sub">The curves are N·exp(−h·distance), fitted to each sequence.</text>
 <path class="grid" d="M80.0 145.0L80.0 385.0"/>
 <text x="80.0" y="400.0" class="small" text-anchor="middle">0</text>
