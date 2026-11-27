@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-27T09:07:05Z","seed":2982075647,"kind":"revise","model":"Qwen/Qwen2.5-1.5B","slug":"Qwen--Qwen2.5-1.5B/L13/H7","record":"wiki/experiments/Qwen--Qwen2.5-1.5B/L13/H7/20261122T144232Z.json","audit":"--model Qwen/Qwen2.5-1.5B --layer 13 --head 7","pole_forced":null,"until_verified":true,"max_turns":3,"harness_version":"0.6.1"}
