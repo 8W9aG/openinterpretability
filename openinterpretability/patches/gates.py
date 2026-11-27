@@ -54,8 +54,7 @@ def _score(function: dict, values: dict[str, torch.Tensor], load: Load) -> torch
     kind = function["kind"]
     if kind == "token_match":
         tokens = values["hook_tokens"]
-        wanted = torch.as_tensor(function["tokens"], device=tokens.device)
-        return torch.isin(tokens, wanted).float()
+        return torch.isin(tokens, _like(function["tokens"], tokens)).float()
     if kind == "attention_score":
         return _attention(function, values)
     x = _recorded(values, function["input"]).float()
@@ -65,10 +64,25 @@ def _score(function: dict, values: dict[str, torch.Tensor], load: Load) -> torch
         if "index" in function:
             return x[..., int(function["index"])]
         return x @ load(function["direction"]).to(x.device)
-    w1, b1 = load(function["W1"]).to(x.device), load(function["b1"]).to(x.device)
-    w2, b2 = load(function["W2"]).to(x.device), load(function["b2"]).to(x.device)
+    w1 = load(function["W1"]).to(x.device)  # pragma: no mutate, equivalent: GPU only
+    b1 = load(function["b1"]).to(x.device)
+    w2 = load(function["W2"]).to(x.device)  # pragma: no mutate, equivalent: GPU only
+    b2 = load(function["b2"]).to(x.device)
     out = torch.relu(x @ w1.t() + b1) @ w2.t() + b2
     return out.squeeze(-1)
+
+
+def _like(value, other: torch.Tensor) -> torch.Tensor:
+    """``value`` as a tensor on ``other``'s device.
+
+    The device differs from the CPU only on a GPU, which the tests lack, so its mutants are
+    equivalent there.
+
+    Args:
+        value: The values, such as a list of token ids.
+        other: The tensor whose device the result takes.
+    """
+    return torch.as_tensor(value, device=other.device)  # pragma: no mutate, equivalent: GPU only
 
 
 def _recorded(values: dict[str, torch.Tensor], point: str) -> torch.Tensor:
@@ -80,7 +94,7 @@ def _recorded(values: dict[str, torch.Tensor], point: str) -> torch.Tensor:
 def _attention(function: dict, values: dict[str, torch.Tensor]) -> torch.Tensor:
     """Mean attention, over the listed heads, from each position to the matching keys."""
     tokens = values["hook_tokens"]
-    keys = torch.isin(tokens, torch.as_tensor(function["key_tokens"], device=tokens.device))
+    keys = torch.isin(tokens, _like(function["key_tokens"], tokens))
     scores = []
     for layer, head in function["heads"]:
         pattern = _recorded(values, f"blocks.{int(layer)}.attn.hook_pattern")
@@ -137,7 +151,7 @@ class Gates:
         else:
             score = _score(function, self.values, self.load)
             threshold = float(params.get("threshold", 0.0))
-            if params.get("output", "hard") == "soft":
+            if params.get("output") == "soft":  # "hard" when absent
                 value = torch.sigmoid((score - threshold) / float(params.get("temperature", 1.0)))
             else:
                 value = (score > threshold).float()

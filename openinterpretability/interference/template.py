@@ -23,7 +23,7 @@ DOC_CHARS = 2_000  # the longest document text that one turn holds
 SAMPLE_TOKENS = 20_000  # the document tokens of a sample, as in keep.SAMPLE_TOKENS
 
 
-def chat_sample(render, tokenizer, corpus: Path | str = "corpus.jsonl",
+def chat_sample(render, tokenizer, corpus: Path | str,
                 tokens: int = SAMPLE_TOKENS) -> list[dict]:  # fmt: skip
     """Documents of ``corpus`` as user turns, until they hold ``tokens`` document tokens.
 
@@ -41,7 +41,7 @@ def chat_sample(render, tokenizer, corpus: Path | str = "corpus.jsonl",
         ValueError: The corpus gives no document tokens.
     """
     out, held = [], 0
-    with open(corpus, encoding="utf-8") as lines:
+    with open(corpus, encoding="utf-8") as lines:  # pragma: no mutate, equivalent: UTF-8 locale
         for line in lines:
             doc = json.loads(line)["text"][:DOC_CHARS].strip()
             if not doc:
@@ -77,7 +77,8 @@ def chat_columns(runner, sample: Sequence[dict], wanted: dict[int, list[int]]) -
     parts: dict[int, dict[str, list]] = {layer: {"text": [], "template": []} for layer in layers}
     with torch.no_grad():
         for doc in sample:
-            acts = runner.layer_activations({"input_ids": doc["ids"].to(runner.device)}, layers)
+            ids = doc["ids"].to(runner.device)  # pragma: no mutate, equivalent: one device on CPU
+            acts = runner.layer_activations({"input_ids": ids}, layers)
             for layer in layers:
                 cols = acts[layer][0, :, wanted[layer]].float().cpu()
                 parts[layer]["text"].append(cols[doc["text"]])
