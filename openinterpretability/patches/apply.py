@@ -33,6 +33,27 @@ class ZeroStartError(AssertionError):
     """A patch at zero strength changed the base model's logits."""
 
 
+def _on(tensor: torch.Tensor, like: torch.Tensor) -> torch.Tensor:
+    """``tensor`` on the device of ``like``.
+
+    Args:
+        tensor: the tensor to move.
+        like: the tensor whose device to use.
+    """
+    return tensor.to(like.device)  # pragma: no mutate, equivalent: one device on CPU
+
+
+def _like(value, like: torch.Tensor) -> torch.Tensor:
+    """``value`` as a float32 tensor on the device of ``like``.
+
+    Args:
+        value: a number, a list of numbers or a tensor.
+        like: the tensor whose device to use.
+    """
+    where = {"device": like.device, "dtype": torch.float32}  # pragma: no mutate, equivalent: CPU
+    return torch.as_tensor(value, **where)  # pragma: no mutate, equivalent: float32 values
+
+
 class _Context:
     """What the hooks of one applied chain share."""
 
@@ -49,9 +70,9 @@ class _Context:
         """``strength`` times the op's own ``scale``, times its gate, shaped to ``like``."""
         f = self.strength * float(op.params.get("scale", 1.0))
         if op.gate is None:
-            return torch.tensor(f, device=like.device)
-        g = self.gates.output(_resolve(op.gate, ref)).to(like.device)
-        return f * g.reshape(*g.shape, *([1] * (like.dim() - 2)))
+            return _like(f, like)
+        g = _on(self.gates.output(_resolve(op.gate, ref)), like)
+        return f * g.reshape((*g.shape, *([1] * (like.dim() - 2))))  # a forced gate is a scalar
 
     def at(self, point: str, fn) -> None:
         self.handles.append(hook_point(self.graph, point, fn))
@@ -87,10 +108,10 @@ def _delta(ctx: _Context, op: Op, target: str) -> torch.Tensor:
 def _weight(ctx: _Context, ref: str, op: Op) -> None:
     (target,) = op.targets
     delta = _delta(ctx, op, target)
-    bias = parse(target).part.split(".")[-1].startswith("b_")
+    bias = ctx.graph.parameter(target)[1] == "bias"
 
     def add(x: torch.Tensor) -> torch.Tensor:
-        term = delta.to(x.device).expand(*x.shape[:-1], -1) if bias else x @ delta.to(x.device).t()
+        term = _on(delta, x).expand(*x.shape[:-1], -1) if bias else x @ _on(delta, x).t()
         return ctx.factor(op, ref, term) * term
 
     ctx.handles.extend(parameter_hook(ctx.graph, target, add))
@@ -113,13 +134,13 @@ def _add_neurons(ctx: _Context, ref: str, op: Op) -> None:
     b_in = ctx.load(p["b_in"]) if "b_in" in p else torch.zeros(w_in.shape[0])
     w_gate = ctx.load(p["W_gate"]) if "W_gate" in p else None
     act, seen = _act(ctx, op, layer), []
-    ctx.at(f"blocks.{layer}.mlp.hook_in", lambda x: seen.append(x) or None)
+    ctx.at(f"blocks.{layer}.mlp.hook_in", lambda x: seen.append(x))
 
     def add(out: torch.Tensor) -> torch.Tensor:
         x = seen.pop().float()
-        pre = x @ w_in.to(x.device).t() + b_in.to(x.device)
-        h = act(x @ w_gate.to(x.device).t()) * pre if w_gate is not None else act(pre)
-        term = h @ w_out.to(x.device).t()
+        pre = x @ _on(w_in, x).t() + _on(b_in, x)
+        h = act(x @ _on(w_gate, x).t()) * pre if w_gate is not None else act(pre)
+        term = h @ _on(w_out, x).t()
         return out + (ctx.factor(op, ref, term) * term).to(out.dtype)
 
     ctx.at(target, add)
@@ -127,11 +148,11 @@ def _add_neurons(ctx: _Context, ref: str, op: Op) -> None:
 
 def _module(ctx: _Context, spec: dict, x: torch.Tensor) -> torch.Tensor:
     """Run a small block from the module registry (schema.MODULES) on ``x``."""
-    if spec.get("ln", False):
+    if spec.get("ln"):
         x = nn.functional.layer_norm(x, x.shape[-1:])
 
     def affine(x: torch.Tensor, w: str, b: str) -> torch.Tensor:
-        return x @ ctx.load(spec[w]).to(x.device).t() + ctx.load(spec.get(b, 0.0)).to(x.device)
+        return x @ _on(ctx.load(spec[w]), x).t() + _on(ctx.load(spec.get(b, 0.0)), x)
 
     if spec["kind"] == "linear":
         return affine(x, "W", "b")
@@ -146,7 +167,7 @@ def _residual(ctx: _Context, ref: str, op: Op, spec: dict) -> None:
     source = op.params.get("input", target)
     seen: list[torch.Tensor] = []
     if source != target:
-        ctx.at(source, lambda x: seen.append(x) or None)
+        ctx.at(source, lambda x: seen.append(x))
 
     def add(out: torch.Tensor) -> torch.Tensor:
         x = (seen.pop() if seen else out).float()
@@ -160,7 +181,7 @@ def _structural(ctx: _Context, ref: str, op: Op) -> None:
     if op.type == "add_neurons":
         return _add_neurons(ctx, ref, op)
     if op.type == "add_layer":  # a residual MLP block after the target block
-        spec = {"kind": "mlp", "ln": True, **{k: op.params[k] for k in op.params if k != "scale"}}
+        spec = {"kind": "mlp", "ln": True, **op.params}  # _module reads only its own keys
         return _residual(ctx, ref, op, spec)
     if op.type == "add_module":
         return _residual(ctx, ref, op, op.params["module"])
@@ -173,10 +194,8 @@ def _set_unit(ctx: _Context, ref: str, op: Op, point: str, index: slice | int, v
     def move(x: torch.Tensor) -> torch.Tensor:
         x = x.clone()
         old = x[..., index].float()
-        target = torch.as_tensor(value, device=x.device, dtype=torch.float32)
-        f = ctx.factor(op, ref, old if old.dim() > 2 else old.unsqueeze(-1))
-        f = f if old.dim() > 2 else f.squeeze(-1)
-        x[..., index] = (old + f * (target - old)).to(x.dtype)
+        f = ctx.factor(op, ref, old)  # a gate shaped [batch, seq], or [batch, seq, 1] for a span
+        x[..., index] = old + f * (_like(value, x) - old)  # the assignment casts to x's dtype
         return x
 
     ctx.at(point, move)
@@ -186,10 +205,10 @@ def _prune(ctx: _Context, ref: str, op: Op) -> None:
     """Zero or mean ablation of one neuron or one head (``value`` holds the mean)."""
     (target,) = op.targets
     layer, p = parse(target).layer, op.params
-    value = float(p.get("value", 0.0)) if p.get("mode", "zero") == "mean" else 0.0
+    value = float(p.get("value", 0.0)) if p.get("mode") == "mean" else 0.0
     if p["unit"] == "neuron":
         return _set_unit(ctx, ref, op, f"blocks.{layer}.mlp.hook_post", int(p["index"]), value)
-    width = ctx.graph.block(layer, "W_O").weight.shape[-1] // ctx.graph.heads
+    width = ctx.graph.weight(f"blocks.{layer}.attn.W_O").shape[1] // ctx.graph.heads  # [out, in]
     head = int(p["index"])
     span = slice(head * width, (head + 1) * width)
     return _set_unit(ctx, ref, op, f"blocks.{layer}.attn.hook_z", span, value)
@@ -202,7 +221,7 @@ def _activation(ctx: _Context, ref: str, op: Op) -> None:
     vector = ctx.load(op.params["vector"])  # steer
 
     def add(x: torch.Tensor) -> torch.Tensor:
-        term = vector.to(x.device).expand(*x.shape[:-1], -1)
+        term = _on(vector, x).expand(*x.shape[:-1], -1)
         return x + (ctx.factor(op, ref, term) * term).to(x.dtype)
 
     return ctx.at(target, add)
@@ -215,7 +234,7 @@ def _recorders(ctx: _Context, gates: dict[str, dict]) -> None:
     """Record every hook point that a gate reads, once per forward pass."""
     points = sorted({p for params in gates.values() for p in inputs_of(params["function"])})
     for point in points:
-        ctx.at(point, lambda x, point=point: ctx.gates.values.__setitem__(point, x) or None)
+        ctx.at(point, lambda x, point=point: ctx.gates.values.__setitem__(point, x))
     ctx.handles.append(ctx.graph.model.register_forward_pre_hook(lambda *_: ctx.gates.reset()))
 
 
