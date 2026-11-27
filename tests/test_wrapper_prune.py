@@ -314,3 +314,15 @@ def test_the_check_reads_the_paper_scores_not_a_variant():
             {"table": "scores", "unit": "write", "loss": "failed",
              "scores": {"0": [5.0]}}]  # fmt: skip
     assert check.paper_scores(rows) == {"0": [1.0]}
+
+
+def test_paper_poles_only_drops_the_poles_that_the_paper_never_tested():
+    v = {"unit": "input", "loss": "base"}
+    rows = [
+        _pole("a", "none", 0, None, True),
+        {**_pole("a", "none", 0, None, True), **v},
+        {**_pole("new", "none", 0, None, True), **v},
+        _summary("none", 0, None, [], **v),
+    ]
+    got = stats.paper_poles_only(rows)
+    assert [r.get("slug") for r in got] == ["a", "a", None]

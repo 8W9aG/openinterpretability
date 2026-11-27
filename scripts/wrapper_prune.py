@@ -396,7 +396,8 @@ def main(base_name, wiki_dir, out, device, seeds, unit, loss) -> None:  # long-f
         lines += rows
         click.echo(json.dumps({k: v for k, v in rows[0].items()
                                if k not in ("flipped", "neurons")}), err=True)  # fmt: skip
-        out.write_text("".join(json.dumps(r) + "\n" for r in lines))
+        # Every row names its variant, the base rows too, so that the variants can share a file.
+        out.write_text("".join(json.dumps(variant | r) + "\n" for r in lines))
 
 
 if __name__ == "__main__":

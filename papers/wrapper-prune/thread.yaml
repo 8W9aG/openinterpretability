@@ -19,6 +19,11 @@
   text: >-
     For half of the top 10 neurons, pruning one alone raises the KL. Neuron 813 of layer 2
     raises it by 0.112, with an ordinary write.
+- section: Do the two variants do better?
+  text: >-
+    No. Pruning a neuron's input rows is the same change for every other pole. A score on the
+    failed explanations' own texts brings back the same 16, and loses 185 at 500 neurons.
+  media: [variants]
 - section: Conclusion
   text: >-
     In Qwen2.5-0.5B, instruction tuning's effect on the explained neurons is not a thin

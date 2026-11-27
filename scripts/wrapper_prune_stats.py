@@ -83,6 +83,19 @@ def pole_counts(none: dict[str, bool], got: dict[str, bool], gone: set[str]) -> 
     return failed, kept, {s for s in failed if got[s]}, {s for s in kept if not got[s]}
 
 
+def paper_poles_only(rows: list[dict]) -> list[dict]:
+    """The rows, with each pole row kept only when the paper's own run tested that pole.
+
+    The registry grows, so a later variant can test poles that the paper's run never saw.
+    This keeps the variants' counts on the paper's poles, so that they compare with Table 1.
+
+    Args:
+        rows: The rows of ``scripts/wrapper_prune.py``, with the paper's own rows among them.
+    """
+    paper = {r["slug"] for r in variant_rows(rows) if r["table"] == "pole"}
+    return [r for r in rows if r["table"] != "pole" or r["slug"] in paper]
+
+
 def pole_sets(rows: list[dict]) -> dict[tuple, dict[str, bool]]:
     """``{(condition, K, seed): {slug: keeps}}`` over the poles that reproduce on the base.
 
@@ -170,15 +183,18 @@ def layers_of_top(rows: list[dict], unit: str = "write", loss: str = "base") -> 
 @click.argument("results", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--unit", type=click.Choice(("write", "input")), default="write", show_default=True)
 @click.option("--loss", type=click.Choice(("base", "failed")), default="base", show_default=True)
-def main(results: Path, unit: str, loss: str) -> None:
+@click.option("--paper-poles", is_flag=True, help="Count only the poles of the paper's own run.")
+def main(results: Path, unit: str, loss: str, paper_poles: bool) -> None:
     """Print the recovered and lost poles of each condition, and the layers of the top neurons.
 
     Args:
         results: The rows of ``scripts/wrapper_prune.py``.
         unit: The variant's prune.
         loss: The variant's old task.
+        paper_poles: Count only the poles that the paper's own run tested.
     """
     rows = [json.loads(line) for line in results.read_text().splitlines() if line]
+    rows = paper_poles_only(rows) if paper_poles else rows
     for row in changes(rows, unit, loss) + layers_of_top(rows, unit, loss):
         click.echo(json.dumps(row))
 
