@@ -151,8 +151,8 @@ def stages(rows: list[dict]) -> Figure:
     fig = Figure(
         ["After three narrow fine-tunes, a quarter of the",
          "explanations fail, and ARC-Easy ends near its start"],
-        [f"{head['reproduced']} VERIFIED poles of Qwen2.5-0.5B, each re-read on its own probes "
-         "after each stage.", "Left: the share that still passes both gates. Right: zero-shot "
+        [f"{head['reproduced']} passing poles of Qwen2.5-0.5B, each re-read on its own tests "
+         "after each stage.", "Left: the share that still passes both tests. Right: zero-shot "
          "ARC-Easy accuracy. Bars: 95% intervals."],
         "Two line charts over four stages, one line per model. The share of explanations that "
         f"keep ends at {number(ends['base']['keep_share'], 3)} for the base model and "
@@ -302,8 +302,8 @@ def grid(rows: list[dict]) -> Figure:
     fig = Figure(
         ["Explanations fail in every layer, most in the",
          "middle, and many come back at a later stage"],
-        ["Each mark is one VERIFIED pole of Qwen2.5-0.5B, in the column of its layer. A filled "
-         "mark", "passes its own probes, and an open mark fails. The frames step through each "
+        ["Each mark is one passing pole of Qwen2.5-0.5B, in the column of its layer. A filled "
+         "mark", "passes its own tests, and an open mark fails. The frames step through each "
          "model's stages."],
         f"A grid of {len(slugs)} marks in {layers} columns, one per layer. Eight frames: the "
         "base model at the start and after each of three fine-tunes, then the instruct model "

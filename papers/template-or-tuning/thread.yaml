@@ -3,7 +3,7 @@
 - section: Introduction
   text: >-
     Neuron explanations fail more often inside a chat model's template. Is it the template
-    or the instruction tuning? We read 360 VERIFIED poles of Qwen2.5-0.5B in four
+    or the instruction tuning? We read 360 reviewed poles of Qwen2.5-0.5B in four
     conditions. It is mostly the template. {link}
   media: [square]
 - section: Does the template alone cost explanations?

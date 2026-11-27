@@ -3,7 +3,7 @@
 - section: Introduction
   text: >-
     Does Fisher importance predict which neuron explanations survive instruction tuning? We
-    tested 311 VERIFIED poles of Qwen2.5-0.5B against Qwen2.5-0.5B-Instruct. It does not.
+    tested 311 reviewed poles of Qwen2.5-0.5B against Qwen2.5-0.5B-Instruct. It does not.
     {link}
   media: [keep]
 - section: Does Fisher importance predict which explanations keep?

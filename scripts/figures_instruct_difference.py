@@ -90,7 +90,7 @@ def _lines(panel: Panel, rows: list[dict], design: str) -> None:
         design: The design.
     """
     styles = {"verified": "curve", "random": "line sneutral dash"}
-    labels = {"verified": "VERIFIED poles", "random": "random poles"}
+    labels = {"verified": "passing poles", "random": "random poles"}
     ends = []
     for name, cls in styles.items():
         own = sorted((r for r in rows if r["design"] == design and r["condition"] == name),
@@ -119,15 +119,15 @@ def figure(rows: list[dict]) -> Figure:
     """
     found = summary(rows)
     fig = Figure(
-        ["Each layer's VERIFIED poles carry little of the base-to-instruct difference"],
+        ["Each layer's passing poles carry little of the base-to-instruct difference"],
         [
             "The share of the KL from Qwen2.5-0.5B-Instruct that patching one layer's poles",
             "removes, over every response token, by layer. Left: the instruct model with that",
             "layer at its base activation, except the patched poles. Right: the base model with",
-            "the patched poles at their instruct activation. The band is the VERIFIED poles'",
+            "the patched poles at their instruct activation. The band is the passing poles'",
             "95% interval. The panels' scales differ.",
         ],
-        "Two line charts over 24 layers: the share of the KL that VERIFIED poles and as many "
+        "Two line charts over 24 layers: the share of the KL that passing poles and as many "
         "random poles remove. Both stay within about 2% of zero at every layer.",
     )
     fig.motion += ".dash{stroke-dasharray:6 4}"

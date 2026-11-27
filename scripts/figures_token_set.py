@@ -36,11 +36,11 @@ def share(rows: list[dict]) -> Figure:
     early = [shares[(m, "early")]["token_set_share"] for m in SHORT]
     fig = Figure(
         [
-            f"Only {overall['token_set_share']:.0%} of VERIFIED explanations are token sets, "
+            f"Only {overall['token_set_share']:.0%} of passing explanations are token sets, "
             "and most are in the first third"
         ],
         [
-            "The share of each model's VERIFIED poles whose explanation is a token set, in the",
+            "The share of each model's passing poles whose explanation is a token set, in the",
             "early, middle and late third of its layers. Each dot has a 95% Wilson interval and",
             "its count. The grey line is the share over all four models, labelled 'all'.",
         ],
@@ -85,7 +85,7 @@ def token_r2(rows: list[dict]) -> Figure:
             f"(AUROC {check['auroc']:.2f})"
         ],
         [
-            "Each VERIFIED pole's token_r2, the share of its activation variance that a mean per",
+            "Each passing pole's token_r2, the share of its activation variance that a mean per",
             "token id explains on its scan corpus, by the label of its explanation. One dot per",
             "pole; the ink line and value are each label's median. The AUROC's 95% interval",
             f"over a bootstrap of poles is {low:.2f}–{high:.2f}.",

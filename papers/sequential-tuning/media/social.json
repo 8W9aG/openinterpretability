@@ -1,19 +1,19 @@
 {
  "source": "media/stages.svg",
- "sha256": "7faafe0f220ba657d281e74d2f49af066513d92bd35a408175f1e305e2b6c3e0",
+ "sha256": "238b892770e2d717835ee8ac03e7e646a9e8684d09022e4ad83b683538a12ef3",
  "files": [
   "social.png"
  ],
  "figures": {
   "grid": {
-   "sha256": "670e8e5b77ffde713642e03b6f1a791b0957e8f6855d68de63b78fac37e46db3",
+   "sha256": "eea0449f0b80557d340adc8f3343eab2ea78bda82d7a133b25c613ec195b0541",
    "files": [
     "social-grid.mp4",
     "social-grid.png"
    ]
   },
   "stages": {
-   "sha256": "7faafe0f220ba657d281e74d2f49af066513d92bd35a408175f1e305e2b6c3e0",
+   "sha256": "238b892770e2d717835ee8ac03e7e646a9e8684d09022e4ad83b683538a12ef3",
    "files": [
     "social-stages.png"
    ]

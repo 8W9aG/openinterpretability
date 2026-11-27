@@ -4,11 +4,11 @@
   text: >-
     Instruction tuning breaks some neuron explanations. Is that the tuning, or just the size of
     the change? We added a random change with the instruct change's norm in every weight matrix
-    of Qwen2.5, and ran each explanation's probes again. {link}
+    of Qwen2.5, and ran each explanation's test prompts again. {link}
   media: [keep]
 - section: Does a random change of the same size break as many explanations?
   text: >-
-    On Qwen2.5-0.5B, the instruct change keeps 298 of 361 VERIFIED explanations. Three random
+    On Qwen2.5-0.5B, the instruct change keeps 298 of 361 reviewed explanations. Three random
     changes of its size keep 296, 301 and 300. On Qwen2.5-1.5B, the instruct change keeps 65 of
     75, and the random changes keep 72 or 73.
 - section: Do instruction tuning and a random change break the same explanations?

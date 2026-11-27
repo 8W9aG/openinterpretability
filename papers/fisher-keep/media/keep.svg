@@ -31,7 +31,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="405" rx="10"/>
 <text x="20.0" y="30.0" class="title">A neuron&#x27;s Fisher importance does not tell</text>
 <text x="20.0" y="53.0" class="title">whether its explanation keeps</text>
-<text x="20.0" y="73.0" class="sub">Each mark is a VERIFIED pole of Qwen2.5-0.5B: its neuron&#x27;s Fisher, as a percentile within its layer.</text>
+<text x="20.0" y="73.0" class="sub">Each mark is a passing pole of Qwen2.5-0.5B: its neuron&#x27;s Fisher, as a percentile within its layer.</text>
 <text x="20.0" y="91.0" class="sub">AUC 0.475 against a within-layer null of 0.523 (p = 0.21). The ticks are medians.</text>
 <path class="grid" d="M90.0 135.0L90.0 305.0"/>
 <text x="90.0" y="320.0" class="small" text-anchor="middle">0.00</text>

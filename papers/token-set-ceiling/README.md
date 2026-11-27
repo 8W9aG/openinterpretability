@@ -1,6 +1,6 @@
-# How many VERIFIED explanations could a weight-only check test?
+# How many neuron explanations could a weight-only check test?
 
-A weight-only check reads a neuron from its weights, with no forward pass. Such a check can test a rule that depends only on the current token. It can't test a rule that depends on the other tokens of the text. We labelled the explanation of each of the 826 standing VERIFIED neuron poles in four models as a token-set rule, a context rule or a token set gated by context. Only 147 are token-set rules: 17.8%, with a 95% interval of 15.3% to 20.6%. That share is the ceiling for any weight-only check of the registry. If a check could also test the token part of the 242 gated rules, the ceiling rises to 47.1%. Token-set rules sit mostly in the first third of each model. There they are 54% of Pythia-70m's and GPT-2's poles, and 24% of Qwen2.5-0.5B's. In the middle third they are 0% to 9%. A second rater agreed on 86% of a seeded fifth of the poles (Cohen's kappa 0.77, and 0.88 on token-set against the rest). The labels also agree with behaviour. The share of a pole's activation variance that a mean per token explains separates token-set poles from the rest with an AUROC of 0.91.
+A weight-only check reads a neuron from its weights, with no forward pass. Such a check can test a rule that depends only on the current token. It can't test a rule that depends on the other tokens of the text. We labelled the explanation of each of the 826 neuron poles in four models whose explanations stand after an adversarial review as a token-set rule, a context rule or a token set gated by context. Only 147 are token-set rules: 17.8%, with a 95% interval of 15.3% to 20.6%. That share is the ceiling for any weight-only check of these explanations. If a check could also test the token part of the 242 gated rules, the ceiling rises to 47.1%. Token-set rules sit mostly in the first third of each model. There they are 54% of Pythia-70m's and GPT-2's poles, and 24% of Qwen2.5-0.5B's. In the middle third they are 0% to 9%. A second rater agreed on 86% of a seeded fifth of the poles (Cohen's kappa 0.77, and 0.88 on token-set against the rest). The labels also agree with behaviour. The share of a pole's activation variance that a mean per token explains separates token-set poles from the rest with an AUROC of 0.91.
 
 **Status:** Preprint. Work left: #3446 (a weight-only check on the token-set poles).
 
@@ -8,11 +8,11 @@ A weight-only check reads a neuron from its weights, with no forward pass. Such 
 
 Some methods read a neuron from its weights alone. ROTATE disentangles MLP neurons in weight space with no forward pass ([`docs/literature/rotate.md`](../../docs/literature/rotate.md), #3446). A weight reading needs no corpus and no activations, so it is cheap. But a weight reading sees only what is fixed. An MLP neuron's input is the residual stream, and attention writes into it from the other tokens of the text. A rule that depends on those tokens is not in any one set of weights.
 
-So a weight-only check can test only part of a registry of explanations. This paper measures that part for the registry's 826 VERIFIED neuron poles. Each explanation gets a label. A token-set rule says the pole fires on a set of tokens, decided by the current token alone. A context rule needs other tokens. A mixed rule is a token set that context gates. The share of token-set rules is the ceiling for any weight-only check.
+So a weight-only check can test only part of a set of explanations. This paper measures that part for our 826 neuron poles whose explanations passed an adversarial review. Each explanation gets a label. A token-set rule says the pole fires on a set of tokens, decided by the current token alone. A context rule needs other tokens. A mixed rule is a token set that context gates. The share of token-set rules is the ceiling for any weight-only check.
 
 The paper's contributions are these:
 
-- A label for each VERIFIED explanation in four models, with a reason, and a second rater's labels on a seeded fifth.
+- A label for each passing explanation in four models, with a reason, and a second rater's labels on a seeded fifth.
 - The ceiling, with its interval, overall, by model and by relative depth.
 - A check of the labels against behaviour, from the `token_r2` that each record already stores.
 
@@ -26,7 +26,7 @@ The paper bears on research question 1, *Are native MLP neurons clean?* ([resear
 
 ## Method
 
-**The population.** Every standing VERIFIED neuron pole of the four configured models, as `interference.keep.verified_records` gives them. That is 167 poles of Pythia-70m (Biderman et al., 2023), 222 of GPT-2 (Radford et al., 2019), 362 of Qwen2.5-0.5B and 75 of Qwen2.5-1.5B (Yang et al., 2024).
+**The population.** Following Cammarata (2026), a *pole* is one sign of a neuron's activation. An explanation is *passing* when it passed our adversarial review, in which a second model writes test prompts to break it. The population is every pole with a standing passing explanation, in the four models we study, as `interference.keep.verified_records` gives them. That is 167 poles of Pythia-70m (Biderman et al., 2023), 222 of GPT-2 (Radford et al., 2019), 362 of Qwen2.5-0.5B and 75 of Qwen2.5-1.5B (Yang et al., 2024).
 
 **The rubric.** Each explanation gets one of three labels:
 
@@ -44,9 +44,9 @@ The paper bears on research question 1, *Are native MLP neurons clean?* ([resear
 
 ## What share of the explanations are token sets?
 
-Only 147 of 826, or 17.8% (95% interval 15.3% to 20.6%, Table 1). The share falls with the size of the model, from 27.5% in Pythia-70m to 9.3% in Qwen2.5-1.5B. The models differ in more than size, though. Their poles came from different scan corpora and proposers.
+Only 147 of 826, or 17.8% (95% interval 15.3% to 20.6%, Table 1). The share falls with the size of the model, from 27.5% in Pythia-70m to 9.3% in Qwen2.5-1.5B. The models differ in more than size, though. Their poles came from different scan corpora and different models that wrote the explanations.
 
-**Table 1.** The labels of each model's VERIFIED explanations, and the token-set share with its 95% Wilson interval.
+**Table 1.** The labels of each model's passing explanations, and the token-set share with its 95% Wilson interval.
 
 | Model | Poles | token-set | mixed | context | Share | 95% interval |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -60,9 +60,9 @@ Only 147 of 826, or 17.8% (95% interval 15.3% to 20.6%, Table 1). The share fall
 
 Mostly in the first third of each model (Figure 1, Table 2). There they are 54% of Pythia-70m's and GPT-2's poles. In the middle third, the share is 0% to 9% in every model. Layer 0 holds 68 of the 147 token-set poles, and 68 of its 74 poles are token sets. A layer-0 MLP sees the token embedding and only one attention layer's output, so its rules can mostly read the current token. In every model the late third has slightly more token-set poles than the middle third. We did not test why.
 
-![Only 18% of VERIFIED explanations are token sets, and most are in the first third](media/share.svg)
+![Only 18% of passing explanations are token sets, and most are in the first third](media/share.svg)
 
-**Figure 1.** Only 18% of VERIFIED explanations are token sets, and most are in the first third. The token-set share of each model's VERIFIED poles in each third of its layers. Each dot has its 95% Wilson interval and its count. The grey line is the share over all four models.
+**Figure 1.** Only 18% of passing explanations are token sets, and most are in the first third. The token-set share of each model's passing poles in each third of its layers. Each dot has its 95% Wilson interval and its count. The grey line is the share over all four models.
 
 **Table 2.** Token-set poles out of all poles in each third of each model's layers.
 
@@ -91,31 +91,32 @@ Yes. `token_r2` gives an AUROC of 0.91 (95% interval 0.88 to 0.93) for a token-s
 
 ![The token mean explains far more of a token-set pole's activity (AUROC 0.91)](media/token-r2.svg)
 
-**Figure 2.** The token mean explains far more of a token-set pole's activity (AUROC 0.91). Each VERIFIED pole's `token_r2` by the label of its explanation. The ink line and value are each label's median.
+**Figure 2.** The token mean explains far more of a token-set pole's activity (AUROC 0.91). Each passing pole's `token_r2` by the label of its explanation. The ink line and value are each label's median.
 
 The overlap is where the labels and the activations disagree. A context label with a high `token_r2` belongs to a pole whose explanation names a context, but whose activity on the scan corpus a token mean mostly explains. `token_r2` alone can't replace the labels, because a rare token gets a mean of its own and inflates it.
 
 ## Discussion
 
-A weight-only check of this registry can test at most about one explanation in six. Those explanations are mostly at layer 0 and in the first third of the small models. In Qwen2.5, the models that the registry covers most, a weight-only check can test about one in ten. So the registry can check a weight reading such as ROTATE, but only on a narrow, early slice of it. A result on that slice says little about the middle layers, where almost every explanation needs context.
+A weight-only check of these explanations can test at most about one in six. Those explanations are mostly at layer 0 and in the first third of the small models. In Qwen2.5, the models that we cover most, a weight-only check can test about one in ten. So our explanations can check a weight reading such as ROTATE, but only on a narrow, early slice of it. A result on that slice says little about the middle layers, where almost every explanation needs context.
 
 The ceiling is on what the explanations claim, not on what the neurons do. A neuron whose activity a token mean mostly explains, but whose explanation adds a context, counts as context here. A weight-only check could still predict much of such a neuron's activity. It could not check the explanation as written.
 
 ## Limitations
 
-- **The labels read the explanation, not the neuron.** An explanation that adds a context condition to a token-set neuron makes it context here. So the ceiling is a ceiling on what the registry's explanations claim.
+- **The labels read the explanation, not the neuron.** An explanation that adds a context condition to a token-set neuron makes it context here. So the ceiling is a ceiling on what our explanations claim.
 - **Agents of one model gave every label.** The raters used one rubric. A human rater might draw the mixed line in another place. Most disagreements are on that line, and it doesn't move the ceiling.
-- **The registry is not a random sample.** The draw, the proposers and the reviewers decide which poles are VERIFIED. The shares describe the registry, not the models.
+- **Our explanations are not a random sample.** The draw and the models that write and review the explanations decide which poles pass. The shares describe our explanations, not the models.
 - **Mixed is a choice.** Counting mixed rules against the ceiling assumes that a weight-only check can't test a gate. A check that tests only the token part would reach up to 47.1%.
 
 ## Conclusion
 
-Only 17.8% of the registry's VERIFIED explanations are token-set rules, which a reading of the weights alone could test. They sit mostly in the first third of each model. The next step is to run a weight-only check on these 147 poles (#3446).
+Only 17.8% of our passing explanations are token-set rules, which a reading of the weights alone could test. They sit mostly in the first third of each model. The next step is to run a weight-only check on these 147 poles (#3446).
 
 ## References
 
 - Ba, J., Hinton, G., Mnih, V., Leibo, J. Z., & Ionescu, C. (2016). *Using fast weights to attend to the recent past*. [arXiv:1610.06258](https://arxiv.org/abs/1610.06258).
 - Biderman, S., Schoelkopf, H., Anthony, Q., Bradley, H., O'Brien, K., Hallahan, E., Khan, M. A., Purohit, S., Prashanth, U. S. S., Raff, E., Skowron, A., Sutawika, L., & van der Wal, O. (2023). *Pythia: A suite for analyzing large language models across training and scaling*. ICML 2023. [arXiv:2304.01373](https://arxiv.org/abs/2304.01373).
+- Cammarata, N. (2026). *Neural networks are already clean*. Goodfire research essay. [already-clean.goodfire.com](https://already-clean.goodfire.com/).
 - Cohen, J. (1960). *A coefficient of agreement for nominal scales*. Educational and Psychological Measurement, 20(1), 37–46. [doi:10.1177/001316446002000104](https://doi.org/10.1177/001316446002000104).
 - Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., & Sutskever, I. (2019). *Language models are unsupervised multitask learners*. [OpenAI](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf).
 - Schlag, I., Irie, K., & Schmidhuber, J. (2021). *Linear transformers are secretly fast weight programmers*. ICML 2021. [arXiv:2102.11174](https://arxiv.org/abs/2102.11174).

@@ -60,8 +60,8 @@ def keep(rows: list[dict]) -> Figure:
     fig = Figure(
         ["A ROME edit at layer 2 leaves every pole below it intact,",
          "and breaks fewer above it than a random edit of its size"],
-        ["Each mark is the share of pythia-70m's VERIFIED explanations at that layer that",
-         "still pass their probes, over 10 edits of unrelated facts and 10 random edits."],
+        ["Each mark is the share of pythia-70m's passing explanations at that layer that",
+         "still pass their tests, over 10 edits of unrelated facts and 10 random edits."],
         f"Keep share by layer 0 to 5. At layers 0 to {edit} both kinds keep every explanation. "
         f"Above, ROME keeps {min(shares['rome'][edit + 1:]):.0%} to "
         f"{max(shares['rome'][edit + 1:]):.0%} and random edits "
@@ -113,7 +113,7 @@ def flips(rows: list[dict]) -> Figure:
     low = sum(layer_of[s] <= 2 for s in order)
     fig = Figure(
         ["Each edit flips a few poles above layer 2,", "and none at or below it"],
-        [f"Each cell is one of pythia-70m's {len(order)} VERIFIED poles, by layer, nearest a gate "
+        [f"Each cell is one of pythia-70m's {len(order)} passing poles, by layer, nearest a gate "
          "first within each.",
          f"The first {low} cells are layers 0 to 2. Circles flip under ROME, triangles under the "
          "random edit."],

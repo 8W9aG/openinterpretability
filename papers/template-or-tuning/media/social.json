@@ -1,12 +1,12 @@
 {
  "source": "media/square.svg",
- "sha256": "088df115eb7b8841c2781625eb319e2838fdff7fe81aa777d6cbf18de411b6bc",
+ "sha256": "a7d5a39f683cc048499790d8c655a21b9c9a8bdc4a7a819342ee27a16d47a06a",
  "files": [
   "social.png"
  ],
  "figures": {
   "grid": {
-   "sha256": "1c86ccbe89c017784f0f4392f0cbc3e916947846148d67f5b8fc78536ad57380",
+   "sha256": "b4748dd98ab98921b08586df53d5257783620e09a0eb623b9f4b040fa5254bd8",
    "files": [
     "social-grid.mp4",
     "social-grid.png"
@@ -19,7 +19,7 @@
    ]
   },
   "square": {
-   "sha256": "088df115eb7b8841c2781625eb319e2838fdff7fe81aa777d6cbf18de411b6bc",
+   "sha256": "a7d5a39f683cc048499790d8c655a21b9c9a8bdc4a7a819342ee27a16d47a06a",
    "files": [
     "social-square.png"
    ]

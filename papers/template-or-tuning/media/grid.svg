@@ -31,8 +31,8 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="471" rx="10"/>
 <text x="20.0" y="30.0" class="title">Most of the explanations that fail inside the</text>
 <text x="20.0" y="53.0" class="title">chat template fail on the base model already</text>
-<text x="20.0" y="73.0" class="sub">Each mark is one VERIFIED pole of Qwen2.5-0.5B, in the column of its layer. A filled</text>
-<text x="20.0" y="91.0" class="sub">mark passes its own probes, and an open mark fails. The frames step through the four conditions.</text>
+<text x="20.0" y="73.0" class="sub">Each mark is one passing pole of Qwen2.5-0.5B, in the column of its layer. A filled</text>
+<text x="20.0" y="91.0" class="sub">mark passes its own tests, and an open mark fails. The frames step through the four conditions.</text>
 <text x="64.0" y="137.0" class="head cond0">base model, plain text: 360 of 360 keep</text>
 <circle class="fc1 cond0" cx="70.0" cy="155.0" r="3.2"/>
 <circle class="fc1 cond0" cx="70.0" cy="163.6" r="3.2"/>

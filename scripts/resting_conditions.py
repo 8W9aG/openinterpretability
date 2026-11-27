@@ -29,6 +29,8 @@ PYTHIA_WARMUP = 715
 PYTHIA_BATCH_FACTOR = 4  # Pythia's batch is 500 times ours. 4 times fits the time we have.
 # Gradient accumulation reaches 32 times in about an hour a run on one GPU (#6499).
 PYTHIA_FULL_BATCH_FACTOR = 32
+TRAIN_WINDOW = 128  # tokens in each training window. A test checks it is default_on_poles'.
+PYTHIA_WINDOW = 2048  # Pythia's training window
 # Pythia-70m is 512 wide, with 6 layers and 8 heads (Biderman et al., 2023).
 PYTHIA_70M_LAYERS = 6
 PYTHIA_70M_WIDTH = 512
@@ -61,6 +63,7 @@ class Condition:
     parallel: bool = False  # attention and the MLP read the same input, as in GPT-NeoX
     n_layer: int = N_LAYER
     n_embd: int = N_EMBD  # the MLP is mlp_ratio times as wide
+    window: int = TRAIN_WINDOW  # tokens in each training window, and the model's positions
 
 
 # The mean output of ReLU and of GELU at init, where h has an SD of about 0.31. For ReLU it
@@ -163,6 +166,12 @@ CONDITIONS["pythia_size"] = replace(
 # Pythia-70m's size and 32 times our batch together (#6806).
 CONDITIONS["pythia_size_batch_32x"] = replace(
     CONDITIONS["pythia_size"], batch=BATCH * PYTHIA_FULL_BATCH_FACTOR
+)
+# Pythia-70m's size with Pythia's window, at the same tokens per step as the 32x batch (#7140).
+CONDITIONS["pythia_size_batch_32x_window"] = replace(
+    CONDITIONS["pythia_size_batch_32x"],
+    window=PYTHIA_WINDOW,
+    batch=BATCH * PYTHIA_FULL_BATCH_FACTOR * TRAIN_WINDOW // PYTHIA_WINDOW,
 )
 CONDITIONS |= {f"gelu_{n[5:]}": replace(c, activation="gelu")  # each ReLU norm condition (#3193)
                for n, c in CONDITIONS.items() if n[:5] == "relu_" and c.centre_norms}  # fmt: skip

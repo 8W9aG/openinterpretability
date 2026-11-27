@@ -31,7 +31,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="397" rx="10"/>
 <text x="20.0" y="30.0" class="title">As more neurons go, top pruning breaks</text>
 <text x="20.0" y="53.0" class="title">explanations at every margin</text>
-<text x="20.0" y="73.0" class="sub">Each cell is one of Qwen2.5-0.5B&#x27;s 362 VERIFIED poles, nearest a gate first. Circles pass again after</text>
+<text x="20.0" y="73.0" class="sub">Each cell is one of Qwen2.5-0.5B&#x27;s 362 passing poles, nearest a gate first. Circles pass again after</text>
 <text x="20.0" y="91.0" class="sub">failing on the instruct model, triangles fail after keeping, dark cells still fail.</text>
 <rect class="fwash" x="40.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>
 <rect class="fwash" x="58.0" y="149.0" width="15.0" height="15.0" rx="1.5"/>

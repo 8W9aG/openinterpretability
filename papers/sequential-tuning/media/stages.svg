@@ -31,8 +31,8 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="473" rx="10"/>
 <text x="20.0" y="30.0" class="title">After three narrow fine-tunes, a quarter of the</text>
 <text x="20.0" y="53.0" class="title">explanations fail, and ARC-Easy ends near its start</text>
-<text x="20.0" y="73.0" class="sub">362 VERIFIED poles of Qwen2.5-0.5B, each re-read on its own probes after each stage.</text>
-<text x="20.0" y="91.0" class="sub">Left: the share that still passes both gates. Right: zero-shot ARC-Easy accuracy. Bars: 95% intervals.</text>
+<text x="20.0" y="73.0" class="sub">362 passing poles of Qwen2.5-0.5B, each re-read on its own tests after each stage.</text>
+<text x="20.0" y="91.0" class="sub">Left: the share that still passes both tests. Right: zero-shot ARC-Easy accuracy. Bars: 95% intervals.</text>
 <path class="grid" d="M60.0 375.0L350.0 375.0"/>
 <text x="53.0" y="379.0" class="small" text-anchor="end">0.60</text>
 <path class="grid" d="M60.0 317.5L350.0 317.5"/>

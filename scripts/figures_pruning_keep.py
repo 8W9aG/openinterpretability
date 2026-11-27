@@ -70,8 +70,8 @@ def keep(rows: list[dict]) -> Figure:
     fig = Figure(
         ["Magnitude pruning keeps most explanations, and",
          "random pruning of as many weights does not"],
-        [f"Each mark is the share of Pythia-70m's {head['reproduced']} VERIFIED explanations that "
-         "still pass their probes, with a 95% interval.",
+        [f"Each mark is the share of Pythia-70m's {head['reproduced']} passing explanations that "
+         "still pass their tests, with a 95% interval.",
          f"With 90% of each neuron's input weights zeroed: {last['magnitude']['keeps']} keep "
          f"by magnitude, {last['random']['keeps']} at random."],
         f"A line chart of the keep share against the share of input weights zeroed: 0, 50, 75 "
