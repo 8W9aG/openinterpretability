@@ -16,6 +16,7 @@ Status marks how the work relates to this repo:
 | [Recursive Language Models](recursive-language-models.md) (Zhang, Kraska and Khattab, 2025) | not applicable | A scaffold for prompts longer than the context window, with no look inside any model. Our agents' prompts are short, and the proposer already reads its large evidence file from disk. |
 | [CoEvoBench: Can LLMs Drive Recursive Co-Evolution of Agentic Systems?](coevobench.md) (Xiao, Wang, Fan, Du and Xu, 2026) | not applicable | LLM researchers improve a 9B model and its harness within 24 hours. The best closes about four fifths of the gap to an instruct reference, but most of the gain comes from the first change. It looks inside no model. Its measures of a stall could track this project's own loop. |
 | [Harness Evolution Hits a Ceiling](harness-evolution-ceiling.md) (Tian, Hu, Wang, Lu and Wu, 2026) | planned | Harness edits fix an agent's process failures, and LoRA fixes content failures: 9B's wrong delivered plans fall from 28% to 4.5% of held-out runs. Its placebo adapter, trained on permuted outputs, is a null that the fix campaign's arms lack (#5220). |
+| [Harness-Delta Attribution](harness-delta-attribution.md) (Ding, Lu, Yu et al., 2026) | not applicable | In 21 harness searches, shortcuts explain 54% of the gain and extra compute 14%. Held-out data missed a shortcut that it shared. The registry's reviews face the same risk, and `docs/analyses/retries.md` measures part of it. |
 
 ## Explanation scoring
 
