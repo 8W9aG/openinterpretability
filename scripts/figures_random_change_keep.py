@@ -94,7 +94,7 @@ def keep(rows: list[dict]) -> Figure:
     fig = Figure(
         ["On Qwen2.5-0.5B, a random change of the instruct change's",
          "size breaks as many explanations, but on 1.5B far fewer"],
-        ["Each mark is the share of VERIFIED explanations that still pass their probes, with a",
+        ["Each mark is the share of passing explanations that still pass their tests, with a",
          "95% interval. Each random change has the norm of the instruct change in every matrix."],
         f"Two panels, one for each Qwen2.5 model. Each has four rows: the instruct change and "
         f"a random change of its size, on all weights and on the MLP weights only. On "
@@ -185,9 +185,9 @@ def flips(rows: list[dict]) -> Figure:
     fig = Figure(
         ["On Qwen2.5-0.5B, instruction tuning and random changes",
          "flip many of the same poles: those near a gate"],
-        [f"Each cell is one of Qwen2.5-0.5B's {len(order)} VERIFIED poles, nearest a gate first. "
+        [f"Each cell is one of Qwen2.5-0.5B's {len(order)} passing poles, nearest a gate first. "
          "A filled cell flips:",
-         "it passes its probes on the base model and fails on the changed one."],
+         "it passes its test prompts on the base model and fails on the changed one."],
         f"A grid of {len(order)} cells, in rows of {COLUMNS}, ordered by how far each pole's "
         f"base readings sit above the nearer gate. The frames step through the instruct change "
         f"and {len(frames) - 1} random changes of all weights. Each flips {min(map(len, sets))} "

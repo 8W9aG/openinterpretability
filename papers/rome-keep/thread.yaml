@@ -3,8 +3,8 @@
 - section: Introduction
   text: >-
     Which neuron explanations survive a ROME edit? We inserted 10 unrelated facts into
-    pythia-70m at layer 2, one at a time, and ran each of 176 VERIFIED explanations' probes
-    again. {link}
+    pythia-70m at layer 2, one at a time, and re-tested each of 176 reviewed
+    explanations. {link}
   media: [keep]
 - section: Do the edits work, and do the poles below them stay as they were?
   text: >-
@@ -17,7 +17,7 @@
   media: [flips]
 - section: Which poles flip?
   text: >-
-    The poles that flip sat near a review gate, and under ROME their input weights face the
+    The poles that flip sat near a review threshold, and under ROME their input weights face the
     edit's write: AUROC 0.67, p = 0.0009 under a within-layer shuffle.
 - section: Conclusion
   text: >-

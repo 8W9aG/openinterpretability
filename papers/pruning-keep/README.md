@@ -1,6 +1,6 @@
 # How many of a neuron's weights does its explanation need?
 
-Magnitude pruning removes most of a network's weights for a small loss, which suggests that a unit's behaviour rests on a few large weights. This paper tests that claim on single neurons whose explanations have passed an adversarial review. For each of the 127 VERIFIED neuron poles of Pythia-70m, we zeroed the smallest 50%, 75% or 90% of the neuron's input weights, with no retraining. Then we ran each explanation's own probes again. As a null, we zeroed the same number of weights at random. With magnitude pruning, 94 explanations keep at 50%, 73 at 75% and 63 at 90%. With random pruning, 73, 42 and 17 keep. On the poles where the two methods disagree, magnitude pruning wins 30 to 9, 37 to 6 and 49 to 3 (exact McNemar p = 0.001, $2 \times 10^{-6}$ and $10^{-11}$). Half of the explanations still pass with a tenth of the input weights left, although each pole's activations then correlate with their unpruned form at a median of only 0.54. Most failures are on specificity: a pruned neuron starts to fire on the near-misses that its explanation excludes. So the part of a neuron that an explanation describes rests on its largest input weights, and much of the rest of its activity does not.
+Magnitude pruning removes most of a network's weights for a small loss, which suggests that a unit's behaviour rests on a few large weights. This paper tests that claim on single neurons whose explanations have passed an adversarial review. For each of the 127 neuron poles of Pythia-70m whose explanations passed, we zeroed the smallest 50%, 75% or 90% of the neuron's input weights, with no retraining. Then we ran each explanation's own test prompts again. As a null, we zeroed the same number of weights at random. With magnitude pruning, 94 explanations keep at 50%, 73 at 75% and 63 at 90%. With random pruning, 73, 42 and 17 keep. On the poles where the two methods disagree, magnitude pruning wins 30 to 9, 37 to 6 and 49 to 3 (exact McNemar p = 0.001, $2 \times 10^{-6}$ and $10^{-11}$). Half of the explanations still pass with a tenth of the input weights left, although each pole's activations then correlate with their unpruned form at a median of only 0.54. Most failures are on specificity: a pruned neuron starts to fire on the near-misses that its explanation excludes. So the part of a neuron that an explanation describes rests on its largest input weights, and much of the rest of its activity does not.
 
 **Status:** Preprint. Work left: #6164 (GPT-2, Qwen2.5-0.5B, the output weights and more random seeds).
 
@@ -10,11 +10,11 @@ An explanation of a neuron says when the neuron fires. It does not say which of 
 
 Pruning gives a direct test. PackNet zeroes 50% to 75% of a network's weights by magnitude, and the network keeps most of its accuracy after a short retraining (Mallya & Lazebnik, 2018). That result concerns a whole network and its task loss. It does not say whether a single unit keeps the function that someone has described in words, and PackNet's retraining hides how much the unit changed before it recovered.
 
-This paper applies the pruning to one neuron at a time, with no retraining, and asks whether the neuron's VERIFIED explanation still passes. The registry holds 127 such explanations for Pythia-70m (Biderman et al., 2023), each with the probes that an adversarial reviewer wrote to break it.
+This paper applies the pruning to one neuron at a time, with no retraining, and asks whether the neuron's passing explanation still passes. Our set of tested explanations holds 127 such explanations for Pythia-70m (Biderman et al., 2023), each with the test prompts that a second model wrote to break it.
 
 The paper's contributions are these:
 
-- A measurement of how many VERIFIED explanations keep when 50%, 75% or 90% of their neuron's input weights are zeroed by magnitude.
+- A measurement of how many passing explanations keep when 50%, 75% or 90% of their neuron's input weights are zeroed by magnitude.
 - A random-pruning null at the same levels, with paired tests, which shows that weight size, not weight count, decides what an explanation needs.
 - Evidence that an explanation can keep while most of the neuron's activity changes, and that its failures are mostly failures of specificity.
 - The rows for each pole, level and method, so that other analyses can use the same outcomes.
@@ -23,17 +23,17 @@ The paper bears on research question 1, *Are native MLP neurons clean?* ([resear
 
 ## Related work
 
-**Magnitude pruning.** Mallya and Lazebnik (2018) prune 50% or 75% of the weights in each layer of VGG-16 by lowest absolute magnitude, in one shot. After a short retraining, the top-1 error on ImageNet rises from 28.42 to 29.33 at 50% and to 30.87 at 75%. The freed weights then learn new tasks while the old weights stay fixed. Their pruning is per layer and their measure is the task's accuracy. Ours is per neuron, with no retraining, and our measure is whether an explanation of that neuron still passes its probes. Their review page in this repo proposed the present test.
+**Magnitude pruning.** Mallya and Lazebnik (2018) prune 50% or 75% of the weights in each layer of VGG-16 by lowest absolute magnitude, in one shot. After a short retraining, the top-1 error on ImageNet rises from 28.42 to 29.33 at 50% and to 30.87 at 75%. The freed weights then learn new tasks while the old weights stay fixed. Their pruning is per layer and their measure is the task's accuracy. Ours is per neuron, with no retraining, and our measure is whether an explanation of that neuron still passes its test prompts. Their review page in this repo proposed the present test.
 
-**Explanations after a change to the model.** An earlier analysis in this repo ran the same keep test after instruction tuning ([`docs/analyses/base-instruct.md`](../../docs/analyses/base-instruct.md)). On Qwen2.5-0.5B, 252 of 311 VERIFIED explanations keep on the instruct model, and the activation correlation does not separate the poles that keep from those that fail. A companion paper tests whether a weight-importance score predicts which explanations keep under instruction tuning, and finds that it does not ([`papers/fisher-keep/`](../fisher-keep/README.md)). Pruning is a cruder change than tuning, but it is fully controlled: the change touches one neuron's input weights, and nothing else.
+**Explanations after a change to the model.** An earlier analysis in this repo ran the same keep test after instruction tuning ([`docs/analyses/base-instruct.md`](../../docs/analyses/base-instruct.md)). On Qwen2.5-0.5B, 252 of 311 passing explanations keep on the instruct model, and the activation correlation does not separate the poles that keep from those that fail. A companion paper tests whether a weight-importance score predicts which explanations keep under instruction tuning, and finds that it does not ([`papers/fisher-keep/`](../fisher-keep/README.md)). Pruning is a cruder change than tuning, but it is fully controlled: the change touches one neuron's input weights, and nothing else.
 
 ## Method
 
-**Model and units.** The model is Pythia-70m, which has 6 layers of 2,048 MLP neurons (Biderman et al., 2023). A *pole* is one sign of a neuron's activation, positive or negative. A pole is *VERIFIED* when its natural-language explanation passed the registry's adversarial review. In that review, a reviewer wrote 20 hard negatives (near-misses that the explanation says should not fire) and 10 holdouts (new texts that it says should fire). The explanation passed a specificity gate of 0.80 and a sensitivity gate of 0.60. The registry holds 127 VERIFIED poles of Pythia-70m in all six layers: 118 positive and 9 negative.
+**Model and units.** The model is Pythia-70m, which has 6 layers of 2,048 MLP neurons (Biderman et al., 2023). Following Cammarata (2026), a *pole* is one sign of a neuron's activation, positive or negative. A pole is *passing* when its natural-language explanation passed our adversarial review. In that review, a second model wrote 20 hard negatives (near-misses that the explanation says should not fire) and 10 positive test prompts (new texts that it says should fire). The explanation passed a specificity threshold of 0.80 and a sensitivity threshold of 0.60. Our set of tested explanations holds 127 passing poles of Pythia-70m in all six layers: 118 positive and 9 negative.
 
 **Pruning.** A neuron's input weights are its row of the MLP's first projection: 512 weights, one for each dimension of the residual stream. At a level $f$, we zero $\mathrm{round}(512 f)$ of them, for $f$ = 0.5, 0.75 and 0.9. *Magnitude* pruning zeroes the smallest $|w|$ first. *Random* pruning zeroes the same number, chosen at random with a seed for each neuron. The bias stays. There is no retraining, and the script saves no weights. Zeroing a neuron's own input weights changes only that neuron at its layer, so we prune all the poles of one layer together and read them in one pass.
 
-**The keep test.** This is the test of the base-instruct analysis. Each pole's own probes run again on the pruned model. The activation line is the record's line times the ratio of the pole's maximum after pruning to its maximum before. Both maxima come from the same 20,000 tokens of the registry's scan corpus. So "active" means the same share of the pole's own range before and after. An explanation *keeps* when both gates still pass. All 127 pass on the unpruned model, so all 127 enter every comparison.
+**The keep test.** This is the test of the base-instruct analysis. Each pole's own test prompts run again on the pruned model. The threshold is the record's line times the ratio of the pole's maximum after pruning to its maximum before. Both maxima come from the same 20,000 tokens of our scan corpus. So "active" means the same share of the pole's own range before and after. An explanation *keeps* when both tests still pass. All 127 pass on the unpruned model, so all 127 enter every comparison.
 
 **Activation change.** For each pole, we also give Pearson's $r$ between its activations before and after pruning, over the same 20,000 tokens, with each window's first token left out.
 
@@ -47,7 +47,7 @@ Most explanations survive half of their weights going, and half survive nine ten
 
 ![Magnitude pruning keeps most explanations, and random pruning of as many weights does not.](media/keep.svg)
 
-**Figure 1.** Magnitude pruning keeps most explanations, and random pruning of as many weights does not. The share of Pythia-70m's 127 VERIFIED explanations that still pass their probes after the stated share of each neuron's input weights is zeroed. Circles are magnitude pruning, and triangles are random pruning of the same number of weights. The bars are 95% Wilson intervals.
+**Figure 1.** Magnitude pruning keeps most explanations, and random pruning of as many weights does not. The share of Pythia-70m's 127 passing explanations that still pass their test prompts after the stated share of each neuron's input weights is zeroed. Circles are magnitude pruning, and triangles are random pruning of the same number of weights. The bars are 95% Wilson intervals.
 
 **Table 1.** The explanations that keep, for each level and method, out of 127, with each pole's median correlation with its unpruned activations.
 
@@ -57,7 +57,7 @@ Most explanations survive half of their weights going, and half survive nine ten
 | 75% | 73 (57%) | 49–66% | 0.78 | 42 (33%) | 25–42% | 0.39 |
 | 90% | 63 (50%) | 41–58% | 0.54 | 17 (13%) | 9–20% | 0.22 |
 
-The keep share does not fall in step for every pole. 16 explanations keep at 90% but fail at 50% or 75%. The test reads a pole at a line scaled by its maximum, and each explanation has 30 probes. So a pole whose pass rates sit near a gate can cross it in either direction from one level to the next.
+The keep share does not fall in step for every pole. 16 explanations keep at 90% but fail at 50% or 75%. The test reads a pole at a line scaled by its maximum, and each explanation has 30 test prompts. So a pole whose pass rates sit near a threshold can cross it in either direction from one level to the next.
 
 ## Do the weights that matter have to be the large ones?
 
@@ -71,15 +71,15 @@ Much of it does not. With magnitude pruning, each pole's activations correlate w
 
 **Figure 2.** As more weights go, magnitude pruning keeps each pole's activations, and random pruning does not. Each mark is one pole: Pearson's r between its activations before and after pruning, on 20,000 tokens of web text. Circles are magnitude pruning, and triangles random pruning. The frames step through the three levels and rest on 90%.
 
-The correlation does not tell which explanations keep. At 90% magnitude pruning, the median correlation is 0.546 for the poles that keep and 0.542 for those that fail. The same holds at the other levels: 0.948 against 0.914 at 50%, and 0.783 against 0.777 at 75%. The correlation covers every token, most of which sit far below the pole's activation line. The probes test the top of the range, which the largest weights carry.
+The correlation does not tell which explanations keep. At 90% magnitude pruning, the median correlation is 0.546 for the poles that keep and 0.542 for those that fail. The same holds at the other levels: 0.948 against 0.914 at 50%, and 0.783 against 0.777 at 75%. The correlation covers every token, most of which sit far below the pole's threshold. The test prompts test the top of the range, which the largest weights carry.
 
-The failures are mostly failures of specificity. At 90% magnitude pruning, 37 of the 64 failures miss only the specificity gate, 23 only the sensitivity gate, and 4 both. At 50%, the split is 27, 4 and 2. A pruned neuron therefore starts to fire on the near-misses that its explanation excludes before it stops firing on what its explanation describes.
+The failures are mostly failures of specificity. At 90% magnitude pruning, 37 of the 64 failures miss only the specificity test, 23 only the sensitivity test, and 4 both. At 50%, the split is 27, 4 and 2. A pruned neuron therefore starts to fire on the near-misses that its explanation excludes before it stops firing on what its explanation describes.
 
 ## Discussion
 
-A VERIFIED explanation of a Pythia-70m neuron rests on the neuron's largest input weights. Half of the explanations survive with a tenth of those weights, and random pruning of the same count destroys most of them. This agrees with the picture behind magnitude pruning, in which a few large weights carry a unit's function (Mallya & Lazebnik, 2018). We find it at the level of a single unit's described function, with no retraining afterwards.
+A passing explanation of a Pythia-70m neuron rests on the neuron's largest input weights. Half of the explanations survive with a tenth of those weights, and random pruning of the same count destroys most of them. This agrees with the picture behind magnitude pruning, in which a few large weights carry a unit's function (Mallya & Lazebnik, 2018). We find it at the level of a single unit's described function, with no retraining afterwards.
 
-The explanation and the neuron's full activity come apart under pruning. The largest weights keep the strong, selective responses that the probes test. The many small weights shape the rest of the activation distribution, which the correlation measures and the explanation does not describe. This suggests that an explanation describes the top of a neuron's range, and that this part is sparse in the weights. It also suggests a caution for comparing two models by activation correlation alone: a low correlation can hide an explanation that still holds.
+The explanation and the neuron's full activity come apart under pruning. The largest weights keep the strong, selective responses that the test prompts read. The many small weights shape the rest of the activation distribution, which the correlation measures and the explanation does not describe. This suggests that an explanation describes the top of a neuron's range, and that this part is sparse in the weights. It also suggests a caution for comparing two models by activation correlation alone: a low correlation can hide an explanation that still holds.
 
 The specificity failures say what the small weights do. When they go, a neuron fires on near-misses. So the small weights help to suppress the cases that sit near the explanation's boundary. An explanation that keeps at 90% therefore names a feature that the large weights detect on their own. An explanation that fails at 50% names one that needs the small weights to reject its near-misses.
 
@@ -90,17 +90,18 @@ For editing models, the result suggests a simple rule: a change that leaves a ne
 - **One small model.** Pythia-70m has 2,048 neurons per layer. A larger model, with wider rows and more superposition, could need a larger share of its weights.
 - **Input weights only, and no retraining.** We prune one neuron's input row, not the whole network, and we do not retrain. PackNet's setting differs in both ways.
 - **One random draw per neuron.** The null uses one seeded draw for each neuron and level. Over 127 poles the counts are stable, but a single pole's random outcome is one sample.
-- **30 probes per explanation.** A pass rate near a gate can cross it by chance, which is why 16 explanations keep at 90% but fail at a lower level.
-- **A rescaled line.** The keep test rescales the activation line by the change in the pole's maximum. So the test asks whether the pattern of the top of the range survives, not whether its absolute size does.
-- **The registry's poles.** The 127 poles are those that the registry has VERIFIED, not a random sample of the model's neurons.
+- **30 test prompts per explanation.** A pass rate near a threshold can cross it by chance, which is why 16 explanations keep at 90% but fail at a lower level.
+- **A rescaled threshold.** The keep test rescales the threshold by the change in the pole's maximum. So the test asks whether the pattern of the top of the range survives, not whether its absolute size does.
+- **Our poles.** The 127 poles are those that passed our review, not a random sample of the model's neurons.
 
 ## Conclusion
 
-Half of Pythia-70m's VERIFIED explanations survive when 90% of their neuron's input weights are zeroed by magnitude, against 13% when the same number are zeroed at random. An explanation rests on a neuron's largest input weights, and it can hold while most of the neuron's activity changes.
+Half of Pythia-70m's passing explanations survive when 90% of their neuron's input weights are zeroed by magnitude, against 13% when the same number are zeroed at random. An explanation rests on a neuron's largest input weights, and it can hold while most of the neuron's activity changes.
 
 ## References
 
 - Biderman, S., Schoelkopf, H., Anthony, Q., Bradley, H., O'Brien, K., Hallahan, E., Khan, M. A., Purohit, S., Prashanth, U. S. S., Raff, E., Skowron, A., Sutawika, L., & van der Wal, O. (2023). *Pythia: A suite for analyzing large language models across training and scaling*. In Proceedings of the 40th International Conference on Machine Learning (PMLR 202, pp. 2397–2430). [PMLR](https://proceedings.mlr.press/v202/biderman23a.html).
+- Cammarata, N. (2026). *Neural networks are already clean*. Goodfire research essay. [already-clean.goodfire.com](https://already-clean.goodfire.com/).
 - Mallya, A., & Lazebnik, S. (2018). *PackNet: Adding multiple tasks to a single network by iterative pruning*. CVPR 2018. [arXiv:1711.05769](https://arxiv.org/abs/1711.05769).
 
 ## Appendices
