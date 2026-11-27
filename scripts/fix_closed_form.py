@@ -58,11 +58,17 @@ def second_moment(model, batches: list[torch.Tensor], layer: int) -> torch.Tenso
     total, count = None, 0
 
     def add(x):
+        """Add the keys of one batch to the running sum.
+
+        Args:
+            x: The keys, ``[batch, positions, hidden]``.
+        """
         nonlocal total, count
         flat = x.detach().float().reshape(-1, x.shape[-1])
         total = flat.t() @ flat if total is None else total + flat.t() @ flat
         count += flat.shape[0]
 
+    # The hook reads every position, so one pass over the windows gives the whole sum.
     handle = hook_point(Graph(model), f"blocks.{layer}.mlp.hook_post", add)
     try:
         device = next(model.parameters()).device
@@ -94,9 +100,15 @@ def target_deltas(model, tokenizer, items: list[Item], layer: int,
     ids, mask, last = encode(tokenizer, [i.prompt for i in items], device)
     rows = torch.arange(len(items), device=device)
     right = torch.tensor([token(tokenizer, i.right) for i in items], device=device)
+    # One trained change per prompt. Only the change trains: the model's weights stay fixed.
     delta = torch.zeros(len(items), model.config.hidden_size, device=device, requires_grad=True)
 
     def add(out):
+        """Add each prompt's change at its last position.
+
+        Args:
+            out: The MLP's output, ``[n, positions, d_model]``.
+        """
         out = out.clone()
         out[rows, last] = out[rows, last] + delta.to(out.dtype)
         return out
@@ -110,11 +122,12 @@ def target_deltas(model, tokenizer, items: list[Item], layer: int,
             opt.zero_grad()
             loss.backward()
             opt.step()
+            # Scale each change back to V_NORM, so that no target is far off the model's range.
             with torch.no_grad():
                 norms = delta.norm(dim=-1, keepdim=True).clamp(min=V_NORM)
                 delta.mul_(V_NORM / norms)
     finally:
-        handle.remove()
+        handle.remove()  # the hook must go even if a step fails
     return delta.detach().t()
 
 

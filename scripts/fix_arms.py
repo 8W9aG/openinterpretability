@@ -145,6 +145,12 @@ class Adapters:
 
     Each change is ``B @ (A * mask)``. B starts at zero, so the model is unchanged at
     the start. The model's own weights are never written.
+
+    Args:
+        graph: The model's canonical graph.
+        chosen: The sites to change.
+        rank: The rank of each change.
+        seed: The seed of the A factors' random start.
     """
 
     def __init__(self, graph, chosen: list[Site], rank: int, seed: int = SEED):
@@ -171,17 +177,31 @@ class Adapters:
         return (a * mask.to(a.device)).detach(), b.detach()
 
     def __enter__(self):
+        """Hook each change into the model, and return the adapters."""
         from openinterpretability.patches.graph import parameter_hook
 
         for site, (a, b, mask) in zip(self.sites, self.factors, strict=True):
 
             def add(x, a=a, b=b, mask=mask):
+                """The change's term ``x @ ΔWᵀ``, with ΔW = B @ (A * mask).
+
+                Args:
+                    x: The input of the changed layer.
+                    a: The change's A factor.
+                    b: The change's B factor.
+                    mask: The columns that A may use.
+                """
                 return x @ (b @ (a * mask.to(a.device))).to(x.device).t()
 
             self.handles += parameter_hook(self.graph, site.target, add)
         return self
 
     def __exit__(self, *_):
+        """Remove every hook, so that the model is the base model again.
+
+        Args:
+            *_: The exception, if any, which is not handled here.
+        """
         for handle in self.handles:
             handle.remove()
         self.handles = []
