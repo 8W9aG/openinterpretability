@@ -3,20 +3,20 @@
 - section: Introduction
   text: >-
     QLoRA stores a model's weights in 4-bit NF4. Do neuron explanations survive that
-    rounding? We rounded every linear weight of Qwen2.5-0.5B and 1.5B to NF4 and ran each
-    VERIFIED explanation's probes again. {link}
+    rounding? We rounded every linear weight of Qwen2.5-0.5B and 1.5B to NF4 and re-tested each
+    reviewed explanation. {link}
   media: [keep]
 - section: Does an explanation keep when the weights are rounded to NF4?
   text: >-
     Most do: 281 of 362 on Qwen2.5-0.5B and 66 of 75 on Qwen2.5-1.5B. That is about what
     instruction tuning keeps on the same models.
-- section: How far do the probes drift?
+- section: How far do the test prompts' readings drift?
   text: >-
-    The 99% point of probe drift is 33% of a pole's scale on Qwen2.5-0.5B and 21% on
+    The 99% point of the drift is 33% of a pole's scale on Qwen2.5-0.5B and 21% on
     Qwen2.5-1.5B. In this repo's earlier bfloat16 test it was 3.2%.
 - section: Which poles flip?
   text: >-
-    The poles that flip sit near a review gate. NF4 and instruction tuning share 38 flips on
+    The poles that flip sit near a review threshold. NF4 and instruction tuning share 38 flips on
     Qwen2.5-0.5B, against 14.0 by chance.
   media: [flips]
 - section: Conclusion
