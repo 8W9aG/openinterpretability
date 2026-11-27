@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 465" width="760" height="465" role="img">
-<title>Two plots. Left: balanced accuracy by class, with medians of 0.78 for sisters, 0.55 for other matches and 0.45 for random poles. Right: balanced accuracy against the correlation r for sisters and other matches.</title>
+<title>Two plots. Left: balanced accuracy by class, with medians of 0.78 for closest matches, 0.55 for other matches and 0.45 for random poles. Right: balanced accuracy against the correlation r for closest matches and other matches.</title>
 <style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
 .bg{fill:var(--surface)}
 text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
@@ -29,10 +29,10 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 .sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
 @keyframes sisterdots{0%{opacity:0}8.0%{opacity:1}100%{opacity:1}}.sisterdots{animation:sisterdots 8s step-end infinite;opacity:1}@keyframes sistermid{0%{opacity:0}20.0%{opacity:1}100%{opacity:1}}.sistermid{animation:sistermid 8s step-end infinite;opacity:1}@keyframes matchdots{0%{opacity:0}30.0%{opacity:1}100%{opacity:1}}.matchdots{animation:matchdots 8s step-end infinite;opacity:1}@keyframes matchmid{0%{opacity:0}42.0%{opacity:1}100%{opacity:1}}.matchmid{animation:matchmid 8s step-end infinite;opacity:1}@keyframes randomdots{0%{opacity:0}52.0%{opacity:1}100%{opacity:1}}.randomdots{animation:randomdots 8s step-end infinite;opacity:1}@keyframes randommid{0%{opacity:0}64.0%{opacity:1}100%{opacity:1}}.randommid{animation:randommid 8s step-end infinite;opacity:1}</style>
 <rect class="bg" width="760" height="465" rx="10"/>
-<text x="20.0" y="30.0" class="title">A pole&#x27;s explanation carries better to its sister</text>
+<text x="20.0" y="30.0" class="title">A pole&#x27;s explanation carries better to its closest match</text>
 <text x="20.0" y="53.0" class="title">than to another match or a random pole</text>
-<text x="20.0" y="73.0" class="sub">Each mark is a sister study: the balanced accuracy of the source&#x27;s explanation on the tested pole.</text>
-<text x="20.0" y="91.0" class="sub">Circles are sisters, squares other matches and triangles random poles. The line marks chance.</text>
+<text x="20.0" y="73.0" class="sub">Each mark is a transfer study: the balanced accuracy of the source&#x27;s explanation on the tested pole.</text>
+<text x="20.0" y="91.0" class="sub">Circles are closest matches, squares other matches and triangles random poles. The line marks chance.</text>
 <text x="60.0" y="141.0" class="head">by class</text>
 <text x="416.0" y="141.0" class="head">against r</text>
 <path class="grid" d="M60.0 369.0L380.0 369.0"/>
@@ -97,7 +97,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <circle class="fc1 sisterdots" cx="145.3" cy="164.7" r="3.5"/>
 <circle class="fc1 sisterdots" cx="81.3" cy="149.0" r="3.5"/>
 <path class="line sc1 sistermid" d="M76.0 196.7L150.7 196.7"/>
-<text x="113.3" y="384.0" class="small" text-anchor="middle">sisters</text>
+<text x="113.3" y="384.0" class="small" text-anchor="middle">closest matches</text>
 <rect class="fc3 matchdots" x="184.8" y="272.8" width="6.3" height="6.3" rx="1.5"/>
 <rect class="fc3 matchdots" x="195.5" y="266.9" width="6.3" height="6.3" rx="1.5"/>
 <rect class="fc3 matchdots" x="206.2" y="265.5" width="6.3" height="6.3" rx="1.5"/>
@@ -226,9 +226,9 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="fc3 matchdots" x="497.7" y="222.4" width="7.2" height="7.2" rx="1.5"/>
 <rect class="fc3 matchdots" x="475.4" y="266.4" width="7.2" height="7.2" rx="1.5"/>
 <circle class="fc1" cx="25.0" cy="413.0" r="5"/>
-<text x="35.0" y="417.0">sisters</text>
-<rect class="fc3" x="92.7" y="408.5" width="9.0" height="9.0" rx="1.5"/>
-<text x="107.2" y="417.0">other top matches</text>
-<path class="fc2" d="M235.4 407.2L241.1 417.6L229.6 417.6Z"/>
-<text x="245.4" y="417.0">random poles</text>
+<text x="35.0" y="417.0">closest matches</text>
+<rect class="fc3" x="145.5" y="408.5" width="9.0" height="9.0" rx="1.5"/>
+<text x="160.0" y="417.0">other top matches</text>
+<path class="fc2" d="M288.2 407.2L293.9 417.6L282.4 417.6Z"/>
+<text x="298.2" y="417.0">random poles</text>
 </svg>
