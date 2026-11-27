@@ -108,3 +108,11 @@ def test_a_pr_with_more_files_than_the_api_lists_waits(tmp_path):
 
 def test_a_code_change_from_anyone_waits(tmp_path):
     assert "--auto" not in _run(tmp_path, "someone", "someone", CODE)
+
+
+def test_a_name_is_checked_whole_not_split_on_its_spaces(tmp_path):
+    # " wiki/…" is a folder named " wiki", outside wiki/. Split on whitespace, it would read
+    # as a record path and auto-merge.
+    spaced = [{"filename": " wiki/experiments/m/L0/N1-positive/r.json", "status": "added"}]
+    assert "--auto" not in _run(tmp_path, "someone", "someone", spaced)
+    assert "--auto" in _run(tmp_path, "someone", "someone", ADDED_WIKI)
