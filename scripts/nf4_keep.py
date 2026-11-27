@@ -21,6 +21,16 @@ gives the drift of each probe's peak, as a share of the pole's scale. That is th
 of ``docs/analyses/half-precision-reproduce.md``.
 
     uv run python scripts/nf4_keep.py --base Qwen/Qwen2.5-0.5B --device cuda --out 0.5b.jsonl
+
+More seeds of the null go on the paper's own poles (#7072). ``--poles-from`` keeps the poles of
+a results file's ``base`` rows, and ``--first-seed`` starts after the seeds already run. A
+pole can get a newer record with the same base readings, which the check of ``--poles-from``
+does not see. So ``--wiki-dir`` reads the registry as it was at the paper's commit:
+
+    git archive <the paper's commit> wiki | tar -x -C snapshot
+    uv run python scripts/nf4_keep.py --base Qwen/Qwen2.5-0.5B --device cuda \
+        --wiki-dir snapshot/wiki --condition random_nf4 --first-seed 3 --seeds 7 \
+        --poles-from papers/nf4-keep/results.jsonl --out 0.5b-seeds.jsonl
 """
 
 from __future__ import annotations
@@ -213,6 +223,63 @@ def run_condition(runner, batches, records, base, state, change, fields) -> list
     return [summary(rows, **fields, change_norm=round(norm, 4)), *rows]
 
 
+def paper_poles(path: Path, model: str) -> dict[str, dict]:
+    """The readings on the base model of each pole in ``path``'s ``base`` rows of ``model``.
+
+    Args:
+        path: A results file of this script.
+        model: The model's name.
+
+    Returns:
+        Each pole's base readings, by slug.
+
+    Examples:
+        >>> import tempfile
+        >>> rows = [{"table": "base", "model": "m", "slug": "a", "readings": {"passes": True}},
+        ...         {"table": "base", "model": "n", "slug": "b", "readings": {}},
+        ...         {"table": "summary", "model": "m"}]
+        >>> with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False) as f:
+        ...     _ = f.write("".join(json.dumps(r) + "\\n" for r in rows))
+        >>> paper_poles(Path(f.name), "m")
+        {'a': {'passes': True}}
+    """
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+    return {r["slug"]: r["readings"] for r in rows
+            if r["table"] == "base" and r["model"] == model}  # fmt: skip
+
+
+def differing(on_base: dict[str, dict], paper: dict[str, dict], tol: float = 1e-3) -> list[str]:
+    """The poles whose readings on the base model differ from the paper's.
+
+    A pole differs when it passes in one and not the other, or when a score moves by more than
+    ``tol``. A pole missing from either side differs too.
+
+    Args:
+        on_base: This run's readings, by slug.
+        paper: The paper's readings, by slug.
+        tol: The largest move of a score that still counts as the same.
+
+    Returns:
+        The slugs that differ, sorted.
+
+    Examples:
+        >>> a = {"x": {"passes": True, "balanced_accuracy": 0.9}, "y": {"passes": True}}
+        >>> b = {"x": {"passes": True, "balanced_accuracy": 0.95}, "z": {"passes": True}}
+        >>> differing(a, b)
+        ['x', 'y', 'z']
+    """
+    out = []
+    for slug in sorted(on_base.keys() | paper.keys()):
+        mine, theirs = on_base.get(slug), paper.get(slug)
+        if mine is None or theirs is None or mine.get("passes") != theirs.get("passes"):
+            out.append(slug)
+            continue
+        scores = [k for k, v in theirs.items() if isinstance(v, float)]
+        if any(abs(mine.get(k, 0.0) - theirs[k]) > tol for k in scores):
+            out.append(slug)
+    return out
+
+
 @click.command()
 @click.option("--base", "base_name", required=True, help="The model, e.g. Qwen/Qwen2.5-0.5B.")
 @click.option("--wiki-dir", default="wiki", type=click.Path(file_okay=False, path_type=Path))
@@ -220,7 +287,10 @@ def run_condition(runner, batches, records, base, state, change, fields) -> list
 @click.option("--device", default="cpu", show_default=True)
 @click.option("--condition", "names", multiple=True, type=click.Choice(CONDITIONS))
 @click.option("--seeds", default=3, show_default=True, help="Seeds of random_nf4.")
-def main(base_name, wiki_dir, out, device, names, seeds) -> None:
+@click.option("--first-seed", default=0, show_default=True, help="The first seed of random_nf4.")
+@click.option("--poles-from", type=click.Path(dir_okay=False, path_type=Path),
+              help="Test only the poles of this results file's base rows.")  # fmt: skip
+def main(base_name, wiki_dir, out, device, names, seeds, first_seed, poles_from) -> None:
     """Test each VERIFIED pole under each condition, and write the rows to ``--out``.
 
     Args:
@@ -230,10 +300,15 @@ def main(base_name, wiki_dir, out, device, names, seeds) -> None:
         device: The device of the model.
         names: The conditions to run. With none, every condition runs.
         seeds: The number of seeds of ``random_nf4``.
+        first_seed: The first seed of ``random_nf4``.
+        poles_from: A results file whose ``base`` rows name the poles to test, or None.
     """
     from openinterpretability.cli import _load_runner
 
     records = verified_records(wiki_dir, base_name)
+    paper = paper_poles(poles_from, base_name) if poles_from else None
+    if paper is not None:  # the paper's poles only, so that new seeds join its old ones
+        records = [r for r in records if r.submission.identifier.slug in paper]
     runner = _load_runner(base_name, device, "float32", None)
     batches = sample_windows(runner.tokenizer)
     base = base_columns(runner, batches, records)
@@ -241,10 +316,12 @@ def main(base_name, wiki_dir, out, device, names, seeds) -> None:
     on_base = {
         r.submission.identifier.slug: cached_readings(runner, r, cache, firsts) for r in records
     }
+    if paper is not None and (moved := differing(on_base, paper)):
+        click.echo(f"{len(moved)} poles read differently from {poles_from}: {moved}", err=True)
     state = {"on_base": on_base, "cache": cache, "firsts": firsts}
     lines = base_rows(records, on_base, base_name)
     for name in names or CONDITIONS:
-        for seed in range(seeds) if name == "random_nf4" else [None]:
+        for seed in range(first_seed, first_seed + seeds) if name == "random_nf4" else [None]:
             fields = {"model": base_name, "condition": name, "seed": seed,
                       "sample_tokens": SAMPLE_TOKENS}  # fmt: skip
             change = change_for(runner.model, name, seed or 0)
