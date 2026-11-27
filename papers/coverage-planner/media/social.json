@@ -1,0 +1,29 @@
+{
+ "source": "media/trajectory.svg",
+ "sha256": "d8d2893cdf7519ff4b74b84a9977ca5586542c915cb177fb857260f1d9629730",
+ "files": [
+  "social.mp4",
+  "social.png"
+ ],
+ "figures": {
+  "joint": {
+   "sha256": "e0f7b6cce5534574e21c14162fc091171985e1df8ff833e54a6060465dea9c51",
+   "files": [
+    "social-joint.png"
+   ]
+  },
+  "picks": {
+   "sha256": "95c4f5304a05780d98d898339e72f60c8dd872a93f63d295bec72a12e5154db6",
+   "files": [
+    "social-picks.png"
+   ]
+  },
+  "trajectory": {
+   "sha256": "d8d2893cdf7519ff4b74b84a9977ca5586542c915cb177fb857260f1d9629730",
+   "files": [
+    "social-trajectory.mp4",
+    "social-trajectory.png"
+   ]
+  }
+ }
+}

@@ -13,6 +13,7 @@ from pathlib import Path
 import figures_concept_space
 import figures_conformal
 import figures_copy_first_unit
+import figures_coverage_planner
 import figures_default_on
 import figures_default_on_decoding
 import figures_depth
@@ -79,6 +80,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         "copy-first-unit": figures_copy_first_unit.build(
             [r for r in _rows("copy-first-unit") if "prompt" in r]
         ),
+        "coverage-planner": figures_coverage_planner.build(_rows("coverage-planner")),
         "conformal-line": figures_conformal.build(_rows("conformal-line")),
         "instruct-difference": figures_instruct_difference.build(_rows("instruct-difference")),
         "neuron-development": {

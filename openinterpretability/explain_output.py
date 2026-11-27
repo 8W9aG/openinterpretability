@@ -42,7 +42,8 @@ def _print_plan(planned, show: int, reach: dict) -> None:
                f"{len(planned.experiments)} unit experiments in all, and "
                f"{len(planned.groups)} for superpositions and circuits.")  # fmt: skip
     if reach.get("chosen"):
-        click.echo("  Greedy picks, by joint coverage: " + ", ".join(reach["chosen"][:20]))
+        picked = f" (they bring back {reach['picked']:.1%})" if "picked" in reach else ""
+        click.echo(f"  Greedy picks, by joint coverage{picked}: " + ", ".join(reach["chosen"][:20]))
     if marks := _milestones(planned):
         click.echo(
             "  Of the |attribution|: "
