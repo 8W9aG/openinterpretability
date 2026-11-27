@@ -1,0 +1,24 @@
+# The paper's X thread (labinacan/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    To explain one answer of a model, we plan unit experiments until their units bring back the
+    whole answer. Our old planner stalled at 0.30 to 0.64 on eight prompts of pythia-70m. Why?
+    {link}
+  media: [trajectory]
+- section: Why did the old plan stall?
+  text: >-
+    It scored only the 120 candidates with the largest attribution. The same greedy step over
+    every candidate reaches the whole answer on all eight prompts. The window caused the stall,
+    not the interaction between units.
+- section: How close is the lazy plan to the full scan?
+  text: >-
+    Score every candidate once, then rescore only the best 256 at each pick: 35 to 73 picks to
+    the whole answer, against 32 to 58 for a full rescan, and 9 to 14 seconds per prompt
+    against 216 to 444.
+  media: [picks]
+- section: Does planning prompts together save experiments?
+  text: >-
+    Planned together, so that one experiment counts for every prompt it helps, eight prompts
+    reach 0.9 in 118 experiments, against 160 when each is planned alone. {link}
+  media: [joint]

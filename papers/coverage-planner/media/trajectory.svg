@@ -1,0 +1,248 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 495" width="760" height="495" role="img">
+<title>The old plan stops at 0.30 after 47 picks. The lazy plan reaches 1.0 after 73 picks, and the full scan after 58.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+@keyframes p1{0%{opacity:0}6.2%{opacity:1}100%{opacity:1}}.p1{animation:p1 9s step-end infinite;opacity:1}@keyframes p2{0%{opacity:0}7.3%{opacity:1}100%{opacity:1}}.p2{animation:p2 9s step-end infinite;opacity:1}@keyframes p3{0%{opacity:0}8.5%{opacity:1}100%{opacity:1}}.p3{animation:p3 9s step-end infinite;opacity:1}@keyframes p4{0%{opacity:0}9.7%{opacity:1}100%{opacity:1}}.p4{animation:p4 9s step-end infinite;opacity:1}@keyframes p5{0%{opacity:0}10.8%{opacity:1}100%{opacity:1}}.p5{animation:p5 9s step-end infinite;opacity:1}@keyframes p6{0%{opacity:0}12.0%{opacity:1}100%{opacity:1}}.p6{animation:p6 9s step-end infinite;opacity:1}@keyframes p7{0%{opacity:0}13.2%{opacity:1}100%{opacity:1}}.p7{animation:p7 9s step-end infinite;opacity:1}@keyframes p8{0%{opacity:0}14.3%{opacity:1}100%{opacity:1}}.p8{animation:p8 9s step-end infinite;opacity:1}@keyframes p9{0%{opacity:0}15.5%{opacity:1}100%{opacity:1}}.p9{animation:p9 9s step-end infinite;opacity:1}@keyframes p10{0%{opacity:0}16.6%{opacity:1}100%{opacity:1}}.p10{animation:p10 9s step-end infinite;opacity:1}@keyframes p11{0%{opacity:0}17.8%{opacity:1}100%{opacity:1}}.p11{animation:p11 9s step-end infinite;opacity:1}@keyframes p12{0%{opacity:0}19.0%{opacity:1}100%{opacity:1}}.p12{animation:p12 9s step-end infinite;opacity:1}@keyframes p13{0%{opacity:0}20.1%{opacity:1}100%{opacity:1}}.p13{animation:p13 9s step-end infinite;opacity:1}@keyframes p14{0%{opacity:0}21.3%{opacity:1}100%{opacity:1}}.p14{animation:p14 9s step-end infinite;opacity:1}@keyframes p15{0%{opacity:0}22.5%{opacity:1}100%{opacity:1}}.p15{animation:p15 9s step-end infinite;opacity:1}@keyframes p16{0%{opacity:0}23.6%{opacity:1}100%{opacity:1}}.p16{animation:p16 9s step-end infinite;opacity:1}@keyframes p17{0%{opacity:0}24.8%{opacity:1}100%{opacity:1}}.p17{animation:p17 9s step-end infinite;opacity:1}@keyframes p18{0%{opacity:0}26.0%{opacity:1}100%{opacity:1}}.p18{animation:p18 9s step-end infinite;opacity:1}@keyframes p19{0%{opacity:0}27.1%{opacity:1}100%{opacity:1}}.p19{animation:p19 9s step-end infinite;opacity:1}@keyframes p20{0%{opacity:0}28.3%{opacity:1}100%{opacity:1}}.p20{animation:p20 9s step-end infinite;opacity:1}@keyframes p21{0%{opacity:0}29.5%{opacity:1}100%{opacity:1}}.p21{animation:p21 9s step-end infinite;opacity:1}@keyframes p22{0%{opacity:0}30.6%{opacity:1}100%{opacity:1}}.p22{animation:p22 9s step-end infinite;opacity:1}@keyframes p23{0%{opacity:0}31.8%{opacity:1}100%{opacity:1}}.p23{animation:p23 9s step-end infinite;opacity:1}@keyframes p24{0%{opacity:0}32.9%{opacity:1}100%{opacity:1}}.p24{animation:p24 9s step-end infinite;opacity:1}@keyframes p25{0%{opacity:0}34.1%{opacity:1}100%{opacity:1}}.p25{animation:p25 9s step-end infinite;opacity:1}@keyframes p26{0%{opacity:0}35.3%{opacity:1}100%{opacity:1}}.p26{animation:p26 9s step-end infinite;opacity:1}@keyframes p27{0%{opacity:0}36.4%{opacity:1}100%{opacity:1}}.p27{animation:p27 9s step-end infinite;opacity:1}@keyframes p28{0%{opacity:0}37.6%{opacity:1}100%{opacity:1}}.p28{animation:p28 9s step-end infinite;opacity:1}@keyframes p29{0%{opacity:0}38.8%{opacity:1}100%{opacity:1}}.p29{animation:p29 9s step-end infinite;opacity:1}@keyframes p30{0%{opacity:0}39.9%{opacity:1}100%{opacity:1}}.p30{animation:p30 9s step-end infinite;opacity:1}@keyframes p31{0%{opacity:0}41.1%{opacity:1}100%{opacity:1}}.p31{animation:p31 9s step-end infinite;opacity:1}@keyframes p32{0%{opacity:0}42.3%{opacity:1}100%{opacity:1}}.p32{animation:p32 9s step-end infinite;opacity:1}@keyframes p33{0%{opacity:0}43.4%{opacity:1}100%{opacity:1}}.p33{animation:p33 9s step-end infinite;opacity:1}@keyframes p34{0%{opacity:0}44.6%{opacity:1}100%{opacity:1}}.p34{animation:p34 9s step-end infinite;opacity:1}@keyframes p35{0%{opacity:0}45.8%{opacity:1}100%{opacity:1}}.p35{animation:p35 9s step-end infinite;opacity:1}@keyframes p36{0%{opacity:0}46.9%{opacity:1}100%{opacity:1}}.p36{animation:p36 9s step-end infinite;opacity:1}@keyframes p37{0%{opacity:0}48.1%{opacity:1}100%{opacity:1}}.p37{animation:p37 9s step-end infinite;opacity:1}@keyframes p38{0%{opacity:0}49.2%{opacity:1}100%{opacity:1}}.p38{animation:p38 9s step-end infinite;opacity:1}@keyframes p39{0%{opacity:0}50.4%{opacity:1}100%{opacity:1}}.p39{animation:p39 9s step-end infinite;opacity:1}@keyframes p40{0%{opacity:0}51.6%{opacity:1}100%{opacity:1}}.p40{animation:p40 9s step-end infinite;opacity:1}@keyframes p41{0%{opacity:0}52.7%{opacity:1}100%{opacity:1}}.p41{animation:p41 9s step-end infinite;opacity:1}@keyframes p42{0%{opacity:0}53.9%{opacity:1}100%{opacity:1}}.p42{animation:p42 9s step-end infinite;opacity:1}@keyframes p43{0%{opacity:0}55.1%{opacity:1}100%{opacity:1}}.p43{animation:p43 9s step-end infinite;opacity:1}@keyframes p44{0%{opacity:0}56.2%{opacity:1}100%{opacity:1}}.p44{animation:p44 9s step-end infinite;opacity:1}@keyframes p45{0%{opacity:0}57.4%{opacity:1}100%{opacity:1}}.p45{animation:p45 9s step-end infinite;opacity:1}@keyframes p46{0%{opacity:0}58.6%{opacity:1}100%{opacity:1}}.p46{animation:p46 9s step-end infinite;opacity:1}@keyframes p47{0%{opacity:0}59.7%{opacity:1}100%{opacity:1}}.p47{animation:p47 9s step-end infinite;opacity:1}@keyframes p48{0%{opacity:0}60.9%{opacity:1}100%{opacity:1}}.p48{animation:p48 9s step-end infinite;opacity:1}@keyframes p49{0%{opacity:0}62.1%{opacity:1}100%{opacity:1}}.p49{animation:p49 9s step-end infinite;opacity:1}@keyframes p50{0%{opacity:0}63.2%{opacity:1}100%{opacity:1}}.p50{animation:p50 9s step-end infinite;opacity:1}@keyframes p51{0%{opacity:0}64.4%{opacity:1}100%{opacity:1}}.p51{animation:p51 9s step-end infinite;opacity:1}@keyframes p52{0%{opacity:0}65.5%{opacity:1}100%{opacity:1}}.p52{animation:p52 9s step-end infinite;opacity:1}@keyframes p53{0%{opacity:0}66.7%{opacity:1}100%{opacity:1}}.p53{animation:p53 9s step-end infinite;opacity:1}@keyframes p54{0%{opacity:0}67.9%{opacity:1}100%{opacity:1}}.p54{animation:p54 9s step-end infinite;opacity:1}@keyframes p55{0%{opacity:0}69.0%{opacity:1}100%{opacity:1}}.p55{animation:p55 9s step-end infinite;opacity:1}@keyframes p56{0%{opacity:0}70.2%{opacity:1}100%{opacity:1}}.p56{animation:p56 9s step-end infinite;opacity:1}@keyframes p57{0%{opacity:0}71.4%{opacity:1}100%{opacity:1}}.p57{animation:p57 9s step-end infinite;opacity:1}@keyframes p58{0%{opacity:0}72.5%{opacity:1}100%{opacity:1}}.p58{animation:p58 9s step-end infinite;opacity:1}@keyframes p59{0%{opacity:0}73.7%{opacity:1}100%{opacity:1}}.p59{animation:p59 9s step-end infinite;opacity:1}@keyframes p60{0%{opacity:0}74.9%{opacity:1}100%{opacity:1}}.p60{animation:p60 9s step-end infinite;opacity:1}@keyframes p61{0%{opacity:0}76.0%{opacity:1}100%{opacity:1}}.p61{animation:p61 9s step-end infinite;opacity:1}@keyframes p62{0%{opacity:0}77.2%{opacity:1}100%{opacity:1}}.p62{animation:p62 9s step-end infinite;opacity:1}@keyframes p63{0%{opacity:0}78.4%{opacity:1}100%{opacity:1}}.p63{animation:p63 9s step-end infinite;opacity:1}@keyframes p64{0%{opacity:0}79.5%{opacity:1}100%{opacity:1}}.p64{animation:p64 9s step-end infinite;opacity:1}@keyframes p65{0%{opacity:0}80.7%{opacity:1}100%{opacity:1}}.p65{animation:p65 9s step-end infinite;opacity:1}@keyframes p66{0%{opacity:0}81.8%{opacity:1}100%{opacity:1}}.p66{animation:p66 9s step-end infinite;opacity:1}@keyframes p67{0%{opacity:0}83.0%{opacity:1}100%{opacity:1}}.p67{animation:p67 9s step-end infinite;opacity:1}@keyframes p68{0%{opacity:0}84.2%{opacity:1}100%{opacity:1}}.p68{animation:p68 9s step-end infinite;opacity:1}@keyframes p69{0%{opacity:0}85.3%{opacity:1}100%{opacity:1}}.p69{animation:p69 9s step-end infinite;opacity:1}@keyframes p70{0%{opacity:0}86.5%{opacity:1}100%{opacity:1}}.p70{animation:p70 9s step-end infinite;opacity:1}@keyframes p71{0%{opacity:0}87.7%{opacity:1}100%{opacity:1}}.p71{animation:p71 9s step-end infinite;opacity:1}@keyframes p72{0%{opacity:0}88.8%{opacity:1}100%{opacity:1}}.p72{animation:p72 9s step-end infinite;opacity:1}@keyframes p73{0%{opacity:0}90.0%{opacity:1}100%{opacity:1}}.p73{animation:p73 9s step-end infinite;opacity:1}</style>
+<rect class="bg" width="760" height="495" rx="10"/>
+<text x="20.0" y="30.0" class="title">Scoring every candidate once lets the greedy plan reach full coverage,</text>
+<text x="20.0" y="53.0" class="title">whereas the old plan stalls</text>
+<text x="20.0" y="73.0" class="sub">Coverage after each pick on “A banjo has five strings and a horse has four” (pythia-70m). The old plan</text>
+<text x="20.0" y="91.0" class="sub">scores only the first 120 candidates by attribution. The grey line is the target.</text>
+<path class="grid" d="M70.0 372.4L720.0 372.4"/>
+<text x="63.0" y="376.4" class="small" text-anchor="end">0.00</text>
+<path class="grid" d="M70.0 315.9L720.0 315.9"/>
+<text x="63.0" y="319.9" class="small" text-anchor="end">0.25</text>
+<path class="grid" d="M70.0 259.3L720.0 259.3"/>
+<text x="63.0" y="263.3" class="small" text-anchor="end">0.50</text>
+<path class="grid" d="M70.0 202.8L720.0 202.8"/>
+<text x="63.0" y="206.8" class="small" text-anchor="end">0.75</text>
+<path class="grid" d="M70.0 146.3L720.0 146.3"/>
+<text x="63.0" y="150.3" class="small" text-anchor="end">1.00</text>
+<path class="grid" d="M70.0 135.0L70.0 395.0"/>
+<text x="70.0" y="410.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M159.0 135.0L159.0 395.0"/>
+<text x="159.0" y="410.0" class="small" text-anchor="middle">10</text>
+<path class="grid" d="M248.1 135.0L248.1 395.0"/>
+<text x="248.1" y="410.0" class="small" text-anchor="middle">20</text>
+<path class="grid" d="M337.1 135.0L337.1 395.0"/>
+<text x="337.1" y="410.0" class="small" text-anchor="middle">30</text>
+<path class="grid" d="M426.2 135.0L426.2 395.0"/>
+<text x="426.2" y="410.0" class="small" text-anchor="middle">40</text>
+<path class="grid" d="M515.2 135.0L515.2 395.0"/>
+<text x="515.2" y="410.0" class="small" text-anchor="middle">50</text>
+<path class="grid" d="M604.2 135.0L604.2 395.0"/>
+<text x="604.2" y="410.0" class="small" text-anchor="middle">60</text>
+<path class="grid" d="M693.3 135.0L693.3 395.0"/>
+<text x="693.3" y="410.0" class="small" text-anchor="middle">70</text>
+<path class="dip" d="M70.0 146.3L720.0 146.3"/>
+<path class="curve sneutral p1" d="M70.0 375.5L78.9 361.7"/>
+<path class="curve sneutral p2" d="M78.9 361.7L87.8 353.7"/>
+<path class="curve sneutral p3" d="M87.8 353.7L96.7 347.5"/>
+<path class="curve sneutral p4" d="M96.7 347.5L105.6 342.1"/>
+<path class="curve sneutral p5" d="M105.6 342.1L114.5 336.9"/>
+<path class="curve sneutral p6" d="M114.5 336.9L123.4 333.3"/>
+<path class="curve sneutral p7" d="M123.4 333.3L132.3 329.8"/>
+<path class="curve sneutral p8" d="M132.3 329.8L141.2 325.7"/>
+<path class="curve sneutral p9" d="M141.2 325.7L150.1 322.6"/>
+<path class="curve sneutral p10" d="M150.1 322.6L159.0 321.1"/>
+<path class="curve sneutral p11" d="M159.0 321.1L167.9 319.8"/>
+<path class="curve sneutral p12" d="M167.9 319.8L176.8 318.5"/>
+<path class="curve sneutral p13" d="M176.8 318.5L185.8 317.2"/>
+<path class="curve sneutral p14" d="M185.8 317.2L194.7 316.1"/>
+<path class="curve sneutral p15" d="M194.7 316.1L203.6 315.1"/>
+<path class="curve sneutral p16" d="M203.6 315.1L212.5 314.3"/>
+<path class="curve sneutral p17" d="M212.5 314.3L221.4 313.5"/>
+<path class="curve sneutral p18" d="M221.4 313.5L230.3 312.8"/>
+<path class="curve sneutral p19" d="M230.3 312.8L239.2 312.1"/>
+<path class="curve sneutral p20" d="M239.2 312.1L248.1 311.4"/>
+<path class="curve sneutral p21" d="M248.1 311.4L257.0 310.8"/>
+<path class="curve sneutral p22" d="M257.0 310.8L265.9 309.9"/>
+<path class="curve sneutral p23" d="M265.9 309.9L274.8 309.2"/>
+<path class="curve sneutral p24" d="M274.8 309.2L283.7 308.8"/>
+<path class="curve sneutral p25" d="M283.7 308.8L292.6 308.3"/>
+<path class="curve sneutral p26" d="M292.6 308.3L301.5 307.8"/>
+<path class="curve sneutral p27" d="M301.5 307.8L310.4 307.1"/>
+<path class="curve sneutral p28" d="M310.4 307.1L319.3 306.8"/>
+<path class="curve sneutral p29" d="M319.3 306.8L328.2 306.3"/>
+<path class="curve sneutral p30" d="M328.2 306.3L337.1 305.9"/>
+<path class="curve sneutral p31" d="M337.1 305.9L346.0 305.6"/>
+<path class="curve sneutral p32" d="M346.0 305.6L354.9 305.4"/>
+<path class="curve sneutral p33" d="M354.9 305.4L363.8 305.2"/>
+<path class="curve sneutral p34" d="M363.8 305.2L372.7 305.1"/>
+<path class="curve sneutral p35" d="M372.7 305.1L381.6 304.9"/>
+<path class="curve sneutral p36" d="M381.6 304.9L390.5 304.8"/>
+<path class="curve sneutral p37" d="M390.5 304.8L399.5 304.8"/>
+<path class="curve sneutral p38" d="M399.5 304.8L408.4 304.5"/>
+<path class="curve sneutral p39" d="M408.4 304.5L417.3 304.4"/>
+<path class="curve sneutral p40" d="M417.3 304.4L426.2 304.4"/>
+<path class="curve sneutral p41" d="M426.2 304.4L435.1 304.3"/>
+<path class="curve sneutral p42" d="M435.1 304.3L444.0 304.2"/>
+<path class="curve sneutral p43" d="M444.0 304.2L452.9 304.2"/>
+<path class="curve sneutral p44" d="M452.9 304.2L461.8 304.2"/>
+<path class="curve sneutral p45" d="M461.8 304.2L470.7 304.2"/>
+<path class="curve sneutral p46" d="M470.7 304.2L479.6 304.2"/>
+<path class="curve sneutral p47" d="M479.6 304.2L488.5 304.2"/>
+<path class="curve sc1 p1" d="M70.0 375.5L78.9 361.7"/>
+<path class="curve sc1 p2" d="M78.9 361.7L87.8 352.3"/>
+<path class="curve sc1 p3" d="M87.8 352.3L96.7 344.1"/>
+<path class="curve sc1 p4" d="M96.7 344.1L105.6 336.1"/>
+<path class="curve sc1 p5" d="M105.6 336.1L114.5 329.5"/>
+<path class="curve sc1 p6" d="M114.5 329.5L123.4 323.7"/>
+<path class="curve sc1 p7" d="M123.4 323.7L132.3 317.9"/>
+<path class="curve sc1 p8" d="M132.3 317.9L141.2 312.3"/>
+<path class="curve sc1 p9" d="M141.2 312.3L150.1 307.1"/>
+<path class="curve sc1 p10" d="M150.1 307.1L159.0 301.2"/>
+<path class="curve sc1 p11" d="M159.0 301.2L167.9 294.9"/>
+<path class="curve sc1 p12" d="M167.9 294.9L176.8 289.5"/>
+<path class="curve sc1 p13" d="M176.8 289.5L185.8 285.2"/>
+<path class="curve sc1 p14" d="M185.8 285.2L194.7 281.1"/>
+<path class="curve sc1 p15" d="M194.7 281.1L203.6 277.3"/>
+<path class="curve sc1 p16" d="M203.6 277.3L212.5 273.6"/>
+<path class="curve sc1 p17" d="M212.5 273.6L221.4 270.0"/>
+<path class="curve sc1 p18" d="M221.4 270.0L230.3 266.7"/>
+<path class="curve sc1 p19" d="M230.3 266.7L239.2 263.7"/>
+<path class="curve sc1 p20" d="M239.2 263.7L248.1 260.7"/>
+<path class="curve sc1 p21" d="M248.1 260.7L257.0 257.4"/>
+<path class="curve sc1 p22" d="M257.0 257.4L265.9 254.6"/>
+<path class="curve sc1 p23" d="M265.9 254.6L274.8 251.7"/>
+<path class="curve sc1 p24" d="M274.8 251.7L283.7 248.9"/>
+<path class="curve sc1 p25" d="M283.7 248.9L292.6 245.9"/>
+<path class="curve sc1 p26" d="M292.6 245.9L301.5 243.0"/>
+<path class="curve sc1 p27" d="M301.5 243.0L310.4 240.2"/>
+<path class="curve sc1 p28" d="M310.4 240.2L319.3 237.6"/>
+<path class="curve sc1 p29" d="M319.3 237.6L328.2 235.0"/>
+<path class="curve sc1 p30" d="M328.2 235.0L337.1 232.6"/>
+<path class="curve sc1 p31" d="M337.1 232.6L346.0 228.9"/>
+<path class="curve sc1 p32" d="M346.0 228.9L354.9 225.3"/>
+<path class="curve sc1 p33" d="M354.9 225.3L363.8 222.1"/>
+<path class="curve sc1 p34" d="M363.8 222.1L372.7 219.4"/>
+<path class="curve sc1 p35" d="M372.7 219.4L381.6 216.7"/>
+<path class="curve sc1 p36" d="M381.6 216.7L390.5 213.9"/>
+<path class="curve sc1 p37" d="M390.5 213.9L399.5 211.4"/>
+<path class="curve sc1 p38" d="M399.5 211.4L408.4 208.9"/>
+<path class="curve sc1 p39" d="M408.4 208.9L417.3 206.6"/>
+<path class="curve sc1 p40" d="M417.3 206.6L426.2 204.3"/>
+<path class="curve sc1 p41" d="M426.2 204.3L435.1 202.0"/>
+<path class="curve sc1 p42" d="M435.1 202.0L444.0 199.8"/>
+<path class="curve sc1 p43" d="M444.0 199.8L452.9 197.6"/>
+<path class="curve sc1 p44" d="M452.9 197.6L461.8 195.5"/>
+<path class="curve sc1 p45" d="M461.8 195.5L470.7 193.4"/>
+<path class="curve sc1 p46" d="M470.7 193.4L479.6 191.4"/>
+<path class="curve sc1 p47" d="M479.6 191.4L488.5 189.3"/>
+<path class="curve sc1 p48" d="M488.5 189.3L497.4 187.4"/>
+<path class="curve sc1 p49" d="M497.4 187.4L506.3 185.4"/>
+<path class="curve sc1 p50" d="M506.3 185.4L515.2 183.5"/>
+<path class="curve sc1 p51" d="M515.2 183.5L524.1 181.6"/>
+<path class="curve sc1 p52" d="M524.1 181.6L533.0 179.8"/>
+<path class="curve sc1 p53" d="M533.0 179.8L541.9 177.9"/>
+<path class="curve sc1 p54" d="M541.9 177.9L550.8 176.1"/>
+<path class="curve sc1 p55" d="M550.8 176.1L559.7 174.3"/>
+<path class="curve sc1 p56" d="M559.7 174.3L568.6 172.6"/>
+<path class="curve sc1 p57" d="M568.6 172.6L577.5 170.8"/>
+<path class="curve sc1 p58" d="M577.5 170.8L586.4 169.0"/>
+<path class="curve sc1 p59" d="M586.4 169.0L595.3 167.3"/>
+<path class="curve sc1 p60" d="M595.3 167.3L604.2 165.5"/>
+<path class="curve sc1 p61" d="M604.2 165.5L613.2 163.8"/>
+<path class="curve sc1 p62" d="M613.2 163.8L622.1 162.2"/>
+<path class="curve sc1 p63" d="M622.1 162.2L631.0 160.5"/>
+<path class="curve sc1 p64" d="M631.0 160.5L639.9 158.7"/>
+<path class="curve sc1 p65" d="M639.9 158.7L648.8 157.0"/>
+<path class="curve sc1 p66" d="M648.8 157.0L657.7 155.3"/>
+<path class="curve sc1 p67" d="M657.7 155.3L666.6 153.8"/>
+<path class="curve sc1 p68" d="M666.6 153.8L675.5 152.5"/>
+<path class="curve sc1 p69" d="M675.5 152.5L684.4 151.0"/>
+<path class="curve sc1 p70" d="M684.4 151.0L693.3 149.6"/>
+<path class="curve sc1 p71" d="M693.3 149.6L702.2 148.2"/>
+<path class="curve sc1 p72" d="M702.2 148.2L711.1 146.9"/>
+<path class="curve sc1 p73" d="M711.1 146.9L720.0 146.3"/>
+<path class="curve sc2 p1" d="M70.0 375.5L78.9 361.7"/>
+<path class="curve sc2 p2" d="M78.9 361.7L87.8 352.3"/>
+<path class="curve sc2 p3" d="M87.8 352.3L96.7 344.1"/>
+<path class="curve sc2 p4" d="M96.7 344.1L105.6 336.1"/>
+<path class="curve sc2 p5" d="M105.6 336.1L114.5 329.5"/>
+<path class="curve sc2 p6" d="M114.5 329.5L123.4 323.7"/>
+<path class="curve sc2 p7" d="M123.4 323.7L132.3 317.9"/>
+<path class="curve sc2 p8" d="M132.3 317.9L141.2 312.3"/>
+<path class="curve sc2 p9" d="M141.2 312.3L150.1 306.7"/>
+<path class="curve sc2 p10" d="M150.1 306.7L159.0 301.3"/>
+<path class="curve sc2 p11" d="M159.0 301.3L167.9 295.2"/>
+<path class="curve sc2 p12" d="M167.9 295.2L176.8 289.3"/>
+<path class="curve sc2 p13" d="M176.8 289.3L185.8 283.5"/>
+<path class="curve sc2 p14" d="M185.8 283.5L194.7 279.0"/>
+<path class="curve sc2 p15" d="M194.7 279.0L203.6 274.5"/>
+<path class="curve sc2 p16" d="M203.6 274.5L212.5 270.6"/>
+<path class="curve sc2 p17" d="M212.5 270.6L221.4 265.0"/>
+<path class="curve sc2 p18" d="M221.4 265.0L230.3 259.3"/>
+<path class="curve sc2 p19" d="M230.3 259.3L239.2 255.2"/>
+<path class="curve sc2 p20" d="M239.2 255.2L248.1 251.0"/>
+<path class="curve sc2 p21" d="M248.1 251.0L257.0 247.5"/>
+<path class="curve sc2 p22" d="M257.0 247.5L265.9 244.0"/>
+<path class="curve sc2 p23" d="M265.9 244.0L274.8 240.5"/>
+<path class="curve sc2 p24" d="M274.8 240.5L283.7 237.2"/>
+<path class="curve sc2 p25" d="M283.7 237.2L292.6 234.0"/>
+<path class="curve sc2 p26" d="M292.6 234.0L301.5 230.8"/>
+<path class="curve sc2 p27" d="M301.5 230.8L310.4 227.7"/>
+<path class="curve sc2 p28" d="M310.4 227.7L319.3 224.8"/>
+<path class="curve sc2 p29" d="M319.3 224.8L328.2 221.7"/>
+<path class="curve sc2 p30" d="M328.2 221.7L337.1 218.5"/>
+<path class="curve sc2 p31" d="M337.1 218.5L346.0 215.6"/>
+<path class="curve sc2 p32" d="M346.0 215.6L354.9 212.8"/>
+<path class="curve sc2 p33" d="M354.9 212.8L363.8 209.9"/>
+<path class="curve sc2 p34" d="M363.8 209.9L372.7 207.1"/>
+<path class="curve sc2 p35" d="M372.7 207.1L381.6 203.9"/>
+<path class="curve sc2 p36" d="M381.6 203.9L390.5 199.9"/>
+<path class="curve sc2 p37" d="M390.5 199.9L399.5 196.8"/>
+<path class="curve sc2 p38" d="M399.5 196.8L408.4 194.0"/>
+<path class="curve sc2 p39" d="M408.4 194.0L417.3 191.2"/>
+<path class="curve sc2 p40" d="M417.3 191.2L426.2 188.6"/>
+<path class="curve sc2 p41" d="M426.2 188.6L435.1 185.9"/>
+<path class="curve sc2 p42" d="M435.1 185.9L444.0 183.4"/>
+<path class="curve sc2 p43" d="M444.0 183.4L452.9 180.8"/>
+<path class="curve sc2 p44" d="M452.9 180.8L461.8 178.1"/>
+<path class="curve sc2 p45" d="M461.8 178.1L470.7 175.7"/>
+<path class="curve sc2 p46" d="M470.7 175.7L479.6 173.2"/>
+<path class="curve sc2 p47" d="M479.6 173.2L488.5 170.8"/>
+<path class="curve sc2 p48" d="M488.5 170.8L497.4 168.4"/>
+<path class="curve sc2 p49" d="M497.4 168.4L506.3 166.1"/>
+<path class="curve sc2 p50" d="M506.3 166.1L515.2 163.8"/>
+<path class="curve sc2 p51" d="M515.2 163.8L524.1 161.4"/>
+<path class="curve sc2 p52" d="M524.1 161.4L533.0 159.0"/>
+<path class="curve sc2 p53" d="M533.0 159.0L541.9 156.5"/>
+<path class="curve sc2 p54" d="M541.9 156.5L550.8 154.1"/>
+<path class="curve sc2 p55" d="M550.8 154.1L559.7 151.9"/>
+<path class="curve sc2 p56" d="M559.7 151.9L568.6 149.8"/>
+<path class="curve sc2 p57" d="M568.6 149.8L577.5 147.7"/>
+<path class="curve sc2 p58" d="M577.5 147.7L586.4 146.4"/>
+<text x="395.0" y="426.0" class="small" text-anchor="middle">picks (unit experiments)</text>
+<path class="curve sneutral" d="M20.0 443.0L38.0 443.0"/>
+<text x="44.0" y="447.0" class="small">old plan</text>
+<path class="curve sc1" d="M108.0 443.0L126.0 443.0"/>
+<text x="132.0" y="447.0" class="small">lazy plan</text>
+<path class="curve sc2" d="M202.0 443.0L220.0 443.0"/>
+<text x="226.0" y="447.0" class="small">full scan</text>
+</svg>

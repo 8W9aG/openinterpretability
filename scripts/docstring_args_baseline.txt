@@ -1113,7 +1113,6 @@ openinterpretability/explain_coverage.py::_spread
 openinterpretability/explain_coverage.py::add_gains
 openinterpretability/explain_coverage.py::add_gains.by_gain
 openinterpretability/explain_coverage.py::coverage_plan
-openinterpretability/explain_coverage.py::coverage_plan.raw
 openinterpretability/explain_figure_data.py::figure_data
 openinterpretability/explain_figure_data.py::_edge
 openinterpretability/explain_figure_data.py::_reading

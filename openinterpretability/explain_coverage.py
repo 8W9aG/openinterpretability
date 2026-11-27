@@ -235,50 +235,53 @@ def add_gains(runner, prompt, means, token, position, order, planned, *, pool=PO
     planned.groups.sort(key=by_gain)
 
 
-GREEDY_POOL = 120  # candidate unit experiments for the greedy plan, in attribution order
-GREEDY_STEPS = 60  # the most experiments the greedy plan picks
+GREEDY_POOL = 256  # candidates rescored at each pick of the greedy plan (explain_joint.POOL)
+GREEDY_STEPS = 400  # the most experiments the greedy plan picks
+
+
+def scorer(runner, means, prompt: str, token: int, position: int, explained):
+    """The batched coverage measure of one prompt, with ``explained`` kept (#7061).
+
+    Args:
+        runner: The model's runner.
+        means: The unit means, the values of an ablated unit.
+        prompt: The prompt.
+        token: The answer's token id.
+        position: The answer's position.
+        explained: The units that every kept set keeps.
+
+    Returns:
+        A :class:`~openinterpretability.explain_batched.KeptSets` for the prompt.
+    """
+    from openinterpretability.explain_batched import KeptSets
+
+    return KeptSets(runner, means, prompt, token, position, explained)
 
 
 def coverage_plan(runner, prompt, means, token, position, order, planned, target: float,
                   *, pool: int = GREEDY_POOL, steps: int = GREEDY_STEPS) -> dict:  # fmt: skip
     """The fewest planned unit experiments that bring the coverage to ``target`` (#4476, #4558).
 
-    The target is causal coverage, not a share of |attribution|. Coverage doesn't add up:
-    units push the answer both ways, so a big set can bring back less than a small one.
-    So the plan is greedy. Each step keeps the explained units and the picks so far. It tries
-    each of the first ``pool`` candidates, and adds the one that raises coverage most. Its
-    ``gain`` becomes that marginal gain. It stops at the target, when no
-    candidate helps, or after ``steps`` picks. ``planned.experiments`` is reordered with the
-    picks first, in pick order. ``reach`` is the best coverage found: the picks', or with
-    every planned unit kept, whichever is higher.
+    The target is causal coverage, not a share of |attribution|. The plan is the lazy greedy
+    plan of :func:`openinterpretability.explain_joint.greedy` over every planned unit
+    experiment. Each pick's ``gain`` becomes its marginal gain. ``planned.experiments`` is
+    reordered with the picks first, in pick order. ``picked`` is the coverage with the
+    explained units and the picks kept. ``reach`` is the best coverage found: the picks', or
+    with every planned unit kept, whichever is higher.
     """
+    from openinterpretability.explain_joint import greedy
+
     explained = [unit for unit, _, _, done in order if done]
-    clean = _log_prob(runner, prompt, token, position)
-    ablated = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, []))
-
-    def raw(units: list) -> float:
-        kept = _log_prob(runner, prompt, token, position, keep_hooks(runner, means, units))
-        found = _raw(clean, ablated, kept)
-        return -1.0 if found is None else found
-
-    every = raw(explained + [u for e in planned.experiments for u in e.units])
-    now = min(raw(explained), 1.0)
-    chosen, units, cur = [], list(explained), now
-    candidates = list(planned.experiments[:pool])
-    progress = Progress("experiments picked for the plan, at most", min(steps, len(candidates)))
-    while cur < target and candidates and len(chosen) < steps:
-        scored = [(min(raw(units + e.units), 1.0), e) for e in candidates]
-        best, pick = max(scored, key=lambda s: s[0])
-        if best <= cur:
-            break  # no candidate raises coverage
-        pick.gain, cur = best - cur, best
-        chosen.append(pick)
-        candidates.remove(pick)
-        units += pick.units
-        progress.step()
-    rest = [e for e in planned.experiments if e not in chosen]
-    planned.experiments[:] = chosen + rest
-    reach = max(cur, min(every, 1.0))
-    out = {"target": target, "now": now, "reach": reach, "overshoot": every > 1.0,
-           "chosen": [e.target for e in chosen]}  # fmt: skip
-    return out | {"experiments": len(chosen) if cur >= target else None}
+    sets = scorer(runner, means, prompt, token, position, explained)
+    every = sets.raw([[u for e in planned.experiments for u in e.units]])[0]
+    every = -1.0 if every is None else every
+    found = greedy([sets], planned.experiments, target, pool=pool, steps=steps)
+    for pick, gain in zip(found.chosen, found.gains, strict=True):
+        pick.gain = gain
+    rest = [e for e in planned.experiments if e not in found.chosen]
+    planned.experiments[:] = found.chosen + rest
+    (now,), (picked,) = found.now, found.picked
+    out = {"target": target, "now": now, "picked": picked,
+           "reach": max(picked, min(every, 1.0)), "overshoot": every > 1.0,
+           "chosen": [e.target for e in found.chosen]}  # fmt: skip
+    return out | {"experiments": len(found.chosen) if found.reached else None}
