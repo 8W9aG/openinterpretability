@@ -1,5 +1,4 @@
 import pytest
-
 from labinacan.errors import SyncError
 from labinacan.sync.r2 import (
     IMMUTABLE_CACHE,

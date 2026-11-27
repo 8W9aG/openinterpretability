@@ -29,8 +29,8 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 .sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
 </style>
 <rect class="bg" width="760" height="405" rx="10"/>
-<text x="20.0" y="30.0" class="title">Much of what predicts the damage is depth;</text>
-<text x="20.0" y="53.0" class="title">within a layer, traffic and the loss Fisher predict it about as well</text>
+<text x="20.0" y="30.0" class="title">Much of what predicts the damage is depth. Within a layer,</text>
+<text x="20.0" y="53.0" class="title">traffic and the loss Fisher predict it about as well</text>
 <text x="20.0" y="73.0" class="sub">Spearman&#x27;s ρ with each measure over the 108 sites of the even draw. A dot is ρ over all sites, with</text>
 <text x="20.0" y="91.0" class="sub">a 95% bootstrap interval. A ring is ρ within each kind and layer, which gives depth no credit.</text>
 <path class="grid" d="M200.0 155.0L200.0 285.0"/>

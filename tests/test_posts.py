@@ -5,8 +5,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from click.testing import CliRunner
-
 from labinacan.site.research import load_papers
+
 from openinterpretability.builder.compiler import compile_site
 
 ATOM = "{http://www.w3.org/2005/Atom}"

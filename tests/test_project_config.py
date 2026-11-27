@@ -9,11 +9,12 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
+import labinacan
 from labinacan import config as cfg
 
 ROOT = Path(__file__).parents[1]
-LABINACAN = ROOT / "labinacan"
-# Generic scripts that #6629 makes read the config, before #6630 moves them under labinacan/.
+LABINACAN = Path(labinacan.__file__).parent  # the installed package (#7003)
+# Generic scripts that #6629 makes read the config, before #6630 moves them to labinacan.
 GENERIC_SCRIPTS = [
     ROOT / "scripts" / f"{n}.py"
     for n in (

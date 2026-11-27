@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 410" width="760" height="410" role="img">
+<title>A dot per layer, for 24 layers. The medians scatter around 0.5, and the median of the 24 layer medians is 0.56.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="410" rx="10"/>
+<text x="20.0" y="30.0" class="title">The adapters put no extra weight on the explained neurons</text>
+<text x="20.0" y="50.0" class="sub">For each layer: the median rank, from 0 to 1, of the layer&#x27;s explained neurons in |lora_A|.</text>
+<text x="20.0" y="68.0" class="sub">Random neurons give 0.5. The mark&#x27;s size grows with the number of explained neurons.</text>
+<path class="grid" d="M99.5 122.0L99.5 342.0"/>
+<text x="99.5" y="357.0" class="small" text-anchor="middle">0</text>
+<path class="grid" d="M197.1 122.0L197.1 342.0"/>
+<text x="197.1" y="357.0" class="small" text-anchor="middle">4</text>
+<path class="grid" d="M294.6 122.0L294.6 342.0"/>
+<text x="294.6" y="357.0" class="small" text-anchor="middle">8</text>
+<path class="grid" d="M392.2 122.0L392.2 342.0"/>
+<text x="392.2" y="357.0" class="small" text-anchor="middle">12</text>
+<path class="grid" d="M489.8 122.0L489.8 342.0"/>
+<text x="489.8" y="357.0" class="small" text-anchor="middle">16</text>
+<path class="grid" d="M587.3 122.0L587.3 342.0"/>
+<text x="587.3" y="357.0" class="small" text-anchor="middle">20</text>
+<path class="grid" d="M660.5 122.0L660.5 342.0"/>
+<text x="660.5" y="357.0" class="small" text-anchor="middle">23</text>
+<path class="grid" d="M80.0 342.0L680.0 342.0"/>
+<text x="73.0" y="346.0" class="small" text-anchor="end">0.00</text>
+<path class="grid" d="M80.0 287.0L680.0 287.0"/>
+<text x="73.0" y="291.0" class="small" text-anchor="end">0.25</text>
+<path class="grid" d="M80.0 232.0L680.0 232.0"/>
+<text x="73.0" y="236.0" class="small" text-anchor="end">0.50</text>
+<path class="grid" d="M80.0 177.0L680.0 177.0"/>
+<text x="73.0" y="181.0" class="small" text-anchor="end">0.75</text>
+<path class="grid" d="M80.0 122.0L680.0 122.0"/>
+<text x="73.0" y="126.0" class="small" text-anchor="end">1.00</text>
+<text x="380.0" y="373.0" class="small" text-anchor="middle">layer</text>
+<path class="dip" d="M80.0 232.0L680.0 232.0"/>
+<circle class="fc2 ring" cx="99.5" cy="209.9" r="8.61882341631134"/>
+<circle class="fc2 ring" cx="123.9" cy="193.8" r="6.98998886412873"/>
+<circle class="fc2 ring" cx="148.3" cy="242.1" r="6.98998886412873"/>
+<circle class="fc2 ring" cx="172.7" cy="191.6" r="6.826661530556787"/>
+<circle class="fc2 ring" cx="197.1" cy="241.4" r="7.730678732248808"/>
+<circle class="fc2 ring" cx="221.5" cy="219.1" r="7.1475800154489"/>
+<circle class="fc2 ring" cx="245.9" cy="216.0" r="7.3"/>
+<circle class="fc2 ring" cx="270.2" cy="236.2" r="6.294733192202055"/>
+<circle class="fc2 ring" cx="294.6" cy="218.6" r="6.479949748426479"/>
+<circle class="fc2 ring" cx="319.0" cy="216.5" r="6.98998886412873"/>
+<circle class="fc2 ring" cx="343.4" cy="205.5" r="6.294733192202055"/>
+<circle class="fc2 ring" cx="367.8" cy="167.5" r="6.294733192202055"/>
+<circle class="fc2 ring" cx="392.2" cy="233.1" r="6.479949748426479"/>
+<circle class="fc2 ring" cx="416.6" cy="267.7" r="7.1475800154489"/>
+<circle class="fc2 ring" cx="441.0" cy="209.9" r="6.656921938165305"/>
+<circle class="fc2 ring" cx="465.4" cy="286.6" r="6.656921938165305"/>
+<circle class="fc2 ring" cx="489.8" cy="245.2" r="7.999090833947007"/>
+<circle class="fc2 ring" cx="514.1" cy="243.1" r="6.826661530556787"/>
+<circle class="fc2 ring" cx="538.5" cy="292.3" r="6.98998886412873"/>
+<circle class="fc2 ring" cx="562.9" cy="191.4" r="6.826661530556787"/>
+<circle class="fc2 ring" cx="587.3" cy="210.4" r="6.98998886412873"/>
+<circle class="fc2 ring" cx="611.7" cy="218.4" r="8.254997827975263"/>
+<circle class="fc2 ring" cx="636.1" cy="225.7" r="7.1475800154489"/>
+<circle class="fc2 ring" cx="660.5" cy="269.8" r="6.479949748426479"/>
+</svg>

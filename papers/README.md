@@ -3,10 +3,13 @@
 Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its recorded output, and `media/` holds its figures. `scripts/paper_figures.py` draws the figures from the results, and a test fails if they differ. The site's Research section publishes the papers listed here, newest first, by the date before each one: the day it was first published. The `write-paper` skill describes how to write one.
 
 - 2026-11-26: [Does pruning a few instruct-model neurons bring back the explanations that instruction tuning breaks?](wrapper-prune/README.md)
+- 2026-11-26: [Do neuron explanations come back on the weight average of a base and an instruct model?](weight-average-keep/README.md)
 - 2026-11-26: [A traffic map of neuron explanations: which sites of pythia-70m does a change disturb?](traffic-map/README.md)
+- 2026-11-26: [Does a verified answer route keep on the instruct model?](route-keep/README.md)
 - 2026-11-26: [How do neuron explanations fail as ROME edits pile up at one layer?](rome-sequence/README.md)
 - 2026-11-26: [Which neuron explanations survive a ROME edit?](rome-keep/README.md)
 - 2026-11-26: [Do neuron explanations survive 4-bit NF4 rounding?](nf4-keep/README.md)
+- 2026-11-26: [Are rank-1 LoRA directions as explainable as native neurons?](lora-units/README.md)
 - 2026-11-25: [How many VERIFIED explanations could a weight-only check test?](token-set-ceiling/README.md)
 - 2026-11-25: [Tuning or size? A matched random change for neuron explanations under instruction tuning](random-change-keep/README.md)
 - 2026-11-24: [Which MLP neurons carry the base-to-instruct difference?](instruct-difference/README.md)

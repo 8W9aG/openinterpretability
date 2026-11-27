@@ -1,6 +1,6 @@
 # Does Fisher importance predict which explanations survive instruction tuning?
 
-Elastic weight consolidation protects the weights with a high diagonal Fisher information, on the view that they matter most to what a network already does. This paper asks whether the same quantity tells which neurons keep their meaning when instruction tuning changes a language model. We read the diagonal Fisher of every MLP neuron of Qwen2.5-0.5B on 20,000 tokens of web text. We compared it with the stored outcome for its 311 VERIFIED neuron poles: whether each explanation still passes its own adversarial probes on Qwen2.5-0.5B-Instruct (252 keep, 59 fail). The Fisher does not predict the outcome. Its within-layer percentile separates the poles that keep from those that fail with an AUC of 0.475, against 0.523 under a null that shuffles the outcomes within each layer (p = 0.21). The empirical Fisher, the input and output weights apart, and probes inside the chat template give the same null result. The Fisher of a neuron's output weights does go with a smaller change of its activation (Spearman $\rho$ = −0.33, p = 0.0001), but the neuron's activation scale explains that relation: with the scale taken out, $\rho$ = −0.03 (p = 0.51). At a fixed activation scale, a higher Fisher of the input weights goes with a *larger* change ($\rho$ = +0.22, p = 0.0001), which is the opposite of the protection that elastic weight consolidation assumes. A weight-importance score from the base model is therefore not a guide to which explanations an instruct model keeps. An output-side measure fails too. The base-to-instruct KL at each pole's own probes and top contexts gives AUROCs of 0.49 to 0.54 on Qwen2.5-0.5B.
+Elastic weight consolidation protects the weights with a high diagonal Fisher information, on the view that they matter most to what a network already does. This paper asks whether the same quantity tells which neurons keep their meaning when instruction tuning changes a language model. We read the diagonal Fisher of every MLP neuron of Qwen2.5-0.5B on 20,000 tokens of web text. We compared it with the stored outcome for its 311 VERIFIED neuron poles: whether each explanation still passes its own adversarial probes on Qwen2.5-0.5B-Instruct. The Fisher does not predict the outcome. Its within-layer percentile separates the poles that keep from those that fail with an AUC of 0.475, against 0.523 under a null that shuffles the outcomes within each layer (p = 0.21). The empirical Fisher, the input and output weights apart, and probes inside the chat template give the same null result. At a fixed activation scale, a higher Fisher of the input weights even goes with a *larger* change of a neuron's activation, the opposite of the protection that elastic weight consolidation assumes. A weight-importance score from the base model is therefore not a guide to which explanations an instruct model keeps. An output-side measure fails too: the base-to-instruct KL at each pole's own probes and top contexts gives AUROCs of 0.49 to 0.54.
 
 **Status:** Preprint. Work left: #6128 (the pole-effects estimate), #6139 (a replication of the input-Fisher relation).
 
@@ -59,11 +59,11 @@ This is the paper's question, and the answer is no. The poles that keep and the 
 
 ![The poles that keep and those that fail spread over the same within-layer Fisher percentiles.](media/keep.svg)
 
-**Figure 1.** Each mark is one of the 311 VERIFIED poles of Qwen2.5-0.5B, placed at the within-layer percentile of its neuron's total true Fisher. Circles keep their explanation on the instruct model, and triangles fail. The ticks mark each group's median.
+**Figure 1.** A neuron's Fisher importance does not tell whether its explanation keeps. Each mark is one of the 311 VERIFIED poles of Qwen2.5-0.5B, placed at the within-layer percentile of its neuron's total true Fisher. Circles keep their explanation on the instruct model, and triangles fail. The ticks mark each group's median.
 
 ![A histogram of the within-layer null builds up over 10,000 shuffles, and the observed AUC sits in its bulk.](media/shuffles.svg)
 
-**Figure 2.** The null distribution of the keep AUC, built up over 10,000 shuffles of the outcomes within each layer. Each frame shows the share of shuffles so far in each bin. The line marks the observed AUC of 0.475.
+**Figure 2.** The observed AUC sits inside its null. The null distribution of the keep AUC, built up over 10,000 shuffles of the outcomes within each layer. Each frame shows the share of shuffles so far in each bin. The line marks the observed AUC of 0.475.
 
 **Table 1.** The keep AUC of each predictor, against its within-layer null. Two outcomes: probes as plain text, and probes inside the chat template.
 
@@ -89,7 +89,7 @@ It does. The RMS percentile alone relates to $1 - r$ with $\rho$ = −0.35, slig
 
 ![Two scatter plots of activation change: against the output Fisher percentile and against the activation RMS percentile.](media/move.svg)
 
-**Figure 3.** The base-to-instruct activation change, $1 - r$, of each pole. Left: against the within-layer percentile of its neuron's output-weight Fisher. Right: against the within-layer percentile of its activation RMS. Circles keep and triangles fail. The two panels have nearly the same slope, which is why the partial correlation of the Fisher is near zero.
+**Figure 3.** Neurons that fire more move less, and the output Fisher adds nothing beyond that. The base-to-instruct activation change, $1 - r$, of each pole. Left: against the within-layer percentile of its neuron's output-weight Fisher. Right: against the within-layer percentile of its activation RMS. Circles keep and triangles fail. The two panels have nearly the same slope, which is why the partial correlation of the Fisher is near zero.
 
 The input Fisher behaves differently. Alone it relates to nothing, but with the RMS taken out its partial $\rho$ is +0.22 against a null of +0.04 (p = 0.0001). The empirical Fisher gives +0.23 (p = 0.0001). Both survive the correction. So among neurons that fire equally strongly, those whose input weights the base model's likelihood is most sensitive to change their activation pattern *more* under instruction tuning. The total Fisher's partial $\rho$, +0.15, carries the same sign.
 
@@ -112,7 +112,7 @@ The Fisher and the weight change are read in weight space. An output-side measur
 
 ![Eight AUROCs, one per model, measure and mode, against chance at 0.5](media/kl.svg)
 
-**Figure 4.** The AUROC of each output-KL measure for a failure, one row per model, measure and mode. The dashed line is chance, and each row gives its within-layer shuffle p.
+**Figure 4.** The output KL at a pole's own texts does not tell whether its explanation keeps. The AUROC of each output-KL measure for a failure, one row per model, measure and mode. The dashed line is chance, and each row gives its within-layer shuffle p.
 
 **Table 3.** The output-KL tests. Fail counts the poles whose explanation fails on the instruct model.
 

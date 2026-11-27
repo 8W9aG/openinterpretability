@@ -1,1 +1,0 @@
-- `python -m labinacan.site.build` builds the site of a project that has no build of its own, from its `templates/` folder and labinacan's default `base.html` and `index.html`. `labinacan.mk` uses it, labinacan's stylesheet and a cache folder by default (#6631).

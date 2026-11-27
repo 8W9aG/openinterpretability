@@ -1,0 +1,32 @@
+# The paper's X thread (labinacan/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Rank-1 LoRA directions are said to be about as monosemantic as neurons, by a model's
+    rating of their top examples. Do they survive an adversarial audit? We tested 20 on
+    Qwen2.5-0.5B beside 20 native neurons. {link}
+  media: [verdicts]
+- section: Do adapter directions pass the review as often as native neurons?
+  text: >-
+    Same agents, same review: the explanations of 1 of 20 adapter directions passed,
+    against 12 of 20 for native neurons.
+- section: Which tests do the adapter directions fail?
+  text: >-
+    They fail on the hard negatives: a mean specificity of 0.43, against 0.93 for the
+    natives. Their sensitivity is high, 0.95. The explanations cover the top examples but
+    not where the unit stays silent.
+  media: [gates]
+- section: Are the adapter directions active on more of the text?
+  text: >-
+    The directions are dense. They are active on 6.4% of all tokens, about 17 times
+    a native neuron's 0.39%.
+  media: [density]
+- section: Do the adapters favour the explained neurons?
+  text: >-
+    Nor do they lean on the neurons we have explained before: in 24 layers, those
+    neurons sit at a median rank of 0.56 in |lora_A|, where chance is 0.5.
+  media: [loading]
+- section: Conclusion
+  text: >-
+    A rating of a unit's top examples alone can overstate how clean a learned rank-1 direction is. A
+    test on new text, including where the unit should stay silent, tells them apart. {link}

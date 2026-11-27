@@ -12,10 +12,13 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from openinterpretability.patches.schema import Patch, PatchError, read_patch
+from openinterpretability.patches.schema import ENCODING, Patch, PatchError, read_patch
 
 MAIN = "main"
 _BRANCH = re.compile(r"^[\w][\w./-]*$")
+
+
+REFS = "refs"  # the folder of the branches, in each base model's folder
 
 
 def patches_dir(wiki_dir: Path | str) -> Path:
@@ -25,7 +28,7 @@ def patches_dir(wiki_dir: Path | str) -> Path:
 
 def model_slug(base: str) -> str:
     """The folder of a base model, from ``<model>@<revision>``."""
-    return base.split("@", 1)[0].replace("/", "--")
+    return base.partition("@")[0].replace("/", "--")
 
 
 class PatchStore:
@@ -53,7 +56,10 @@ class PatchStore:
         if path.exists():
             return path  # the same content, already written
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(patch.model_dump_json(indent=2) + "\n", encoding="utf-8")
+        text = patch.model_dump_json(indent=2) + "\n"
+        # Python reads and writes UTF-8 by default on every platform here (PEP 538, 540).
+        # A mutant that drops ENCODING changes nothing that a test can see.
+        path.write_text(text, encoding=ENCODING)  # pragma: no mutate, equivalent: see above
         if sign:
             auto_sign(path)
         return path
@@ -66,16 +72,19 @@ class PatchStore:
             if len(found) != 1:
                 raise PatchError(f"no single patch {patch_id!r} in {self.folder}")
             path = found[0]
-        return read_patch(path.read_text(encoding="utf-8"))
+        # Python reads and writes UTF-8 by default on every platform here (PEP 538, 540).
+        # A mutant that drops ENCODING changes nothing that a test can see.
+        text = path.read_text(encoding=ENCODING)  # pragma: no mutate, equivalent: see above
+        return read_patch(text)
 
     def _ref(self, name: str) -> Path:
         if not _BRANCH.match(name) or ".." in name:
             raise PatchError(f"not a branch name: {name!r}")
-        return self.folder / "refs" / name
+        return self.folder / REFS / name
 
     def branches(self) -> dict[str, str]:
         """Each branch and the patch id it points at."""
-        root = self.folder / "refs"
+        root = self.folder / REFS
         if not root.is_dir():
             return {}
         return {p.relative_to(root).as_posix(): p.read_text().strip()

@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 
 from labinacan.site.takedowns import all_hashes, load_takedowns, parse_takedowns, redact
 from labinacan.site.takedowns import takedowns_path as path_of
+
 from openinterpretability.errata_checks import changed_file, check_signature
 from openinterpretability.signing import allowed_signers_text, signature_path
 

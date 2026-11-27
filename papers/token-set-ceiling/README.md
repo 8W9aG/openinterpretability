@@ -62,7 +62,7 @@ Mostly in the first third of each model (Figure 1, Table 2). There they are 54% 
 
 ![Only 18% of VERIFIED explanations are token sets, and most are in the first third](media/share.svg)
 
-**Figure 1.** The token-set share of each model's VERIFIED poles in each third of its layers. Each dot has its 95% Wilson interval and its count. The grey line is the share over all four models.
+**Figure 1.** Only 18% of VERIFIED explanations are token sets, and most are in the first third. The token-set share of each model's VERIFIED poles in each third of its layers. Each dot has its 95% Wilson interval and its count. The grey line is the share over all four models.
 
 **Table 2.** Token-set poles out of all poles in each third of each model's layers.
 
@@ -91,7 +91,7 @@ Yes. `token_r2` gives an AUROC of 0.91 (95% interval 0.88 to 0.93) for a token-s
 
 ![The token mean explains far more of a token-set pole's activity (AUROC 0.91)](media/token-r2.svg)
 
-**Figure 2.** Each VERIFIED pole's `token_r2` by the label of its explanation. The ink line and value are each label's median.
+**Figure 2.** The token mean explains far more of a token-set pole's activity (AUROC 0.91). Each VERIFIED pole's `token_r2` by the label of its explanation. The ink line and value are each label's median.
 
 The overlap is where the labels and the activations disagree. A context label with a high `token_r2` belongs to a pole whose explanation names a context, but whose activity on the scan corpus a token mean mostly explains. `token_r2` alone can't replace the labels, because a rare token gets a mean of its own and inflates it.
 

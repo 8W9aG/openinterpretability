@@ -1,6 +1,7 @@
 """The takedown file's part of `open-interpretability check` (takedown_checks.py)."""
 
 from labinacan.site.takedowns import takedowns_path
+
 from openinterpretability.checks import CheckReport
 from openinterpretability.signing import signature_path
 from openinterpretability.takedown_checks import check_takedowns

@@ -1,4 +1,4 @@
-"""The literature map's callout cards and citations (labinacan/site/literature_map_view.py)."""
+"""The literature map's callout cards and citations (labinacan.site.literature_map_view)."""
 
 from labinacan.site.literature_map_view import (
     CARDS_PER_SIDE,

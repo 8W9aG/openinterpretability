@@ -69,3 +69,55 @@ def test_the_site_shows_the_status(tmp_path):
     assert '/issues/3"' not in page  # a reference in brackets is not work left
     assert "papers/p/CITATION.cff" in page
     assert "Preprint" in (tmp_path / "site" / "research" / "index.html").read_text()
+
+
+def test_a_preprint_abstract_over_the_cap_fails_and_a_published_one_is_left(tmp_path):
+    root = _papers(tmp_path)
+    readme = root / "p" / "README.md"
+    long = " ".join(["word"] * (papers.ABSTRACT_WORDS - 1) + ["$a + b = c$"])
+    readme.write_text(PAPER.replace("The abstract.", long))
+    papers.new("p", "#12 (x).", root)
+    assert papers.check(root) == []  # at the cap, with the formula as one word
+    readme.write_text(readme.read_text().replace(long, long + " more"))
+    assert papers.check(root) == [
+        f"p: the abstract has {papers.ABSTRACT_WORDS + 1} words, "
+        f"over the cap of {papers.ABSTRACT_WORDS} (write-paper)"
+    ]
+    papers.publish("p", root, today="2026-11-20")
+    assert papers.check(root) == []  # a published paper is frozen, whatever its length
+
+
+def _figure(tmp_path, caption, title_lines=("A rises,", "and B falls")):
+    """A preprint with one figure, whose SVG title has ``title_lines``."""
+    root = _papers(tmp_path)
+    media = root / "p" / "media"
+    media.mkdir()
+    texts = "".join(f'<text x="0" class="title">{t}</text>' for t in title_lines)
+    (media / "f.svg").write_text(f"<svg>{texts}<text class='sub'>marks</text></svg>")
+    readme = root / "p" / "README.md"
+    readme.write_text(PAPER + f"\n![A rises](media/f.svg)\n\n**Figure 1.** {caption}\n")
+    papers.new("p", "#12 (x).", root)
+    return root
+
+
+def test_a_preprint_caption_opens_with_its_figures_finding(tmp_path):
+    root = _figure(tmp_path, "A rises, and B falls. Each mark is one run.")
+    assert papers.check(root) == []
+
+
+def test_a_caption_that_only_describes_the_marks_fails(tmp_path):
+    root = _figure(tmp_path, "Each mark is one run.")
+    assert papers.check(root) == [
+        "p: Figure 1's caption does not open with its finding: 'A rises, and B falls.'"
+    ]
+
+
+def test_a_title_with_a_question_mark_keeps_it(tmp_path):
+    root = _figure(tmp_path, "Does A rise? It does.", ("Does A rise?",))
+    assert papers.check(root) == []
+
+
+def test_a_published_papers_captions_are_left_as_they_are(tmp_path):
+    root = _figure(tmp_path, "Each mark is one run.")
+    papers.publish("p", root, today="2026-11-20")
+    assert papers.check(root) == []

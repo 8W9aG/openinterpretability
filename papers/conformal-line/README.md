@@ -44,7 +44,7 @@ In the registry, the reliability of a verdict has been studied by repeating revi
 
 ![The fixed line fires on 0.7% to 23% of corpus windows, and the conformal line on about 5%](media/fire.svg)
 
-**Figure 1.** The share of 1,000 held-out corpus windows on which each pole fires. Left: the record's own line. Right: the conformal line at $\alpha = 0.05$. Dots above 50% sit on the top edge and are counted above it.
+**Figure 1.** The fixed line fires on 0.7% to 23% of corpus windows, and the conformal line on about 5%. The share of 1,000 held-out corpus windows on which each pole fires. Left: the record's own line. Right: the conformal line at $\alpha = 0.05$. Dots above 50% sit on the top edge and are counted above it.
 
 | Model | Poles | Fires at the record's line | Fires at the 5% line | Coverage at the 5% line: median, 5th percentile | Coverage at the 1% line: median, 5th percentile |
 | --- | ---: | ---: | ---: | --- | --- |
@@ -75,7 +75,7 @@ The two kinds of failure follow the line's direction. Where the conformal line i
 
 ![Quiet probes fire far above the bound in Qwen2.5, and near it in Pythia-70m and GPT-2](media/hard.svg)
 
-**Figure 2.** The share of each model's probes predicted quiet that reach the conformal line. The dashed line is $\alpha$, the rate that the guarantee bounds on corpus text.
+**Figure 2.** Quiet probes fire far above the bound in Qwen2.5, and near it in Pythia-70m and GPT-2. The share of each model's probes predicted quiet that reach the conformal line. The dashed line is $\alpha$, the rate that the guarantee bounds on corpus text.
 
 | Model | Probes predicted quiet | Fire at the record's line | Fire at the 5% line | Fire at the 1% line |
 | --- | ---: | ---: | ---: | ---: |

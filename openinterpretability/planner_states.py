@@ -76,7 +76,10 @@ def states_of(pairs, errata) -> dict[str, NeuronState]:
         record, aside = corrected(raw, errata)
         records.append(raw)
         slug = record.submission.identifier.slug
-        state = states.setdefault(slug, NeuronState(slug, record, path))
+        # A unit's first record always passes the test below, so the record and path given
+        # here are always set again. A mutant of them changes nothing that a caller can see.
+        first = NeuronState(slug, record, path)  # pragma: no mutate, equivalent: see above
+        state = states.setdefault(slug, first)
         if not aside or slug not in counted:
             state.record, state.record_path = record, path
         if not aside:

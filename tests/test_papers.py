@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-
 from labinacan.config import config
 
 PAPERS = Path(__file__).parents[1] / "papers"

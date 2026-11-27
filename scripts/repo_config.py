@@ -35,7 +35,7 @@ def packages(root: Path = Path(".")) -> tuple[str, ...]:
         The packages' folders, relative to ``root``.
 
     Examples:
-        >>> "labinacan" in packages(Path(__file__).resolve().parents[1])
+        >>> len(packages(Path(__file__).resolve().parents[1])) >= 1
         True
     """
     return tuple(_tables(root)[0].get("source_paths", ()))

@@ -32,8 +32,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import torch
-
 from labinacan.progress import Progress
+
 from openinterpretability.core.cache_dirs import cache_root
 from openinterpretability.explain_groups import HEAD, GroupAttribution, GroupDef
 from openinterpretability.harness.hooks import NeuronHookRunner

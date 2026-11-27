@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 475" width="760" height="475" role="img">
+<title>Along the line, 76, 73, 72, 69 and 68 of 80 explanations keep at α = 0.25, 0.5, 0.75, 1 and 1.5, and 77 at α = −0.5. The random changes keep 75 to 80.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+@keyframes s0{0%{opacity:0}8.0%{opacity:1}100%{opacity:1}}.s0{animation:s0 10s step-end infinite;opacity:1}@keyframes s1{0%{opacity:0}21.3%{opacity:1}100%{opacity:1}}.s1{animation:s1 10s step-end infinite;opacity:1}@keyframes s2{0%{opacity:0}34.7%{opacity:1}100%{opacity:1}}.s2{animation:s2 10s step-end infinite;opacity:1}@keyframes s3{0%{opacity:0}48.0%{opacity:1}100%{opacity:1}}.s3{animation:s3 10s step-end infinite;opacity:1}@keyframes s4{0%{opacity:0}61.3%{opacity:1}100%{opacity:1}}.s4{animation:s4 10s step-end infinite;opacity:1}@keyframes s5{0%{opacity:0}74.7%{opacity:1}100%{opacity:1}}.s5{animation:s5 10s step-end infinite;opacity:1}</style>
+<rect class="bg" width="760" height="475" rx="10"/>
+<text x="20.0" y="30.0" class="title">Explanations fail step by step along the line to the instruct model,</text>
+<text x="20.0" y="53.0" class="title">and more often than under random changes of the same size</text>
+<text x="20.0" y="73.0" class="sub">Each mark is the number of the 80 explanations that still pass at a step θ₀ + α·Δ, with</text>
+<text x="20.0" y="91.0" class="sub">the random changes of the same norm beside it. α = 0.5 is the weight average, and α = 1 the instruct model.</text>
+<path class="grid" d="M130.0 145.0L130.0 375.0"/>
+<text x="130.0" y="390.0" class="small" text-anchor="middle">−0.50</text>
+<path class="grid" d="M255.0 145.0L255.0 375.0"/>
+<text x="255.0" y="390.0" class="small" text-anchor="middle">0.00</text>
+<path class="grid" d="M317.5 145.0L317.5 375.0"/>
+<text x="317.5" y="390.0" class="small" text-anchor="middle">0.25</text>
+<path class="grid" d="M380.0 145.0L380.0 375.0"/>
+<text x="380.0" y="390.0" class="small" text-anchor="middle">0.50</text>
+<path class="grid" d="M442.5 145.0L442.5 375.0"/>
+<text x="442.5" y="390.0" class="small" text-anchor="middle">0.75</text>
+<path class="grid" d="M505.0 145.0L505.0 375.0"/>
+<text x="505.0" y="390.0" class="small" text-anchor="middle">1.00</text>
+<path class="grid" d="M630.0 145.0L630.0 375.0"/>
+<text x="630.0" y="390.0" class="small" text-anchor="middle">1.50</text>
+<path class="grid" d="M80.0 375.0L680.0 375.0"/>
+<text x="73.0" y="379.0" class="small" text-anchor="end">65</text>
+<path class="grid" d="M80.0 303.1L680.0 303.1"/>
+<text x="73.0" y="307.1" class="small" text-anchor="end">70</text>
+<path class="grid" d="M80.0 231.2L680.0 231.2"/>
+<text x="73.0" y="235.2" class="small" text-anchor="end">75</text>
+<path class="grid" d="M80.0 159.4L680.0 159.4"/>
+<text x="73.0" y="163.4" class="small" text-anchor="end">80</text>
+<text x="380.0" y="406.0" class="small" text-anchor="middle">step α along θ₀ + α·Δ (0: the base model, 1: the instruct model)</text>
+<path class="dip" d="M80.0 159.4L680.0 159.4"/>
+<path class="line sc1 soft" d="M255.0 159.4L317.5 216.9L380.0 260.0L442.5 274.4L505.0 317.5L630.0 331.9"/>
+<path class="fc2 ring s0" d="M308.8 168.3L314.1 178.1L303.4 178.1Z"/>
+<path class="fc2 ring s0" d="M326.2 154.0L331.6 163.7L320.9 163.7Z"/>
+<circle class="fc1 ring s0" cx="317.5" cy="216.9" r="5"/>
+<path class="fc2 ring s1" d="M121.2 182.7L126.6 192.4L115.8 192.4Z"/>
+<path class="fc2 ring s1" d="M138.8 168.3L144.2 178.1L133.3 178.1Z"/>
+<circle class="fc1 ring s1" cx="130.0" cy="202.5" r="5"/>
+<path class="fc2 ring s2" d="M371.3 182.7L376.7 192.4L365.9 192.4Z"/>
+<path class="fc2 ring s2" d="M388.7 168.3L394.1 178.1L383.3 178.1Z"/>
+<circle class="fc1 ring s2" cx="380.0" cy="260.0" r="5"/>
+<path class="fc2 ring s3" d="M433.8 197.1L439.1 206.8L428.4 206.8Z"/>
+<path class="fc2 ring s3" d="M451.2 182.7L456.6 192.4L445.9 192.4Z"/>
+<circle class="fc1 ring s3" cx="442.5" cy="274.4" r="5"/>
+<path class="fc2 ring s4" d="M496.3 197.1L501.7 206.8L490.9 206.8Z"/>
+<path class="fc2 ring s4" d="M513.8 182.7L519.1 192.4L508.4 192.4Z"/>
+<circle class="fc1 ring s4" cx="505.0" cy="317.5" r="5"/>
+<path class="fc2 ring s5" d="M621.2 197.1L626.6 206.8L615.9 206.8Z"/>
+<path class="fc2 ring s5" d="M638.8 225.8L644.1 235.6L633.4 235.6Z"/>
+<circle class="fc1 ring s5" cx="630.0" cy="331.9" r="5"/>
+<circle class="fc1" cx="25.0" cy="423.0" r="5"/>
+<text x="35.0" y="427.0">instruct change</text>
+<path class="fc2" d="M151.0 417.0L157.0 427.8L145.0 427.8Z"/>
+<text x="161.0" y="427.0">random change, same norm</text>
+</svg>

@@ -1,1 +1,0 @@
-- The `semantic-versioning` skill is now generic: this project's surfaces and the commands that find their changes are in its `project.md` (#6630).

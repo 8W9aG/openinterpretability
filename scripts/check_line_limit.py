@@ -32,8 +32,6 @@ EXEMPT_MARKER = re.compile(r"#\s*long-function:\s*\S")
 
 EXEMPT = (
     *generated(ROOT),  # the project's generated files (scripts/repo_config.py)
-    # A copy of publicsuffix.org's list, not code.
-    "labinacan/data/public_suffix_list.dat",
     "tests/*",
     "docs/literature/map.json",  # generated literature map (scripts/literature_map.py)
     "papers/*/results*.jsonl",  # generated result rows of a paper

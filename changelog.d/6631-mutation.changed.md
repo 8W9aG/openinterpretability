@@ -1,1 +1,0 @@
-- `scripts/mutation.py` reads the packages from `[tool.mutmut] source_paths`, and the folders to leave out of mutmut's copy from `[tool.labinacan] mutation_skip`. It names no package or folder of this project (#6631).

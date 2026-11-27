@@ -17,7 +17,6 @@ size can't be the focus. When no model can be, every model is weighted by covera
 from __future__ import annotations
 
 import json
-import math
 import re
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -165,7 +164,7 @@ def explore_weights(
     """
 
     def by_coverage(models: Sequence[str]) -> dict[str, float]:
-        weights = {m: 1.0 / math.sqrt(1 + coverage[m].covered) for m in models}
+        weights = {m: (1 + coverage[m].covered) ** -0.5 for m in models}  # 1/√(1 + covered)
         return {m: w / sum(weights.values()) for m, w in weights.items()}
 
     focus = focus_model(coverage.values(), target)

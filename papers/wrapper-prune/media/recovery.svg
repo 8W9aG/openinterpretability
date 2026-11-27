@@ -29,7 +29,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 .sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
 </style>
 <rect class="bg" width="760" height="413" rx="10"/>
-<text x="20.0" y="30.0" class="title">Pruning by gradient × weight brings back a few failed</text>
+<text x="20.0" y="30.0" class="title">Pruning by gradient times weight brings back a few failed</text>
 <text x="20.0" y="53.0" class="title">explanations, and breaks many more</text>
 <text x="20.0" y="73.0" class="sub">Qwen2.5-0.5B&#x27;s instruct model, with K MLP neurons&#x27; writes pruned. Left: of the 63</text>
 <text x="20.0" y="91.0" class="sub">explanations that fail on it, those that pass again. Right: of the 299 that keep, those that fail.</text>

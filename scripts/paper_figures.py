@@ -20,12 +20,14 @@ import figures_development
 import figures_dormant
 import figures_fisher_keep
 import figures_instruct_difference
+import figures_lora_units
 import figures_native_learned
 import figures_nf4_keep
 import figures_pruning_keep
 import figures_random_change_keep
 import figures_rome_keep
 import figures_rome_sequence
+import figures_route_keep
 import figures_sequential_tuning
 import figures_spd_input
 import figures_syntax
@@ -33,6 +35,7 @@ import figures_template_tuning
 import figures_token_set
 import figures_traffic_map
 import figures_transfer
+import figures_weight_average_keep
 import figures_why_rest
 import figures_why_rest_equal
 import figures_why_rest_push
@@ -86,12 +89,16 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         },
         "fisher-keep": figures_fisher_keep.build(_rows("fisher-keep")),
         "explanations-across-models": figures_transfer.build(_rows("explanations-across-models")),
+        "lora-units": figures_lora_units.build(
+            _rows("lora-units"), _rows("lora-units", "results.units.jsonl")
+        ),
         "native-vs-learned": figures_native_learned.build(_rows("native-vs-learned")),
         "nf4-keep": figures_nf4_keep.build(_rows("nf4-keep")),
         "pruning-keep": figures_pruning_keep.build(_rows("pruning-keep")),
         "random-change-keep": figures_random_change_keep.build(_rows("random-change-keep")),
         "rome-keep": figures_rome_keep.build(_rows("rome-keep")),
         "rome-sequence": figures_rome_sequence.build(_rows("rome-sequence")),
+        "route-keep": figures_route_keep.build(_rows("route-keep")),
         "spd-input-projections": figures_spd_input.build(_rows("spd-input-projections")),
         "syntax-positive-controls": figures_syntax.build(
             _rows("syntax-positive-controls"),
@@ -101,6 +108,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
         "template-or-tuning": figures_template_tuning.build(_rows("template-or-tuning")),
         "token-set-ceiling": figures_token_set.build(_rows("token-set-ceiling")),
         "traffic-map": figures_traffic_map.build(_rows("traffic-map")),
+        "weight-average-keep": figures_weight_average_keep.build(_rows("weight-average-keep")),
         "wrapper-prune": figures_wrapper_prune.build(_rows("wrapper-prune")),
         "sequential-tuning": figures_sequential_tuning.build(_rows("sequential-tuning")),
         "why-neurons-rest": {

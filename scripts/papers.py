@@ -43,11 +43,14 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-sys.path.insert(0, str(Path(__file__).resolve().parent))  # paper_terms, beside this script
+sys.path.insert(
+    0, str(Path(__file__).resolve().parent)
+)  # paper_terms, paper_abstract, paper_captions
 
+import paper_captions  # noqa: E402
 import paper_terms  # noqa: E402
-
 from labinacan.config import config, site_url, use  # noqa: E402
+from paper_abstract import ABSTRACT_WORDS, abstract, abstract_words  # noqa: E402
 
 use(Path(__file__).resolve().parents[1] / "pyproject.toml")  # this repository's values (#6629)
 
@@ -147,6 +150,13 @@ def problems(folder: Path, date: str) -> list[str]:
         return ["no status line under the abstract (**Status:** Preprint. Work left: #N …)"]
     if status.preprint and not status.issues:
         return ["a preprint must name the issues that hold it open"]
+    words = abstract_words(text)
+    if status.preprint and words > ABSTRACT_WORDS:  # a published paper is frozen
+        return [f"the abstract has {words} words, over the cap of {ABSTRACT_WORDS} (write-paper)"]
+    if status.preprint:  # a published paper is frozen
+        captions = paper_captions.problems(folder)
+        if captions:
+            return captions
     if not path.exists():
         return ["no CITATION.cff (scripts/papers.py new)"]
     cff = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -271,23 +281,6 @@ def version(text: str) -> int:
     """
     addenda = text.split(ADDENDA, 1)[1] if ADDENDA in text else ""
     return 1 + len(re.findall(r"^### \d{4}-\d{2}-\d{2}", addenda, re.M))
-
-
-def abstract(text: str) -> str:
-    r"""The paper's abstract as written: the first paragraph after its title, maths kept.
-
-    Args:
-        text: The paper's README.
-
-    Returns:
-        The paragraph, on one line.
-
-    Examples:
-        >>> abstract("# T\n\nIt fits $R^2$ = 0.5\nwell.\n\n**Status:** x")
-        'It fits $R^2$ = 0.5 well.'
-    """
-    body = text.split("\n\n", 1)[1].lstrip("\n")
-    return " ".join(body.split("\n\n", 1)[0].split())
 
 
 def submission(folder: Path) -> str:

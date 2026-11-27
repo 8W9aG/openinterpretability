@@ -1,4 +1,4 @@
-"""The site's stylesheet (labinacan/site/css.py): the CLI and its download."""
+"""The site's stylesheet (labinacan.site.css): the CLI and its download."""
 
 import hashlib
 import io
@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from labinacan.site import css
+
 from openinterpretability.builder import css as site_css
 
 SYSTEM = ("Linux", "x86_64")

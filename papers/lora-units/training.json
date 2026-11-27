@@ -1,0 +1,22 @@
+{
+ "table": "training",
+ "model": "Qwen/Qwen2.5-0.5B",
+ "data": "simplescaling/s1K-1.1",
+ "train": 950,
+ "held_out": 50,
+ "max_tokens": 1024,
+ "accum": 8,
+ "lr": 0.001,
+ "alpha": 1.0,
+ "seed": 5166,
+ "epochs": 2,
+ "init": 0.01,
+ "steps": 236,
+ "cos_to_init": {
+  "gate_proj": 0.047,
+  "up_proj": 0.0431,
+  "down_proj": 0.0144
+ },
+ "held_out_loss_before": 1.38529,
+ "held_out_loss_after": 1.13049
+}

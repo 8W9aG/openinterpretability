@@ -1,9 +1,10 @@
-"""Long loops report their progress (labinacan/progress.py, #3142)."""
+"""Long loops report their progress (labinacan.progress, #3142)."""
 
 from types import SimpleNamespace
 
 from labinacan import progress
 from labinacan.site import parallel
+
 from openinterpretability.harness import circuit_measures as cm
 
 
