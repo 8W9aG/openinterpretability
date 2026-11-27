@@ -199,8 +199,8 @@ def test_the_target_changes_raise_the_right_unit_within_their_norm(runner, famil
 def test_a_draft_reads_back_and_starts_as_the_identity(runner, family, tmp_path):
     fit = fa.fit_trained(runner, "B", family, LAYOUT, lam=0.0, rank=1, steps=5)
     path = tmp_path / "d.json"
-    path.write_text(json.dumps(fa.draft(fit, f"{MODEL}@abc", family)))
-    patch, ops = fa.checked(path, runner.model)
+    path.write_text(json.dumps(ff.draft(fit, f"{MODEL}@abc", family)))
+    patch, ops = ff.checked(path, runner.model)
     assert [op.type for _, op in ops] == ["lowrank_add", "lowrank_add"]
     assert patch.message["arm"] == "B" and patch.message["train"][0] == "ab has"
 

@@ -1,8 +1,8 @@
 """The copy family and the measures that every fix arm shares (#7006, #5232).
 
 ``scripts/fix_arms.py`` fits the arms. This module reads the family's splits, encodes
-prompts, and measures a model on them. ``Fit`` is one fitted change, in the form that
-``fix_arms.draft`` writes as a patch.
+prompts, and measures a model on them. ``Fit`` is one fitted change, which ``draft``
+writes as a patch and ``checked`` reads back.
 """
 
 from __future__ import annotations
@@ -178,3 +178,48 @@ class Fit:
         """The fit's file stem, such as ``B-l0.1-r4``."""
         parts = [self.arm] + [f"{k[0]}{v}" for k, v in self.settings.items()]
         return "-".join(parts)
+
+
+def draft(fit: Fit, base: str, family: Family) -> dict:
+    """The fit as a draft patch: one ``lowrank_add`` op per site, with its tensors stored.
+
+    Args:
+        fit: The fit.
+        base: ``<model>@<revision>``.
+        family: The family, whose train prompts the message lists.
+    """
+    from openinterpretability.patches.schema import Op, Patch
+    from openinterpretability.patches.tensors import put_tensor
+
+    ops = [Op(op_id=f"{fit.arm.lower()}{i}", type="lowrank_add", targets=[target],
+              params={"A": put_tensor(a), "B": put_tensor(b)})
+           for i, (target, a, b) in enumerate(fit.ops)]  # fmt: skip
+    message = {"failure": "copy family (#5232)", "issue": 7006, "arm": fit.arm,
+               "settings": fit.settings, "train": [i.prompt for i in family.train]}  # fmt: skip
+    patch = Patch(base=base, ops=ops, message=message,
+                  provenance={"by": "scripts/fix_arms.py", "issue": 7006})  # fmt: skip
+    return patch.model_dump(mode="json", exclude={"id"})
+
+
+def checked(path: Path, model) -> tuple[object, list]:
+    """Read the draft at ``path`` back as #5229 does, and check it at zero strength.
+
+    Args:
+        path: The draft file.
+        model: The base model.
+
+    Returns:
+        The sealed patch and its replayed ops.
+
+    Raises:
+        ZeroStartError: The patch changes the model at zero strength.
+    """
+    from openinterpretability.patches.apply import zero_start_check
+    from openinterpretability.patches.history import replay
+    from openinterpretability.patches.session import read_draft
+
+    patch = read_draft(path)
+    ops = replay(patch.id, {patch.id: patch}.__getitem__)
+    device = next(model.parameters()).device
+    zero_start_check(model, ops, torch.tensor([[1, 2, 3, 4]], device=device))
+    return patch, ops
