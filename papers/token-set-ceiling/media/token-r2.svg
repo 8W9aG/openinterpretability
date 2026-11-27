@@ -30,7 +30,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 </style>
 <rect class="bg" width="760" height="456" rx="10"/>
 <text x="20.0" y="30.0" class="title">The token mean explains far more of a token-set pole&#x27;s activity (AUROC 0.91)</text>
-<text x="20.0" y="50.0" class="sub">Each VERIFIED pole&#x27;s token_r2, the share of its activation variance that a mean per</text>
+<text x="20.0" y="50.0" class="sub">Each passing pole&#x27;s token_r2, the share of its activation variance that a mean per</text>
 <text x="20.0" y="68.0" class="sub">token id explains on its scan corpus, by the label of its explanation. One dot per</text>
 <text x="20.0" y="86.0" class="sub">pole; the ink line and value are each label&#x27;s median. The AUROC&#x27;s 95% interval</text>
 <text x="20.0" y="104.0" class="sub">over a bootstrap of poles is 0.88–0.93.</text>

@@ -65,9 +65,9 @@ def traffic(rows: list[dict]) -> Figure:
     top = [s for s in sites if s["draw"] == "top"]
     fig = Figure(
         ["The more traffic a site carries, the further one random change",
-         "there moves the registry's explanations"],
+         "there moves our explanations"],
         ["Each mark is one site of pythia-70m, changed by Gaussian noise of norm 1. Up: the",
-         "mean drift of the 176 VERIFIED poles' probe peaks, as a share of each pole's scale."],
+         "mean drift of the 176 passing poles' test-prompt peaks, as a share of their scale."],
         f"A scatter of {len(sites)} sites, traffic on a log scale against mean drift. Drift "
         f"rises with traffic. The {len(top)} top-traffic neurons sit highest, up to "
         f"{max(s['mean_drift'] for s in top):.1%} of scale.",

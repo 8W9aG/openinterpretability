@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: If you use this paper, please cite it as below.
 type: article
-title: How many VERIFIED explanations could a weight-only check test?
+title: How many neuron explanations could a weight-only check test?
 authors:
 - given-names: Will
   family-names: Sackfield
