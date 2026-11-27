@@ -11,7 +11,7 @@ Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its re
 - 2026-11-26: [Which neuron explanations survive a ROME edit?](rome-keep/README.md)
 - 2026-11-26: [Do neuron explanations survive 4-bit NF4 rounding?](nf4-keep/README.md)
 - 2026-11-26: [Are rank-1 LoRA directions as explainable as native neurons?](lora-units/README.md)
-- 2026-11-25: [How many VERIFIED explanations could a weight-only check test?](token-set-ceiling/README.md)
+- 2026-11-25: [How many neuron explanations could a weight-only check test?](token-set-ceiling/README.md)
 - 2026-11-25: [Tuning or size? A matched random change for neuron explanations under instruction tuning](random-change-keep/README.md)
 - 2026-11-24: [Which MLP neurons carry the base-to-instruct difference?](instruct-difference/README.md)
 - 2026-11-24: [What error rate does the review's activation line imply? A conformal line for 784 VERIFIED poles](conformal-line/README.md)

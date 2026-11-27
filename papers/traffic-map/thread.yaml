@@ -3,7 +3,7 @@
 - section: Introduction
   text: >-
     Which parts of a model can a fix change without breaking the explanations of other
-    neurons? We built a traffic map of pythia-70m from the gradients of 176 VERIFIED
+    neurons? We built a traffic map of pythia-70m from the gradients of 176 reviewed
     explanations, and tested it with a random change at 118 sites. {link}
   media: [traffic]
 - section: Does traffic predict the damage of a change?

@@ -30,9 +30,9 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 @keyframes draw0{0%{opacity:0}8.0%{opacity:1}100%{opacity:1}}.draw0{animation:draw0 9s step-end infinite;opacity:1}@keyframes step0{0%{opacity:0}8.0%{opacity:1}36.0%{opacity:0}100%{opacity:0}}.step0{animation:step0 9s step-end infinite;opacity:0}@keyframes draw1{0%{opacity:0}36.0%{opacity:1}100%{opacity:1}}.draw1{animation:draw1 9s step-end infinite;opacity:1}@keyframes step1{0%{opacity:0}36.0%{opacity:1}64.0%{opacity:0}100%{opacity:0}}.step1{animation:step1 9s step-end infinite;opacity:0}@keyframes draw2{0%{opacity:0}64.0%{opacity:1}100%{opacity:1}}.draw2{animation:draw2 9s step-end infinite;opacity:1}@keyframes step2{0%{opacity:0}64.0%{opacity:1}100%{opacity:1}}.step2{animation:step2 9s step-end infinite;opacity:1}</style>
 <rect class="bg" width="760" height="505" rx="10"/>
 <text x="20.0" y="30.0" class="title">The more traffic a site carries, the further one random change</text>
-<text x="20.0" y="53.0" class="title">there moves the registry&#x27;s explanations</text>
+<text x="20.0" y="53.0" class="title">there moves our explanations</text>
 <text x="20.0" y="73.0" class="sub">Each mark is one site of pythia-70m, changed by Gaussian noise of norm 1. Up: the</text>
-<text x="20.0" y="91.0" class="sub">mean drift of the 176 VERIFIED poles&#x27; probe peaks, as a share of each pole&#x27;s scale.</text>
+<text x="20.0" y="91.0" class="sub">mean drift of the 176 passing poles&#x27; test-prompt peaks, as a share of their scale.</text>
 <path class="grid" d="M80.0 405.0L680.0 405.0"/>
 <text x="73.0" y="409.0" class="small" text-anchor="end">0.00</text>
 <path class="grid" d="M80.0 333.7L680.0 333.7"/>
