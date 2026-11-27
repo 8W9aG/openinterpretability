@@ -20,7 +20,9 @@
 .coveragerc
 .diff-cover.toml
 .github/dependabot.yml
+.github/workflows/auto-merge.yml
 .github/workflows/close-merged-issues.yml
+.github/workflows/deploy.yml
 .github/workflows/labinacan-ci.yml
 .github/workflows/linear-released.yml
 .github/workflows/linear-sync.yml

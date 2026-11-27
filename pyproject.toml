@@ -136,6 +136,9 @@ mutation_skip = ["wiki/experiments"]
 # The workflows whose failure issues an agent may work, under their fixed titles
 # (scripts/issue_state.py). The link check is left out on purpose.
 automatic_issue_workflows = ["reproduce-nightly.yml", "deploy.yml"]
+# The files that a PR from anyone may add and still auto-merge: the records that CI measures
+# again ("Reproduce records"). auto-merge.yml reads it from the base commit (#6992).
+auto_merge_rule = "openinterpretability/core/record_kinds.py:reproducible"
 # A change to this line is breaking (scripts/changelog.py next): the protocol's version, since
 # the same evidence can then get another verdict (docs/PROTOCOL.md §6).
 breaking = { file = "openinterpretability/core/schemas.py", marker = "PROTOCOL_VERSION =" }

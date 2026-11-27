@@ -22,8 +22,10 @@ def test_the_workflows_read_the_list_not_their_own():
     merge = (ROOT / ".github/workflows/auto-merge.yml").read_text()
     assert "python3 openinterpretability/core/record_kinds.py" in ci
     assert "-- wiki/experiments |" not in ci
-    assert "sparse-checkout: openinterpretability/core/record_kinds.py" in merge
-    assert "from record_kinds import reproducible" in merge
+    # auto-merge.yml reads the rule that pyproject.toml names (#6992).
+    pyproject = (ROOT / "pyproject.toml").read_text()
+    assert 'auto_merge_rule = "openinterpretability/core/record_kinds.py:reproducible"' in pyproject
+    assert "auto_merge_rule" in merge
     assert "^wiki/experiments/" not in merge
 
 

@@ -12,6 +12,8 @@
 #   CSS_MODULE    the module that writes the site's stylesheet. Default: labinacan's, in
 #                 the accent of [tool.labinacan.brand].
 #   PROJECT_LINT  a target of its own checks, which `lint` runs, or nothing.
+#   DEPLOY_PREPARE  a target of its own steps before the deploy's build, which
+#                 `deploy-prepare` runs, or nothing (deploy.yml, #6992).
 #
 # This file holds no value of a project, so a project can take a new copy of it with no
 # merge conflict (tests/test_labinacan_config.py checks that).
@@ -23,7 +25,7 @@ ifndef PACKAGES
 $(error Set PACKAGES before including labinacan.mk)
 endif
 
-.PHONY: install packages cache-dir test coverage mutation vulture typecheck lint markdown shell vale ste format build css search-index serve clean
+.PHONY: install packages cache-dir deploy-prepare test coverage mutation vulture typecheck lint markdown shell vale ste format build css search-index serve clean
 
 WIKI_DIR ?= wiki
 DIST_DIR ?= dist
@@ -44,6 +46,10 @@ packages:
 # The project's cache folder, one line: CI caches its subfolders (`make -s cache-dir`).
 cache-dir:
 	@$(CACHE_DIR_COMMAND)
+
+# The project's steps that the deploy runs before its build (.github/workflows/deploy.yml).
+deploy-prepare:
+	$(if $(DEPLOY_PREPARE),@$(MAKE) --no-print-directory $(DEPLOY_PREPARE))
 
 # Single-threaded in each process: the tests use tiny models, and thread pools contending
 # with other jobs on the machine have hung the suite.
