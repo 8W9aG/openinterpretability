@@ -1,6 +1,4 @@
 # The preprints whose project terms wait for a rewrite (#6851, scripts/paper_terms.py).
 # Delete a paper's line in the PR that rewrites it. The check fails on a line whose paper
 # has no term left, so the list only shrinks. It goes when it is empty.
-conformal-line
 explanations-across-models
-native-vs-learned
