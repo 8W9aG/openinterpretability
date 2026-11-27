@@ -202,8 +202,10 @@ class LLMAgent:
         _write_whole(prompt_path, self.render_prompt(response_model, prompt, response_path))
         print(f"Waiting for {response_path} (prompt: {prompt_path})…", file=sys.stderr)
         deadline = time.monotonic() + self.timeout
-        seen = None  # the last unparseable response, rejected only once it stops changing
-        while time.monotonic() < deadline:
+        # The last unparseable response, rejected only once it stops changing. A response is
+        # never empty here, so None and "" are the same start.
+        seen = None  # pragma: no mutate, equivalent: a response is never ""
+        while time.monotonic() < deadline:  # pragma: no mutate, equivalent: clock ties
             text = response_path.read_text() if response_path.exists() else ""
             if text.strip():
                 try:
@@ -213,7 +215,7 @@ class LLMAgent:
                         seen = text
                         time.sleep(self.poll_interval)
                         continue
-                    seen = None
+                    seen = None  # pragma: no mutate, equivalent: a response is never ""
                     # Remove the bad answer before the error appears. An answerer that sees
                     # the error and writes again at once would else lose its answer (#4376).
                     response_path.unlink()
