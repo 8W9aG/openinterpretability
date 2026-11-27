@@ -1,15 +1,15 @@
 """A training sample from Pythia's own data, in GPT-2's tokens (#6935).
 
 The 32x batch runs of ``scripts/train_resting.py`` read about 262 million tokens in 2,000
-steps. Their old sample, ``tokens.pt`` (pile-10k, 15.3 million tokens), was read about 17
-times, and Pythia reads its data less than once. This script builds a sample large enough
-for one pass, from ``EleutherAI/pile-deduped-pythia-preshuffled``: the deduplicated Pile in
-Pythia's training order, as GPT-NeoX token ids.
+steps. Their old sample is ``tokens.pt`` (pile-10k, 15.3 million tokens). The runs read it
+about 17 times, and Pythia reads its data less than once. This script builds a sample large
+enough for one pass. Its source is ``EleutherAI/pile-deduped-pythia-preshuffled``, the
+deduplicated Pile in Pythia's training order, as GPT-NeoX token ids.
 
 It reads the start of the first shard by HTTP range, so it never downloads the 30 GB shard.
 Pythia's data has no end-of-text token between documents, so the sample has none either.
-It decodes the ids in chunks, cuts out each held-out corpus document where its first 200
-characters appear, and encodes the rest with GPT-2's tokenizer::
+It decodes the ids in chunks. It cuts out each held-out corpus document where its first
+200 characters appear, and encodes the rest with GPT-2's tokenizer::
 
     uv run python scripts/pythia_tokens.py --tokens 300000000 --out tokens_280m.pt
     uv run python scripts/train_resting.py train --cache tokens_280m.pt ...
@@ -52,8 +52,8 @@ def chunks(ids: np.ndarray, size: int = CHUNK_IDS) -> Iterator[np.ndarray]:
 def without(text: str, held_out: Sequence[str]) -> tuple[str, int]:
     """``text`` with each held-out document cut out where its first characters appear.
 
-    The cut runs from the start of the match for the document's length, or to the end of
-    ``text`` when the document runs past it.
+    The cut starts at the match and is as long as the document. When the document runs past
+    the end of ``text``, the cut stops at the end.
 
     Args:
         text: Decoded training text.
@@ -108,7 +108,13 @@ def read_ids(count: int, url: str) -> np.ndarray:
 @click.option("--corpus", type=click.Path(path_type=Path), default=Path("corpus.jsonl"),
               show_default=True, help="The held-out corpus to leave out.")  # fmt: skip
 def main(tokens: int, out: Path, corpus: Path) -> None:
-    """Build the sample and save it as one vector of GPT-2 token ids."""
+    """Build the sample and save it as one vector of GPT-2 token ids.
+
+    Args:
+        tokens: How many GPT-NeoX ids to read from the start of the shard.
+        out: Where to save the vector.
+        corpus: The held-out corpus whose documents the sample leaves out.
+    """
     import torch
     from huggingface_hub import hf_hub_url
     from train_resting import TOKENIZER  # first: it loads the CLI in the order it needs
@@ -126,8 +132,8 @@ def main(tokens: int, out: Path, corpus: Path) -> None:
         cuts += found
         parts.append(np.array(gpt2(text, add_special_tokens=False)["input_ids"], dtype=np.int32))
         click.echo(f"chunk {n}: {sum(map(len, parts)):,} GPT-2 tokens, {cuts} cuts", err=True)
-    # One end-of-text token at the end, so that the vocabulary that train_resting.py reads
-    # from the tokens (their largest id + 1) is GPT-2's, as with tokens.pt.
+    # Add one end-of-text token at the end. train_resting.py reads the vocabulary from the
+    # tokens (their largest id + 1), so this makes it GPT-2's, as with tokens.pt.
     parts.append(np.array([gpt2.eos_token_id], dtype=np.int32))
     result = torch.from_numpy(np.concatenate(parts).astype(np.int64))
     torch.save(result, out)
