@@ -330,10 +330,11 @@ def _fake_plan(monkeypatch, coverage_of):
 
     from openinterpretability import explain_coverage as ec
 
-    monkeypatch.setattr(ec, "keep_hooks", lambda runner, unit_means, units: list(units))
-    # clean −1, all ablated −5: coverage c means a log-probability of −5 + 4c
-    monkeypatch.setattr(ec, "_log_prob", lambda r, p, t, pos, hooks=None: (
-        -1.0 if hooks is None else -5.0 + 4.0 * coverage_of(set(hooks))))  # fmt: skip
+    class Sets:  # the raw coverage of each kept set is coverage_of(its units)
+        def raw(self, sets):
+            return [coverage_of(set(units)) for units in sets]
+
+    monkeypatch.setattr(ec, "scorer", lambda *a: Sets())
     experiments = [ep.PlannedExperiment(target=name, entity="pole", share=0.1, status="unstudied",
                                         draw="explore", rationale="", commands=[], units=[name])
                    for name in ("a", "b", "c")]  # fmt: skip
@@ -351,6 +352,7 @@ def test_the_greedy_plan_picks_by_joint_coverage_not_attribution_order(monkeypat
     assert [e.target for e in planned.experiments] == ["c", "b", "a"]  # the picks first
     assert planned.experiments[1].gain == pytest.approx(0.3)  # b's marginal gain, with c
     assert found["reach"] == pytest.approx(0.6) and found["now"] == 0.0
+    assert found["picked"] == pytest.approx(0.6)  # the picks' own coverage, beside reach
 
 
 def test_the_greedy_plan_stops_when_nothing_helps(monkeypatch):
