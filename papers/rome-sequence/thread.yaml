@@ -4,7 +4,7 @@
   text: >-
     Sequential model edits are known to end in collapse. What happens to the explanations of
     single neurons on the way? We made 100 ROME edits in turn at one layer of pythia-70m and
-    re-tested 180 VERIFIED explanations. {link}
+    re-tested the 180 explanations that had passed review. {link}
   media: [decay]
 - section: Do the explanations below the edit stay as they were?
   text: >-
