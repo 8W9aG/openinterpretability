@@ -97,4 +97,4 @@ class Narrator(LLMAgent):
         # that model, not the placeholder such as external/claude-code (#5966).
         told = self.structured(ReportedNarrative, task)
         self.model = recorded_model(EXTERNAL_PREFIX + canonical_agent(told.model)) or self.model
-        return Narrative.model_validate(told.model_dump(exclude={"model"}))
+        return Narrative.model_validate(told.model_dump())  # Narrative ignores "model"
