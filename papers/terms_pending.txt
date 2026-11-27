@@ -4,4 +4,3 @@
 conformal-line
 explanations-across-models
 native-vs-learned
-neuron-development

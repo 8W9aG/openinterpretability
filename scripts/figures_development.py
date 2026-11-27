@@ -94,7 +94,7 @@ def development(rows: list[dict]) -> Figure:
     first = [r for r in poles if r["slug"] in first_poles(rows)]
     n = len({r["slug"] for r in poles})
     fig = Figure(
-        ["Training loss settles by step 16,000, but the VERIFIED poles keep changing"],
+        ["Training loss settles by step 16,000, but the passing poles keep changing"],
         [
             f"Left: the median correlation of {n} Pythia-70m poles with their final activations,",
             "by step. The band holds the middle half of the poles. Dashed: the first 9 poles.",

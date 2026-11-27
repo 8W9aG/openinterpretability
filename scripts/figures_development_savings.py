@@ -128,7 +128,7 @@ def _legend(fig: Figure, bottom: float) -> None:
     fig.dot(25, bottom - 4, 5, "fc1")
     fig.text(35, bottom, "holds")
     _fail(fig, 95, bottom - 4)
-    fig.text(105, bottom, "fails, with the probes it fell short by")
+    fig.text(105, bottom, "fails, with the test prompts it fell short by")
     fig.line(400, bottom - 4, 430, bottom - 4, "axis")
     fig.text(438, bottom, "rows above the line pass again before the final step")
 
@@ -148,15 +148,15 @@ def figure(rows: list[dict]) -> Figure:
     near = sum(s <= 2 for s in fails)
     fig = Figure(
         ["Most explanations that fail after step 16,000",
-         "miss by a probe or two, then pass again"],
+         "miss by a test prompt or two, then pass again"],
         ["Each row is a pole whose explanation holds at step 16,000 and fails later.",
-         "A circle holds. A triangle fails, with the number of probes it fell short by.",
-         f"{near} of the {len(fails)} failures are within two probes. Every explanation holds "
+         "A circle holds. A triangle fails, with the number of test prompts it fell short by.",
+         f"{near} of the {len(fails)} failures are within two test prompts. Each explanation holds "
          f"at step {checkpoints[-1]:,} by selection."],
         f"A grid of {len(poles)} poles against the checkpoints from step 16,000 to "
         f"{checkpoints[-1]:,}. {sum(p['back'] is not None for p in poles)} poles pass again "
-        f"before the final step. {near} of {len(fails)} failures are one or two probes short. "
-        f"The deepest are 15 and 14 probes short.",
+        f"before the final step. {near} of {len(fails)} failures are one or two test prompts "
+        f"short. The deepest are 15 and 14 test prompts short.",
     )  # fmt: skip
     bottom = _grid(fig, poles, checkpoints)
     _legend(fig, bottom)
