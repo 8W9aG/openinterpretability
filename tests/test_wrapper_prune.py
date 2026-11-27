@@ -148,3 +148,181 @@ def test_changes_count_recovered_and_lost_poles_against_the_instruct_model():
 def test_ranked_orders_the_scores_highest_first():
     scores = {"0": [0.1, 0.5], "3": [0.9, -1.0]}
     assert check.ranked(scores, 2) == [(3, 0, 0.9), (0, 1, 0.5)]
+
+
+class _GatedMlp(nn.Module):
+    """Qwen2's MLP: down(silu(gate(x)) * up(x))."""
+
+    def __init__(self, width=3, hidden=4):
+        super().__init__()
+        self.gate_proj = nn.Linear(width, hidden, bias=False)
+        self.up_proj = nn.Linear(width, hidden, bias=False)
+        self.down_proj = nn.Linear(hidden, width, bias=False)
+
+    def forward(self, x):
+        return self.down_proj(nn.functional.silu(self.gate_proj(x)) * self.up_proj(x))
+
+
+def _gated(layers=2):
+    model = _Tiny(layers)
+    for layer in model.model.layers:
+        layer.mlp = _GatedMlp()
+    return model
+
+
+def test_an_input_score_predicts_the_kl_drop_of_zeroing_the_input_rows():
+    torch.manual_seed(1)
+    model, windows = _gated(), [torch.tensor([[0, 1, 2, 3]]), torch.tensor([[4, 2, 1, 0]])]
+    base = [torch.log_softmax(torch.randn(4, 5), dim=-1).half() for _ in windows]
+    got = wp.scores(model, windows, base, "cpu", unit="input")
+    assert set(got) == {0, 1} and got[0].shape == (4,)
+    assert all(p.grad is None for p in model.parameters())
+    assert not torch.allclose(got[1], wp.scores(model, windows, base, "cpu")[1])
+    before = wp.mean_kl(model, windows, base, "cpu")
+    mlp = model.model.layers[1].mlp
+    saved = [w.detach().clone() for w in (mlp.gate_proj.weight, mlp.up_proj.weight)]
+    with torch.no_grad():
+        mlp.gate_proj.weight[1] = 0
+        mlp.up_proj.weight[1] = 0
+    drop = before - wp.mean_kl(model, windows, base, "cpu")
+    with torch.no_grad():
+        mlp.gate_proj.weight.copy_(saved[0])
+        mlp.up_proj.weight.copy_(saved[1])
+    # Second-order terms are larger here, as two rows go at once.
+    assert drop == pytest.approx(float(got[1][1]), abs=0.25 * abs(float(got[1][1])) + 2e-3)
+
+
+def test_an_input_prune_zeroes_only_the_chosen_rows_and_switches_the_neuron_off():
+    torch.manual_seed(0)
+    base, instruct = _gated(), _gated()
+    delta = {n: (dict(instruct.named_parameters())[n] - p).detach()
+             for n, p in base.named_parameters()}  # fmt: skip
+    change = wp.pruned_change(delta, base, [(0, 2)], unit="input")
+    params = dict(base.named_parameters())
+    for name in wp.input_names(0):
+        pruned = params[name].detach() + change[name]
+        want = dict(instruct.named_parameters())[name].detach().clone()
+        want[2] = 0
+        assert torch.allclose(pruned, want)
+    untouched = set(delta) - set(wp.input_names(0))
+    assert all(torch.equal(change[n], delta[n]) for n in untouched)
+    assert wp.input_names(3) == ("model.layers.3.mlp.gate_proj.weight",
+                                 "model.layers.3.mlp.up_proj.weight")  # fmt: skip
+    mlp = _GatedMlp()
+    with torch.no_grad():
+        mlp.gate_proj.weight[2] = 0
+        mlp.up_proj.weight[2] = 0
+    x = torch.randn(5, 3)
+    hidden = nn.functional.silu(mlp.gate_proj(x)) * mlp.up_proj(x)
+    assert torch.equal(hidden[:, 2], torch.zeros(5))
+
+
+def test_the_split_is_seeded_disjoint_and_covers_every_failed_pole():
+    slugs = [f"m/L0/N{i}-positive" for i in range(7)]
+    scored, held = wp.split_failed(slugs)
+    assert len(scored) == 4 and len(held) == 3
+    assert sorted(scored + held) == sorted(slugs) and not set(scored) & set(held)
+    assert (scored, held) == wp.split_failed(list(reversed(slugs)))
+    assert (scored, held) != wp.split_failed(slugs, seed=1)
+    assert wp.split_failed([]) == ([], [])
+
+
+def test_failed_slugs_take_the_poles_that_pass_on_base_and_fail_on_instruct():
+    rows = [{"table": "summary"}, _pole("a", "none", 0, None, False),
+            _pole("b", "none", 0, None, True),
+            _pole("c", "none", 0, None, False, base_passes=False)]  # fmt: skip
+    assert wp.failed_slugs(rows) == ["a"]
+
+
+class _Record:
+    def __init__(self, texts):
+        kinds = ("hard_negative", "positive_holdout", "minimal_pair")[: len(texts)]
+        results = [
+            type("R", (), {"prompt": t, "kind": kind})()
+            for t, kind in zip(texts, kinds, strict=True)
+        ]
+        self.verdict = type("V", (), {"adversarial_test_results": results})()
+
+
+def test_text_windows_tokenize_each_probe_text_as_one_row():
+    tokenizer = lambda text: {"input_ids": [len(w) for w in text.split()]}  # noqa: E731
+    got = wp.text_windows(tokenizer, [_Record(["ab c", "abc", "skipped pair"]), _Record(["a"])])
+    assert [w.tolist() for w in got] == [[[2, 1]], [[3]], [[1]]]
+
+
+def _summary(condition, k, seed, neurons, **variant):
+    return {"table": "summary", "condition": condition, "k": k, "seed": seed, "held_kl": 0.1,
+            "neurons": neurons, **variant}  # fmt: skip
+
+
+def test_an_input_variant_leaves_out_the_poles_its_prune_switches_off():
+    v = {"unit": "input", "loss": "base"}
+    a, b, c = "m/L1/N2-positive", "m/L1/N3-negative", "m/L0/N5-positive"
+    rows = [
+        {**_pole(a, "none", 0, None, False), **v}, {**_pole(b, "none", 0, None, True), **v},
+        {**_pole(c, "none", 0, None, False), **v},
+        {**_pole(a, "top", 5, None, False), **v}, {**_pole(b, "top", 5, None, False), **v},
+        {**_pole(c, "top", 5, None, True), **v},
+        {**_pole(a, "random", 5, 0, False), **v}, {**_pole(b, "random", 5, 0, True), **v},
+        {**_pole(c, "random", 5, 0, False), **v},
+        _summary("none", 0, None, [], **v), _summary("top", 5, None, [[1, 2]], **v),
+        _summary("random", 5, 0, [[1, 3]], **v),
+        # The paper's own rows, with no variant fields, are ignored.
+        _pole(a, "none", 0, None, True), _summary("none", 0, None, []),
+    ]  # fmt: skip
+    top, rand = stats.changes(rows, unit="input")
+    assert (top["switched_off"], top["failed_on_instruct"], top["recovered"]) == (1, 1, 1)
+    assert (top["kept_on_instruct"], top["lost"]) == (1, 1)
+    assert (rand["switched_off"], rand["kept_on_instruct"], rand["lost"]) == (1, 0, 0)
+    assert rand["recovered_p"] == 1.0 and rand["lost_p"] == 1.0
+    assert "held_recovered" not in top
+    assert stats.neuron_of("Qwen--Qwen2.5-0.5B/L12/N340-negative") == (12, 340)
+    assert stats.layers_of_top(rows, unit="input") == [
+        {"table": "top_layers", "k": 5, "layers": [(1, 1)]}
+    ]
+    assert stats.layers_of_top(rows) == []
+
+
+def test_a_failed_loss_variant_counts_the_recovered_poles_in_each_half():
+    v = {"unit": "write", "loss": "failed"}
+    names = ["s1", "s2", "h1", "h2", "k"]
+    keeps_none = [False, False, False, False, True]
+    keeps_top = [True, True, True, False, True]
+    keeps_rand = [False, True, False, False, True]
+    rows = [{**_pole(n, "none", 0, None, x), **v} for n, x in zip(names, keeps_none, strict=True)]
+    rows += [{**_pole(n, "top", 5, None, x), **v} for n, x in zip(names, keeps_top, strict=True)]
+    rows += [{**_pole(n, "random", 5, 0, x), **v} for n, x in zip(names, keeps_rand, strict=True)]
+    rows += [_summary("none", 0, None, [], **v), _summary("top", 5, None, [], **v),
+             _summary("random", 5, 0, [], **v),
+             {"table": "split", **v, "seed": 0, "scored": ["s1", "s2"],
+              "held": ["h1", "h2"]}]  # fmt: skip
+    top, rand = stats.changes(rows, loss="failed")
+    assert (
+        top["recovered"],
+        top["held_failed"],
+        top["held_recovered"],
+        top["scored_recovered"],
+    ) == (3, 2, 1, 2)
+    assert (rand["held_recovered"], rand["scored_recovered"]) == (0, 1)
+    assert rand["held_recovered_p"] == 1.0
+    assert "switched_off" not in top
+
+
+def test_the_check_reads_the_paper_scores_not_a_variant():
+    rows = [{"table": "scores", "unit": "input", "loss": "base", "scores": {"0": [9.0]}},
+            {"table": "scores", "scores": {"0": [1.0]}},
+            {"table": "scores", "unit": "write", "loss": "failed",
+             "scores": {"0": [5.0]}}]  # fmt: skip
+    assert check.paper_scores(rows) == {"0": [1.0]}
+
+
+def test_paper_poles_only_drops_the_poles_that_the_paper_never_tested():
+    v = {"unit": "input", "loss": "base"}
+    rows = [
+        _pole("a", "none", 0, None, True),
+        {**_pole("a", "none", 0, None, True), **v},
+        {**_pole("new", "none", 0, None, True), **v},
+        _summary("none", 0, None, [], **v),
+    ]
+    got = stats.paper_poles_only(rows)
+    assert [r.get("slug") for r in got] == ["a", "a", None]
