@@ -34,12 +34,22 @@ class ZeroStartError(AssertionError):
 
 
 def _on(tensor: torch.Tensor, like: torch.Tensor) -> torch.Tensor:
-    """``tensor`` on the device of ``like``."""
+    """``tensor`` on the device of ``like``.
+
+    Args:
+        tensor: the tensor to move.
+        like: the tensor whose device to use.
+    """
     return tensor.to(like.device)  # pragma: no mutate, equivalent: one device on CPU
 
 
 def _like(value, like: torch.Tensor) -> torch.Tensor:
-    """``value`` as a float32 tensor on the device of ``like``."""
+    """``value`` as a float32 tensor on the device of ``like``.
+
+    Args:
+        value: a number, a list of numbers or a tensor.
+        like: the tensor whose device to use.
+    """
     where = {"device": like.device, "dtype": torch.float32}  # pragma: no mutate, equivalent: CPU
     return torch.as_tensor(value, **where)  # pragma: no mutate, equivalent: float32 values
 
