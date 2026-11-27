@@ -1,0 +1,1 @@
+- **Every preprint is now in plain words** (#6851). The last rewrites cover the remaining preprints, from `default-on-poles` to `explanations-across-models`. Each defines a pole with Cammarata (2026) and uses "passing", "test prompts" and "closest match" for the project's own terms. Every preprint passes the term check, and `papers/terms_pending.txt` is gone.

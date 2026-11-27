@@ -12,7 +12,7 @@ The Research index is at [open-interpretability.com/research](https://open-inter
 
 ## Terms
 
-`papers/terms.toml` lists this project's terms and the plain phrase for each. A preprint in `papers/terms_pending.txt` waits for its rewrite (#6851).
+`papers/terms.toml` lists this project's terms and the plain phrase for each.
 
 *Pole* is the field's term, from Cammarata (2026). Define it once in the Method, with the citation. The maintainer chose this on 2026-11-26 (#6851).
 
