@@ -1,29 +1,29 @@
-# One concept map for four models
+# One shared map of explanations for four models
 
-We placed 1,998 studied neuron poles of four language models in one shared map, by the meaning of the text each pole fires on. The map is fitted once over all four, and a new pole is placed among its neighbours without moving the old ones. Each model's poles reach every region of the map, and every region of a finer cut into 29. Pooled over the corpora they were scanned on, most pairs of models spread over the regions less alike than shuffled labels would. But the scan corpus explains most of that difference. One model's poles from two corpora overlap 62–69% by region, against 84–92% for shuffled labels. When both models were scanned on one corpus, pile-10k, no pair differs from its null. On this evidence the registry's studied poles of the four models cover the same concepts, and the map can't yet tell the models apart once the corpus is fixed.
+We placed 1,998 studied neuron poles of four language models in one shared map, by the meaning of the text each pole fires on. The map is fitted once over all four, and a new pole is placed among its neighbours without moving the old ones. Each model's poles reach every region of the map, and every region of a finer cut into 29. Pooled over the corpora they were scanned on, most pairs of models spread over the regions less alike than shuffled labels would. But the scan corpus explains most of that difference. One model's poles from two corpora overlap 62–69% by region, against 84–92% for shuffled labels. When both models were scanned on one corpus, pile-10k, no pair differs from its null. On this evidence the studied poles of the four models cover the same concepts, and the map can't yet tell the models apart once the corpus is fixed.
 
 **Status:** Preprint. Work left: #5425 (one fixed corpus and an untrained control)
 
 ## Introduction
 
-The registry explains neurons one pole at a time, in four models. Each model page used to draw its own concept map, fitted to that model's poles alone, so a place on one map meant nothing on another. Huh et al. (2024) argue that the representations of different models converge "to a shared statistical model of reality". A shared map asks a narrower question of the registry's own units. Do different models' explained neurons fall in the same regions of meaning, and does a new model fill in the space that the others made? It bears on research question 4, whether explanations carry across models ([research questions](../../docs/research-questions.md)). If two models' poles fall in different regions, their explanations can't carry.
+Our set of tested explanations explains neurons one pole at a time, in four models. A pole is one sign of a neuron's activation, after Cammarata (2026). Each model page used to draw its own map of explanations, fitted to that model's poles alone, so a place on one map meant nothing on another. Huh et al. (2024) argue that the representations of different models converge "to a shared statistical model of reality". A shared map asks a narrower question of our own units. Do different models' explained neurons fall in the same regions of meaning, and does a new model fill in the space that the others made? It bears on research question 4, whether explanations carry across models ([research questions](../../docs/research-questions.md)). If two models' poles fall in different regions, their explanations can't carry.
 
 The paper's contributions are these:
 
 1. **One shared map that new poles extend.** All four models' poles share one fit. A new pole is placed among its nearest old ones, and no old point moves until a deliberate refit. A re-run on the same records moved none of the 1,998 points. *Limit:* the map places a pole by its top examples, so it is a map of text.
-2. **No model keeps a region to itself.** Each model has poles in every region at 7, 14 and 29 regions, and in 57 to 60 of 60 (Figure 2). *Limit:* the registry's studied poles are a sample of each model.
+2. **No model keeps a region to itself.** Each model has poles in every region at 7, 14 and 29 regions, and in 57 to 60 of 60 (Figure 2). *Limit:* the studied poles are a sample of each model.
 3. **Pooled over corpora, the models spread differently.** At the map's 7 regions, all six pairs overlap less than their shuffled nulls, $p \le 0.025$ (Table 3).
 4. **The scan corpus explains most of the difference.** One model's poles from pile-10k and from the mixed corpus overlap 62–69%, against nulls of 84–92%. On pile-10k alone, no pair of models differs from its null, with $p$ from 0.48 to 0.995 (Table 4). *Limit:* the untrained-network control is not yet run (#5425).
 
-These results don't show that the four models learned the same concepts. They show that the registry's evidence can't yet tell them apart.
+These results don't show that the four models learned the same concepts. They show that our evidence can't yet tell them apart.
 
 ## Related work
 
-Huh et al. (2024) argue that representations in different models converge. They measure how alike two models are with a mutual nearest-neighbour metric: the average overlap of each input's nearest neighbours in the two models' representation spaces. This paper compares where units fall, not how inputs are arranged, and it uses the registry's explained poles only. UMAP (McInnes et al., 2018) is a manifold-learning method for dimension reduction, and the map uses it for the layout. Leiden (Traag et al., 2019) finds communities that are guaranteed to be connected, and the map uses it for the regions. Sentence-BERT (Reimers & Gurevych, 2019) gives sentence embeddings that can be compared with cosine similarity. The embedder here, `all-MiniLM-L6-v2`, is one of them: a 6-layer MiniLM model (Wang et al., 2020), fine-tuned on over a billion sentence pairs. The registry's earlier study of concept maps found that layouts keep only about half of each point's neighbours ([the study](../../docs/analyses/concept-map-feasibility.md)). The measure here therefore uses regions, not distances.
+Huh et al. (2024) argue that representations in different models converge. They measure how alike two models are with a mutual nearest-neighbour metric: the average overlap of each input's nearest neighbours in the two models' representation spaces. This paper compares where units fall, not how inputs are arranged, and it uses our explained poles only. UMAP (McInnes et al., 2018) is a manifold-learning method for dimension reduction, and the map uses it for the layout. Leiden (Traag et al., 2019) finds communities that are guaranteed to be connected, and the map uses it for the regions. Sentence-BERT (Reimers & Gurevych, 2019) gives sentence embeddings that can be compared with cosine similarity. The embedder here, `all-MiniLM-L6-v2`, is one of them: a 6-layer MiniLM model (Wang et al., 2020), fine-tuned on over a billion sentence pairs. Our earlier study of such maps found that layouts keep only about half of each point's neighbours ([the study](../../docs/analyses/concept-map-feasibility.md)). The measure here therefore uses regions, not distances.
 
 ## Method
 
-**The map.** `open-interpretability map` (`openinterpretability/concept_map.py`) reads the newest record of every studied MLP neuron pole of the four configured models: Pythia-70m, GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B. A pole's texts are its record's top examples, each cut to 20 tokens on each side of its peak. Lines of the package's 40-line sample corpus are left out, because a scan on it finds the same few lines for every neuron. A pole with no other text isn't placed, which leaves 1,998 poles. Each text is embedded with `all-MiniLM-L6-v2`. A pole's vector is the mean of its texts' embeddings. All poles of all models are centred on one pooled mean and L2-normalised. The layout is a two-dimensional UMAP, cosine, seed 0. The regions are Leiden communities of the 10-nearest-neighbour graph. The resolution is searched for the count nearest 8, which gave 7. Each region is named only from its VERIFIED members' explanations.
+**The map.** The map's code (`openinterpretability/concept_map.py`) reads the newest record of every studied MLP neuron pole in our set of tested explanations, for four models: Pythia-70m, GPT-2 small, Qwen2.5-0.5B and Qwen2.5-1.5B. A pole's texts are its record's top examples, each cut to 20 tokens on each side of its peak. Lines of the package's 40-line sample corpus are left out, because a scan on it finds the same few lines for every neuron. A pole with no other text isn't placed, which leaves 1,998 poles. Each text is embedded with `all-MiniLM-L6-v2`. A pole's vector is the mean of its texts' embeddings. All poles of all models are centred on one pooled mean and L2-normalised. The layout is a two-dimensional UMAP, cosine, seed 0. The regions are Leiden communities of the 10-nearest-neighbour graph. The resolution is searched for the count nearest 8, which gave 7. Each region is named only from the explanations of its members that passed the adversarial review.
 
 **Stable positions.** A later run keeps each old pole's position and region. A new pole goes at the similarity-weighted mean of its 10 nearest old poles, in their majority region. No fitted reducer is stored. Only a deliberate refit (`map --refit`) moves old points, and it starts from their old positions.
 
@@ -40,7 +40,7 @@ Huh et al. (2024) argue that representations in different models converge. They 
 | Qwen2.5-0.5B | 698 | 145 | 133 |
 | Qwen2.5-1.5B | 283 | 104 | 161 |
 
-Agents wrote this study's code and text, and the maintainer directed it. The explanations that name the regions come from the registry's audits.
+Agents wrote this study's code and text, and the maintainer directed it. The explanations that name the regions come from our audits.
 
 ## Every model reaches every region
 
@@ -48,7 +48,7 @@ Agents wrote this study's code and text, and the maintainer directed it. The exp
 
 **Figure 1.** Every model's poles fill one shared space, and none keeps a region to itself. The 1,998 poles on the shared map, appearing in the order they were first studied. Shape and colour give the model.
 
-The poles of all four models spread across the whole map, and each model's poles appear across it as the dates advance (Figure 1). Table 2 gives the map's 7 regions, by size, with each model's share of its poles in each. The names are the words that set a region's VERIFIED explanations apart, so they are clues, not labels. Pythia-70m has 28% of its poles in the region of scripts and languages, against 11–20% for the others. Most of Pythia-70m's poles were scanned on the mixed corpus, which holds Wikipedia in ten languages. The section after next tests whether that is the model or the corpus.
+The poles of all four models spread across the whole map, and each model's poles appear across it as the dates advance (Figure 1). Table 2 gives the map's 7 regions, by size, with each model's share of its poles in each. The names are the words that set apart a region's explanations that passed the adversarial review, so they are clues, not labels. Pythia-70m has 28% of its poles in the region of scripts and languages, against 11–20% for the others. Most of Pythia-70m's poles were scanned on the mixed corpus, which holds Wikipedia in ten languages. The section after next tests whether that is the model or the corpus.
 
 **Table 2.** The map's regions, and each model's share of its poles in each.
 
@@ -116,12 +116,12 @@ On the mixed corpus, four pairs fall below their nulls at 7 regions: Qwen2.5-0.5
 
 The pooled result looks like a difference between models. The control says most of it is a difference between corpora. Pythia-70m differs most from the others pooled, and it is also the model scanned almost only on the mixed corpus. Its large share in the region of scripts and languages matches that corpus, which holds ten Wikipedia languages. On pile-10k, the four models' spreads are as alike as random splits of one spread.
 
-For research question 4 this is a modest result. The registry's explained poles of four models fall in the same regions of meaning, so there is room for their explanations to carry. It does not say that a given pole has a counterpart in another model. The sister search answers that ([sister neurons](../../docs/analyses/sister-neurons.md)). It also does not separate learned concepts from the corpus's own topics. An untrained network's neurons, scanned on the same corpus, might fall in the same regions too.
+For research question 4 this is a modest result. The explained poles of four models fall in the same regions of meaning, so there is room for their explanations to carry. It does not say that a given pole has a matching neuron in another model. Our search for matching neurons answers that ([matching neurons](../../docs/analyses/sister-neurons.md)). It also does not separate learned concepts from the corpus's own topics. An untrained network's neurons, scanned on the same corpus, might fall in the same regions too.
 
 ## Limitations
 
 - **Positions read the corpus, not the neuron.** A pole is placed by the text it fires on most, and that text comes from whatever corpus the scan used. The shared map is a map of top examples.
-- **The studied poles are not a fixed sample.** The registry draws neurons at random, but it follows some up and stops on dead or default-on ones. Coverage therefore measures what has been studied.
+- **The studied poles are not a fixed sample.** Our audits draw neurons at random, but it follows some up and stops on dead or default-on ones. Coverage therefore measures what has been studied.
 - **The regions are coarse.** At 7 regions, coverage is 100% for every model and can't separate them. The finer cuts are Leiden partitions of the same graph, not separate fits.
 - **Distances mean little.** Another layout keeps about half of each point's neighbours. The measure uses regions, not distances.
 - **No untrained control.** #5425 holds that test.
@@ -137,6 +137,7 @@ One shared map now holds every model's studied poles, and new poles extend it wi
 
 ## References
 
+- Cammarata, N. (2026). *Neural networks are already clean*. Goodfire research essay. [already-clean.goodfire.com](https://already-clean.goodfire.com/).
 - Huh, M., Cheung, B., Wang, T., & Isola, P. (2024). *Position: The Platonic Representation Hypothesis*. In Proceedings of the 41st International Conference on Machine Learning (PMLR 235, pp. 20617–20642). [PMLR](https://proceedings.mlr.press/v235/huh24a.html). Preprint: [arXiv:2405.07987](https://arxiv.org/abs/2405.07987).
 - McInnes, L., Healy, J., & Melville, J. (2018). *UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction*. Preprint. [arXiv:1802.03426](https://arxiv.org/abs/1802.03426).
 - Reimers, N., & Gurevych, I. (2019). *Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks*. EMNLP 2019. [arXiv:1908.10084](https://arxiv.org/abs/1908.10084).

@@ -96,9 +96,9 @@ def square(rows: list[dict]) -> Figure:
     fig = Figure(
         ["The chat template costs the base model more",
          "explanations than instruction tuning does"],
-        [f"{len(poles)} VERIFIED poles of Qwen2.5-0.5B, each read on its own probes in four "
-         "conditions.", "Left: the poles that still pass both gates. Right: the mean "
-         "sensitivity of the probes."],
+        [f"{len(poles)} passing poles of Qwen2.5-0.5B, each read on its own tests in four "
+         "conditions.", "Left: the poles that still pass both tests. Right: the mean "
+         "sensitivity of the test prompts."],
         f"Two line charts, plain text against the chat template, one line per model. Keeps: "
         f"base {keeps['base_plain']} to {keeps['base_chat']}, instruct {keeps['instruct_plain']} "
         f"to {keeps['instruct_chat']}. Mean sensitivity: base {number(sens['base_plain'], 3)} "
@@ -153,8 +153,8 @@ def grid(rows: list[dict]) -> Figure:
     fig = Figure(
         ["Most of the explanations that fail inside the",
          "chat template fail on the base model already"],
-        ["Each mark is one VERIFIED pole of Qwen2.5-0.5B, in the column of its layer. A filled",
-         "mark passes its own probes, and an open mark fails. The frames step through the "
+        ["Each mark is one passing pole of Qwen2.5-0.5B, in the column of its layer. A filled",
+         "mark passes its own tests, and an open mark fails. The frames step through the "
          "four conditions."],
         f"A grid of {len(poles)} marks in 24 columns, one per layer. Four frames: the base "
         "model on plain text, the base model inside the chat template, the instruct model on "

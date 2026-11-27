@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 363" width="760" height="363" role="img">
-<title>Two panels, one for each Qwen2.5 model, with three rows: NF4 rounding, random changes of the same norm, and bfloat16 rounding, which changes nothing. On Qwen2.5-1.5B, 66 of 75 keep under NF4, and 58 to 62 under the random changes.</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 393" width="760" height="393" role="img">
+<title>Two panels, one for each Qwen2.5 model, with three rows: NF4 rounding, random changes of the same norm, and bfloat16 rounding, which changes nothing. On Qwen2.5-1.5B, 66 of 75 keep under NF4, and 57 to 67 under the random changes.</title>
 <style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
 .bg{fill:var(--surface)}
 text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
@@ -28,62 +28,90 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 .sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
 .sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
 </style>
-<rect class="bg" width="760" height="363" rx="10"/>
-<text x="20.0" y="30.0" class="title">NF4 rounding keeps most explanations, and on Qwen2.5-1.5B</text>
-<text x="20.0" y="53.0" class="title">more than a random change of the same size</text>
-<text x="20.0" y="73.0" class="sub">Each mark is the share of VERIFIED explanations that still pass their probes, with a</text>
+<rect class="bg" width="760" height="393" rx="10"/>
+<text x="20.0" y="30.0" class="title">NF4 rounding keeps most explanations, and on Qwen2.5-1.5B more</text>
+<text x="20.0" y="53.0" class="title">than 9 of 10 random changes of the same size</text>
+<text x="20.0" y="73.0" class="sub">Each mark is the share of passing explanations that still pass their tests, with a</text>
 <text x="20.0" y="91.0" class="sub">95% interval. Each random change has the norm of NF4&#x27;s error in every matrix.</text>
-<path class="grid" d="M190.0 145.0L190.0 265.0"/>
-<text x="190.0" y="280.0" class="small" text-anchor="middle">0.6</text>
-<path class="grid" d="M252.5 145.0L252.5 265.0"/>
-<text x="252.5" y="280.0" class="small" text-anchor="middle">0.7</text>
-<path class="grid" d="M315.0 145.0L315.0 265.0"/>
-<text x="315.0" y="280.0" class="small" text-anchor="middle">0.8</text>
-<path class="grid" d="M377.5 145.0L377.5 265.0"/>
-<text x="377.5" y="280.0" class="small" text-anchor="middle">0.9</text>
-<path class="grid" d="M440.0 145.0L440.0 265.0"/>
-<text x="440.0" y="280.0" class="small" text-anchor="middle">1.0</text>
+<path class="grid" d="M190.0 145.0L190.0 295.0"/>
+<text x="190.0" y="310.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M252.5 145.0L252.5 295.0"/>
+<text x="252.5" y="310.0" class="small" text-anchor="middle">0.7</text>
+<path class="grid" d="M315.0 145.0L315.0 295.0"/>
+<text x="315.0" y="310.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M377.5 145.0L377.5 295.0"/>
+<text x="377.5" y="310.0" class="small" text-anchor="middle">0.9</text>
+<path class="grid" d="M440.0 145.0L440.0 295.0"/>
+<text x="440.0" y="310.0" class="small" text-anchor="middle">1.0</text>
 <text x="190.0" y="137.0" class="head">Qwen2.5-0.5B</text>
-<text x="315.0" y="296.0" class="small" text-anchor="middle">share of explanations that keep</text>
-<text x="176.0" y="169.0" class="small" text-anchor="end">NF4 rounding</text>
-<path class="range sc1 soft" d="M271.6 165.0L325.1 165.0"/>
-<circle class="fc1 ring" cx="300.1" cy="165.0" r="3.6"/>
-<text x="176.0" y="209.0" class="small" text-anchor="end">random change, NF4&#x27;s norm</text>
-<path class="range sc2 soft" d="M295.4 199.0L345.6 199.0"/>
-<path class="fc2 ring" d="M322.6 194.7L326.9 202.5L318.3 202.5Z"/>
-<path class="range sc2 soft" d="M280.8 205.0L333.1 205.0"/>
-<path class="fc2 ring" d="M308.8 200.7L313.1 208.5L304.5 208.5Z"/>
-<path class="range sc2 soft" d="M275.3 211.0L328.2 211.0"/>
-<path class="fc2 ring" d="M303.6 206.7L307.9 214.5L299.3 214.5Z"/>
-<text x="176.0" y="249.0" class="small" text-anchor="end">bfloat16 rounding</text>
-<path class="range sc3 soft" d="M433.4 245.0L440.0 245.0"/>
-<circle class="fc3 ring" cx="440.0" cy="245.0" r="3.6"/>
-<path class="grid" d="M480.0 145.0L480.0 265.0"/>
-<text x="480.0" y="280.0" class="small" text-anchor="middle">0.6</text>
-<path class="grid" d="M542.5 145.0L542.5 265.0"/>
-<text x="542.5" y="280.0" class="small" text-anchor="middle">0.7</text>
-<path class="grid" d="M605.0 145.0L605.0 265.0"/>
-<text x="605.0" y="280.0" class="small" text-anchor="middle">0.8</text>
-<path class="grid" d="M667.5 145.0L667.5 265.0"/>
-<text x="667.5" y="280.0" class="small" text-anchor="middle">0.9</text>
-<path class="grid" d="M730.0 145.0L730.0 265.0"/>
-<text x="730.0" y="280.0" class="small" text-anchor="middle">1.0</text>
+<text x="315.0" y="326.0" class="small" text-anchor="middle">share of explanations that keep</text>
+<text x="176.0" y="174.0" class="small" text-anchor="end">NF4 rounding</text>
+<path class="range sc1 soft" d="M271.6 170.0L325.1 170.0"/>
+<circle class="fc1 ring" cx="300.1" cy="170.0" r="3.6"/>
+<text x="176.0" y="224.0" class="small" text-anchor="end">random change, NF4&#x27;s norm</text>
+<path class="range sc2 soft" d="M295.4 202.0L345.6 202.0"/>
+<path class="fc2 ring" d="M322.6 197.7L326.9 205.5L318.3 205.5Z"/>
+<path class="range sc2 soft" d="M280.8 206.0L333.1 206.0"/>
+<path class="fc2 ring" d="M308.8 201.7L313.1 209.5L304.5 209.5Z"/>
+<path class="range sc2 soft" d="M275.3 210.0L328.2 210.0"/>
+<path class="fc2 ring" d="M303.6 205.7L307.9 213.5L299.3 213.5Z"/>
+<path class="range sc2 soft" d="M295.4 214.0L345.6 214.0"/>
+<path class="fc2 ring" d="M322.6 209.7L326.9 217.5L318.3 217.5Z"/>
+<path class="range sc2 soft" d="M304.7 218.0L353.4 218.0"/>
+<path class="fc2 ring" d="M331.2 213.7L335.6 221.5L326.9 221.5Z"/>
+<path class="range sc2 soft" d="M293.6 222.0L344.1 222.0"/>
+<path class="fc2 ring" d="M320.9 217.7L325.2 225.5L316.6 225.5Z"/>
+<path class="range sc2 soft" d="M280.8 226.0L333.1 226.0"/>
+<path class="fc2 ring" d="M308.8 221.7L313.1 229.5L304.5 229.5Z"/>
+<path class="range sc2 soft" d="M277.1 230.0L329.9 230.0"/>
+<path class="fc2 ring" d="M305.3 225.7L309.6 233.5L301.0 233.5Z"/>
+<path class="range sc2 soft" d="M264.3 234.0L318.7 234.0"/>
+<path class="fc2 ring" d="M293.2 229.7L297.6 237.5L288.9 237.5Z"/>
+<path class="range sc2 soft" d="M275.3 238.0L328.2 238.0"/>
+<path class="fc2 ring" d="M303.6 233.7L307.9 241.5L299.3 241.5Z"/>
+<text x="176.0" y="274.0" class="small" text-anchor="end">bfloat16 rounding</text>
+<path class="range sc3 soft" d="M433.4 270.0L440.0 270.0"/>
+<circle class="fc3 ring" cx="440.0" cy="270.0" r="3.6"/>
+<path class="grid" d="M480.0 145.0L480.0 295.0"/>
+<text x="480.0" y="310.0" class="small" text-anchor="middle">0.6</text>
+<path class="grid" d="M542.5 145.0L542.5 295.0"/>
+<text x="542.5" y="310.0" class="small" text-anchor="middle">0.7</text>
+<path class="grid" d="M605.0 145.0L605.0 295.0"/>
+<text x="605.0" y="310.0" class="small" text-anchor="middle">0.8</text>
+<path class="grid" d="M667.5 145.0L667.5 295.0"/>
+<text x="667.5" y="310.0" class="small" text-anchor="middle">0.9</text>
+<path class="grid" d="M730.0 145.0L730.0 295.0"/>
+<text x="730.0" y="310.0" class="small" text-anchor="middle">1.0</text>
 <text x="480.0" y="137.0" class="head">Qwen2.5-1.5B</text>
-<text x="605.0" y="296.0" class="small" text-anchor="middle">share of explanations that keep</text>
-<path class="range sc1 soft" d="M597.1 165.0L689.8 165.0"/>
-<circle class="fc1 ring" cx="655.0" cy="165.0" r="3.6"/>
-<path class="range sc2 soft" d="M530.8 199.0L645.1 199.0"/>
-<path class="fc2 ring" d="M596.7 194.7L601.0 202.5L592.4 202.5Z"/>
-<path class="range sc2 soft" d="M521.6 205.0L638.4 205.0"/>
-<path class="fc2 ring" d="M588.3 200.7L592.6 208.5L584.0 208.5Z"/>
-<path class="range sc2 soft" d="M558.6 211.0L664.9 211.0"/>
-<path class="fc2 ring" d="M621.7 206.7L626.0 214.5L617.4 214.5Z"/>
-<path class="range sc3 soft" d="M699.6 245.0L730.0 245.0"/>
-<circle class="fc3 ring" cx="730.0" cy="245.0" r="3.6"/>
-<circle class="fc1" cx="25.0" cy="311.0" r="5"/>
-<text x="35.0" y="315.0">NF4 rounding</text>
-<path class="fc2" d="M131.8 305.0L137.8 315.8L125.8 315.8Z"/>
-<text x="141.8" y="315.0">random change, NF4&#x27;s norm</text>
-<circle class="fc3" cx="321.8" cy="311.0" r="5"/>
-<text x="331.8" y="315.0">bfloat16 rounding</text>
+<text x="605.0" y="326.0" class="small" text-anchor="middle">share of explanations that keep</text>
+<path class="range sc1 soft" d="M597.1 170.0L689.8 170.0"/>
+<circle class="fc1 ring" cx="655.0" cy="170.0" r="3.6"/>
+<path class="range sc2 soft" d="M530.8 202.0L645.1 202.0"/>
+<path class="fc2 ring" d="M596.7 197.7L601.0 205.5L592.4 205.5Z"/>
+<path class="range sc2 soft" d="M521.6 206.0L638.4 206.0"/>
+<path class="fc2 ring" d="M588.3 201.7L592.6 209.5L584.0 209.5Z"/>
+<path class="range sc2 soft" d="M558.6 210.0L664.9 210.0"/>
+<path class="fc2 ring" d="M621.7 205.7L626.0 213.5L617.4 213.5Z"/>
+<path class="range sc2 soft" d="M539.9 214.0L651.8 214.0"/>
+<path class="fc2 ring" d="M605.0 209.7L609.3 217.5L600.7 217.5Z"/>
+<path class="range sc2 soft" d="M539.9 218.0L651.8 218.0"/>
+<path class="fc2 ring" d="M605.0 213.7L609.3 221.5L600.7 221.5Z"/>
+<path class="range sc2 soft" d="M549.2 222.0L658.4 222.0"/>
+<path class="fc2 ring" d="M613.3 217.7L617.6 225.5L609.0 225.5Z"/>
+<path class="range sc2 soft" d="M530.8 226.0L645.1 226.0"/>
+<path class="fc2 ring" d="M596.7 221.7L601.0 229.5L592.4 229.5Z"/>
+<path class="range sc2 soft" d="M512.6 230.0L631.6 230.0"/>
+<path class="fc2 ring" d="M580.0 225.7L584.3 233.5L575.7 233.5Z"/>
+<path class="range sc2 soft" d="M549.2 234.0L658.4 234.0"/>
+<path class="fc2 ring" d="M613.3 229.7L617.6 237.5L609.0 237.5Z"/>
+<path class="range sc2 soft" d="M607.1 238.0L695.6 238.0"/>
+<path class="fc2 ring" d="M663.3 233.7L667.6 241.5L659.0 241.5Z"/>
+<path class="range sc3 soft" d="M699.6 270.0L730.0 270.0"/>
+<circle class="fc3 ring" cx="730.0" cy="270.0" r="3.6"/>
+<circle class="fc1" cx="25.0" cy="341.0" r="5"/>
+<text x="35.0" y="345.0">NF4 rounding</text>
+<path class="fc2" d="M131.8 335.0L137.8 345.8L125.8 345.8Z"/>
+<text x="141.8" y="345.0">random change, NF4&#x27;s norm</text>
+<circle class="fc3" cx="321.8" cy="341.0" r="5"/>
+<text x="331.8" y="345.0">bfloat16 rounding</text>
 </svg>

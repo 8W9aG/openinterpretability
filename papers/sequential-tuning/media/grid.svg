@@ -31,8 +31,8 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="479" rx="10"/>
 <text x="20.0" y="30.0" class="title">Explanations fail in every layer, most in the</text>
 <text x="20.0" y="53.0" class="title">middle, and many come back at a later stage</text>
-<text x="20.0" y="73.0" class="sub">Each mark is one VERIFIED pole of Qwen2.5-0.5B, in the column of its layer. A filled mark</text>
-<text x="20.0" y="91.0" class="sub">passes its own probes, and an open mark fails. The frames step through each model&#x27;s stages.</text>
+<text x="20.0" y="73.0" class="sub">Each mark is one passing pole of Qwen2.5-0.5B, in the column of its layer. A filled mark</text>
+<text x="20.0" y="91.0" class="sub">passes its own tests, and an open mark fails. The frames step through each model&#x27;s stages.</text>
 <text x="64.0" y="137.0" class="head stage0">base model, start: 362 of 362 keep</text>
 <circle class="fc1 stage0" cx="70.0" cy="155.0" r="3.2"/>
 <circle class="fc1 stage0" cx="70.0" cy="163.6" r="3.2"/>

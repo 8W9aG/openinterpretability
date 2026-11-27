@@ -1,6 +1,6 @@
 {
  "source": "media/traffic.svg",
- "sha256": "5b5bf3e60d281de66bcccf7b84e2c320f507921e26ae0dcc0ceeb7a1d7608dc2",
+ "sha256": "ef3f7833d22ff3dbd9492bfb3f2a6b9adaa139d97d8ab8c6ba4f16fcd9e4d18f",
  "files": [
   "social.mp4",
   "social.png"
@@ -13,7 +13,7 @@
    ]
   },
   "traffic": {
-   "sha256": "5b5bf3e60d281de66bcccf7b84e2c320f507921e26ae0dcc0ceeb7a1d7608dc2",
+   "sha256": "ef3f7833d22ff3dbd9492bfb3f2a6b9adaa139d97d8ab8c6ba4f16fcd9e4d18f",
    "files": [
     "social-traffic.mp4",
     "social-traffic.png"

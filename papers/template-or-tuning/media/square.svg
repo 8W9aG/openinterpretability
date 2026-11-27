@@ -31,8 +31,8 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="463" rx="10"/>
 <text x="20.0" y="30.0" class="title">The chat template costs the base model more</text>
 <text x="20.0" y="53.0" class="title">explanations than instruction tuning does</text>
-<text x="20.0" y="73.0" class="sub">360 VERIFIED poles of Qwen2.5-0.5B, each read on its own probes in four conditions.</text>
-<text x="20.0" y="91.0" class="sub">Left: the poles that still pass both gates. Right: the mean sensitivity of the probes.</text>
+<text x="20.0" y="73.0" class="sub">360 passing poles of Qwen2.5-0.5B, each read on its own tests in four conditions.</text>
+<text x="20.0" y="91.0" class="sub">Left: the poles that still pass both tests. Right: the mean sensitivity of the test prompts.</text>
 <path class="grid" d="M80.0 365.0L399.0 365.0"/>
 <text x="73.0" y="369.0" class="small" text-anchor="end">250</text>
 <path class="grid" d="M80.0 310.0L399.0 310.0"/>

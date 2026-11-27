@@ -31,7 +31,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="467" rx="10"/>
 <text x="20.0" y="30.0" class="title">Magnitude pruning keeps most explanations, and</text>
 <text x="20.0" y="53.0" class="title">random pruning of as many weights does not</text>
-<text x="20.0" y="73.0" class="sub">Each mark is the share of Pythia-70m&#x27;s 127 VERIFIED explanations that still pass their probes, with a 95% interval.</text>
+<text x="20.0" y="73.0" class="sub">Each mark is the share of Pythia-70m&#x27;s 127 passing explanations that still pass their tests, with a 95% interval.</text>
 <text x="20.0" y="91.0" class="sub">With 90% of each neuron&#x27;s input weights zeroed: 63 keep by magnitude, 17 at random.</text>
 <path class="grid" d="M90.0 139.0L90.0 369.0"/>
 <text x="90.0" y="384.0" class="small" text-anchor="middle">0.00</text>
