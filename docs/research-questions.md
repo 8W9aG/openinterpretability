@@ -7,7 +7,7 @@ The questions the project exists to answer, and how close the registry is to eac
 The north star: total interpretability of open models, as one number per model.
 
 - **What would answer it.** Registry coverage near 100%: mean-ablating every pole that isn't VERIFIED costs a model almost none of its MLP layers' effect on the loss.
-- **So far (2026-11-13).** Coverage is 0.60% on GPT-2, 0.42% on Qwen2.5-0.5B and 0.01% on Qwen2.5-1.5B (`docs/analyses/registry-coverage.md`, the home page). On Qwen2.5-0.5B the VERIFIED poles keep 2.6 times what as many random poles keep. On GPT-2 they keep no more.
+- **So far (2026-11-13).** Coverage is 0.60% on GPT-2, 0.42% on Qwen2.5-0.5B and 0.01% on Qwen2.5-1.5B (`docs/analyses/registry-coverage.md`, the home page). On Qwen2.5-0.5B the VERIFIED poles keep 2.6 times what as many random poles keep. On GPT-2 they keep no more. On 2026-11-27, `papers/coverage-planner/` planned the experiments that would explain one answer, on eight copy-family prompts of pythia-70m (#7061). The old planner stalled at 0.30 to 0.64 of the answer, because it scored only 120 candidates. A greedy plan that scores every candidate once reaches the whole answer in 35 to 73 experiments. Planned together, eight prompts reach 0.9 in 118 experiments, against 160 apart.
 - **Bears on it.** The coverage metric's follow-ups: weight draws by a pole's loss effect (#3486), and score coverage with simulated activations (#3487). Every question below.
 
 ## 1. Are native MLP neurons clean? (#3186)
