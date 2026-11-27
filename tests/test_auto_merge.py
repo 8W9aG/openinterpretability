@@ -1,8 +1,8 @@
 """The auto-merge rules of ``.github/workflows/auto-merge.yml``.
 
 The test runs the workflow's own scripts with a stand-in ``gh`` on ``PATH``. The stand-in
-answers from a list of the PR's files and from this repository's files, as the contents API
-would at the base commit. It writes each ``gh pr merge`` call to a log.
+answers from a list of the PR's files. It gives this repository's files as the contents API
+would give them at the base commit. It writes each ``gh pr merge`` call to a log.
 """
 
 import json
