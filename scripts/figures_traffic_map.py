@@ -127,8 +127,8 @@ def predictors(rows: list[dict]) -> Figure:
     sites = [s for s in tested_sites(rows) if s["draw"] in ("decile", "head")]
     measures = (("mean_drift", "mean drift"), ("flips", "flips"))
     fig = Figure(
-        ["Much of what predicts the damage is depth;",
-         "within a layer, traffic and the loss Fisher predict it about as well"],
+        ["Much of what predicts the damage is depth. Within a layer,",
+         "traffic and the loss Fisher predict it about as well"],
         [f"Spearman's ρ with each measure over the {len(sites)} sites of the even draw. A dot "
          "is ρ over all sites, with",
          "a 95% bootstrap interval. A ring is ρ within each kind and layer, which gives "

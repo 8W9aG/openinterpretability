@@ -70,7 +70,7 @@ The first question is how often one audit of a random unit ends VERIFIED, in eac
 
 ![Per unit audited, learned latents verify most often, and the native basis beats a random rotation of it](media/shares.svg)
 
-**Figure 1.** The share of units that reach VERIFIED in each arm, with its 95% Wilson interval. The upper three rows are GPT-2 small: transcoder latents that fire, the same latents with dead draws counted as failures, and positive neuron poles. The lower two rows are Qwen2.5-0.5B: native positive poles, and units of a random rotation of the same layers. Each unit had one audit, with one agent pair and one protocol in each model. The arms appear one at a time.
+**Figure 1.** Per unit audited, learned latents verify most often, and the native basis beats a random rotation of it. The share of units that reach VERIFIED in each arm, with its 95% Wilson interval. The upper three rows are GPT-2 small: transcoder latents that fire, the same latents with dead draws counted as failures, and positive neuron poles. The lower two rows are Qwen2.5-0.5B: native positive poles, and units of a random rotation of the same layers. Each unit had one audit, with one agent pair and one protocol in each model. The arms appear one at a time.
 
 | Arm | Model | VERIFIED | Share (95% CI) |
 | --- | --- | --- | --- |
@@ -111,7 +111,7 @@ For the latents, $f = 0.66$ and $s = 0.93$. For the poles, $f = 1.00$ and $s = 0
 
 ![To audit a whole GPT-2 layer, latents need five times the audits and give ten times the VERIFIED units](media/layer.svg)
 
-**Figure 2.** The audits needed to cover every live unit of one GPT-2 small layer once, and the VERIFIED units to expect, for transcoder latents and for positive neuron poles. The values are an extrapolation of the measured shares, not a run.
+**Figure 2.** To audit a whole GPT-2 layer, latents need five times the audits and give ten times the VERIFIED units. The audits needed to cover every live unit of one GPT-2 small layer once, and the VERIFIED units to expect, for transcoder latents and for positive neuron poles. The values are an extrapolation of the measured shares, not a run.
 
 | | Transcoder latents | Positive neuron poles |
 | --- | --- | --- |

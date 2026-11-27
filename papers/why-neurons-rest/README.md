@@ -8,7 +8,7 @@ Training moves most of GPT-2's neurons to a median pre-activation $h$ of about �
 
 A transformer's MLP neuron applies an activation function to its pre-activation $h$, and GPT-2 uses GELU (Hendrycks & Gimpel, 2016). GELU is not monotone. Below 0 its output is negative, falls to a minimum at −0.75 and then rises back toward 0. We call this minimum *GELU's dip*. We call the median of a neuron's $h$ over tokens its *rest*: the level where the neuron sits on a typical token. At random initialisation a neuron rests at about 0. In trained GPT-2 small (Radford et al., 2019), most neurons rest near −1, below the dip (Table 1).
 
-The rest matters for anyone who reads neurons one at a time. We study each sign of a neuron apart, and call one sign a *pole*. An explanation of a pole is *VERIFIED* when it passes every gate of an adversarial review, in which a second model writes probes meant to break it. A neuron that rests below 0 keeps its negative pole active on most tokens. The registry's protocol stops before the review on such a *default-on* pole, because no probe can stay silent on it. Most of GPT-2's neurons rest below GELU's dip, and that resting level is most of what a default-on pole costs. A protocol that ignores the rest must first know where it comes from.
+The rest matters for anyone who reads neurons one at a time. We study each sign of a neuron apart, and call one sign a *pole*, after Cammarata (2026), as the Method defines. An explanation of a pole *passes the adversarial review* when it passes every test of a review in which a second model writes test prompts meant to break it. A neuron that rests below 0 keeps its negative pole active on most tokens. Our protocol stops before the review on such a *default-on* pole, because no test prompt can stay silent on it. Most of GPT-2's neurons rest below GELU's dip, and that resting level is most of what a default-on pole costs. A protocol that ignores the rest must first know where it comes from.
 
 The paper on default-on negative poles found that the input weights set the rest, by turning against the MLP's mean input. It did not find what in training makes them do so. We therefore ask what in training sets the level where a neuron rests. We train small GPT-2s from fresh weights and change one thing at a time: the activation, the width, dropout, weight decay, the optimizer and its rate, and the routes by which the loss reaches the MLP's output.
 
@@ -16,7 +16,7 @@ Our main measure is the *push*: the gradient on a neuron's whole $h$, with its s
 
 ![GELU, ReLU and tanh curves, with the rest of layers L1 to L3 marked on each](media/activations.svg)
 
-**Figure 1.** GELU, ReLU and tanh, each with the rest of layers L1 to L3 of a small model marked on its curve. Each moving dot is one layer's median neuron, measured every 500 steps from the start of training near $h = 0$. Under GELU and ReLU the layers rest near −1, and under tanh they stay at 0. ReLU has no dip, and its neurons rest as deep as GELU's.
+**Figure 1.** Neurons rest low under one-sided activations, with or without a dip. GELU, ReLU and tanh, each with the rest of layers L1 to L3 of a small model marked on its curve. Each moving dot is one layer's median neuron, measured every 500 steps from the start of training near $h = 0$. Under GELU and ReLU the layers rest near −1, and under tanh they stay at 0. ReLU has no dip, and its neurons rest as deep as GELU's.
 
 The paper's contributions are these:
 
@@ -42,7 +42,7 @@ The paper bears on research question 5, *What makes a neuron rest, stay dead or 
 
 ## Method
 
-**Terms.** For each neuron, $h_t$ is its pre-activation on token $t$, and the rest is the median of $h_t$ over tokens. A layer's rest is the median over its neurons. The *offset* is $\mathbf{w} \cdot \bar{x}$, with $\mathbf{w}$ the neuron's input weights and $\bar{x}$ the mean of the MLP's input. A neuron's weights are *against the mean input* when its offset is below 0. At each step we recorded $-\partial L / \partial h$ summed over the batch's tokens, for each neuron:
+**Terms.** A neuron in a transformer's MLP layer can carry a different meaning when it is strongly positive and when it is strongly negative. Following Cammarata (2026), we study one side at a time, and call it a *pole*. For each neuron, $h_t$ is its pre-activation on token $t$, and the rest is the median of $h_t$ over tokens. A layer's rest is the median over its neurons. The *offset* is $\mathbf{w} \cdot \bar{x}$, with $\mathbf{w}$ the neuron's input weights and $\bar{x}$ the mean of the MLP's input. A neuron's weights are *against the mean input* when its offset is below 0. At each step we recorded $-\partial L / \partial h$ summed over the batch's tokens, for each neuron:
 
 $$
 p = -\sum_t \frac{\partial L}{\partial h_t}
@@ -116,7 +116,7 @@ Width, dropout and weight decay do not set the rest (Figure 2). It forms with no
 
 ![Median h of layers L0 to L3 under each change to the baseline](media/effects.svg)
 
-**Figure 2.** The median $h$ at step 4,000 under each change to the baseline, one panel for each of layers L0 to L3. Width, dropout, weight decay and ReLU stay close to the baseline at L1 to L3, and only tanh removes the rest. L0 is the exception, and deepens with dropout on one seed.
+**Figure 2.** Width and regularisation barely move the rest, and only tanh removes it. The median $h$ at step 4,000 under each change to the baseline, one panel for each of layers L0 to L3. Width, dropout, weight decay and ReLU stay close to the baseline at L1 to L3, and only tanh removes the rest. L0 is the exception, and deepens with dropout on one seed.
 
 No dip and no floor sets the depth (Table 3 and Figure 3). Every one-sided activation that we tried rests below 0, with its weights against the mean input. But softplus rests at −4.68, leaky ReLU at −0.69 and SiLU at −0.49 at L1. SiLU's dip is deeper than GELU's, and its neurons rest shallower than GELU's. So no single property of these shapes that we checked gives their order (appendix *Reading the other activations*).
 
@@ -134,7 +134,7 @@ No dip and no floor sets the depth (Table 3 and Figure 3). Every one-sided activ
 
 ![Softplus, leaky ReLU and SiLU curves, with the rest of layers L1 to L3 marked on each](media/more-activations.svg)
 
-**Figure 3.** Softplus, leaky ReLU and SiLU, each with the rest of layers L1 to L3 marked on its curve, every 500 steps. Softplus has no dip and goes deepest. SiLU's dip is deeper than GELU's, yet it rests shallower. Leaky ReLU passes 10% below 0 and rests shallower than ReLU.
+**Figure 3.** Every one-sided activation rests below 0, but neither a dip nor a floor sets the depth. Softplus, leaky ReLU and SiLU, each with the rest of layers L1 to L3 marked on its curve, every 500 steps. Softplus has no dip and goes deepest. SiLU's dip is deeper than GELU's, yet it rests shallower. Leaky ReLU passes 10% below 0 and rests shallower than ReLU.
 
 ## How do the optimizer and the learning rate set the depth?
 
@@ -155,7 +155,7 @@ The second question is whether the depth is a target of the loss or a product of
 
 ![L1's rest against held-out loss for each optimizer and rate, for GELU and ReLU](media/rates.svg)
 
-**Figure 4.** L1's median $h$ against held-out loss, every 500 steps to step 4,000, on seed 0, for GELU and ReLU. A larger AdamW rate reaches the same loss with a deeper rest. Under SGD, GELU and ReLU part.
+**Figure 4.** At the same loss, the rest is as deep as the optimizer's steps take it. L1's median $h$ against held-out loss, every 500 steps to step 4,000, on seed 0, for GELU and ReLU. A larger AdamW rate reaches the same loss with a deeper rest. Under SGD, GELU and ReLU part.
 
 ReLU and GELU agree only under AdamW. They rest at the same depth at AdamW's two lower rates. Under SGD, ReLU rests nearly twice as deep as GELU (−0.59 against −0.32 at L1). At 1e-3, ReLU is deeper (−4.04 against −3.18). The first version of this paper used only Adam at one rate, and warned that GELU and ReLU might agree because of it. These runs show that this is so in part.
 
@@ -196,7 +196,7 @@ The third question is what in each step of training moves the rest. A small, ste
 
 ![The push ratio over training for each activation, and L1's rest against the mean push ratio](media/push.svg)
 
-**Figure 5.** Left: the push ratio over 4,000 steps for each activation, as a median over neurons and a mean over L1–L3, on seed 0. Right: L1's median $h$ at step 4,000 against the mean push ratio, one dot for each seed. A steadier push down gives a deeper rest.
+**Figure 5.** A steadier push down gives a deeper rest. Left: the push ratio over 4,000 steps for each activation, as a median over neurons and a mean over L1–L3, on seed 0. Right: L1's median $h$ at step 4,000 against the mean push ratio, one dot for each seed. A steadier push down gives a deeper rest.
 
 Table 6 is a correlation along each run, because each push is measured where that run's neurons rest. Runs that hold every activation at the same rest separate the activation's effect from the depth's (Table 7 and Figure 6). At an equal rest, the activation sets only a coarse order. Held at a rest of 0, softplus, ReLU and leaky ReLU at slope 0.1 get the same push, to 0.001, on two seeds. GELU's push is a little weaker, SiLU's is weaker again, and tanh gets none. So the depth that a neuron reaches changes its push, and that change sets most of the order (appendix *Reading the push*).
 
@@ -213,7 +213,7 @@ Table 6 is a correlation along each run, because each push is measured where tha
 
 ![The push ratio at rest 0 over training, and the mean push ratio at each held rest](media/equal-rest.svg)
 
-**Figure 6.** Left: the push ratio over 4,000 steps with every activation held at a rest of 0, on seed 0. Right: the mean push ratio over steps 1–4,000 at each held rest. Held at the same rest, the push depends on the depth.
+**Figure 6.** Held at the same rest, the push depends on the depth. Left: the push ratio over 4,000 steps with every activation held at a rest of 0, on seed 0. Right: the mean push ratio over steps 1–4,000 at each held rest. Held at the same rest, the push depends on the depth.
 
 To find where the push comes from, we split it. On each token $t$, the push on $h$ is the output's push, $g_t = -\partial L / \partial a_t$, times the slope $a'(h_t)$. So the push over the batch is the sum of two terms:
 
@@ -309,7 +309,7 @@ The fifth question is whether the rest helps the model, or whether training only
 
 ![Loss at step 4,000 for each condition, and the fast control's gap to the baseline over steps](media/loss.svg)
 
-**Figure 7.** Left: the loss at step 4,000 for each condition. ReLU and GELU are lowest, the learned rest at 30 times the rate is next, and the forced rests and tanh are worst. Right: the fast control's gap to the baseline over steps. A forced rest of −1 trains as badly as a forced rest of 0, and longer training does not close the gap.
+**Figure 7.** A learned rest beats a forced one, but a gap to the baseline stays. Left: the loss at step 4,000 for each condition. ReLU and GELU are lowest, the learned rest at 30 times the rate is next, and the forced rests and tanh are worst. Right: the fast control's gap to the baseline over steps. A forced rest of −1 trains as badly as a forced rest of 0, and longer training does not close the gap.
 
 Training pushes the rest down by whichever route it has. Centring can stop the weights from setting the rest. Then a learned value for each neuron goes down at nearly the same pace, with the same order of layers. So the weights' turn against the mean input is one route to the rest, not its cause.
 
@@ -330,11 +330,11 @@ Step 4,000 is early, because the rest is still moving. So seed 0 of the baseline
 
 ![Rest over 12,000 steps on layers L0 to L3, for the baseline and the fast control](media/long-run.svg)
 
-**Figure 8.** The rest over 12,000 steps on layers L0 to L3, for the baseline, where the weights set the rest, and for the fast control, where a learned value sets it. The lines draw themselves as training goes on. The two routes reach the rest at nearly the same pace, and −1 is not where the rest stops.
+**Figure 8.** Two routes reach the rest at nearly the same pace, and −1 is not where it stops. The rest over 12,000 steps on layers L0 to L3, for the baseline, where the weights set the rest, and for the fast control, where a learned value sets it. The lines draw themselves as training goes on. The two routes reach the rest at nearly the same pace, and −1 is not where the rest stops.
 
 ![Surfaces of rest over layers and steps, for the baseline and the fast control](media/surface.svg)
 
-**Figure 9.** The rest as a surface over layer and step, on seed 0, for the baseline and the fast control. Height is the rest, and a deeper rest has a stronger colour. A bold line marks where each surface crosses GELU's dip. Both fall steeply on L1 and L2, and less on L0 and L3.
+**Figure 9.** Two routes dig nearly the same valley. The rest as a surface over layer and step, on seed 0, for the baseline and the fast control. Height is the rest, and a deeper rest has a stronger colour. A bold line marks where each surface crosses GELU's dip. Both fall steeply on L1 and L2, and less on L0 and L3.
 
 ## Is the push there in GPT-2 small and Pythia-70m?
 
@@ -403,6 +403,7 @@ Training sets where a neuron rests through a weak push on its rest that is stead
 ## References
 
 - Biderman, S., Schoelkopf, H., Anthony, Q., Bradley, H., O'Brien, K., Hallahan, E., Khan, M. A., Purohit, S., Prashanth, U. S. S., Raff, E., Skowron, A., Sutawika, L., & van der Wal, O. (2023). *Pythia: A suite for analyzing large language models across training and scaling*. ICML 2023. [arXiv:2304.01373](https://arxiv.org/abs/2304.01373).
+- Cammarata, N. (2026). *Neural networks are already clean*. Goodfire research essay. [already-clean.goodfire.com](https://already-clean.goodfire.com/).
 - Dohare, S., Hernandez-Garcia, J. F., Lan, Q., Rahman, P., Mahmood, A. R., & Sutton, R. S. (2024). *Loss of plasticity in deep continual learning*. Nature, 632, 768–774. [doi:10.1038/s41586-024-07711-7](https://doi.org/10.1038/s41586-024-07711-7).
 - Dugas, C., Bengio, Y., Bélisle, F., Nadeau, C., & Garcia, R. (2001). *Incorporating second-order functional knowledge for better option pricing*. Advances in Neural Information Processing Systems 13 (NIPS 2000), 472–478. [NeurIPS proceedings](https://proceedings.neurips.cc/paper/2000/hash/44968aece94f667e4095002d140b5896-Abstract.html).
 - Elfwing, S., Uchibe, E., & Doya, K. (2017). *Sigmoid-weighted linear units for neural network function approximation in reinforcement learning*. [arXiv:1702.03118](https://arxiv.org/abs/1702.03118).
@@ -707,7 +708,7 @@ The four norms before the MLP together bring the pattern back (#6785). Runs labe
 
 ![Each condition's share of neurons with an up push below the rest, for each seed.](media/norm-pairs.svg)
 
-**Figure 10.** The share of GELU neurons whose output's push points up below h = −0.25, a mean over its three bins, L1–L3 and steps 201–1,000. One row per condition, one mark per seed. The last three rows centre every `ln_1`, every `ln_2` and every norm, with the final norm.
+**Figure 10.** No single block norm restores the up push, but the four before the MLP together do. The share of GELU neurons whose output's push points up below h = −0.25, a mean over its three bins, L1–L3 and steps 201–1,000. One row per condition, one mark per seed. The last three rows centre every `ln_1`, every `ln_2` and every norm, with the final norm.
 
 | Centred, no dropout | Below −1.5 | −1.5 to −0.75 | −0.75 to −0.25 | −0.25 to 0.25 | Loss at step 1,000 |
 | --- | --- | --- | --- | --- | --- |

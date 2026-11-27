@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 442" width="760" height="442" role="img">
+<title>At α = 1 the token KL is 0.039 nats, against 0.0068 and 0.0078 for the random changes of the same norm. It grows faster than α.</title>
+<style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
+.bg{fill:var(--surface)}
+text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
+.title{fill:var(--ink);font-size:17px;font-weight:600}
+.sub{font-size:13px}
+.head{fill:var(--ink);font-size:13px;font-weight:600}
+.ink{fill:var(--ink)}
+.small{fill:var(--muted);font-size:11px}
+.grid{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--axis);stroke-width:1}
+.dip{stroke:var(--neutral);stroke-width:1}
+.curve{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.range{stroke-width:2;stroke-linecap:round}
+.ring{stroke:var(--surface);stroke-width:2}
+.open{fill:var(--surface);stroke-width:2}
+.soft{opacity:.25}
+.ridge path{vector-effect:non-scaling-stroke}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+.bg2{fill:var(--surface)}
+.mesh{fill:none;stroke:var(--surface);stroke-width:.7;stroke-opacity:.8}
+.contour{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.dipfloor{stroke:var(--ink);stroke-width:1.4;stroke-opacity:.75}
+.fc1{fill:var(--c1)}.fc2{fill:var(--c2)}.fc3{fill:var(--c3)}
+.fneutral{fill:var(--neutral)}.fwash{fill:var(--wash)}
+.sc1{stroke:var(--c1)}.sc2{stroke:var(--c2)}.sc3{stroke:var(--c3)}
+.sneutral{stroke:var(--neutral)}.swash{stroke:var(--wash)}
+</style>
+<rect class="bg" width="760" height="442" rx="10"/>
+<text x="20.0" y="30.0" class="title">The tuning moves the output about 5 times as far as a random change of its size</text>
+<text x="20.0" y="50.0" class="sub">The mean KL of the changed model&#x27;s next-token distribution from the base model&#x27;s, on 2,048</text>
+<text x="20.0" y="68.0" class="sub">corpus tokens, at each step and under the random changes of each step&#x27;s norm (log scale).</text>
+<path class="grid" d="M130.0 122.0L130.0 342.0"/>
+<text x="130.0" y="357.0" class="small" text-anchor="middle">−0.50</text>
+<path class="grid" d="M255.0 122.0L255.0 342.0"/>
+<text x="255.0" y="357.0" class="small" text-anchor="middle">0.00</text>
+<path class="grid" d="M317.5 122.0L317.5 342.0"/>
+<text x="317.5" y="357.0" class="small" text-anchor="middle">0.25</text>
+<path class="grid" d="M380.0 122.0L380.0 342.0"/>
+<text x="380.0" y="357.0" class="small" text-anchor="middle">0.50</text>
+<path class="grid" d="M442.5 122.0L442.5 342.0"/>
+<text x="442.5" y="357.0" class="small" text-anchor="middle">0.75</text>
+<path class="grid" d="M505.0 122.0L505.0 342.0"/>
+<text x="505.0" y="357.0" class="small" text-anchor="middle">1.00</text>
+<path class="grid" d="M630.0 122.0L630.0 342.0"/>
+<text x="630.0" y="357.0" class="small" text-anchor="middle">1.50</text>
+<path class="grid" d="M80.0 297.0L680.0 297.0"/>
+<text x="73.0" y="301.0" class="small" text-anchor="end">0.001</text>
+<path class="grid" d="M80.0 218.2L680.0 218.2"/>
+<text x="73.0" y="222.2" class="small" text-anchor="end">0.01</text>
+<path class="grid" d="M80.0 139.4L680.0 139.4"/>
+<text x="73.0" y="143.4" class="small" text-anchor="end">0.1</text>
+<text x="380.0" y="373.0" class="small" text-anchor="middle">step α along θ₀ + α·Δ</text>
+<path class="fc2 ring" d="M121.2 273.4L126.6 283.1L115.8 283.1Z"/>
+<path class="fc2 ring" d="M138.8 268.7L144.2 278.4L133.3 278.4Z"/>
+<path class="fc2 ring" d="M308.8 320.8L314.1 330.6L303.4 330.6Z"/>
+<path class="fc2 ring" d="M326.2 316.2L331.6 325.9L320.9 325.9Z"/>
+<path class="fc2 ring" d="M371.3 273.4L376.7 283.1L365.9 283.1Z"/>
+<path class="fc2 ring" d="M388.7 268.7L394.1 278.4L383.3 278.4Z"/>
+<path class="fc2 ring" d="M433.8 245.4L439.1 255.2L428.4 255.2Z"/>
+<path class="fc2 ring" d="M451.2 240.7L456.6 250.5L445.9 250.5Z"/>
+<path class="fc2 ring" d="M496.3 225.9L501.7 235.6L490.9 235.6Z"/>
+<path class="fc2 ring" d="M513.8 221.2L519.1 230.9L508.4 230.9Z"/>
+<path class="fc2 ring" d="M621.2 197.9L626.6 207.6L615.9 207.6Z"/>
+<path class="fc2 ring" d="M638.8 193.2L644.1 202.9L633.4 202.9Z"/>
+<circle class="fc1 ring" cx="130.0" cy="231.1" r="5"/>
+<circle class="fc1 ring" cx="317.5" cy="272.4" r="5"/>
+<circle class="fc1 ring" cx="380.0" cy="222.9" r="5"/>
+<circle class="fc1 ring" cx="442.5" cy="193.5" r="5"/>
+<circle class="fc1 ring" cx="505.0" cy="171.6" r="5"/>
+<circle class="fc1 ring" cx="630.0" cy="137.8" r="5"/>
+<circle class="fc1" cx="25.0" cy="390.0" r="5"/>
+<text x="35.0" y="394.0">instruct change</text>
+<path class="fc2" d="M151.0 384.0L157.0 394.8L145.0 394.8Z"/>
+<text x="161.0" y="394.0">random change, same norm</text>
+</svg>

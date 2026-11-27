@@ -30,7 +30,7 @@ Written on 2026-11-14 on an Apple-silicon Mac with 10 cores, macOS 15.6, Python 
 | reproduce | 30 s | 52 s | 1,325 MB |
 | build | 58 s | 157 s | 3,979 MB |
 
-The build's time is with its on-disk memo warm (`labinacan/site/disk_memo.py`), as on a machine that has built the site before. A first build takes longer.
+The build's time is with its on-disk memo warm (`labinacan.site.disk_memo`), as on a machine that has built the site before. A first build takes longer.
 
 **Noise.** Three runs of scan and reproduce gave wall times of 56–58 s and 23–31 s, and peak memory within 2% of each other. So a run warns at 1.5 times the baseline for wall and CPU time, and at 1.2 times for peak memory (`TOLERANCE`). A smaller regression in time needs several runs to see.
 

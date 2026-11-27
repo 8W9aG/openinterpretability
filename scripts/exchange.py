@@ -28,9 +28,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # repo_config, beside this script
 
-from repo_config import exchange as exchange_config  # noqa: E402
-
 from labinacan.config import config, use  # noqa: E402
+from repo_config import exchange as exchange_config  # noqa: E402
 
 use(Path(__file__).resolve().parents[1] / "pyproject.toml")  # this repository's values (#6629)
 
@@ -46,8 +45,8 @@ PROJECT = exchange_config(Path(__file__).resolve().parents[1])
 # Names under exchange/ that are only outputs or working folders, never cited inputs. A
 # command writes them, and no analysis reads them. The staging folder is one of them.
 OUTPUTS = {*PROJECT["outputs"], ".published"}
-# A case-insensitive file system, such as macOS's, opens `exchange/BENCH` as `exchange/bench`.
-# So the names compare without case.
+# A case-insensitive file system, such as macOS's, opens a name in upper case as the same
+# folder in lower case. So the names compare without case.
 OUTPUTS_FOLDED = {name.casefold() for name in OUTPUTS}
 OUTPUT_FILE = re.compile(r"^(ev|review|score)\.|\.(prompt\.md|response\.json)$", re.IGNORECASE)
 # Inputs that stay unpublished, each with why, and how to make them again.

@@ -1,7 +1,5 @@
 # Public functions that can't have a doctest that runs offline, each with the reason
 # (tests/test_doctests.py, #5356). One per line: path::Qualified.name  reason
-labinacan/social/poster.py::XPoster.post  sends a request to X's API
-labinacan/social/poster.py::XPoster.upload  downloads a figure and sends it to X's API
 openinterpretability/explain_share.py::share  pushes a branch and opens a PR with gh
 openinterpretability/loop_local.py::local_iteration  runs a draw's audit and review, with a model and LLM agents
 openinterpretability/claude_sessions.py::Session.run  starts a claude session, which calls Anthropic's API
@@ -25,7 +23,3 @@ openinterpretability/harness/ov_lens.py::ov_circuit  needs a loaded model's weig
 openinterpretability/harness/ov_lens.py::ov_lens  needs a loaded model's weights
 openinterpretability/harness/ov_lens.py::unembedding  needs a loaded model's weights
 openinterpretability/builder/css.py::main  downloads the Tailwind CLI and builds the site's stylesheet from argv
-labinacan/site/build.py::build  renders the configured project's whole site, every literature review included; tests/test_labinacan_build.py builds a small project
-labinacan/site/build.py::main  builds the site from the command line, as build does; tests/test_labinacan_build.py runs it on a small project
-labinacan/site/github.py::open_prs  runs the gh CLI against GitHub
-labinacan/site/github.py::get_json  reads GitHub's API over the network

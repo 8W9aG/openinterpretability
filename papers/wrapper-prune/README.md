@@ -1,6 +1,6 @@
 # Does pruning a few instruct-model neurons bring back the explanations that instruction tuning breaks?
 
-Jain et al. (2024) report that fine-tuning often adds a thin wrapper on top of a pretrained capability, and that pruning a few neurons, chosen by gradient times weight on the old task's loss, brings the capability back. We asked whether the same pruning brings back the neuron explanations that instruction tuning breaks. On Qwen2.5-0.5B-Instruct, we scored each MLP neuron by gradient times weight of the KL to the base model's next-token distribution. Then we pruned the top 5 to 500 neurons' writes to the residual stream, and ran every VERIFIED explanation's probes again. Of the 63 explanations that fail on the instruct model, pruning the top 5 neurons brings back 16, against 0 to 4 for 5 random neurons of the same layers (McNemar $p \leq 0.002$). But it also breaks 26 of the 299 that kept, against 0 or 1, and larger prunes break far more: 158 at 500 neurons. The KL to the base model rises, from 0.075 to 0.19 at 5 neurons and to 2.37 at 500, where the score predicted a fall. For half of the top 10 neurons, pruning one alone raises the KL, and one neuron of layer 2 raises it by 0.112. In this model, gradient times weight does not find a wrapper whose removal restores the base model. The few explanations it brings back come at a larger cost to others.
+Jain et al. (2024) report that fine-tuning often adds a thin wrapper on top of a pretrained capability, and that pruning a few neurons, chosen by gradient times weight on the old task's loss, brings the capability back. We asked whether the same pruning brings back the neuron explanations that instruction tuning breaks. On Qwen2.5-0.5B-Instruct, we scored each MLP neuron by gradient times weight of the KL to the base model's next-token distribution. Then we pruned the top 5 to 500 neurons' writes to the residual stream, and ran every VERIFIED explanation's probes again. Of the 63 explanations that fail on the instruct model, pruning the top 5 neurons brings back 16, against 0 to 4 for 5 random neurons of the same layers (McNemar $p \leq 0.002$). But it also breaks 26 of the 299 that kept, against 0 or 1, and larger prunes break far more: 158 at 500 neurons. The KL to the base model rises, from 0.075 to 0.19 at 5 neurons and to 2.37 at 500, where the score predicted a fall. In this model, gradient times weight does not find a wrapper whose removal restores the base model. The few explanations it brings back come at a larger cost to others.
 
 **Status:** Preprint. Work left: #6892 (a prune ranked by each neuron's measured KL drop).
 
@@ -57,7 +57,7 @@ It brings a few back, more than chance. Of the 63 explanations that fail on the 
 
 ![Pruning by gradient times weight brings back a few failed explanations, and breaks many more.](media/recovery.svg)
 
-**Figure 1.** Qwen2.5-0.5B's instruct model with the writes of $K$ MLP neurons pruned. Left: of the 63 explanations that fail on it, those that pass their probes again. Right: of the 299 that keep on it, those that fail. Circles prune the top $K$ by gradient times weight, and triangles $K$ random neurons of the same layers, one for each seed.
+**Figure 1.** Pruning by gradient times weight brings back a few failed explanations, and breaks many more. Qwen2.5-0.5B's instruct model with the writes of $K$ MLP neurons pruned. Left: of the 63 explanations that fail on it, those that pass their probes again. Right: of the 299 that keep on it, those that fail. Circles prune the top $K$ by gradient times weight, and triangles $K$ random neurons of the same layers, one for each seed.
 
 **Table 1.** The explanations recovered and lost at each $K$, the keep share over the 362 that reproduce, and the KL to the base model on held-out tokens. The unpruned instruct model keeps 299 (82.6%) at a KL of 0.075. Random rows give the range over three seeds.
 
@@ -84,7 +84,7 @@ Figure 2 shows where the losses fall. At small $K$ they fall near a gate, like t
 
 ![As more neurons go, top pruning breaks explanations at every margin.](media/grid.svg)
 
-**Figure 2.** Each cell is one of the 362 VERIFIED poles of Qwen2.5-0.5B that reproduce on the base model, nearest a gate first. Circles are explanations that fail on the instruct model and pass again after top pruning. Triangles are explanations that keep on the instruct model and fail after it. Dark cells still fail. Each frame is one measured value of $K$.
+**Figure 2.** As more neurons go, top pruning breaks explanations at every margin. Each cell is one of the 362 VERIFIED poles of Qwen2.5-0.5B that reproduce on the base model, nearest a gate first. Circles are explanations that fail on the instruct model and pass again after top pruning. Triangles are explanations that keep on the instruct model and fail after it. Dark cells still fail. Each frame is one measured value of $K$.
 
 ## Why does the score fail?
 

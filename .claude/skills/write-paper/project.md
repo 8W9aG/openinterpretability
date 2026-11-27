@@ -10,9 +10,11 @@ The maintainer is the first author of every paper, and Open Interpretability is 
 
 The Research index is at [open-interpretability.com/research](https://open-interpretability.com/research/index.html).
 
-## Terms to define
+## Terms
 
-Define these the first time a paper uses them: a pole, VERIFIED, the review's gates, and the activation line at 0.25 of the maximum.
+`papers/terms.toml` lists this project's terms and the plain phrase for each. A preprint in `papers/terms_pending.txt` waits for its rewrite (#6851).
+
+*Pole* is the field's term, from Cammarata (2026). Define it once in the Method, with the citation. The maintainer chose this on 2026-11-26 (#6851).
 
 ## The models
 

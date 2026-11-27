@@ -9,7 +9,7 @@ and that badge text stays readable on each fill.
 The pole colours are Tailwind's orange-600 and sky-600, already a safe pair.
 
 Templates use them as Tailwind colours (``status-verified``, ``pole-positive``,
-``brand-700``). ``labinacan/site/css.py`` adds them to Tailwind's config from
+``brand-700``). ``labinacan.site.css`` adds them to Tailwind's config from
 :func:`tailwind_colors`. The token heatmaps use :data:`POLE_RGB`.
 """
 

@@ -1,4 +1,4 @@
-"""Each paper's and post's link to its X post (labinacan/social/links.py, #5840)."""
+"""Each paper's and post's link to its X post (labinacan.social.links, #5840)."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ import json
 from pathlib import Path
 
 from click.testing import CliRunner
-
 from labinacan.social import run as social
 from labinacan.social.feed import Entry, Tweet
 from labinacan.social.links import folder_of, link, write_records
+
 from openinterpretability.cli import cli
 from tests.test_social_media import _paper
 

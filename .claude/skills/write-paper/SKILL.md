@@ -28,7 +28,7 @@ List the paper in `papers/README.md`, with the date it is published before it: `
 
 A paper has the arc of the papers we review, in this order. `tests/test_papers.py` checks the fixed sections and their order.
 
-1. **Title and abstract.** A level 1 title, then one paragraph that can stand alone. It states the problem, the approach, the key numbers and what they imply. The Research index shows it, so don't start it with a citation or a path, and give it no heading.
+1. **Title and abstract.** A level 1 title, then one paragraph that can stand alone. It states the problem, the approach, the one or two numbers that carry the claim, and what they imply. Keep it to about 130–220 words. `scripts/papers.py check` fails a preprint whose abstract has more than 220 words, and it counts a `$…$` formula as one word (#6929). Other numbers go to the results sections, because the Research index shows the abstract alone. Don't start it with a citation or a path, and give it no heading.
 2. **Introduction.** Motivate the question for the field, not for the project. Say what earlier work leaves open. Then give a bulleted list of the paper's contributions, and link the question to `docs/research-questions.md`.
 3. **Related work.** At least one paragraph that places the paper among the outside work it cites. Say where it agrees and where it differs. The reviews in `docs/literature/` are the first place to look.
 4. **Method.** Define each term and the notation once, then the setup: model, units, data and measures.
@@ -45,8 +45,8 @@ Write in a formal, academic register. Use the third person or "we", not "I" or "
 
 - **Argue in paragraphs.** Each paragraph opens with a topic sentence, gives the evidence, and ends with what the evidence implies. Use bullets only for real lists: contributions, setups and limitations. Results, Discussion and Conclusion are prose.
 - **Relate the claims.** A sentence may relate two claims with "because", "whereas", "although" or "which suggests". Papers get their own STE profile (`scripts/ste_prose.py`): a sentence may have up to 40 words, and a paper's mean must stay at 25 or fewer. Every other STE rule still holds.
-- **Define the project's terms.** Explain each term the first time it appears, in plain words. `project.md` lists the terms that a reader outside the project does not know. Then use each term as defined. Keep code names and file paths out of the argument. They belong in the Method's setup and the Appendices.
-- **Number the figures and tables.** Give each one a caption that starts **Figure 1.** or **Table 1.**, and that a reader can follow alone. Refer to each one in the text by its number.
+- **Use no term of the project's own.** A reader outside the project meets the paper first, so it uses the field's terms or plain words (#6851). `papers/terms.toml` lists the project's terms, each with the plain phrase to use, and `scripts/papers.py check` finds them in a preprint. It reads the prose, the abstract, the captions, the figures' titles and the X thread. Code, the References and the Reproduce appendix are exempt. The Method may name a construct that the paper defines itself. Define each field term the first time it appears. Keep code names and file paths out of the argument: they belong in the Method's setup and the Appendices.
+- **Number the figures and tables.** Give each one a caption that starts **Figure 1.** or **Table 1.**, and that a reader can follow alone. Refer to each one in the text by its number. A figure caption's first sentence is the figure's finding, in the same words as its SVG title. The next sentences say what the marks are. `scripts/papers.py check` fails a preprint whose figure caption does not open with its title (#6930).
 - **Read the models.** `project.md` names the papers that show the arc and the register.
 
 **Before and after.** The old form read like a list:
@@ -69,7 +69,7 @@ long after the loss settles.
 
 ## Mathematics
 
-Write maths in LaTeX. The site typesets it at build time (`labinacan/site/maths.py`), and GitHub renders it too. A formula that the site can't read stops the build.
+Write maths in LaTeX. The site typesets it at build time (`labinacan.site.maths`), and GitHub renders it too. A formula that the site can't read stops the build.
 
 - **Write each equation, formula and maths symbol in LaTeX.** Use `$...$` inline: `$\mathrm{silu}(g) \cdot u$`, `$1.3 \times 10^{-5}$`, `$\sigma$`, `$R^2$`, `$\alpha = -0.5$`.
 - **Give each definition that the method depends on a block equation of its own**, such as the unit, the clamp or the KL metric. Put `$$` on its own line before and after the formula.
@@ -145,7 +145,7 @@ The maintainer decided on 2026-11-17 that every paper is either a **preprint** o
 
 - Each number in the prose matches `results.jsonl`, and the figures agree with the tables.
 - At least one figure moves (`paper-animation`), or the Method says why none does. Render a middle frame and the last frame, in light and dark, and look at them.
-- Run a coverage review. A fresh agent, which did not write the paper, reads it and lists each claim that rests on outside work. It checks each citation against the source's own text, with a verbatim quote, and against the work's review page in `docs/literature/`. A claim that the page contradicts is a finding. It finds a source for each claim that has none, and names reviewed work in `docs/literature/` that the paper should engage with. Fix each finding, and don't cite what the agent could not read.
+- Run a coverage review. A fresh agent, which did not write the paper, reads it and lists each claim that rests on outside work. It checks each citation against the source's own text, with a verbatim quote, and against the work's review page in `docs/literature/`. A claim that the page contradicts is a finding. It finds a source for each claim that has none, and names reviewed work in `docs/literature/` that the paper should engage with. It also reads each caption's first sentence against its figure, and checks that the figure shows that finding. Fix each finding, and don't cite what the agent could not read.
 - The status line names the work left, or the paper is published (*Status* above), and `uv run python scripts/papers.py check` passes.
 - Update the question that the paper bears on in `docs/research-questions.md`: its *So far* line, with the date.
 - Run `make lint` (it includes Vale) and `make test`.

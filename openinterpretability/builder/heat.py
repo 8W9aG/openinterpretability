@@ -5,9 +5,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+from labinacan.sensitive import is_offensive
 from markupsafe import Markup, escape
 
-from labinacan.sensitive import is_offensive
 from openinterpretability.core.examples import ActivatingExample
 
 

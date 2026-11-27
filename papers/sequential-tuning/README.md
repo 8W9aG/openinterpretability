@@ -69,7 +69,7 @@ The question is how many of the 362 explanations still pass their own probes aft
 
 ![Figure 1](media/stages.svg)
 
-**Figure 1.** The share of the 362 reproduced explanations that keep (left), and zero-shot ARC-Easy accuracy (right), at the start and after each of three narrow fine-tunes. Circles are the base model and triangles the instruct model. Bars are 95% Wilson intervals.
+**Figure 1.** After three narrow fine-tunes, a quarter of the explanations fail, and ARC-Easy ends near its start. The share of the 362 reproduced explanations that keep (left), and zero-shot ARC-Easy accuracy (right), at the start and after each of three narrow fine-tunes. Circles are the base model and triangles the instruct model. Bars are 95% Wilson intervals.
 
 **Table 1.** The explanations that stop keeping (lost) and start keeping (gained) at each stage, with an exact McNemar p, and the mean change of each gate over the 362 poles.
 
@@ -111,7 +111,7 @@ A keep test at one stage gives a snapshot. The question here is whether an expla
 
 ![Figure 2](media/grid.svg)
 
-**Figure 2.** Every reproduced pole, in the column of its layer, at each stage of each model in turn. A filled mark passes its own probes, and an open mark fails. Circles are the base model and triangles the instruct model. The animation rests on the instruct model after the last stage. Each frame is a measured stage.
+**Figure 2.** Explanations fail in every layer, most in the middle, and many come back at a later stage. Every reproduced pole, in the column of its layer, at each stage of each model in turn. A filled mark passes its own probes, and an open mark fails. Circles are the base model and triangles the instruct model. The animation rests on the instruct model after the last stage. Each frame is a measured stage.
 
 The losses churn. On the base model, 136 explanations fail at some stage, but only 95 fail at the end, because 50 of those that fail come back at a later stage. Some fail again after that. On the instruct model, 151 fail at some stage, 105 at the end, and 70 come back. Table 1 shows the churn within each stage. Apart from the base model's first stage, every stage both loses and gains explanations, from 18 to 29 gains a stage.
 
@@ -133,11 +133,11 @@ Shenfeld et al. (2026) find that the KL divergence on the new task's inputs pred
 
 ![Figure 3](media/losses.svg)
 
-**Figure 3.** The mean loss on the response tokens of 200 held-out pairs of each task, after each stage. Each task's loss falls at its own stage, and the SST-2 loss rises again at the later stages.
+**Figure 3.** Each stage learns its task, and the later stages undo part of the earlier ones. The mean loss on the response tokens of 200 held-out pairs of each task, after each stage. Each task's loss falls at its own stage, and the SST-2 loss rises again at the later stages.
 
 ![Figure 4](media/kl.svg)
 
-**Figure 4.** Each stage of each model: the KL divergence from the model before the stage to the model after it, on the stage's own held-out responses, against the net number of explanations lost at that stage (lost minus gained).
+**Figure 4.** The stage that moves its own data most is not the stage that costs the most explanations. Each stage of each model: the KL divergence from the model before the stage to the model after it, on the stage's own held-out responses, against the net number of explanations lost at that stage (lost minus gained).
 
 The KL does not order the stages by their cost. The instruct model's SST-2 stage has by far the largest KL, 18.6 nats, and costs a net 9 explanations. The base model's SST-2 stage has a KL of 6.3 and costs 66. The other four stages have KLs from 1.3 to 2.9 and cost a net 10 to 19. With six stages, two models and one seed, this is not a test of the law of Shenfeld et al. (2026), which concerns forgetting of earlier tasks, not internal units. It does show that the KL on a stage's own data measures how far the outputs move on that data. The instruct model's large KL comes from a new answer form. It does not measure how far the explained units move.
 

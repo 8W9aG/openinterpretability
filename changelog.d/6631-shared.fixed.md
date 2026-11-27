@@ -1,0 +1,1 @@
+- Fixes that the template's example project needed (#6631). The generic tests work for any project's config. `a11y_check.py` needs one page of each kind, in place of a count of five. The Linear jobs exit cleanly with no key, and `labinacan` has its own `__version__`.

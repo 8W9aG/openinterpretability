@@ -3,8 +3,12 @@
 import re
 from pathlib import Path
 
+import labinacan.site
+
 ROOT = Path(__file__).parents[1]
-TEMPLATES = (ROOT / "openinterpretability/builder/templates", ROOT / "labinacan/site/templates")
+# The site's own templates come with the installed labinacan package (#7003).
+LABINACAN_TEMPLATES = Path(labinacan.site.__file__).parent / "templates"
+TEMPLATES = (ROOT / "openinterpretability/builder/templates", LABINACAN_TEMPLATES)
 
 # SVGs that may still scale with the page. The three maps fill the width on purpose. Their
 # hover cards are placed in the drawn box (#5666). The pieces grid of a model card has no

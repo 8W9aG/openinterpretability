@@ -1,4 +1,4 @@
-"""Atom feeds of the papers and the literature reviews (labinacan/site/research_feeds.py, #4256)."""
+"""Atom feeds of the papers and the literature reviews (labinacan.site.research_feeds, #4256)."""
 
 import os
 import subprocess
@@ -17,6 +17,7 @@ from labinacan.site.research_feeds import (
     papers_feed,
     write_research_feeds,
 )
+
 from openinterpretability.builder.compiler import compile_site
 
 ATOM = "{http://www.w3.org/2005/Atom}"

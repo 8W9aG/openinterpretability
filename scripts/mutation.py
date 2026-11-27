@@ -408,7 +408,7 @@ def _options(argv: list[str]) -> tuple[dict[str, str], list[str]]:
         ({'--runs': '5', '--base': 'main'}, ['show', 'm'])
     """
     options = {}
-    while argv[:1] and argv[0] in ("--base", "--runs", "--order-seed"):
+    while argv[:1] and argv[0] in ("--base", "--files", "--runs", "--order-seed"):
         options[argv[0]], argv = argv[1], argv[2:]
     return options, argv
 
@@ -417,9 +417,11 @@ def main(argv: list[str]) -> int:
     """Run mutmut on the changed files, or on the verdict code, and report.
 
     Args:
-        argv: ``[--base <ref>] [--runs <n> | --order-seed <k>] [<mutmut command>...]``.
-            With a mutmut command, such as ``show <mutant>``, the script runs that command
-            under the same selection. ``--runs`` runs ``mutation_runs.repeat``.
+        argv: ``[--base <ref> | --files <a.py,b.py>] [--runs <n> | --order-seed <k>]
+            [<mutmut command>...]``. ``--files`` mutates every function of the named package
+            files, with no cap, and runs the tests that import them (#6491). With a mutmut
+            command, such as ``show <mutant>``, the script runs that command under the same
+            selection. ``--runs`` runs ``mutation_runs.repeat``.
             ``--order-seed`` sets one run's test order.
 
     Returns:
@@ -427,12 +429,13 @@ def main(argv: list[str]) -> int:
     """
     options, command = _options(argv)
     base = options.get("--base")
+    files = [f for f in options.get("--files", "").split(",") if f]
     if "--runs" in options:
         return repeat(int(options["--runs"]), base, Path(__file__), FAILING)
     from mutmut.__main__ import cli
 
-    if base is not None:
-        paths = changed_files(base)
+    if base is not None or files:
+        paths = files or changed_files(base)
         if not paths:
             print(f"No package file changes against {base}: nothing to mutate.")
             return 0

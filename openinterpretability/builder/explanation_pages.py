@@ -249,6 +249,7 @@ def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
     text is scrubbed of personal data, as the site publishes it.
     """
     from labinacan.site.pii import scrub
+
     from openinterpretability.core.answer_records import load_paths as load_answers
     from openinterpretability.core.explanation_records import load_all
     from openinterpretability.planner import load_states
@@ -260,7 +261,7 @@ def load_views(wiki_dir: Path, states: dict | None = None) -> list[PromptView]:
     prompts = []
     for records in found.values():
         # What the site publishes is scrubbed of personal data and takedowns, as for
-        # experiments (labinacan/site/pii.py, #4750).
+        # experiments (labinacan.site.pii, #4750).
         views = [_view(path, scrub(record), states, wiki_dir) for path, record in records]
         by_id = {v.record.id: v for v in views}
         for v in views:

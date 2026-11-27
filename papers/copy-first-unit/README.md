@@ -6,7 +6,7 @@ Pythia-70m answers "A week has seven days and a year has twelve" with " days", a
 
 ## Introduction
 
-A wrong answer is the case where an explanation of a model should help most. In #4781 we explained one: Pythia-70m answers "A week has seven days and a year has twelve" with " days". An answer experiment VERIFIED the route by which it copies the first clause's unit (`wiki/answers/EleutherAI--pythia-70m/970a91e11d8c/20261118T234629Z.json`). That route says how " days" wins. It doesn't say why " months" loses. The right answer may be missing from the model, or present and outvoted, and the two call for different repairs. This paper asks which it is. It bears on research question 0, how much of a model the registry explains ([research questions](../../docs/research-questions.md)), because an explanation of a wrong answer is incomplete until it covers the right answer too.
+A wrong answer is the case where an explanation of a model should help most. In #4781 we explained one: Pythia-70m answers "A week has seven days and a year has twelve" with " days". An answer experiment found the route by which it copies the first clause's unit, and the route passed the adversarial review (`wiki/answers/EleutherAI--pythia-70m/970a91e11d8c/20261118T234629Z.json`). That route says how " days" wins. It doesn't say why " months" loses. The right answer may be missing from the model, or present and outvoted, and the two call for different repairs. This paper asks which it is. It bears on research question 0, how much of a model our tested explanations cover ([research questions](../../docs/research-questions.md)), because an explanation of a wrong answer is incomplete until it covers the right answer too.
 
 The paper's contributions are these:
 
@@ -23,6 +23,8 @@ These results don't show what a repair would do. They describe the model as it i
 Geva et al. (2021) read feed-forward layers as key-value memories, whose values promote tokens in the vocabulary. Geva et al. (2023) split the recall of a fact into steps. Early MLPs enrich the subject's state with its attributes, and attention heads at the last position extract one of them. Yu et al. (2024) use that split to sort hallucinations. A fact can fail at enrichment, when no MLP at the subject ranks the answer in the top 1%, or at extraction. Yu et al. (2023) study how a model weighs an answer in its context against one in its memory. They find heads that carry the context's answer, and that scaling them lets the memory's answer win more often. McDougall et al. (2023) describe a copy-suppression head, which lowers a token that earlier layers copied from the context. Gekhman et al. (2024) sort facts by how often a model answers them right on its own, which separates a fact the model doesn't know from one it knows but loses.
 
 ## Method
+
+**Terms.** A neuron in a transformer's MLP layer can carry a different meaning when it is strongly positive and when it is strongly negative. Following Cammarata (2026), we study one side at a time, and call it a *pole*.
 
 **Model.** EleutherAI/pythia-70m, in float32 on the CPU, at its main revision.
 
@@ -41,7 +43,7 @@ Geva et al. (2021) read feed-forward layers as key-value memories, whose values 
 
 Three prompts of the shortlist are right because the model copies. They are the controls: "A spider has eight legs and a dog has four", "A car has four wheels and a bike has two", and "A cat has four legs and a bird has two".
 
-**The verified route.** In #4781 the model's route to " days" was VERIFIED by an answer experiment (`wiki/answers/EleutherAI--pythia-70m/970a91e11d8c/20261118T234629Z.json`). Layer-0 neurons mark the count words and time units. Early heads line up the two clauses. The copy heads L3/H3, L4/H0 and L4/H7 carry " days" to the answer position.
+**The verified route.** In #4781 an answer experiment found the model's route to " days", and the route passed the adversarial review (`wiki/answers/EleutherAI--pythia-70m/970a91e11d8c/20261118T234629Z.json`). Layer-0 neurons mark the count words and time units. Early heads line up the two clauses. The copy heads L3/H3, L4/H0 and L4/H7 carry " days" to the answer position.
 
 **Measures.** `scripts/copy_first_unit.py` writes one row per prompt to `results.jsonl`:
 
@@ -68,7 +70,7 @@ Table 2 gives each wrong prompt's right unit, after the full prompt and after it
 
 ![Alone, the second clause rarely gets its right unit either](media/single.svg)
 
-**Figure 1.** The right unit's rank after the full prompt (dot), the clause alone (ring) and the clause after four facts (square).
+**Figure 1.** Alone, the second clause rarely gets its right unit either. The right unit's rank after the full prompt (dot), the clause alone (ring) and the clause after four facts (square).
 
 The model doesn't hold these facts firmly. Its greedy answer to the clause alone is wrong for five of the six, though the right answer is near the top. The few-shot context makes them worse, not better. So a first clause with a unit in it has little to compete with.
 
@@ -80,7 +82,7 @@ At the second clause's subject, the best rank of the right unit in any layer's M
 
 ![By layer 4 the right unit is near the top, but the copied unit stays first](media/layers.svg)
 
-**Figure 2.** The right unit's rank (solid) and the copied unit's (dashed) at the answer position, after each layer. A moving dot steps along the right unit's line.
+**Figure 2.** By layer 4 the right unit is near the top, but the copied unit stays first. The right unit's rank (solid) and the copied unit's (dashed) at the answer position, after each layer. A moving dot steps along the right unit's line.
 
 At the answer position, the right unit rises with depth on every wrong prompt (Figure 2). After layer 4 it is rank 2, 3, 3, 32, 2 and 4, and the copied unit is rank 1 or 2. The last layer leaves the order as it is. The right answer therefore reaches the answer position, but from somewhere other than the subject's MLPs, and the copied unit outvotes it. The " eggs" prompt is the exception, with the right unit at rank 32 after layer 4.
 
@@ -90,7 +92,7 @@ The layer 4 and 5 MLPs add little either way. Over all their neuron poles, the d
 
 ![Without the copy heads, the copied unit still wins on five of the six prompts](media/heads.svg)
 
-**Figure 3.** $\mathrm{logit}(\text{right}) - \mathrm{logit}(\text{copied})$ for the model, with the three copy heads switched off, and with them and L4/H1 switched off. A line spans 20 random sets of three heads of layers 3 and 4, switched off, with a tick at their median.
+**Figure 3.** Without the copy heads, the copied unit still wins on five of the six prompts. $\mathrm{logit}(\text{right}) - \mathrm{logit}(\text{copied})$ for the model, with the three copy heads switched off, and with them and L4/H1 switched off. A line spans 20 random sets of three heads of layers 3 and 4, switched off, with a tick at their median.
 
 | Prompt | The model | Copy heads off | Copy heads and L4/H1 off | Copy heads at $\alpha = -0.5$ | Random heads off: median, range |
 | --- | --- | --- | --- | --- | --- |
@@ -111,7 +113,7 @@ On the three controls, switching the copy heads off keeps the right answer, and 
 
 ## L5/N2014+
 
-L5/N2014+ has the largest single attribution on the " days" prompt in the #4781 explanation. Its maximum on the scan corpus is 6.10, so its activity line is 1.52. At the answer position it is above that line on four of the six wrong prompts: 3.11 on "months, not days" and on "minutes, not seconds", 2.61 on "seconds, not minutes" and 1.97 on "days, not months". It stays below the line on every second clause alone, with 1.15 the highest. Its direct write toward " months" on the " days" prompt is +0.27, the second-largest of any layer 4 or 5 pole. On "seconds, not minutes" and on the reversed prompt it writes toward the copied unit instead (−0.06 and −0.18). So it responds to the two-clause frame of the prompts, not to the fact. Its unit experiment (#5093) is VERIFIED, at confidence 0.97. Its explanation: it fires on the token that fills the value slot of a time or date expression, after a cue such as "within", "every" or "earlier". It passed 19 of 20 hard negatives and 10 of 10 holdouts. Judges scored it 0.62 for detection and 0.54 for fuzzing. In these prompts the slot is the second clause's number, such as "twelve". The clause alone has the same slot, yet the pole stays below its line there. So here the time reading comes from the first clause's unit, and the pole is silent when that unit isn't a time unit, as with "fingers" and "eggs".
+L5/N2014+ has the largest single attribution on the " days" prompt in the #4781 explanation. Its maximum on the scan corpus is 6.10, so its activity line is 1.52. At the answer position it is above that line on four of the six wrong prompts: 3.11 on "months, not days" and on "minutes, not seconds", 2.61 on "seconds, not minutes" and 1.97 on "days, not months". It stays below the line on every second clause alone, with 1.15 the highest. Its direct write toward " months" on the " days" prompt is +0.27, the second-largest of any layer 4 or 5 pole. On "seconds, not minutes" and on the reversed prompt it writes toward the copied unit instead (−0.06 and −0.18). So it responds to the two-clause frame of the prompts, not to the fact. Its unit experiment (#5093) passed the adversarial review, at confidence 0.97. Its explanation: it fires on the token that fills the value slot of a time or date expression, after a cue such as "within", "every" or "earlier". It passed 19 of 20 hard negatives and 10 of 10 prompts that it predicted would fire the neuron. Judges scored it 0.62 for detection and 0.54 for fuzzing. In these prompts the slot is the second clause's number, such as "twelve". The clause alone has the same slot, yet the pole stays below its line there. So here the time reading comes from the first clause's unit, and the pole is silent when that unit isn't a time unit, as with "fingers" and "eggs".
 
 ## Discussion
 
@@ -140,6 +142,7 @@ Pythia-70m copies the first clause's unit because the right unit is weak, not be
 
 ## References
 
+- Cammarata, N. (2026). *Neural networks are already clean*. Goodfire research essay. [already-clean.goodfire.com](https://already-clean.goodfire.com/).
 - Gekhman, Z., Yona, G., Aharoni, R., Eyal, M., Feder, A., Reichart, R., & Herzig, J. (2024). *Does Fine-Tuning LLMs on New Knowledge Encourage Hallucinations?* EMNLP 2024. [arXiv:2405.05904](https://arxiv.org/abs/2405.05904).
 - Geva, M., Schuster, R., Berant, J., & Levy, O. (2021). *Transformer Feed-Forward Layers Are Key-Value Memories*. EMNLP 2021. [arXiv:2012.14913](https://arxiv.org/abs/2012.14913).
 - Geva, M., Bastings, J., Filippova, K., & Globerson, A. (2023). *Dissecting Recall of Factual Associations in Auto-Regressive Language Models*. EMNLP 2023. [arXiv:2304.14767](https://arxiv.org/abs/2304.14767).

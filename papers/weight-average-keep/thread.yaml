@@ -1,0 +1,26 @@
+# The paper's X thread (labinacan/social/thread.py, #5833). Each blurb gives
+# numbers from the paper only. {link} is the paper's URL.
+- section: Introduction
+  text: >-
+    Averaging a fine-tuned model with its start is a known way to keep the start's robustness.
+    Does it bring back the neuron explanations that tuning breaks? We stepped along the line from
+    Qwen2.5-1.5B to its instruct model and tested 80 explanations. {link}
+  media: [keeps]
+- section: Does the weight average keep the explanations that tuning breaks?
+  text: >-
+    The full tuning breaks 11 of 80. The weight average, halfway along the line, keeps 73 of
+    80, against 69, but 6 of the 11 failures already happen there (paired p = 0.22).
+- section: Do explanations fail at one step or gradually?
+  text: >-
+    No threshold: the explanations fail a few at a time along the whole line, and 12 of the 15
+    that fail stay failed as the step grows. Negating half of the tuning breaks 3 others.
+  media: [path]
+- section: Is the tuning's direction worse than a random change of each step's size?
+  text: >-
+    Direction matters, not only size: at every positive step the tuning breaks more than a
+    random change of the same norm, and it moves the output about 5 times as far.
+  media: [kl]
+- section: Conclusion
+  text: >-
+    In this model, the weight average is not a way to keep the explanations that tuning
+    breaks: their failure starts early on the line and grows with the step. {link}

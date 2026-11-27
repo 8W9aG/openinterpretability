@@ -34,9 +34,9 @@ from explain_post_answer_figures import (
     route,
 )
 from explain_post_marks import CYCLE, END, ROW, _arrow, _at, _end, _figure, _group, _token, _travel
-
 from labinacan.figures.motion import counter
 from labinacan.figures.svg import WIDTH, Figure, Panel, number
+
 from openinterpretability.builder.explanation_figures import _marker
 from openinterpretability.core.explanation_records import ExplanationRecord
 

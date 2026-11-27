@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from openinterpretability.patches.history import replay
-from openinterpretability.patches.schema import Patch, PatchError
+from openinterpretability.patches.schema import ENCODING, Patch, PatchError
 from openinterpretability.patches.store import PatchStore
 
 
@@ -38,8 +38,11 @@ class Target:
 
 def read_draft(path: Path) -> Patch:
     """A draft from ``path``, sealed so that it can be replayed. Its id isn't final yet."""
-    patch = Patch.model_validate_json(path.read_text(encoding="utf-8"))
-    return patch.model_copy(update={"id": ""}).sealed()
+    # Python reads and writes UTF-8 by default on every platform here (PEP 538, 540).
+    # A mutant that drops ENCODING changes nothing that a test can see.
+    text = path.read_text(encoding=ENCODING)  # pragma: no mutate, equivalent: see above
+    patch = Patch.model_validate_json(text)
+    return patch.sealed()  # sealed() sets the id from the content, whatever the draft had
 
 
 def resolve(name: str, wiki_dir: Path, model_name: str) -> Target:
@@ -51,7 +54,7 @@ def resolve(name: str, wiki_dir: Path, model_name: str) -> Target:
     else:
         store = PatchStore(wiki_dir, f"{model_name}@any")
         patch = store.get(name)
-    if patch.base.split("@", 1)[0] != model_name:
+    if patch.base.partition("@")[0] != model_name:
         raise PatchError(f"the patch is for {patch.base}, not {model_name}")
     return Target(patch, store)
 

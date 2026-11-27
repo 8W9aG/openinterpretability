@@ -177,6 +177,7 @@ def test_a_region_outline_is_convex_holds_the_core_and_leaves_out_a_stray():
 
 def test_the_map_draws_outlines_and_a_card_line(tmp_path, record):
     from labinacan.site.cluster_map import overlaps
+
     from openinterpretability.builder.compiler import compile_site
     from openinterpretability.builder.tree import build_tree
 

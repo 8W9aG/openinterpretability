@@ -4,8 +4,8 @@ import json
 import subprocess
 
 import pytest
-
 from labinacan.site import github
+
 from openinterpretability.builder import pending
 from openinterpretability.builder.compiler import compile_site
 

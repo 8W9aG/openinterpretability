@@ -6,7 +6,7 @@
 #   TEST_WRAPPER  a command that each test run goes through, or nothing.
 #   BUILD_COMMAND the command that builds the site into $(DIST_DIR). It should start with
 #                 $(BUILD_WRAPPER), which CI sets to a memory cap. Default: labinacan's
-#                 build (labinacan/site/build.py, #6631).
+#                 build (labinacan.site.build, #6631).
 #   CACHE_DIR_COMMAND  a command that prints the project's cache folder, for CI's caches.
 #                 Default: ~/.cache/<the project's command>.
 #   CSS_MODULE    the module that writes the site's stylesheet. Default: labinacan's, in
@@ -73,16 +73,19 @@ coverage:
 # about 2 minutes. It fails when a mutant survives or no test reaches it. CI runs it with BASE
 # on PRs from authors other than the maintainer (#5857). mutmut is
 # pinned in the dev group (pyproject.toml). `mutmut show <name>` gives a mutant's diff.
+# FILES=a.py,b.py mutates every function of those package files, with no cap, and runs the
+# tests that import them: a whole module, by hand, never in CI (#6491).
 # RUNS=5 runs it 5 times, each in its own test order (pytest-randomly seeds 1 to 5), and fails
 # when a mutant's result changes between runs (#6359), in about 25 minutes. The plugin is
 # pinned here only.
 BASE ?=
+FILES ?=
 RUNS ?=
 ORDER_PLUGIN := pytest-randomly==3.16.0
 mutation:
 	rm -rf mutants
 	uv run $(if $(RUNS),--with $(ORDER_PLUGIN)) python scripts/mutation.py \
-		$(if $(BASE),--base $(BASE)) $(if $(RUNS),--runs $(RUNS))
+		$(if $(BASE),--base $(BASE)) $(if $(FILES),--files $(FILES)) $(if $(RUNS),--runs $(RUNS))
 
 # Unused code: a name vulture finds, and vulture_whitelist.py doesn't keep, fails (#3164).
 vulture:

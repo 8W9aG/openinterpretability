@@ -61,6 +61,22 @@ def sample_pages(site: Path) -> list[str]:
     return pages
 
 
+def missing_kinds(site: Path) -> list[str]:
+    """The kinds that every site must have a page of, and that ``site`` has none of.
+
+    They are the home page, Research, and each kind of ``[tool.labinacan] a11y_pages``. A
+    build that lost one checks fewer pages, so the check fails rather than pass on less.
+
+    Args:
+        site: The built site.
+
+    Returns:
+        The missing kinds, as glob patterns.
+    """
+    kinds = ("index.html", "research/index.html", *a11y_pages(ROOT))
+    return [k for k in kinds if not any(p.is_file() for p in site.glob(k))]
+
+
 def failures(violations: list[dict]) -> list[str]:
     """One line for each failing element in axe's ``violations`` list.
 
@@ -103,8 +119,8 @@ def main() -> int:
 
     site = args.site.resolve()
     pages = sample_pages(site)
-    if len(pages) < 5:
-        print(f"a11y: expected 5 sample pages in {site}, found {pages}")
+    if missing := missing_kinds(site):
+        print(f"a11y: no page of {missing} in {site}, found {pages}")
         return 1
     axe = axe_source(args.cache)
     found = 0

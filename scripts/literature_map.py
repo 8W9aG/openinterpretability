@@ -39,8 +39,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from literature_map_io import MIN_COMPACT, plain_lead, queued, report  # noqa: E402, F401
-
 from labinacan.site.cluster_map import SLOTS  # noqa: E402
 from labinacan.site.literature_pages import (  # noqa: E402
     LITERATURE,
@@ -48,6 +46,7 @@ from labinacan.site.literature_pages import (  # noqa: E402
     map_text,
     sections,
 )
+from literature_map_io import MIN_COMPACT, plain_lead, queued, report  # noqa: E402, F401
 
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 # UMAP's and Leiden's seeds, tried in order: one page can reshuffle one seed's map (#6529).

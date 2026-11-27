@@ -1,9 +1,9 @@
 """Overlapping matches in ``labinacan.site.pii``, and attribution that names no top example."""
 
 import pytest
-
 from labinacan.site import pii, takedowns
 from labinacan.site.pii import REMOVED_TEXT
+
 from openinterpretability.builder import registry_pii
 from openinterpretability.core.attribution import AttributedToken, ContextExample, InputAttribution
 
@@ -58,6 +58,7 @@ def test_with_no_settings_the_core_keeps_nothing_on_disk():
 def test_the_registry_gives_the_core_its_cache_folder_and_the_frozen_name(monkeypatch, tmp_path):
     """Records' label_detector and the cache key name the search as before (#6628)."""
     from labinacan.site import pii as core
+
     from openinterpretability.builder import registry_pii
     from openinterpretability.core.confounds import PII_DETECTOR
 

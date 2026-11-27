@@ -46,7 +46,7 @@ Agents wrote this study's code and text, and the maintainer directed it. The exp
 
 ![Every model's poles fill one shared space](media/fill.svg)
 
-**Figure 1.** The 1,998 poles on the shared map, appearing in the order they were first studied. Shape and colour give the model.
+**Figure 1.** Every model's poles fill one shared space, and none keeps a region to itself. The 1,998 poles on the shared map, appearing in the order they were first studied. Shape and colour give the model.
 
 The poles of all four models spread across the whole map, and each model's poles appear across it as the dates advance (Figure 1). Table 2 gives the map's 7 regions, by size, with each model's share of its poles in each. The names are the words that set a region's VERIFIED explanations apart, so they are clues, not labels. Pythia-70m has 28% of its poles in the region of scripts and languages, against 11–20% for the others. Most of Pythia-70m's poles were scanned on the mixed corpus, which holds Wikipedia in ten languages. The section after next tests whether that is the model or the corpus.
 
@@ -64,7 +64,7 @@ The poles of all four models spread across the whole map, and each model's poles
 
 ![No model leaves a region empty until the map is cut into 60](media/coverage.svg)
 
-**Figure 2.** Each model's coverage at the map's 7 regions and at Leiden cuts of 14, 29 and 60 regions. The axis starts at 90%.
+**Figure 2.** No model leaves a region empty until the map is cut into 60. Each model's coverage at the map's 7 regions and at Leiden cuts of 14, 29 and 60 regions. The axis starts at 90%.
 
 Every model reaches every region up to 29 regions (Figure 2). At 60 regions, Pythia-70m reaches 57, GPT-2 59, Qwen2.5-0.5B 60 and Qwen2.5-1.5B 58. The models with fewer poles miss more regions, as sampling alone would make them: Pythia-70m and Qwen2.5-1.5B have fewer than 300 poles each, against about 700 for the other two.
 
@@ -72,7 +72,7 @@ Every model reaches every region up to 29 regions (Figure 2). At 60 regions, Pyt
 
 ![Pooled over scan corpora, most pairs of models spread less alike than chance](media/overlap.svg)
 
-**Figure 3.** Each pair's overlap (solid dot) against its shuffled null (ring), at four partitions, with poles from every scan corpus.
+**Figure 3.** Pooled over scan corpora, most pairs of models spread less alike than chance. Each pair's overlap (solid dot) against its shuffled null (ring), at four partitions, with poles from every scan corpus.
 
 **Table 3.** Each pair's overlap and shuffled null, at the map's 7 regions and at 60, with poles from every scan corpus.
 
@@ -91,7 +91,7 @@ At 7 regions every pair falls below its null (Table 3). At 60 regions four pairs
 
 ![The scan corpus, not the model, sets most of where the poles fall](media/control.svg)
 
-**Figure 4.** Overlap against the shuffled null at the map's 7 regions: pairs pooled over corpora, pairs on pile-10k alone, and each model against itself across two corpora.
+**Figure 4.** The scan corpus, not the model, sets most of where the poles fall. Overlap against the shuffled null at the map's 7 regions: pairs pooled over corpora, pairs on pile-10k alone, and each model against itself across two corpora.
 
 **Table 4.** The corpus control at the map's 7 regions.
 

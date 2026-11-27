@@ -976,6 +976,18 @@ def test_explanation_and_circuit_draws_follow_the_seed_and_the_claims(tmp_path):
     assert drawn(1, [claim_key(found["explanation"]), claim_key(found["circuit"])]) == {}
 
 
+def test_the_explanation_draw_gets_the_plans_own_seed(tmp_path, monkeypatch):
+    # A draw with no seed is random, so a test that compares draws can pass by chance. This
+    # one checks the seed itself (#6810: mutant plan_next 54 survived 1 run in 5).
+    from openinterpretability import planner_explanations
+
+    seen = []
+    monkeypatch.setattr(planner_explanations, "explanation_candidates",
+                        lambda *args: seen.append(args[-1]) or [])  # fmt: skip
+    plan_next(tmp_path, seed=7, epsilon=0.0, now=NOW)
+    assert seen == [7]
+
+
 def test_an_explained_unit_already_studied_gets_follow_ups_not_an_audit(tmp_path, record):
     from openinterpretability.core.identifiers import NeuronIdentifier
     from tests.test_planner_explanations import POLE, _explained
