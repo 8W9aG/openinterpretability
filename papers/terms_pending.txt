@@ -3,10 +3,7 @@
 # has no term left, so the list only shrinks. It goes when it is empty.
 conformal-line
 explanations-across-models
-fisher-keep
-instruct-difference
 native-vs-learned
 neuron-development
 nf4-keep
-sequential-tuning
 template-or-tuning

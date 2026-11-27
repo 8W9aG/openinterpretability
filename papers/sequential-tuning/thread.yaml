@@ -3,7 +3,7 @@
 - section: Introduction
   text: >-
     Do neuron explanations survive fine-tuning after fine-tuning? We tuned Qwen2.5-0.5B and
-    its instruct model on SST-2, then XSum, then GSM8K, and re-tested 362 VERIFIED
+    its instruct model on SST-2, then XSum, then GSM8K, and re-tested 362 reviewed
     explanations after each stage. About three quarters keep. {link}
   media: [stages]
 - section: Does instruction tuning protect explanations, or spend them first?
@@ -23,5 +23,5 @@
     stage that costs a net 9.
 - section: Conclusion
   text: >-
-    An explanation registry has to re-test its explanations on each fine-tuned model, not
-    infer their state from its benchmarks. {link}
+    Neuron explanations have to be re-tested on each fine-tuned model, not inferred from
+    its benchmarks. {link}
