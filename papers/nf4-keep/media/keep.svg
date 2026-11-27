@@ -31,7 +31,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="363" rx="10"/>
 <text x="20.0" y="30.0" class="title">NF4 rounding keeps most explanations, and on Qwen2.5-1.5B</text>
 <text x="20.0" y="53.0" class="title">more than a random change of the same size</text>
-<text x="20.0" y="73.0" class="sub">Each mark is the share of VERIFIED explanations that still pass their probes, with a</text>
+<text x="20.0" y="73.0" class="sub">Each mark is the share of passing explanations that still pass their tests, with a</text>
 <text x="20.0" y="91.0" class="sub">95% interval. Each random change has the norm of NF4&#x27;s error in every matrix.</text>
 <path class="grid" d="M190.0 145.0L190.0 265.0"/>
 <text x="190.0" y="280.0" class="small" text-anchor="middle">0.6</text>

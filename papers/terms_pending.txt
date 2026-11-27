@@ -5,5 +5,3 @@ conformal-line
 explanations-across-models
 native-vs-learned
 neuron-development
-nf4-keep
-template-or-tuning

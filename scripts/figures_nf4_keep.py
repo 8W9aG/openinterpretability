@@ -56,7 +56,7 @@ def keep(rows: list[dict]) -> Figure:
     fig = Figure(
         ["NF4 rounding keeps most explanations, and on Qwen2.5-1.5B",
          "more than a random change of the same size"],
-        ["Each mark is the share of VERIFIED explanations that still pass their probes, with a",
+        ["Each mark is the share of passing explanations that still pass their tests, with a",
          "95% interval. Each random change has the norm of NF4's error in every matrix."],
         f"Two panels, one for each Qwen2.5 model, with three rows: NF4 rounding, random "
         f"changes of the same norm, and bfloat16 rounding, which changes nothing. On "
@@ -105,9 +105,9 @@ def flips(rows: list[dict]) -> Figure:
     fig = Figure(
         ["On Qwen2.5-0.5B, NF4 and random changes of its size",
          "flip many of the same poles: those near a gate"],
-        [f"Each cell is one of Qwen2.5-0.5B's {len(order)} VERIFIED poles, nearest a gate first. "
+        [f"Each cell is one of Qwen2.5-0.5B's {len(order)} passing poles, nearest a gate first. "
          "A filled cell flips:",
-         "it passes its probes on the base model and fails on the changed one."],
+         "it passes its test prompts on the base model and fails on the changed one."],
         f"A grid of {len(order)} cells, in rows of {COLUMNS}, ordered by how far each pole's "
         f"base readings sit above the nearer gate. The frames step through NF4 rounding and "
         f"{len(frames) - 1} random changes of its norm. Each flips {min(map(len, sets))} to "
