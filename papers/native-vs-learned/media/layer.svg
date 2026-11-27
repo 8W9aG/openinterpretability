@@ -30,7 +30,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 </style>
 <rect class="bg" width="760" height="425" rx="10"/>
 <text x="20.0" y="30.0" class="title">To audit a whole GPT-2 layer, latents need five times the audits</text>
-<text x="20.0" y="53.0" class="title">and give ten times the VERIFIED units</text>
+<text x="20.0" y="53.0" class="title">and give ten times the passing units</text>
 <text x="20.0" y="73.0" class="sub">An extrapolation of the measured shares to one layer: 24,576 latents, of which 66% fire, against 3,072 positive poles.</text>
 <text x="70.0" y="129.0" class="head">audits</text>
 <path class="grid" d="M70.0 337.0L373.0 337.0"/>
