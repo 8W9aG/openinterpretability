@@ -96,6 +96,23 @@ def trajectory(rows: list[dict]) -> Figure:
     return fig
 
 
+def needed(row: dict, name: str) -> int:
+    """The experiments that plan ``name`` needs for a coverage of 1.0.
+
+    Args:
+        row: The prompt's row of results.
+        name: The plan: ``lazy``, ``full`` or ``prune``.
+
+    Returns:
+        The number of experiments.
+
+    Examples:
+        >>> needed({"prune": {"1.0": 9}, "lazy": {"to_1.0": 3}}, "prune")
+        9
+    """
+    return row["prune"]["1.0"] if name == "prune" else row[name]["to_1.0"]
+
+
 def picks(rows: list[dict]) -> Figure:
     """For each prompt, the experiments that each plan needs for full coverage.
 
@@ -110,18 +127,6 @@ def picks(rows: list[dict]) -> Figure:
     prompts = _prompts(rows)
     marks = (("lazy", "lazy plan", "fc1"), ("full", "full scan", "fc2"),
              ("prune", "every unit, pruned", "fc3"))  # fmt: skip
-
-    def needed(row, name):
-        """The experiments that plan ``name`` needs for a coverage of 1.0.
-
-        Args:
-            row: The prompt's row of results.
-            name: The plan.
-
-        Returns:
-            The number of experiments.
-        """
-        return row["prune"]["1.0"] if name == "prune" else row[name]["to_1.0"]
 
     lazy = [needed(r, "lazy") for r in prompts]
     fig = Figure(
