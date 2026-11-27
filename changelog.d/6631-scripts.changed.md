@@ -1,1 +1,0 @@
-- The generic scripts read the project's packages, generated files and size budget from the config (`scripts/repo_config.py`, `[tool.labinacan] generated`, `[tool.labinacan.size_budget]`) (#6631).

@@ -1,1 +1,0 @@
-- **`agents/review_measurements.py` joins the verdict code that `make mutation` mutates.** It measures the probes, counterfactuals, lookahead and causal readouts that a verdict rests on. The selected reviewer tests already kill all 322 of its mutants. All 2,617 mutants of the nine files die, in about 3.5 minutes (#6810).

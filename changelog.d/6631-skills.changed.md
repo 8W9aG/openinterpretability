@@ -1,1 +1,0 @@
-- The `single-source-of-truth`, `commenting`, `test-new-paths`, `next-issue`, `literature-review` and `paper-animation` skills hold no value of this project. Each has a `project.md` with this project's part, and `work-an-issue` reads the repository from `gh` (#6631).

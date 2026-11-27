@@ -1,1 +1,0 @@
-- The `release` skill is now generic: its commands read the project's values from `python -m labinacan.config`, and this project's steps, refreshes, checks and title are in its `project.md` (#6630).

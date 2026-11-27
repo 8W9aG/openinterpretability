@@ -1,1 +1,0 @@
-- A project with no X account leaves `X` out of `[project.urls]`. Its pages then have no X link and no `twitter:site` tag (#6631).

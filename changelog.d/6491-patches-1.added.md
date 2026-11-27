@@ -1,1 +1,0 @@
-- `make mutation FILES=a.py,b.py` mutates every function of the named package files, for the whole-package mutation work (#6491). The first four files of `patches/` (`schema.py`, `session.py`, `store.py`, `tensors.py`) have no surviving mutant.

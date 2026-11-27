@@ -1,1 +1,0 @@
-- `scripts/check_leftovers.py` counts this project's words in the files that the labinacan template takes (`scripts/template_paths.txt`). Its baseline (`scripts/leftovers_baseline.txt`) can only come down, and the template is cut when it is empty (#6631).
