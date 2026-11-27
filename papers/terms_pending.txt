@@ -8,8 +8,5 @@ instruct-difference
 native-vs-learned
 neuron-development
 nf4-keep
-pruning-keep
-random-change-keep
-rome-keep
 sequential-tuning
 template-or-tuning

@@ -31,8 +31,8 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <rect class="bg" width="760" height="443" rx="10"/>
 <text x="20.0" y="30.0" class="title">A ROME edit at layer 2 leaves every pole below it intact,</text>
 <text x="20.0" y="53.0" class="title">and breaks fewer above it than a random edit of its size</text>
-<text x="20.0" y="73.0" class="sub">Each mark is the share of pythia-70m&#x27;s VERIFIED explanations at that layer that</text>
-<text x="20.0" y="91.0" class="sub">still pass their probes, over 10 edits of unrelated facts and 10 random edits.</text>
+<text x="20.0" y="73.0" class="sub">Each mark is the share of pythia-70m&#x27;s passing explanations at that layer that</text>
+<text x="20.0" y="91.0" class="sub">still pass their tests, over 10 edits of unrelated facts and 10 random edits.</text>
 <path class="grid" d="M80.0 345.0L700.0 345.0"/>
 <text x="73.0" y="349.0" class="small" text-anchor="end">0.85</text>
 <path class="grid" d="M80.0 280.5L700.0 280.5"/>
