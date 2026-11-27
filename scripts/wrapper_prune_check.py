@@ -26,6 +26,18 @@ from wrapper_prune import base_logprobs, down_name, mean_kl, pruned_change  # no
 from openinterpretability.interference.keep import sample_windows  # noqa: E402
 
 
+def paper_scores(rows: list[dict]) -> dict[str, list[float]]:
+    """The scores of the paper's own run: the write prune on the corpus sample.
+
+    Rows from before the variants of #7071 have no ``unit`` or ``loss``, and count as these.
+
+    Args:
+        rows: The rows of ``scripts/wrapper_prune.py``.
+    """
+    return next(r for r in rows if r["table"] == "scores" and r.get("unit", "write") == "write"
+                and r.get("loss", "base") == "base")["scores"]  # fmt: skip
+
+
 def ranked(scores: dict[str, list[float]], n: int) -> list[tuple[int, int, float]]:
     """The ``n`` neurons with the highest score, as ``(layer, neuron, score)``, highest first.
 
@@ -57,7 +69,7 @@ def main(base_name, results, out, device, top) -> None:
     from openinterpretability.cli import _load_runner
 
     rows = [json.loads(line) for line in results.read_text().splitlines() if line]
-    scores = next(r for r in rows if r["table"] == "scores")["scores"]
+    scores = paper_scores(rows)
     runner = _load_runner(base_name, device, "float32", None)
     other = _load_runner(f"{base_name}-Instruct", "cpu", "float32", None)
     delta = deltas(runner.model, other.model)

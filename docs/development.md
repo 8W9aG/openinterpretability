@@ -72,7 +72,7 @@ CI runs three required jobs on every PR. *Lint and tests* is in [labinacan-ci.ym
   echo "<github-user> valid-after=\"$(date -u +%Y%m%d)Z\",namespaces=\"openinterp-record\" $(cat ~/.ssh/openinterpretability_signing.pub)" >> .github/allowed_signers
   ```
 
-A PR that only adds records that CI re-measures is squash-merged automatically once all three pass ([auto-merge.yml](../.github/workflows/auto-merge.yml)), fork PRs included. Those are files under `wiki/experiments/` and `wiki/explanations/` (`openinterpretability/core/record_kinds.py`). CI reproduces those records. Other wiki records, such as circuits, are not reproduced, so someone else's PR that adds them waits for a maintainer. So is a PR that the maintainer opened from a branch of this repository, whatever it changes. Agents that use the maintainer's GitHub login open PRs as the maintainer, so their PRs merge this way too. Any other PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
+A PR that only adds records that CI re-measures is squash-merged automatically once all three pass ([auto-merge.yml](../.github/workflows/auto-merge.yml)), fork PRs included. Those are files under `wiki/experiments/` and `wiki/explanations/` (`openinterpretability/core/record_kinds.py`). `[tool.labinacan] auto_merge_rule` in `pyproject.toml` names that file's `reproducible` function, and the workflow reads it from the base commit (#6992). CI reproduces those records. Other wiki records, such as circuits, are not reproduced, so someone else's PR that adds them waits for a maintainer. So is a PR that the maintainer opened from a branch of this repository, whatever it changes. Agents that use the maintainer's GitHub login open PRs as the maintainer, so their PRs merge this way too. Any other PR that changes anything else (code, workflows, `.github/allowed_signers`) waits for a maintainer.
 
 Two more checks run on every pull request but aren't required. *Secret scan* runs gitleaks over the commits the PR adds (`.github/workflows/secret-scan.yml`, rules in `.gitleaks.toml`). Run it by hand to scan the whole history. Workflows pin each action to a full commit SHA, and Dependabot (`.github/dependabot.yml`) opens PRs that update the pins and `uv.lock`.
 
@@ -230,7 +230,7 @@ After pulling the rename, run `make install` once in each checkout. A plain `uv 
 
 ## Deploy
 
-[deploy.yml](../.github/workflows/deploy.yml) rebuilds `dist/` from `main` on every push to `main`, on each published GitHub release (#5196) and on manual dispatch. It also runs every 30 minutes, and deploys when `main` has moved since the last successful deploy. The schedule catches merges by the auto-merge bot, whose token starts no push workflow (issue #3989). Each deploy runs `open-interpretability check`, then `open-interpretability deploy --delete`. It deploys on push because GitHub's scheduled workflows are best-effort: an hourly cron alone left the site hours behind. **An unchanged registry deploys as a no-op**, which takes four measures:
+[deploy.yml](../.github/workflows/deploy.yml) rebuilds `dist/` from `main` on every push to `main`, on each published GitHub release (#5196) and on manual dispatch. It also runs every 30 minutes, and deploys when `main` has moved since the last successful deploy. The schedule catches merges by the auto-merge bot, whose token starts no push workflow (issue #3989). Each deploy runs `make deploy-prepare`, then `make build`, then `open-interpretability deploy --delete`. This project's `deploy-prepare` publishes the evidence of merged records and runs `open-interpretability check` (`Makefile`). The workflow holds no value of this project, so the labinacan template ships the same file (#6992). It deploys on push because GitHub's scheduled workflows are best-effort: an hourly cron alone left the site hours behind. **An unchanged registry deploys as a no-op**, which takes four measures:
 
 - **Deterministic build.** There are no build timestamps. The footer date and `manifest.json`'s `updated_at` come from the latest verdict, and every ordering is total. Unchanged records rebuild byte-for-byte, which a test enforces.
 - **Content comparison.** Only files whose MD5 differs from the remote ETag are uploaded.
@@ -242,10 +242,12 @@ Configure the workflow in the repo's GitHub settings:
 | Name | Kind | Purpose |
 | --- | --- | --- |
 | `CF_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | secrets | R2 S3 API access |
-| `R2_BUCKET` | variable | Bucket name |
+| `R2_BUCKET` | variable | Bucket name. Without it, the deploy builds the site and stops |
 | `CF_ZONE_ID`, `CF_API_TOKEN` | secrets (optional) | Cache purge for a custom domain. The token needs *Zone → Cache Purge* |
-| `OPENINTERPRETABILITY_SITE_URL` | variable (optional) | Public URL of the bucket root, used to build the purge URLs. Without it, `open-interpretability deploy` uses `[project.urls] Homepage` in `pyproject.toml`, which the site's canonical URLs use too |
+| `HF_TOKEN`, `HF_EVIDENCE_TOKEN` | secrets | Hugging Face: a read token for the downloads, and the dataset's write token for the evidence publish |
 | `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET` | secrets (optional) | Post to X, below. Without them, the step posts nothing |
+
+The purge URLs start with `[project.urls] Homepage` in `pyproject.toml`, which the site's canonical URLs use too.
 
 ### Posts to X
 

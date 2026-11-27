@@ -1,8 +1,8 @@
 # Does pruning a few instruct-model neurons bring back the explanations that instruction tuning breaks?
 
-Jain et al. (2024) report that fine-tuning often adds a thin wrapper on top of a pretrained capability, and that pruning a few neurons, chosen by gradient times weight on the old task's loss, brings the capability back. We asked whether the same pruning brings back the neuron explanations that instruction tuning breaks. On Qwen2.5-0.5B-Instruct, we scored each MLP neuron by gradient times weight of the KL to the base model's next-token distribution. Then we pruned the top 5 to 500 neurons' writes to the residual stream, and ran every VERIFIED explanation's probes again. Of the 63 explanations that fail on the instruct model, pruning the top 5 neurons brings back 16, against 0 to 4 for 5 random neurons of the same layers (McNemar $p \leq 0.002$). But it also breaks 26 of the 299 that kept, against 0 or 1, and larger prunes break far more: 158 at 500 neurons. The KL to the base model rises, from 0.075 to 0.19 at 5 neurons and to 2.37 at 500, where the score predicted a fall. In this model, gradient times weight does not find a wrapper whose removal restores the base model. The few explanations it brings back come at a larger cost to others.
+Jain et al. (2024) report that fine-tuning often adds a thin wrapper on top of a pretrained capability, and that pruning a few neurons, chosen by gradient times weight on the old task's loss, brings the capability back. We asked whether the same pruning brings back the neuron explanations that instruction tuning breaks. On Qwen2.5-0.5B-Instruct, we scored each MLP neuron by gradient times weight of the KL to the base model's next-token distribution. Then we pruned the top 5 to 500 neurons' writes to the residual stream, and ran every VERIFIED explanation's probes again. Of the 63 explanations that fail on the instruct model, pruning the top 5 neurons brings back 16, against 0 to 4 for 5 random neurons of the same layers (McNemar $p \leq 0.002$). But it also breaks 26 of the 299 that kept, against 0 or 1, and larger prunes break far more: 158 at 500 neurons. The KL to the base model rises, from 0.075 to 0.19 at 5 neurons and to 2.37 at 500, where the score predicted a fall. In this model, gradient times weight does not find a wrapper whose removal restores the base model. The few explanations it brings back come at a larger cost to others. Pruning input rows, or scoring on the failed explanations' texts, brings back no more.
 
-**Status:** Preprint. Work left: #6892 (a prune ranked by each neuron's measured KL drop).
+**Status:** Preprint. Work left: #6892 (a prune ranked by each neuron's measured KL drop), #7164 (whether neuron 671 of layer 1 alone breaks about 30 explanations).
 
 ## Introduction
 
@@ -76,7 +76,7 @@ It brings a few back, more than chance. Of the 63 explanations that fail on the 
 
 ## What does the prune cost?
 
-It costs more explanations than it brings back, at every $K$. Pruning the top 5 neurons breaks 26 of the 299 explanations that keep on the instruct model, so the keep share falls from 82.6% to 79.8%. At 500 neurons it breaks 158, and the keep share falls to 42.0%. Random prunes of the same layers break 0 to 21. On the lost explanations, top pruning differs from every random prune with $p < 10^{-7}$ (Table 3 in Appendix B).
+It costs more explanations than it brings back, at every $K$. Pruning the top 5 neurons breaks 26 of the 299 explanations that keep on the instruct model, so the keep share falls from 82.6% to 79.8%. At 500 neurons it breaks 158, and the keep share falls to 42.0%. Random prunes of the same layers break 0 to 21. On the lost explanations, top pruning differs from every random prune with $p < 10^{-7}$ (Table 4 in Appendix B).
 
 The prune also moves the instruct model away from the base model, not towards it. On held-out tokens, the KL to the base model rises from 0.075 to 0.188 at 5 neurons and to 2.373 at 500, while random prunes leave it between 0.076 and 0.104. The score predicted the opposite: the top 5 neurons' scores sum to a first-order drop of 0.050 on the scoring tokens.
 
@@ -107,11 +107,38 @@ Because the first order does not hold for the neurons it ranks highest. Pruning 
 
 The failures are not large writes. No neuron's column norm is much above its layer's median, and two are well below it. So the harm comes from what the neuron's write does downstream, which the gradient at the unpruned model does not see. Linear estimates of this kind are known to fail for large changes: Syed et al. (2023) find that attribution patching, a first-order estimate of a component's effect, fits exact patching with $R^2 = 0.27$ on one task. In this repo, a first-order estimate of a single pole's effect ranks its exact effect well, at a Spearman of 0.85 on Qwen2.5-0.5B ([`docs/analyses/pole-effects.md`](../../docs/analyses/pole-effects.md)), but it reads small changes to one activation, not the removal of a write. We suggest, as a hypothesis we did not test, that the rest of the network depends on these writes in a way that is flat for small changes and steep for their removal.
 
+## Do the two variants do better?
+
+No. We ran the two variants that the first version of this paper left out (#7071). Each changes one part of the method, and keeps the rest.
+
+- **Prune the input rows.** We zero the neuron's rows of `gate_proj` and `up_proj`, in place of its write column. Its activation is then 0 everywhere. The score sums gradient times weight over both rows.
+- **Score on the failed explanations' texts.** The old task is the KL to the base model on the probe texts of the 63 failed explanations, in place of the corpus. The prune is the paper's write prune. The texts could fit the score to the probes that the keep test reads. So only a random half of the failed explanations, 32, give their texts to the score, with seed 0. The other 31 are a held-out check.
+
+The registry has grown to 379 VERIFIED poles of Qwen2.5-0.5B that reproduce since the paper's run. Table 3 counts only the paper's 362, so that it compares with Table 1. The 17 new poles all keep on the instruct model.
+
+![Neither variant recovers more explanations, and the failed-text loss loses more.](media/variants.svg)
+
+**Figure 3.** Neither variant recovers more explanations, and the failed-text loss loses more. The top $K$ prune of the paper and of each variant, on the paper's 362 poles. Left: of the 63 explanations that fail on the instruct model, those that pass again. Right: of the 299 that keep on it, those that fail. Circles are the paper's prune, triangles the input-row prune and squares the failed-text prune.
+
+**Table 3.** The top $K$ prune of each variant against the paper's, on the paper's 362 poles. Each cell gives the explanations recovered, of 63, and lost, of 299, with the held-out KL. An input prune switches the pruned neurons' own poles off, so they count as neither: 1 pole for $K$ up to 150 and 6 at 500. For the failed-text prune, *held out* counts the recovered explanations among the 31 whose texts the score never read.
+
+| $K$ | Paper: recovered, lost, KL | Input rows: recovered, lost, KL | Failed texts: recovered, lost, KL | Failed texts: held out, of 31 |
+| --- | --- | --- | --- | --- |
+| 5 | 16, 26, 0.188 | 16, 26, 0.188 | 16, 26, 0.190 | 6 |
+| 15 | 13, 60, 0.402 | 16, 28, 0.200 | 18, 81, 0.547 | 7 |
+| 50 | 15, 69, 0.585 | 13, 65, 0.597 | 14, 119, 1.079 | 8 |
+| 150 | 11, 123, 1.305 | 9, 85, 0.848 | 9, 157, 1.712 | 3 |
+| 500 | 11, 158, 2.373 | 11, 112, 1.200 | 6, 185, 1.985 | 1 |
+
+**An input prune is the same change as a write prune, except for the pruned neuron's own poles.** A neuron whose activation is 0 writes nothing, so the rest of the model sees the same change either way. At $K$ = 5 the two scores choose the same five neurons, and the results match exactly: 16 recovered, 26 lost and a KL of 0.188. Random prunes match too, since they copy the top prune's layers. At larger $K$ the two scores rank neurons a little differently, and so the counts differ. At $K$ = 15 the sets differ by one neuron. The input score takes neuron 765 of layer 12 in place of neuron 671 of layer 1, and the losses fall from 60 to 28. So the first version's worry, that an input prune "would test a different question", holds only for the 1 to 6 poles whose own neuron goes.
+
+**A closer old task finds the same few explanations and breaks more** (Figure 3). Scored on the failed explanations' texts, the top 5 neurons differ from the paper's by one: neuron 2116 of layer 3 in place of neuron 2765 of layer 6. They recover the same 16 explanations, and lose the same 26. From $K$ = 15 on, this prune loses more than the paper's at every $K$, 81 against 60 at 15 and 185 against 158 at 500. The KL to the base model rises faster too, to 0.547 at 15 against 0.402. The held-out half shows little fitting. At 5 neurons the held-out half recovers 6 of 31, against 10 of the 32 whose texts were scored, and the random prunes recover 0 or 1 held-out explanations ($p$ = 0.031 to 0.063). At 500 neurons the random prunes recover more held-out explanations than the top prune, 8 to 12 against 1. `scripts/wrapper_prune_stats.py` prints the tests against each random prune, as for Table 4.
+
 ## Discussion
 
 In Qwen2.5-0.5B-Instruct, gradient times weight on the KL to the base model does not find a wrapper whose removal restores the base model. It finds neurons whose removal brings back some explanations, more than chance at small $K$, but it breaks more explanations than it brings back, and it moves the model further from the base. Jain et al. (2024) found the opposite in small models fine-tuned at a small learning rate, mostly on synthetic tasks. Our setting differs in three ways that could explain it. The model is larger and trained on natural text. Instruction tuning is a long fine-tune on broad data, not a short one on a related synthetic task. And our old task is the base model's whole next-token distribution, not one capability.
 
-The 16 explanations that come back at 5 neurons are a hint, not a wrapper. Random prunes recover almost none at that size, so the top neurons carry something that these explanations depend on. But the same prune breaks 26 others, and the first-order score is wrong for half of its own top 10. A score that reads the measured effect of each prune, or a second-order score, could find a cleaner set. Without such a set, the result agrees with the earlier finding that the instruct change is spread over almost every neuron ([`docs/analyses/base-instruct.md`](../../docs/analyses/base-instruct.md)): no small set of neurons holds it.
+The 16 explanations that come back at 5 neurons are a hint, not a wrapper. Random prunes recover almost none at that size, so the top neurons carry something that these explanations depend on. But the same prune breaks 26 others, and the first-order score is wrong for half of its own top 10. A score that reads the measured effect of each prune, or a second-order score, could find a cleaner set. A closer old task does not: scored on the failed explanations' own texts, the top 5 neurons bring back the same 16 (Table 3). Without such a set, the result agrees with the earlier finding that the instruct change is spread over almost every neuron ([`docs/analyses/base-instruct.md`](../../docs/analyses/base-instruct.md)): no small set of neurons holds it.
 
 The failure of the first order is itself a warning for a pruning step that ranks neurons by gradient times weight, as Jain et al.'s does. In this model, a few neurons with ordinary weights and small scores do great harm when pruned. One neuron of layer 2 more than doubles the KL alone. A pruning study that ranks by such a score, with no check of each prune's measured effect, can remove exactly the neurons that the model depends on most.
 
@@ -119,8 +146,8 @@ The failure of the first order is itself a warning for a pruning step that ranks
 
 - **One pair.** Qwen2.5-0.5B is the only pair with enough failed explanations. Qwen2.5-1.5B has 10, too few for this test.
 - **One score, in one step.** We use Jain et al.'s one-step gradient times weight. An iterative prune, a second-order score or a score from each prune's measured effect could find a different set.
-- **The base model's whole distribution as the old task.** Jain et al. use one task's loss. A loss built from the failed explanations' own texts could target them more closely, at the risk of fitting the probes.
-- **Writes, not activations.** Pruning a neuron's write keeps its activation, so a pruned VERIFIED pole is still read. Pruning its input rows instead would test a different question.
+- **The base model's whole distribution as the old task.** Jain et al. use one task's loss. A loss built from the failed explanations' own texts recovers no more (Table 3), but other task losses were not tried.
+- **Writes, not activations.** Pruning a neuron's write keeps its activation, so a pruned VERIFIED pole is still read. Pruning its input rows is the same change for every other pole (Table 3).
 - **Three seeds.** The random null has three seeds at each $K$.
 - **A rescaled line.** The keep test rescales each pole's line by the change in its maximum.
 
@@ -147,11 +174,21 @@ The run reads every VERIFIED pole of Qwen2.5-0.5B from `wiki/`, with errata appl
     uv run python scripts/wrapper_prune_stats.py papers/wrapper-prune/results.jsonl
     uv run python scripts/paper_figures.py
 
+The two variants of Table 3 (#7071) ran on the same GPU, in about 20 minutes each. Each writes its own file, and every row names its `unit` and `loss`. The paper's own rows have neither field, and count as `write` and `base`. The variant files were written before the base rows got these fields, so a short script added them when the files were merged, with each file's values:
+
+    uv run python scripts/wrapper_prune.py --base Qwen/Qwen2.5-0.5B --device cuda --unit input \
+        --out variant1.jsonl
+    uv run python scripts/wrapper_prune.py --base Qwen/Qwen2.5-0.5B --device cuda --loss failed \
+        --out variant2.jsonl
+    cat variant1.jsonl variant2.jsonl >> papers/wrapper-prune/results.jsonl
+    uv run python scripts/wrapper_prune_stats.py papers/wrapper-prune/results.jsonl --unit input --paper-poles
+    uv run python scripts/wrapper_prune_stats.py papers/wrapper-prune/results.jsonl --loss failed --paper-poles
+
 `results.jsonl` holds a `base` row for each pole and a `scores` row with every neuron's score. It holds a `summary` row for each condition, with the neurons pruned, the keep share and the held-out KL. It holds a `pole` row for each pole and condition, and a `single` row for each of the top 10 neurons pruned alone.
 
 ### B. Paired tests for each seed
 
-**Table 3.** Top pruning against each random prune of the same $K$, on the same poles. *Recovered p* is the exact McNemar test on the 63 explanations that fail on the instruct model, and *lost p* the test on the 299 that keep.
+**Table 4.** Top pruning against each random prune of the same $K$, on the same poles. *Recovered p* is the exact McNemar test on the 63 explanations that fail on the instruct model, and *lost p* the test on the 299 that keep.
 
 | $K$ | Seed | Random recovered | Random lost | Recovered $p$ | Lost $p$ |
 | --- | --- | --- | --- | --- | --- |

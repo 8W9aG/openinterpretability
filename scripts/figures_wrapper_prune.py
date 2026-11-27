@@ -1,12 +1,14 @@
 """The figures of papers/wrapper-prune/README.md, from its results.jsonl (#5163).
 
 The shapes and the grid are those of papers/random-change-keep (figures_random_change_keep).
+Figures 1 and 2 read the paper's own run. Figure 3 compares it with the variants of #7071,
+counted on the paper's poles.
 """
 
 from figure_motion import counter
 from figure_svg import Figure, Panel
 from figures_random_change_keep import CELL, CYCLE, GAP, _cell, _mark, pole_order
-from wrapper_prune_stats import changes, pole_sets
+from wrapper_prune_stats import changes, paper_poles_only, pole_sets, variant_rows
 
 MODEL = "Qwen/Qwen2.5-0.5B"
 # Top pruning is a circle in the first colour, and random pruning a triangle in the second.
@@ -146,13 +148,88 @@ def grid(rows: list[dict]) -> Figure:
     return fig
 
 
+# The paper's run and its variants (#7071): (unit, loss, label). Each has its own shape.
+VARIANTS = (
+    ("write", "base", "writes, corpus KL (the paper)"),
+    ("input", "base", "input rows, corpus KL"),
+    ("write", "failed", "writes, KL on half the failed texts"),
+)
+VARIANT_MARKS = (("instruct", "c1"), ("random", "c2"), ("square", "c3"))
+
+
+def _variant_mark(fig: Figure, which: str, x: float, y: float, size: float, style: str) -> None:
+    """One mark: a circle, a triangle or a square, so that no variant rests on colour alone.
+
+    Args:
+        fig: The figure.
+        which: ``instruct`` (circle), ``random`` (triangle) or ``square``.
+        x: The mark's centre, in pixels.
+        y: The mark's centre, in pixels.
+        size: The mark's half width, in pixels.
+        style: The mark's CSS classes.
+    """
+    if which != "square":
+        _mark(fig, which, x, y, size, style)
+        return
+    fig.path([(x - size, y - size), (x + size, y - size), (x + size, y + size),
+              (x - size, y + size)], style, close=True)  # fmt: skip
+
+
+def variants(rows: list[dict]) -> Figure:
+    """The poles that each variant's top prune recovers and loses at each K.
+
+    Args:
+        rows: The paper's results, with the variants' rows.
+
+    Returns:
+        The figure.
+    """
+    rows = paper_poles_only(rows)
+    tables = [[r for r in changes(rows, unit, loss) if r["condition"] == "top"]
+              for unit, loss, _ in VARIANTS]  # fmt: skip
+    ks = [r["k"] for r in tables[0]]
+    failed, kept = tables[0][0]["failed_on_instruct"], tables[0][0]["kept_on_instruct"]
+    lost_at = [t[-1]["lost"] for t in tables]
+    fig = Figure(
+        ["Neither variant recovers more explanations,", "and the failed-text loss loses more"],
+        [f"The top K prune of each variant, on the paper's {failed + kept} poles. Left: of the "
+         f"{failed} that fail on the instruct",
+         f"model, those that pass again. Right: of the {kept} that keep on it, those that fail."],
+        f"Two panels against K, from {ks[0]} to {ks[-1]}, one shape per variant. At K = "
+        f"{ks[-1]} the paper's prune loses {lost_at[0]}, the input prune {lost_at[1]} and the "
+        f"failed-text prune {lost_at[2]}.",
+    )  # fmt: skip
+    top_px = fig.body_top + 30
+    for slot, (field, total, name) in enumerate((("recovered", failed, "recovered"),
+                                                 ("lost", kept, "lost"))):  # fmt: skip
+        span = 20 if field == "recovered" else 200
+        panel = Panel(fig, (70 + slot * 350, top_px, 290, 170), (-0.5, len(ks) - 0.5), (0, span))
+        panel.grid_y([0, span / 4, span / 2, 3 * span / 4, span], 0)
+        panel.head(f"{name}, of {total}")
+        for i, k in enumerate(ks):
+            fig.text(panel.x(i), panel.top + panel.height + 15, str(k), "small", "middle")
+        panel.x_title("K, the neurons pruned")
+        for v, (table, (which, colour)) in enumerate(zip(tables, VARIANT_MARKS, strict=True)):
+            for i, r in enumerate(table):
+                x = panel.x(i) + (v - 1) * 9
+                _variant_mark(fig, which, x, panel.y(r[field]), 3.8, f"f{colour} ring")
+    y = top_px + 170 + 50
+    for (_, _, label), (which, colour) in zip(VARIANTS, VARIANT_MARKS, strict=True):
+        _variant_mark(fig, which, 25, y - 4, 5, f"f{colour}")
+        fig.text(35, y, label)
+        y += 18
+    fig.bottom = y
+    return fig
+
+
 def build(rows: list[dict]) -> dict[str, Figure]:
     """Return the paper's figures by file name.
 
     Args:
-        rows: The paper's results.
+        rows: The paper's results, with the variants' rows.
 
     Returns:
         Each figure by its file name in ``media/``.
     """
-    return {"recovery.svg": recovery(rows), "grid.svg": grid(rows)}
+    own = variant_rows(rows)
+    return {"recovery.svg": recovery(own), "grid.svg": grid(own), "variants.svg": variants(rows)}

@@ -17,6 +17,12 @@
    "files": [
     "social-recovery.png"
    ]
+  },
+  "variants": {
+   "sha256": "486b6523855965c74425a3f1abdc42762d31a979fc6a986fbde2595dcd769829",
+   "files": [
+    "social-variants.png"
+   ]
   }
  }
 }
