@@ -45,5 +45,5 @@ def test_the_figure_names_each_pole_and_counts_the_near_failures():
             *_rows(2, [HOLD, HOLD, DEEP, NEAR, HOLD, HOLD])]  # fmt: skip
     svg = savings.figure(rows).render()
     assert "L1/N1+" in svg and "L1/N2+" in svg
-    assert "2 of the 3 failures are within two probes" in svg
+    assert "2 of the 3 failures are within two test prompts" in svg
     assert savings._label("M/L3/N7-negative") == "L3/N7−"

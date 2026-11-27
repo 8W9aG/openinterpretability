@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 527" width="760" height="527" role="img">
-<title>A grid of 13 poles against the checkpoints from step 16,000 to 143,000. 9 poles pass again before the final step. 18 of 23 failures are one or two probes short. The deepest are 15 and 14 probes short.</title>
+<title>A grid of 13 poles against the checkpoints from step 16,000 to 143,000. 9 poles pass again before the final step. 18 of 23 failures are one or two test prompts short. The deepest are 15 and 14 test prompts short.</title>
 <style>:root{--surface:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--muted:#6b6a66;--neutral:#8a8985;--wash:#d9d8d2;--grid:#e8e7e2;--axis:#bdbcb5;--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a}@media (prefers-color-scheme: dark){:root{--surface:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--muted:#a3a299;--neutral:#8f8e86;--wash:#3f3f3b;--grid:#2c2c2a;--axis:#55554f;--c1:#3987e5;--c2:#d95926;--c3:#199e70}}
 .bg{fill:var(--surface)}
 text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;fill:var(--ink2);font-size:12px}
@@ -30,10 +30,10 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 </style>
 <rect class="bg" width="760" height="527" rx="10"/>
 <text x="20.0" y="30.0" class="title">Most explanations that fail after step 16,000</text>
-<text x="20.0" y="53.0" class="title">miss by a probe or two, then pass again</text>
+<text x="20.0" y="53.0" class="title">miss by a test prompt or two, then pass again</text>
 <text x="20.0" y="73.0" class="sub">Each row is a pole whose explanation holds at step 16,000 and fails later.</text>
-<text x="20.0" y="91.0" class="sub">A circle holds. A triangle fails, with the number of probes it fell short by.</text>
-<text x="20.0" y="109.0" class="sub">18 of the 23 failures are within two probes. Every explanation holds at step 143,000 by selection.</text>
+<text x="20.0" y="91.0" class="sub">A circle holds. A triangle fails, with the number of test prompts it fell short by.</text>
+<text x="20.0" y="109.0" class="sub">18 of the 23 failures are within two test prompts. Each explanation holds at step 143,000 by selection.</text>
 <text x="130.0" y="159.0" class="head" text-anchor="middle">16k</text>
 <text x="250.0" y="159.0" class="head" text-anchor="middle">32k</text>
 <text x="370.0" y="159.0" class="head" text-anchor="middle">64k</text>
@@ -145,7 +145,7 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <circle class="fc1" cx="25.0" cy="475.0" r="5"/>
 <text x="35.0" y="479.0">holds</text>
 <path class="fc2" d="M95.0 469.0L101.0 479.8L89.0 479.8Z"/>
-<text x="105.0" y="479.0">fails, with the probes it fell short by</text>
+<text x="105.0" y="479.0">fails, with the test prompts it fell short by</text>
 <path class="axis" d="M400.0 475.0L430.0 475.0"/>
 <text x="438.0" y="479.0">rows above the line pass again before the final step</text>
 </svg>

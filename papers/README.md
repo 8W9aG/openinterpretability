@@ -21,7 +21,7 @@ Each folder holds one paper. `README.md` is the paper, `results.jsonl` is its re
 - 2026-11-22: [Does Fisher importance predict which explanations survive instruction tuning?](fisher-keep/README.md)
 - 2026-11-20: [One shared map of explanations for four models](shared-concept-space/README.md)
 - 2026-11-19: [Why Pythia-70m copies the first clause's unit](copy-first-unit/README.md)
-- 2026-11-16: [When Pythia-70m's VERIFIED neurons form](neuron-development/README.md)
+- 2026-11-16: [When Pythia-70m's explained neurons form](neuron-development/README.md)
 - 2026-11-15: [Do explanations carry across models?](explanations-across-models/README.md)
 - 2026-11-14: [Native neurons against learned dictionaries, at equal effort](native-vs-learned/README.md)
 - 2026-11-07: [Where SPD can favour GPT-2's neurons](spd-input-projections/README.md)
