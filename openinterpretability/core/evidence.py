@@ -17,6 +17,7 @@ writes slim records unless ``OPENINTERPRETABILITY_OFFLOAD_EVIDENCE=0``.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
@@ -62,11 +63,15 @@ def blob_name(sha: str) -> str:
     return f"{sha[:2]}/{sha}.json"
 
 
+# Sorted keys, no spaces, UTF-8 kept: the one encoding that a blob's hash is taken over.
+_CANONICAL = functools.partial(
+    json.dumps, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+)
+
+
 def canonical(value: Any) -> bytes:
     """The bytes that a blob holds for ``value``: sorted keys, no spaces, UTF-8."""
-    keys = {"sort_keys": True, "separators": (",", ":")}
-    text = json.dumps(value, **keys, ensure_ascii=False)  # pragma: no mutate, equivalent: None
-    return text.encode()
+    return _CANONICAL(value).encode()
 
 
 def sha256(data: bytes) -> str:
