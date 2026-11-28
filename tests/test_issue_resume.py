@@ -22,14 +22,25 @@ def _gh(monkeypatch, payload):
     return calls
 
 
+def _pr(title, body, login="m", fork=False):
+    return {"title": title, "body": body, "author": {"login": login}, "isCrossRepository": fork}
+
+
 def test_open_pr_mentions_joins_each_open_prs_title_and_body(monkeypatch):
-    calls = _gh(
-        monkeypatch, [{"title": "Fix #5", "body": "Part of #6"}, {"title": "t", "body": None}]
-    )
-    text = issue_resume.open_pr_mentions("o/r")
+    calls = _gh(monkeypatch, [_pr("Fix #5", "Part of #6"), _pr("t", None)])
+    text = issue_resume.open_pr_mentions("o/r", "m")
     assert issue_resume.has_open_pr(5, text) and issue_resume.has_open_pr(6, text)
     assert not issue_resume.has_open_pr(7, text)
     assert calls[0][:3] == ["gh", "pr", "list"] and "open" in calls[0]
+    assert "author,isCrossRepository" in calls[0][-1]
+
+
+def test_only_the_maintainers_own_prs_count_as_mentions(monkeypatch):
+    pulls = [_pr("a", "Part of #5", login="stranger"), _pr("b", "Part of #6", fork=True),
+             _pr("c", "Part of #7"), {"title": "d", "body": "#8", "author": None}]  # fmt: skip
+    _gh(monkeypatch, pulls)
+    text = issue_resume.open_pr_mentions("o/r", "m")
+    assert [n for n in (5, 6, 7, 8) if issue_resume.has_open_pr(n, text)] == [7]
 
 
 def test_view_issue_reads_the_issue_with_its_state(monkeypatch):

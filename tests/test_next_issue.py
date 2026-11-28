@@ -22,7 +22,7 @@ def no_comments(monkeypatch):
     monkeypatch.setattr(next_issue, "comments_of", lambda number: [])
     monkeypatch.setattr(next_issue, "open_blockers", lambda number: [])
     monkeypatch.setattr(next_issue, "own_claims", lambda: [])
-    monkeypatch.setattr(next_issue, "open_pr_mentions", lambda repo: "")
+    monkeypatch.setattr(next_issue, "open_pr_mentions", lambda repo, maintainer: "")
 
 
 def _issue(number, area, prio=None, created="2026-11-01", extra=()):
@@ -219,7 +219,7 @@ def _own_setup(monkeypatch, states, comments=None, mentions=""):
     monkeypatch.setattr(next_issue, "linear_states", lambda: states)
     monkeypatch.setattr(next_issue, "open_issues", lambda m: [_issue(9, "site", "urgent")])
     monkeypatch.setattr(next_issue, "own_claims", lambda: [5, 6])
-    monkeypatch.setattr(next_issue, "open_pr_mentions", lambda repo: mentions)
+    monkeypatch.setattr(next_issue, "open_pr_mentions", lambda repo, maintainer: mentions)
     monkeypatch.setattr(next_issue, "comments_of", lambda n: (comments or {}).get(n, []))
     monkeypatch.setattr(next_issue.issue_state, "eligibility", lambda n: (True, ""))
     monkeypatch.setattr(next_issue, "answered", lambda states: [])

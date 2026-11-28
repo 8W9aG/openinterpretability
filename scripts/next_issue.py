@@ -362,8 +362,9 @@ def choose() -> dict:
         return {"milestone": milestone, "pulled": False, "resume": True, "pick": replied,
                 "runners_up": others, "blocked": blocked}  # fmt: skip
     waits = lambda n: asked(comments_of(str(n)))  # noqa: E731
-    found = own_stalled(states, own_claims(), open_pr_mentions(issue_state.REPO),
-                        lambda n: view_issue(issue_state.REPO, n), waits)  # fmt: skip
+    mentions = open_pr_mentions(issue_state.REPO, issue_state.MAINTAINER)
+    found = own_stalled(states, own_claims(), mentions, lambda n: view_issue(issue_state.REPO, n),
+                        waits)  # fmt: skip
     mine = [i for i in found if not for_muse(i)]
     if mine:
         others = (mine[1:] + release_candidates(in_release, states, served, blocked))[:RUNNERS_UP]
