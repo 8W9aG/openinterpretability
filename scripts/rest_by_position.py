@@ -155,6 +155,31 @@ def energy_shares(x: torch.Tensor) -> dict[str, float]:
             "position_share": round((by_position / energy).item(), 4)}  # fmt: skip
 
 
+def _keeper(inputs: list, outputs: list):
+    """A forward hook that keeps a layer's inputs and outputs on the CPU.
+
+    Args:
+        inputs: The list that gets each first input.
+        outputs: The list that gets each output.
+
+    Returns:
+        The hook.
+    """
+
+    def hook(_module, args, out):
+        """Keep the first input and the output of the layer.
+
+        Args:
+            _module: The layer.
+            args: Its inputs. The first is the MLP's input.
+            out: Its output, the pre-activations.
+        """
+        inputs.append(args[0].cpu())
+        outputs.append(out.cpu())
+
+    return hook
+
+
 @torch.no_grad()
 def read_rests(model, modules: list, windows: torch.Tensor) -> list[dict]:
     """Run ``windows`` through ``model`` and give each layer's ``bucket_stats``.
@@ -170,31 +195,7 @@ def read_rests(model, modules: list, windows: torch.Tensor) -> list[dict]:
     """
     seen: list[list[torch.Tensor]] = [[] for _ in modules]
     taken: list[list[torch.Tensor]] = [[] for _ in modules]
-
-    def keep(i):
-        """A hook that keeps one layer's inputs and pre-activations.
-
-        Args:
-            i: The layer's index in ``modules``.
-
-        Returns:
-            The hook.
-        """
-
-        def hook(_module, args, out):
-            """Keep the input and the output of the layer.
-
-            Args:
-                _module: The layer.
-                args: Its inputs. The first is the MLP's input.
-                out: Its output, the pre-activations.
-            """
-            taken[i].append(args[0].cpu())
-            seen[i].append(out.cpu())
-
-        return hook
-
-    handles = [m.register_forward_hook(keep(i)) for i, m in enumerate(modules)]
+    handles = [m.register_forward_hook(_keeper(taken[i], seen[i])) for i, m in enumerate(modules)]
     device = next(model.parameters()).device
     try:
         for batch in windows.split(BATCH):
