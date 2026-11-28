@@ -18,9 +18,11 @@ OPEN_BLOCKERS = next_issue.open_blockers  # the real one, before the fixture rep
 
 @pytest.fixture(autouse=True)
 def no_comments(monkeypatch):
-    """No test reads GitHub: every issue has no comments and no blockers."""
+    """No test reads GitHub: no comments, no blockers, no claims of this agent and no PRs."""
     monkeypatch.setattr(next_issue, "comments_of", lambda number: [])
     monkeypatch.setattr(next_issue, "open_blockers", lambda number: [])
+    monkeypatch.setattr(next_issue, "own_claims", lambda: [])
+    monkeypatch.setattr(next_issue, "open_pr_mentions", lambda repo: "")
 
 
 def _issue(number, area, prio=None, created="2026-11-01", extra=()):
@@ -209,3 +211,57 @@ def test_answered_issues_carry_the_time_of_the_reply(monkeypatch):
     monkeypatch.setattr(next_issue, "gh_json", lambda *args: dict(view))
     (issue,) = next_issue.answered({"1": {"state": "In Progress"}})
     assert issue["answer"] == "1" and issue["reply_at"] == "20261125T080102Z"
+
+
+def _own_setup(monkeypatch, states, comments=None, mentions=""):
+    """A release with one new candidate, 9, and this agent's claims on 5 and 6 (#7221)."""
+    monkeypatch.setattr(next_issue, "next_milestone", lambda: "v9.9.9")
+    monkeypatch.setattr(next_issue, "linear_states", lambda: states)
+    monkeypatch.setattr(next_issue, "open_issues", lambda m: [_issue(9, "site", "urgent")])
+    monkeypatch.setattr(next_issue, "own_claims", lambda: [5, 6])
+    monkeypatch.setattr(next_issue, "open_pr_mentions", lambda repo: mentions)
+    monkeypatch.setattr(next_issue, "comments_of", lambda n: (comments or {}).get(n, []))
+    monkeypatch.setattr(next_issue.issue_state, "eligibility", lambda n: (True, ""))
+    monkeypatch.setattr(next_issue, "answered", lambda states: [])
+
+    monkeypatch.setattr(next_issue, "gh_json", lambda *a: [])
+    monkeypatch.setattr(next_issue, "view_issue",
+                        lambda repo, n: _issue(int(n), "pipe") | {"state": "OPEN"})  # fmt: skip
+
+
+def test_an_agents_own_in_progress_issue_with_no_open_pr_comes_before_new_work(monkeypatch):
+    _own_setup(monkeypatch, {"5": {"state": "In Review"}, "6": {"state": "In Progress"},
+                             "7": {"state": "In Progress"}})  # fmt: skip
+    result = next_issue.choose()
+    assert result["resume"] == "own" and result["pick"]["number"] == 6
+    assert [i["number"] for i in result["runners_up"]] == [9]  # 7 is another agent's
+    assert next_issue.claim_command(result["pick"]) == "already yours: no claim needed"
+
+
+def test_an_own_issue_with_an_open_pr_or_a_question_is_not_resumed(monkeypatch):
+    states = {"5": {"state": "In Progress"}, "6": {"state": "In Progress"}}
+    question = [{"author": ME, "body": "**Question** (agent a) which?"}]
+    _own_setup(monkeypatch, states, comments={"6": question}, mentions="Part of #5.")
+    result = next_issue.choose()
+    assert not result["resume"] and result["pick"]["number"] == 9
+
+
+def test_an_answered_issue_still_comes_before_an_own_one(monkeypatch):
+    _own_setup(monkeypatch, {"6": {"state": "In Progress"}})
+    monkeypatch.setattr(next_issue, "answered", lambda states: [_issue(3, "lit") | {
+        "answer": "yes", "reply_at": "20261128T000000Z"}])  # fmt: skip
+    result = next_issue.choose()
+    assert result["resume"] is True and result["pick"]["number"] == 3
+    assert [i["number"] for i in result["runners_up"]] == [9]  # the release's best stays
+
+
+def test_main_prints_an_own_resume_with_no_claim_command(monkeypatch, capsys):
+    pick = _issue(6, "pipe", "high") | {"own": True}
+    monkeypatch.setattr(next_issue, "choose", lambda: {
+        "milestone": "v9.9.9", "pulled": False, "resume": "own", "pick": pick,
+        "runners_up": [], "blocked": {}})  # fmt: skip
+    monkeypatch.setattr(sys, "argv", ["next_issue.py"])
+    next_issue.main()
+    out = capsys.readouterr().out
+    assert out.startswith("Next (resume your own): #6 ")
+    assert "already yours: no claim needed" in out and "--claim" not in out

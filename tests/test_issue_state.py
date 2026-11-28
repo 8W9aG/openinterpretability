@@ -272,3 +272,24 @@ def test_a_claim_with_no_linear_key_holds_and_sets_no_state(monkeypatch, capsys)
     monkeypatch.delenv("LINEAR_API_KEY")
     assert issue_state.claim_issue("7") == 0 and keys == ["issue-7"] and states == []
     assert "no LINEAR_API_KEY" in capsys.readouterr().out
+
+
+def test_own_claims_are_the_issues_this_agent_claimed(agents):  # #7221
+    a, b = agents
+    assert claims.own_claims(cwd=a) == []
+    for key in ("issue-12", "issue-3", claims.reply_key("4", "20261128T000000Z")):
+        assert claims.claim(key, cwd=a)[0]
+    assert claims.claim("issue-5", cwd=b)[0]
+    assert claims.own_claims(cwd=a) == [3, 12]  # not the reply claim, nor b's claim
+    assert claims.own_claims(cwd=b) == [5]
+
+
+def test_the_agent_id_is_stored_and_survives_a_new_host_name(agents, monkeypatch):  # #7221
+    a, _ = agents
+    first = claims.agent_id(a)
+    stored = Path(claims.git(["rev-parse", "--absolute-git-dir"], a).stdout.strip())
+    assert (stored / claims.ID_FILE).read_text(encoding="utf-8").strip() == first
+    monkeypatch.setattr(claims.socket, "gethostname", lambda: "another-host")
+    assert claims.agent_id(a) == first
+    monkeypatch.setenv(claims.AGENT_ENV, "agent-named")
+    assert claims.agent_id(a) == "agent-named"
