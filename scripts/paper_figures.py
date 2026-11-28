@@ -39,6 +39,7 @@ import figures_transfer
 import figures_weight_average_keep
 import figures_why_rest
 import figures_why_rest_equal
+import figures_why_rest_position
 import figures_why_rest_push
 import figures_wrapper_prune
 
@@ -119,6 +120,7 @@ def build_all() -> dict[str, str]:  # long-function: one entry for each paper
             "push.svg": figures_why_rest_push.push(resting),
             "equal-rest.svg": figures_why_rest_equal.equal_rest(resting),
             "norm-pairs.svg": figures_why_rest_push.norm_pairs(resting),
+            "position.svg": figures_why_rest_position.position(resting),
         },
     }
     return {

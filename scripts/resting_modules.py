@@ -221,6 +221,79 @@ def parallel_forward(
     return hidden_states + attn + self.mlp(self.ln_2(hidden_states))
 
 
+def rotate(x: torch.Tensor, n_head: int, dims: int, base: float) -> torch.Tensor:
+    """Rotate the first ``dims`` of each head's dimensions by position, as GPT-NeoX does.
+
+    Each pair of dimensions ``(j, j + dims / 2)`` turns by the angle ``t / base ** (2j / dims)``
+    at position ``t``. The other dimensions of the head stay as they are (#7202).
+
+    Args:
+        x: Queries or keys, ``[batch, positions, n_head * head_dims]``.
+        n_head: The heads.
+        dims: The dimensions of each head that turn. It is even.
+        base: The base of the angles.
+
+    Returns:
+        The rotated tensor, with the shape of ``x``.
+
+    Raises:
+        ValueError: ``dims`` is odd.
+
+    Examples:
+        >>> x = torch.ones(1, 3, 8)
+        >>> y = rotate(x, 2, 2, 10_000.0)
+        >>> heads = y.view(1, 3, 2, 4)
+        >>> y[0, 0].tolist() == x[0, 0].tolist(), heads[..., 2:].equal(x.view(1, 3, 2, 4)[..., 2:])
+        (True, True)
+        >>> rotate(x, 2, 1, 10_000.0)
+        Traceback (most recent call last):
+        ...
+        ValueError: rotary needs an even number of dimensions, not 1
+    """
+    if dims % 2:
+        raise ValueError(f"rotary needs an even number of dimensions, not {dims}")
+    batch, positions, width = x.shape
+    heads = x.view(batch, positions, n_head, width // n_head)
+    turned, kept = heads[..., :dims], heads[..., dims:]
+    inverse = base ** (-torch.arange(0, dims, 2, device=x.device, dtype=torch.float32) / dims)
+    angles = torch.arange(positions, device=x.device, dtype=torch.float32)[:, None] * inverse
+    angles = torch.cat([angles, angles], dim=-1)[None, :, None, :]  # [1, positions, 1, dims]
+    half = dims // 2
+    swapped = torch.cat([-turned[..., half:], turned[..., :half]], dim=-1)
+    turned = turned * angles.cos().to(x.dtype) + swapped * angles.sin().to(x.dtype)
+    return torch.cat([turned, kept], dim=-1).view(batch, positions, width)
+
+
+def rotary_hook(n_head: int, dims: int, base: float):
+    """A forward hook for GPT-2's ``c_attn`` that rotates its queries and keys by position.
+
+    Args:
+        n_head: The heads.
+        dims: The dimensions of each head that turn.
+        base: The base of the angles.
+
+    Returns:
+        The hook. It returns the output with the queries and keys rotated, and the values kept.
+    """
+
+    def hook(_module, _args, out):
+        """Rotate the queries and keys of ``c_attn``'s output.
+
+        Args:
+            _module: The ``c_attn`` layer.
+            _args: Its inputs.
+            out: Its output, the queries, keys and values side by side.
+
+        Returns:
+            The output with the queries and keys rotated.
+        """
+        query, key, value = out.split(out.shape[-1] // 3, dim=2)
+        return torch.cat([rotate(query, n_head, dims, base), rotate(key, n_head, dims, base),
+                          value], dim=2)  # fmt: skip
+
+    return hook
+
+
 def warmup(optimizer: torch.optim.Optimizer, steps: int):
     """Return a schedule that grows the learning rate linearly over ``steps``, or None."""
     if not steps:

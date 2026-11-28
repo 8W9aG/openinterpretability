@@ -29,13 +29,18 @@ CLAIM_PREFIX = "claim/"
 CLAIMED = 3
 # Overrides the agent ID that agent_id derives from the checkout.
 AGENT_ENV = env("AGENT")
+# The file in a checkout's git directory that keeps its agent ID (#7221).
+ID_FILE = "agent-id"
 
 
 def agent_id(cwd: str | None = None) -> str:
-    """This agent's ID: :data:`AGENT_ENV` (``$<prefix>_AGENT``), else a hash of host and checkout.
+    """This agent's ID: :data:`AGENT_ENV` (``$<prefix>_AGENT``), else the checkout's stored ID.
 
     Each agent works in its own checkout (docs/development.md, *Several agents at once*),
-    so the checkout names the agent. The hash keeps the host name and path private.
+    so the checkout names the agent. The first call makes the ID from a hash of the host
+    name and the checkout's path, which keeps both private. It stores the ID in
+    :data:`ID_FILE` in the checkout's own git directory, which git never commits. Later
+    calls read that file, so a new host name does not change the ID (#7221).
 
     Args:
         cwd: A directory in the checkout. None means the current directory.
@@ -45,8 +50,12 @@ def agent_id(cwd: str | None = None) -> str:
     """
     if os.environ.get(AGENT_ENV):
         return os.environ[AGENT_ENV]
+    stored = Path(git(["rev-parse", "--absolute-git-dir"], cwd).stdout.strip()) / ID_FILE
+    if stored.is_file() and (found := stored.read_text(encoding="utf-8").strip()):
+        return found
     top = git(["rev-parse", "--show-toplevel"], cwd).stdout.strip()
     digest = hashlib.sha256(f"{socket.gethostname()}:{top}".encode()).hexdigest()
+    stored.write_text(f"agent-{digest[:8]}\n", encoding="utf-8")
     return f"agent-{digest[:8]}"
 
 
@@ -131,6 +140,31 @@ def claim_holder(key: str, remote: str = "origin", cwd: str | None = None) -> st
         return None
     git(["fetch", "--quiet", remote, ref], cwd)
     return git(["log", "-1", "--format=%s", "FETCH_HEAD"], cwd).stdout.strip()
+
+
+def own_claims(remote: str = "origin", cwd: str | None = None) -> list[int]:
+    """The issues whose claim on ``remote`` this agent holds, oldest number first (#7221).
+
+    It reads the ``claim/issue-<N>`` branches, not the claims of a reply, and keeps those
+    whose commit message names :func:`agent_id`.
+
+    Args:
+        remote: The git remote that holds the claims.
+        cwd: A directory in the checkout.
+
+    Returns:
+        The issue numbers.
+    """
+    listed = git(["ls-remote", remote, f"refs/heads/{CLAIM_PREFIX}issue-*"], cwd).stdout.split()
+    claims = {ref: sha for sha, ref in zip(listed[::2], listed[1::2], strict=True)
+              if re.fullmatch(rf"refs/heads/{CLAIM_PREFIX}issue-\d+", ref)}  # fmt: skip
+    if not claims:
+        return []
+    git(["fetch", "--quiet", remote, *claims], cwd)
+    me = f" by {agent_id(cwd)} at "
+    mine = [ref for ref, sha in claims.items()
+            if me in git(["log", "-1", "--format=%s", sha], cwd).stdout]  # fmt: skip
+    return sorted(int(ref.rsplit("-", 1)[1]) for ref in mine)
 
 
 def unclaim(number: str, remote: str = "origin", cwd: str | None = None) -> list[str]:
