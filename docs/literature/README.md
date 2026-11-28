@@ -37,6 +37,7 @@ Status marks how the work relates to this repo:
 | [Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](llm-as-a-judge-mt-bench.md) (Zheng, Chiang, Sheng, Zhuang et al., 2023) | planned | GPT-4 agrees with expert humans on chat answers about as often as they agree with each other. But judges change verdicts when two answers swap places. Our judge never compares two candidates. #7084 tests whether the order of its windows moves a score. |
 | [Large Language Models are not Fair Evaluators](llm-judges-not-fair.md) (Wang, Li, Chen et al., 2023) | planned | Swapping two responses flips ChatGPT's verdict on 66 of 80 questions. Judging in both orders, with evidence before scores, raises GPT-4's agreement with people from 52.7% to 62.5%. The repo's judge isn't pairwise, but #7084 tests its order. |
 | [A coefficient of agreement for nominal scales](cohen-kappa.md) (Cohen, 1960) | used | The source of Cohen's kappa, which the token-set paper and two analyses report. Its standard error and maximum kappa aren't reported yet (#7412). |
+| [Probable inference, the law of succession, and statistical inference](wilson-interval.md) (Wilson, 1927) | used | The source of the Wilson score interval, which six functions and many papers use. Its overdispersion rule bears on the repo's clustered units. |
 
 ## Model architecture
 
