@@ -4,7 +4,7 @@
 
 **Mismatch.** None found. The journal's page sent us to a login, so the journal details come from the arXiv listing.
 
-**Status.** Used. `concept_map.clusters` and `scripts/literature_map.py` find the regions of both maps with `leidenalg`, the authors' Python package.
+**Status.** Used. `concept_map.clusters` and `labinacan.literature_map` find the regions of both maps with `leidenalg`, the authors' Python package.
 
 **Read.** On 2026-11-21 a `web-fetch` subagent read the arXiv abstract page and the HTML of version 3 for this page's author, a model (Claude Opus 5.5). It had the abstract, Sections I to III, the start of Section IV and Table 2 in the source's own words. The benchmarks, the discussion and the appendices came back only as a summary, and this page uses nothing from them.
 
@@ -37,7 +37,7 @@
 ## Use in this repo
 
 - **Our citation checks out.** `papers/shared-concept-space` says Leiden "finds communities that are guaranteed to be connected". That is the abstract's claim. The three authors, 2019, *Scientific Reports* 9 and article 5233 match the arXiv listing.
-- **The maps get the connected guarantee, not the strongest.** `concept_map.clusters` and `scripts/literature_map.py` call `leidenalg.find_partition` with its default of two iterations. So every region is connected, which holds after each iteration. The stronger guarantees hold only once the algorithm stops changing the partition. Our reading: for maps of about 2,000 and 300 points, more iterations would cost little. It could also merge or split a few regions.
+- **The maps get the connected guarantee, not the strongest.** `concept_map.clusters` and `labinacan.literature_map` call `leidenalg.find_partition` with its default of two iterations. So every region is connected, which holds after each iteration. The stronger guarantees hold only once the algorithm stops changing the partition. Our reading: for maps of about 2,000 and 300 points, more iterations would cost little. It could also merge or split a few regions.
 - **Modularity, with the resolution searched.** Both maps use `RBConfigurationVertexPartition`, which is modularity with a resolution γ, and search γ for a target count of regions. The paper says modularity has a resolution limit and may "hide" smaller communities, which CPM doesn't. Our reading: aiming at a fixed count sidesteps the choice of γ, but a small theme can still merge into a larger region.
 - **A fixed seed.** Both maps fix Leiden's seed, so a run is repeatable. The paper's randomness means another seed could give other regions. Neither map measures that spread.
 - **No question for the maintainer.**
