@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -20,8 +21,8 @@ from openinterpretability.core.costs import ExternalUsage, RequestUsage
 
 def _time(value: Any) -> datetime | None:
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except (AttributeError, ValueError):
+        return datetime.fromisoformat(value)  # Python 3.11 and later read a final "Z"
+    except (TypeError, ValueError):
         return None
 
 
@@ -54,8 +55,8 @@ def usage_from_transcript(path: Path) -> ExternalUsage:
     Claude Code writes one line per content block, so a request can have many lines. The
     last line of each request holds its final usage.
     """
-    # API response id → (time, its last line's message)
-    last: dict[str, tuple[datetime | None, dict[str, Any]]] = {}
+    # API response id → (time, model, its last line's message)
+    last: dict[str, tuple[datetime | None, str, dict[str, Any]]] = {}
     for line in path.read_text().splitlines():
         try:
             entry = json.loads(line)
@@ -64,14 +65,14 @@ def usage_from_transcript(path: Path) -> ExternalUsage:
         message = entry.get("message") if entry.get("type") == "assistant" else None
         if not isinstance(message, dict) or not message.get("usage"):
             continue
-        if message.get("model", "").startswith("<"):  # for example "<synthetic>" error stubs
+        model = message.get("model") or "unknown"
+        if model.startswith("<"):  # for example "<synthetic>" error stubs
             continue
         at = _time(entry.get("timestamp"))
-        last[message.get("id") or entry.get("uuid")] = (at, message)
+        last[message.get("id") or entry.get("uuid")] = (at, model, message)
 
     requests: list[RequestUsage] = []
-    models: dict[str, int] = {}
-    for at, message in last.values():
+    for at, _, message in last.values():
         u = message["usage"]
         write_1h = (u.get("cache_creation") or {}).get("ephemeral_1h_input_tokens") or 0
         requests.append(
@@ -86,11 +87,10 @@ def usage_from_transcript(path: Path) -> ExternalUsage:
                 output_tokens=u.get("output_tokens") or 0,
             )
         )
-        model = message.get("model") or "unknown"
-        models[model] = models.get(model, 0) + 1
+    models = Counter(model for _, model, _ in last.values())  # most used first, ties in order
     return ExternalUsage.of(
         requests,
-        model=",".join(sorted(models, key=lambda m: -models[m])) or None,
+        model=",".join(m for m, _ in models.most_common()) or None,
         source=f"claude-code:{path.stem}",
     )
 

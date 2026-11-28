@@ -151,7 +151,7 @@ FAMILIES: dict[str, list[tuple[date, Price]]] = {
 
 def price_key(model: str) -> str:
     """``external/anthropic/claude-opus-5-5[1m]`` → ``claude-opus-5-5``, after ``ALIASES``."""
-    name = model.removeprefix("external/").rsplit("/", 1)[-1]
+    name = model.rpartition("/")[2]
     name = re.sub(r"\[[^\]]*\]$", "", name).strip().lower()
     return ALIASES.get(name, name)
 
@@ -181,8 +181,9 @@ def cost_usd(
     totals over several requests.
     """
     total = 0.0
+    now = datetime.now(UTC)  # pragma: no mutate, equivalent: a naive now is the same instant
     for t in requests:
-        price = price_on(model, (t.at or datetime.now(UTC)).astimezone(UTC).date())
+        price = price_on(model, (t.at or now).astimezone(UTC).date())
         if price is None:
             return None
         total += price.of(t, prompt)
