@@ -40,6 +40,7 @@ from openinterpretability.core.explanation_records import prompt_id
 from openinterpretability.core.identifiers import model_slug
 from openinterpretability.core.strict import StrictModel
 
+ENCODING = "utf-8"  # every record file is UTF-8 JSON
 ANSWER_PROTOCOL_VERSION = "1.1"  # 1.1: reviewer corrupted prompts, drawn seed (#4892)
 ANSWERS_WIKI = "answers"  # records live in wiki/answers/
 MAX_ATTEMPTS = 5  # answer claims on one prompt before the plan stops proposing more
@@ -366,7 +367,7 @@ def load_paths(wiki_dir: Path, model: str, prompt_hash: str) -> list[tuple[Path,
     out = []
     for path in sorted(folder(wiki_dir, model, prompt_hash).glob("*.json")):
         try:
-            out.append((path, AnswerRecord.model_validate_json(path.read_text(encoding="utf-8"))))
+            out.append((path, AnswerRecord.model_validate_json(path.read_text(encoding=ENCODING))))
         except ValidationError:
             continue  # `open-interpretability check` rejects it (check_answers)
     return out
@@ -408,7 +409,7 @@ def check_answers(wiki_dir: Path, report: Any, scope: set[Path] | None = None) -
         if path.is_dir() or (scope is not None and path not in scope):
             continue
         try:
-            record = AnswerRecord.model_validate_json(path.read_text(encoding="utf-8"))
+            record = AnswerRecord.model_validate_json(path.read_text(encoding=ENCODING))
         except (ValidationError, UnicodeDecodeError) as error:
             msg = error.errors()[0]["msg"] if isinstance(error, ValidationError) else str(error)
             report.add(path, f"not a valid answer record: {msg}")

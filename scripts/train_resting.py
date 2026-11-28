@@ -33,11 +33,21 @@ from resting_conditions import (
     BATCH,
     CONDITIONS,
     N_HEAD,
+    PYTHIA_ROTARY_BASE,
+    PYTHIA_ROTARY_SHARE,
     SGD_MOMENTUM,
     TRAIN_WINDOW,
     Condition,
 )
-from resting_modules import Activation, centre_norms, keeper, offset_stats, parallel_forward, warmup
+from resting_modules import (
+    Activation,
+    centre_norms,
+    keeper,
+    offset_stats,
+    parallel_forward,
+    rotary_hook,
+    warmup,
+)
 from resting_push import PushRecorder
 
 from openinterpretability.cli import _load, resolve_device
@@ -80,6 +90,12 @@ def build_model(condition: Condition, vocab_size: int, seed: int):
         )
         if condition.parallel:
             block.forward = types.MethodType(parallel_forward, block)
+        if condition.positions == "rotary":
+            dims = int(condition.n_embd // N_HEAD * PYTHIA_ROTARY_SHARE)
+            block.attn.c_attn.register_forward_hook(rotary_hook(N_HEAD, dims, PYTHIA_ROTARY_BASE))
+    if condition.positions == "rotary":  # no learned position vectors: zero and frozen
+        nn.init.zeros_(model.transformer.wpe.weight)
+        model.transformer.wpe.weight.requires_grad_(False)
     centre_norms(model, condition.centre_norms)
     return model
 

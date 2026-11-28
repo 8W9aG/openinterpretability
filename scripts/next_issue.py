@@ -14,12 +14,17 @@ A candidate that another open issue blocks is skipped until that issue closes (#
 relation is GitHub's native "blocked by" dependency, which ``scripts/linear_sync.py`` keeps
 the same as Linear's.
 
-An answered issue comes before all of them. That is a started issue (In Progress or In
-Review) where an agent asked the maintainer something and stopped, and the maintainer has
-replied since. Agents and the maintainer comment from one account. So an agent's comment
-is one that starts with an agent's marker (:data:`AGENT_MARKS`), and any other comment is
-the maintainer's. An issue is answered when its newest comment is the maintainer's and an
-agent's comment comes before it.
+An answered issue comes before all of them, and this agent's own stalled issues come next
+(#7221). Those are the issues that this agent's claims name (``claims.own_claims``), that are
+In Progress, and that no open pull request names. An issue with more than one PR stays In
+Progress after its first PR merges, and its claim keeps every other agent away. The claim
+branch exists already, so a resume needs no claim.
+
+An answered issue is a started issue (In Progress or In Review). An agent asked the
+maintainer something and stopped there, and the maintainer has replied since. Agents and the
+maintainer comment from one account. So an agent's comment is one that starts with an
+agent's marker (:data:`AGENT_MARKS`), and any other comment is the maintainer's. An issue is
+answered when its newest comment is the maintainer's and an agent's comment comes before it.
 
     python3 scripts/next_issue.py            # print the pick and the runners-up
     python3 scripts/next_issue.py --pull     # also add a pulled issue to the milestone
@@ -41,6 +46,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import issue_state  # noqa: E402
+from claims import own_claims  # noqa: E402
+from issue_resume import open_pr_mentions, own_stalled, view_issue  # noqa: E402
 
 PRIORITIES = {"urgent": 1, "high": 2, "medium": 3, "low": 4}  # Linear's numbering
 NO_PRIORITY = 5
@@ -239,11 +246,15 @@ def claim_command(issue: dict) -> str:
     """The command that claims ``issue`` (#6725).
 
     Args:
-        issue: A pick or a runner-up. An answered one has ``reply_at``.
+        issue: A pick or a runner-up. An answered one has ``reply_at``, and one of this
+            agent's own has ``own``.
 
     Returns:
-        The ``issue_state.py --claim`` command, with ``--reply`` for an answered issue.
+        The ``issue_state.py --claim`` command, with ``--reply`` for an answered issue. An
+        issue of this agent's own needs no claim, so it gets a note in place of a command.
     """
+    if issue.get("own"):
+        return "already yours: no claim needed"
     reply = f" --reply {issue['reply_at']}" if issue.get("reply_at") else ""
     return f"python3 scripts/issue_state.py --claim {issue['number']}{reply}"
 
@@ -310,6 +321,22 @@ def pick(ranked: list[dict], blocked: dict | None = None) -> tuple[dict | None, 
     return (chosen[0], chosen[1:]) if chosen else (None, [])
 
 
+def release_candidates(issues: list[dict], states: dict, served: Counter, blocked: dict):
+    """The release's eligible candidates, best first, as the runners-up of a resume.
+
+    Args:
+        issues: The release's open issues.
+        states: Linear's state of each issue, by number.
+        served: How many of the release's issues each area has.
+        blocked: Gets each skipped issue's open blockers.
+
+    Returns:
+        The candidates, at most ``RUNNERS_UP + 1``.
+    """
+    top, rest = pick(rank(unstarted(issues, states), states, served), blocked)
+    return ([top] if top else []) + rest
+
+
 def choose() -> dict:
     """Decide the next issue. Returns the milestone, whether it was pulled, the pick and others."""
     milestone = next_milestone()
@@ -331,9 +358,16 @@ def choose() -> dict:
     served, blocked = Counter(area(i) for i in released), {}
     replied, rest = pick(rank(answered(states), states, served), blocked)
     if replied is not None:
-        _, normal = pick(rank(unstarted(in_release, states), states, served), blocked)
-        others = (rest + normal)[:RUNNERS_UP]
+        others = (rest + release_candidates(in_release, states, served, blocked))[:RUNNERS_UP]
         return {"milestone": milestone, "pulled": False, "resume": True, "pick": replied,
+                "runners_up": others, "blocked": blocked}  # fmt: skip
+    waits = lambda n: asked(comments_of(str(n)))  # noqa: E731
+    found = own_stalled(states, own_claims(), open_pr_mentions(issue_state.REPO),
+                        lambda n: view_issue(issue_state.REPO, n), waits)  # fmt: skip
+    mine = [i for i in found if not for_muse(i)]
+    if mine:
+        others = (mine[1:] + release_candidates(in_release, states, served, blocked))[:RUNNERS_UP]
+        return {"milestone": milestone, "pulled": False, "resume": "own", "pick": mine[0],
                 "runners_up": others, "blocked": blocked}  # fmt: skip
     best, others = pick(rank(unstarted(in_release, states), states, served), blocked)
     pulled = False
@@ -431,9 +465,12 @@ def main() -> None:
         sys.exit("No eligible issue, in the release or out of it.")
     where = f"pulled into {result['milestone']}" if result["pulled"] else result["milestone"]
     if result["resume"]:
-        where = "answered: resume it"
+        where = "resume your own" if result["resume"] == "own" else "answered: resume it"
     print(f"Next ({where}): {describe(result['pick'])}")
-    if result["resume"]:
+    if result["resume"] == "own":
+        print("  It is In Progress with your claim and no open PR. Post a Deviation or a")
+        print("  Plan for its next part, then go on with work-an-issue.")
+    elif result["resume"]:
         print(f"  The maintainer's reply: {result['pick']['answer'][:300]}")
     print(f"  Claim it: {claim_command(result['pick'])}")
     print("  Exit 3 means another agent has it: claim the next runner-up.")

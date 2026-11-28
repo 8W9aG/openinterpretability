@@ -63,14 +63,13 @@ def write_entry(entry: DrawEntry, wiki_dir: Path) -> Path:
     path = ledger_path(wiki_dir, entry)
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(entry.model_dump_json() + "\n", encoding="utf-8")
+        path.write_bytes(entry.model_dump_json().encode() + b"\n")
     return path
 
 
 def ledger_files(wiki_dir: Path) -> Iterator[Path]:
     """Every ledger file under ``wiki_dir``, sorted by path; none without a ledger."""
-    root = ledger_dir(wiki_dir)
-    yield from sorted(root.rglob("*.json")) if root.is_dir() else ()
+    yield from sorted(ledger_dir(wiki_dir).rglob("*.json"))
 
 
 def load_ledger(wiki_dir: Path) -> list[DrawEntry]:

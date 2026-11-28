@@ -154,7 +154,8 @@ def main() -> int:
         event = json.load(sys.stdin)
         cwd = event.get("cwd") or os.getcwd()
         root = os.environ.get("CLAUDE_PROJECT_DIR") or cwd
-        hit = forbidden(event.get("tool_name", ""), event.get("tool_input") or {}, cwd, root)
+        tool = event.get("tool_name", "")  # pragma: no mutate, equivalent: no name is no tool
+        hit = forbidden(tool, event.get("tool_input") or {}, cwd, root)
     except Exception as exc:  # noqa: BLE001 - deny when the check itself fails
         _deny(f"The reviewer isolation check failed ({exc!r}), so the call is denied.")
         return 0

@@ -37,7 +37,7 @@ The tag comes from the title, not from reading the source. If the source shows t
    If a paper cites the work, delete its line from `papers/awaiting_review.txt`. `tests/test_papers.py` fails while the line stays (#5346).
    Then put the page on the index's map. The map embeds the page's title and *Summary*, so run this again whenever either changes:
    ```bash
-   uv run --extra map python scripts/literature_map.py
+   uv run --extra map python -m labinacan.literature_map
    ```
    It rewrites `docs/literature/map.json`. Commit that file with the page. A test fails while a page is missing from the map.
 6. **Open follow-up issues** for work that the source suggests and that the repo should do. Give each one an area label and a priority label, and name the page in its body. Don't widen the review into that work. A result that strengthens an open issue goes on that issue as a comment.

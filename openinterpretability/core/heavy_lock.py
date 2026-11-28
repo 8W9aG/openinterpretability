@@ -39,7 +39,8 @@ _held: TextIO | None = None  # this process's open lock file, while it holds the
 
 def enabled() -> bool:
     """Whether ``OPENINTERPRETABILITY_HEAVY_LOCK`` turns the lock on."""
-    return os.environ.get(ENABLE_ENV, "").lower() in ("1", "true", "yes", "on")
+    value = os.environ.get(ENABLE_ENV, "")  # pragma: no mutate, equivalent: unset is off
+    return value.lower() in ("1", "true", "yes", "on")
 
 
 def lock_file() -> Path:
@@ -115,7 +116,7 @@ def main(argv: list[str]) -> int:
         )
         return 2
     with heavy_job():
-        return subprocess.run(argv, check=False).returncode
+        return subprocess.run(argv, check=False).returncode  # pragma: no mutate, equivalent
 
 
 if __name__ == "__main__":

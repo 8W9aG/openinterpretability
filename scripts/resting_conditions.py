@@ -31,6 +31,9 @@ PYTHIA_BATCH_FACTOR = 4  # Pythia's batch is 500 times ours. 4 times fits the ti
 PYTHIA_FULL_BATCH_FACTOR = 32
 TRAIN_WINDOW = 128  # tokens in each training window. A test checks it is default_on_poles'.
 PYTHIA_WINDOW = 2048  # Pythia's training window
+# Pythia's rotary positions turn a quarter of each head's dimensions, with base 10,000.
+PYTHIA_ROTARY_SHARE = 0.25
+PYTHIA_ROTARY_BASE = 10_000.0
 # Pythia-70m is 512 wide, with 6 layers and 8 heads (Biderman et al., 2023).
 PYTHIA_70M_LAYERS = 6
 PYTHIA_70M_WIDTH = 512
@@ -64,6 +67,7 @@ class Condition:
     n_layer: int = N_LAYER
     n_embd: int = N_EMBD  # the MLP is mlp_ratio times as wide
     window: int = TRAIN_WINDOW  # tokens in each training window, and the model's positions
+    positions: str = "learned"  # "learned" vectors, or "rotary" queries and keys (#7202)
 
 
 # The mean output of ReLU and of GELU at init, where h has an SD of about 0.31. For ReLU it
@@ -172,6 +176,10 @@ CONDITIONS["pythia_size_batch_32x_window"] = replace(
     CONDITIONS["pythia_size_batch_32x"],
     window=PYTHIA_WINDOW,
     batch=BATCH * PYTHIA_FULL_BATCH_FACTOR * TRAIN_WINDOW // PYTHIA_WINDOW,
+)
+# The same with Pythia's rotary positions in place of learned ones (#7202).
+CONDITIONS["pythia_size_batch_32x_window_rotary"] = replace(
+    CONDITIONS["pythia_size_batch_32x_window"], positions="rotary"
 )
 CONDITIONS |= {f"gelu_{n[5:]}": replace(c, activation="gelu")  # each ReLU norm condition (#3193)
                for n, c in CONDITIONS.items() if n[:5] == "relu_" and c.centre_norms}  # fmt: skip

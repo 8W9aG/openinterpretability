@@ -536,3 +536,39 @@ def test_pythias_window_keeps_the_tokens_per_step_and_sets_the_positions():
     assert sample_batch(tokens, torch.Generator().manual_seed(0), 2).shape == (2, TRAIN_WINDOW)
     tiny = replace(long, n_layer=1, n_embd=16)
     assert build_model(tiny, 50, 0).config.n_positions == PYTHIA_WINDOW
+
+
+def test_rotation_keeps_each_heads_norm_and_turns_by_the_offset_alone():  # #7202
+    from resting_modules import rotate
+
+    torch.manual_seed(0)
+    q, k = torch.randn(1, 1, 16), torch.randn(1, 1, 16)
+    at = lambda v, t: rotate(v.expand(1, 8, 16), 2, 4, 10_000.0)[0, t]  # noqa: E731
+    assert torch.allclose(at(q, 5).view(2, 8).norm(dim=1), q.view(2, 8).norm(dim=1), atol=1e-5)
+    assert torch.equal(at(q, 0), q[0, 0])
+    heads = lambda v: v.view(2, 8)  # noqa: E731
+    one = (heads(at(q, 3)) * heads(at(k, 1))).sum(1)
+    two = (heads(at(q, 7)) * heads(at(k, 5))).sum(1)
+    assert torch.allclose(one, two, atol=1e-4)  # positions 3 and 1, then 7 and 5
+    assert not torch.allclose(one, (heads(at(q, 3)) * heads(at(k, 3))).sum(1), atol=1e-4)
+
+
+def test_the_rotary_condition_has_no_learned_positions_and_reads_the_order():  # #7202
+    from resting_conditions import PYTHIA_ROTARY_SHARE
+
+    window = CONDITIONS["pythia_size_batch_32x_window"]
+    rotary = CONDITIONS["pythia_size_batch_32x_window_rotary"]
+    assert replace(rotary, positions="learned") == window
+    assert PYTHIA_ROTARY_SHARE == 0.25
+    tiny = replace(rotary, n_layer=1, n_embd=64, window=16, dropout=0.0)  # 2 rotary dims a head
+    model = build_model(tiny, 50, 0).eval()
+    wpe = model.transformer.wpe.weight
+    assert not wpe.requires_grad and not wpe.any()
+    ids = torch.randint(50, (1, 6))
+    with torch.no_grad():
+        logits = model(ids).logits[0, -1]
+        swapped = model(ids[:, [1, 0, 2, 3, 4, 5]]).logits[0, -1]
+    assert not torch.allclose(logits, swapped)  # the order matters with no learned positions
+    loss = model(ids, labels=ids).loss
+    loss.backward()
+    assert wpe.grad is None

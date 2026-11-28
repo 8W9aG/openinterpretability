@@ -250,7 +250,6 @@ scripts/syntax_probes.py::distance_rows
 scripts/syntax_probes.py::joint_ablation_rows
 scripts/syntax_probes.py::probe_rows
 scripts/syntax_probes.py::trace_row
-scripts/train_resting.py::build_model
 scripts/train_resting.py::training_tokens
 scripts/train_resting.py::train_command
 scripts/untrained_null.py::scan
