@@ -106,7 +106,7 @@ def test_a_draw_marks_its_pr_ready_before_its_last_push():
     commands = _post("k", "explore").commands
     assert commands == [
         "uv run open-interpretability wiki",
-        "make check lint test",
+        "make check",
         'git add wiki && git commit -m "Explore k (<VERDICT>, <balanced accuracy>)"',
         "uv run open-interpretability evidence push",
         "gh pr ready",
@@ -114,6 +114,8 @@ def test_a_draw_marks_its_pr_ready_before_its_last_push():
     ]
     assert _post("k", "explore").title == "Post the result, whatever it is"
     assert _post("k", "explore").note == (
+        "Run `make lint test` too only if the branch changes a file outside wiki/: CI skips "
+        "them for a wiki-only branch (#7390). "
         "Commit the record's .sig if verify printed 'Signed as …'. `evidence push` sends the "
         "record's evidence blobs to their own branch, for CI to upload (issue #3254). Never "
         "abandon a claim silently: if you stop, say why in the PR and land it with only its "

@@ -25,7 +25,7 @@ This skill wraps `choose-next-experiment`, which still decides *what* to run and
    ```bash
    git fetch origin && git merge origin/main
    ```
-   Experiments only add new files, and the generated indexes aren't committed, so this shouldn't conflict. If it does (a record, a page, code), don't resolve it by hand. Run `git merge --abort`, comment on the PR describing the conflict, and go to step 9 without merging. Otherwise run `make check`, then push.
+   Experiments only add new files, and the generated indexes aren't committed, so this shouldn't conflict. If it does (a record, a page, code), don't resolve it by hand. Run `git merge --abort`, comment on the PR describing the conflict, and go to step 9 without merging. Otherwise push. Run `make check` first only if the merge brought changes outside `wiki/` (`git diff --name-only ORIG_HEAD HEAD -- . ':!wiki'` prints a file). `check --base-ref` checks only your own records, which the merge doesn't change, and CI checks the merged head (#7390).
 6. **Wait for the checks.** CI runs "Lint and tests", "Experiment records" and "Reproduce records". Reproduction takes a few minutes per unsigned record and is skipped for signed ones.
    ```bash
    gh pr checks --watch --fail-fast --interval 30
