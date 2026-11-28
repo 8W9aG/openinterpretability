@@ -16,7 +16,7 @@ classifiers = [
 dependencies = [
     # The generic lab code: site build, papers, figures, social and sync (8W9aG/labinacan,
     # #6736). An exact pin, so a change to it arrives only as a reviewed version bump (#7003).
-    "labinacan[r2,pii]==0.1.7",
+    "labinacan[r2,pii]==0.1.8",
     "pydantic>=2.7.0",
     "torch>=2.2.0",
     "transformers>=5.22.2",

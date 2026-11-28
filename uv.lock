@@ -2053,7 +2053,7 @@ wheels = [
 
 [[package]]
 name = "labinacan"
-version = "0.1.7"
+version = "0.1.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -2066,9 +2066,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "tldextract" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/36/b2/a9a3c3090a479fac188bbc18dda62afe0c746ed3b85826b20b1af1785a96/labinacan-0.1.7.tar.gz", hash = "sha256:4db1c7f3e089f5297d567924e9518ad81be7a059e5e3977c76335516812209fa", size = 1711260, upload-time = "2026-11-28T00:20:15.833Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4b/21/3719fa335af37e4055d4374ff695efcf4ea1ede3fe92b3d82583c1174629/labinacan-0.1.8.tar.gz", hash = "sha256:6035b19b970665314bfaebfca31579945211be222fefde587d35916487ba0f22", size = 1711831, upload-time = "2026-11-28T01:02:59.789Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9a/0f/66b40433b6a5cc7fb4d95551a1c2c09c87f4ac483c08245a501b92167d8c/labinacan-0.1.7-py3-none-any.whl", hash = "sha256:71c983c072f6e902e3c7120c40805006a1e313e9f6c39fac50c0768f621e8f0b", size = 1716256, upload-time = "2026-11-28T00:20:14.014Z" },
+    { url = "https://files.pythonhosted.org/packages/07/be/a6468eef7bffac2eb83d45d062a02b01d63bd18268ccd55f8503bbc79959/labinacan-0.1.8-py3-none-any.whl", hash = "sha256:6f147487ac2f7fbd0dfd423ff77d1c97c892cae47381150c28a514e08520c1e8", size = 1716418, upload-time = "2026-11-28T01:02:57.752Z" },
 ]
 
 [package.optional-dependencies]
@@ -3373,7 +3373,7 @@ requires-dist = [
     { name = "instructor", specifier = ">=1.3.0" },
     { name = "jinja2", specifier = ">=3.1.3" },
     { name = "labinacan", extras = ["map"], marker = "extra == 'map'" },
-    { name = "labinacan", extras = ["pii", "r2"], specifier = "==0.1.7" },
+    { name = "labinacan", extras = ["pii", "r2"], specifier = "==0.1.8" },
     { name = "latex2mathml", specifier = ">=3.81.1" },
     { name = "leidenalg", marker = "extra == 'map'", specifier = ">=0.10.2" },
     { name = "litellm", specifier = ">=1.40.0" },
