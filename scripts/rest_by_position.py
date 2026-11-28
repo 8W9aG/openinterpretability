@@ -172,7 +172,23 @@ def read_rests(model, modules: list, windows: torch.Tensor) -> list[dict]:
     taken: list[list[torch.Tensor]] = [[] for _ in modules]
 
     def keep(i):
+        """A hook that keeps one layer's inputs and pre-activations.
+
+        Args:
+            i: The layer's index in ``modules``.
+
+        Returns:
+            The hook.
+        """
+
         def hook(_module, args, out):
+            """Keep the input and the output of the layer.
+
+            Args:
+                _module: The layer.
+                args: Its inputs. The first is the MLP's input.
+                out: Its output, the pre-activations.
+            """
             taken[i].append(args[0].cpu())
             seen[i].append(out.cpu())
 
