@@ -1,1 +1,0 @@
-- **The literature map's generator is labinacan's.** Run `uv run --extra map python -m labinacan.literature_map`, from labinacan 0.1.7. The repo's own copy and its unit tests are gone, and the package holds them (`pyproject.toml`, `scripts/literature_map.py`, `tests/test_literature_map.py`, 8W9aG/open-familyoffice#101).
