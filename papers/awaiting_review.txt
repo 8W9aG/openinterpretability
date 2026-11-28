@@ -2,5 +2,4 @@
 # open area: literature issue that will write it (scripts/cited_works.py, #5346).
 # Delete a line when its page lands. tests/test_papers.py fails on a stale line.
 2107.07511 #6413
-10.1177/001316446002000104 #6792
 10.2307/2276774 #6793
