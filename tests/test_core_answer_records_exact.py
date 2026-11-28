@@ -1,5 +1,6 @@
 """Answer-record summaries and checks, at their edges (#6491)."""
 
+import codecs
 from pathlib import Path
 
 from openinterpretability.checks import CheckReport
@@ -66,4 +67,4 @@ def test_check_reads_records_as_utf_8(tmp_path, monkeypatch):
 
     monkeypatch.setattr(Path, "read_text", spy)
     assert _check(tmp_path) == {}
-    assert encodings == ["utf-8"]
+    assert [codecs.lookup(e).name for e in encodings] == ["utf-8"]  # never the locale's

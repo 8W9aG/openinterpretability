@@ -47,7 +47,7 @@ def offload_enabled() -> bool:
     Phase 3 of issue #3254 turned this on. After the merge, the deploy uploads the blobs from
     ``evidence/<branch>``.
     """
-    return os.environ.get(OFFLOAD_ENV, "1") != "0"
+    return os.environ.get(OFFLOAD_ENV) != "0"  # only "0" turns it off
 
 
 def store_dir() -> Path:
@@ -64,7 +64,9 @@ def blob_name(sha: str) -> str:
 
 def canonical(value: Any) -> bytes:
     """The bytes that a blob holds for ``value``: sorted keys, no spaces, UTF-8."""
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    keys = {"sort_keys": True, "separators": (",", ":")}
+    text = json.dumps(value, **keys, ensure_ascii=False)  # pragma: no mutate, equivalent: None
+    return text.encode()
 
 
 def sha256(data: bytes) -> str:

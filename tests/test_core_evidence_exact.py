@@ -149,3 +149,9 @@ def test_model_validate_passes_its_options_on_for_a_slim_record(
     loaded = AuditRecord.model_validate(slim, strict=False)
     assert loaded.submission.model_num_layers == 12
     assert loaded.submission.top_examples == record.submission.top_examples
+
+
+def test_texts_with_no_reference_come_back_as_given():
+    assert evidence.resolved_text(b'{"a": 1}') == b'{"a": 1}'
+    assert evidence.resolved_text('{"a": 1}') == '{"a": 1}'
+    assert evidence.resolved_dict_text({"a": 1}) is None
