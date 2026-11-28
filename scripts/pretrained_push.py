@@ -173,14 +173,16 @@ def gpt2(corpus, batches, device, out):
 @cli.command()
 @corpus_option
 @click.option("--step", "steps", multiple=True, type=int, help="Default: each of CHECKPOINTS.")
+@click.option("--part", default="pythia_push", show_default=True, help="The rows' label.")
 @batches_option
 @device_option
 @out_option
-def pythia(corpus, steps, batches, device, out):
-    """Append one ``pythia_push`` row for each checkpoint of Pythia-70m to ``--out``.
+def pythia(corpus, steps, part, batches, device, out):
+    """Append one row, labelled ``--part``, for each checkpoint of Pythia-70m to ``--out``.
 
     Each row but the last also says how well the push at that checkpoint predicts how each
-    neuron's rest moves by the next checkpoint.
+    neuron's rest moves by the next checkpoint. That next checkpoint is the next one read, so
+    a read of other steps gets its own label (#7243).
     """
     from transformers import AutoTokenizer, GPTNeoXForCausalLM
 
@@ -197,7 +199,7 @@ def pythia(corpus, steps, batches, device, out):
             model = model.to(device).eval()  # Pythia has no dropout
             mlps = [layer.mlp for layer in model.gpt_neox.layers]
             row, neurons = push_row(model, mlps, ids, batches)
-            yield {"part": "pythia_push", "model": PYTHIA, "step": step, **row}, neurons
+            yield {"part": part, "model": PYTHIA, "step": step, **row}, neurons
 
     write_checkpoint_rows(out, checkpoints())
 
