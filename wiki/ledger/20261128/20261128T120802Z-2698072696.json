@@ -1,0 +1,1 @@
+{"timestamp":"2026-11-28T12:08:02Z","seed":2698072696,"kind":"explore","model":"Qwen/Qwen2.5-1.5B","slug":"Qwen--Qwen2.5-1.5B/L3/N5074-negative","record":null,"audit":"--model Qwen/Qwen2.5-1.5B --random --seed 45223548","pole_forced":false,"until_verified":false,"max_turns":null,"harness_version":"0.6.1"}
