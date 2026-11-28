@@ -4,7 +4,7 @@
 
 **Mismatch.** None found.
 
-**Status.** Used. `openinterpretability/concept_map.py` lays out the shared concept map with UMAP, and `scripts/literature_map.py` lays out the literature map. `papers/shared-concept-space` cites it for the layout.
+**Status.** Used. `openinterpretability/concept_map.py` lays out the shared concept map with UMAP, and `labinacan.literature_map` lays out the literature map. `papers/shared-concept-space` cites it for the layout.
 
 **Read.** On 2026-11-21 a `web-fetch` subagent read the abstract page and the HTML of version 3 for this page's author, a model (Claude Opus 5.5). It had the abstract and Sections 1 and 2 in the source's own words. The page's author then took the text of the 63-page PDF with `pypdf`, and read Sections 5.3, 6 and 7 and Table 2 from it. Sections 3, 4 and the appendices weren't read word for word, and this page uses nothing from them.
 

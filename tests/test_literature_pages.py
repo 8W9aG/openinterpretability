@@ -117,13 +117,15 @@ def test_callouts_and_badges_never_overlap():
 
 
 def test_the_repo_map_covers_every_review():
-    # Run scripts/literature_map.py after adding or changing a review (#3294).
+    # Run labinacan.literature_map after adding or changing a review (#3294).
+    from labinacan.literature_map_io import COMMAND
     from labinacan.site.cluster_map import overlaps
     from labinacan.site.literature_map_view import literature_map, map_view
     from labinacan.site.literature_pages import LITERATURE
 
     points, missing = literature_map(LITERATURE, load_reviews(REPO, LITERATURE))
-    assert missing == [], "run scripts/literature_map.py: " + ", ".join(r.name for r in missing)
+    names = ", ".join(r.name for r in missing)
+    assert missing == [], f"run uv run --extra map {COMMAND}: {names}"
     assert len(points) >= 20
     view = map_view(LITERATURE, points)
     boxes = [b.box for b in view["badges"]] + [c.box for c in view["callouts"]]
