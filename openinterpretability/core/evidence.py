@@ -17,6 +17,7 @@ writes slim records unless ``OPENINTERPRETABILITY_OFFLOAD_EVIDENCE=0``.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 import os
@@ -47,7 +48,7 @@ def offload_enabled() -> bool:
     Phase 3 of issue #3254 turned this on. After the merge, the deploy uploads the blobs from
     ``evidence/<branch>``.
     """
-    return os.environ.get(OFFLOAD_ENV, "1") != "0"
+    return os.environ.get(OFFLOAD_ENV) != "0"  # only "0" turns it off
 
 
 def store_dir() -> Path:
@@ -62,9 +63,15 @@ def blob_name(sha: str) -> str:
     return f"{sha[:2]}/{sha}.json"
 
 
+# Sorted keys, no spaces, UTF-8 kept: the one encoding that a blob's hash is taken over.
+_CANONICAL = functools.partial(
+    json.dumps, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+)
+
+
 def canonical(value: Any) -> bytes:
     """The bytes that a blob holds for ``value``: sorted keys, no spaces, UTF-8."""
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    return _CANONICAL(value).encode()
 
 
 def sha256(data: bytes) -> str:
@@ -115,7 +122,7 @@ def _from_branches(sha: str, root: Path | None) -> bytes | None:
     Its evidence branch still holds them. The branches are fetched once per process. Any
     git error means "not found". Then a machine without git gets :class:`EvidenceMissing`.
     """
-    if os.environ.get(BRANCHES_ENV, "1") == "0":
+    if os.environ.get(BRANCHES_ENV) == "0":
         return None
     try:
         from openinterpretability.evidence_branch import (
