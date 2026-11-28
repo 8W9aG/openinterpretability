@@ -13,19 +13,45 @@ import subprocess
 from collections.abc import Callable
 
 
-def open_pr_mentions(repo: str) -> str:
-    """The titles and bodies of the open pull requests, joined, for :func:`has_open_pr`.
+def open_pr_mentions(repo: str, maintainer: str) -> str:
+    """The titles and bodies of the maintainer's open pull requests, for :func:`has_open_pr`.
+
+    Only the maintainer's pull requests from ``repo`` itself count. Anyone can open a pull
+    request, and a stranger's could otherwise name an issue and stop its agent resuming it.
 
     Args:
         repo: The repository, as ``owner/name``.
+        maintainer: The login whose pull requests count (agents share it).
 
     Returns:
         The text.
     """
     out = subprocess.run(["gh", "pr", "list", "--repo", repo, "--state", "open", "--limit",
-                          "500", "--json", "title,body"],
+                          "500", "--json", "title,body,author,isCrossRepository"],
                          capture_output=True, text=True, check=True).stdout  # fmt: skip
-    return "\n".join(f"{p['title']}\n{p.get('body') or ''}" for p in json.loads(out))
+    return own_mentions(json.loads(out), maintainer)
+
+
+def own_mentions(pulls: list[dict], maintainer: str) -> str:
+    """The titles and bodies of the maintainer's pull requests from this repository, joined.
+
+    Args:
+        pulls: Pull requests, as ``gh pr list --json title,body,author,isCrossRepository``.
+        maintainer: The login whose pull requests count.
+
+    Returns:
+        The text.
+
+    Examples:
+        >>> own_mentions([{"title": "a", "body": "#1", "author": {"login": "m"},
+        ...                "isCrossRepository": False},
+        ...               {"title": "b", "body": "#2", "author": {"login": "x"},
+        ...                "isCrossRepository": False}], "m")
+        'a\\n#1'
+    """
+    return "\n".join(f"{p['title']}\n{p.get('body') or ''}" for p in pulls
+                     if (p.get("author") or {}).get("login") == maintainer
+                     and not p.get("isCrossRepository"))  # fmt: skip
 
 
 def view_issue(repo: str, number: int | str) -> dict:
