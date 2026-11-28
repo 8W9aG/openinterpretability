@@ -3,9 +3,9 @@
 from figure_motion import reveal
 from figure_svg import Figure, Panel, columns
 
-# One colour and one shape per class through the paper: sisters, other matches, random poles.
+# One colour and one shape per class: closest matches, other matches, random poles.
 # The shape keeps the classes apart without colour.
-CLASSES = (("sister", "c1", "sisters"), ("match", "c3", "other top matches"),
+CLASSES = (("sister", "c1", "closest matches"), ("match", "c3", "other top matches"),
            ("random", "c2", "random poles"))  # fmt: skip
 SHAPES = {"sister": "circle", "match": "square", "random": "triangle"}
 SLOT_WIDTH = 0.6  # of a class's column, over which its studies spread
@@ -69,18 +69,18 @@ def transfer(rows: list[dict]) -> Figure:
     studies = [r for r in rows if r["kind"] == "study" and r["balanced_accuracy"] is not None]
     fig = Figure(
         [
-            "A pole's explanation carries better to its sister",
+            "A pole's explanation carries better to its closest match",
             "than to another match or a random pole",
         ],
         [
-            "Each mark is a sister study: the balanced accuracy of the source's explanation "
+            "Each mark is a transfer study: the balanced accuracy of the source's explanation "
             "on the tested pole.",
-            "Circles are sisters, squares other matches and triangles random poles. "
+            "Circles are closest matches, squares other matches and triangles random poles. "
             "The line marks chance.",
         ],
-        "Two plots. Left: balanced accuracy by class, with medians of 0.78 for sisters, 0.55 "
-        "for other matches and 0.45 for random poles. Right: balanced accuracy against the "
-        "correlation r for sisters and other matches.",
+        "Two plots. Left: balanced accuracy by class, with medians of 0.78 for closest matches, "
+        "0.55 for other matches and 0.45 for random poles. Right: balanced accuracy against the "
+        "correlation r for closest matches and other matches.",
     )
     left, right = columns(fig, 2, 60, fig.body_top + 34, 220, (0, 3), (0, 1), gap=36)
     left.x_range = (0, 3)

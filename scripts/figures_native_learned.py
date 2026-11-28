@@ -32,8 +32,8 @@ def shares(rows: list[dict]) -> Figure:
             "and the native basis beats a random rotation of it",
         ],
         [
-            "Share VERIFIED with its 95% Wilson interval. One audit per unit, one agent pair "
-            "and one protocol in each model.",
+            "Share that passed the review, with its 95% Wilson interval. One audit per unit, "
+            "one agent pair and one protocol in each model.",
         ],
         "Five dots with intervals. GPT-2 small: transcoder latents that fire 0.93, latents "
         "with dead draws counted 0.61, positive neuron poles 0.50. Qwen2.5-0.5B: native "
@@ -71,7 +71,7 @@ def layer(rows: list[dict]) -> Figure:
     fig = Figure(
         [
             "To audit a whole GPT-2 layer, latents need five times the audits",
-            "and give ten times the VERIFIED units",
+            "and give ten times the passing units",
         ],
         [
             "An extrapolation of the measured shares to one layer: 24,576 latents, of which "

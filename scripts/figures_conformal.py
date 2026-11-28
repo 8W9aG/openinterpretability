@@ -75,7 +75,7 @@ def fire(rows: list[dict]) -> Figure:
             "windows, and the conformal line on about 5%"
         ],
         [
-            "The share of 1,000 held-out 20-token corpus windows on which each VERIFIED pole",
+            "The share of 1,000 held-out 20-token corpus windows on which each passing pole",
             "fires. Left: the record's own line, 0.25 × its maximum. Right: the split-conformal",
             "line at α = 0.05. One dot per pole; the ink line and value are each model's median.",
         ],
@@ -124,13 +124,16 @@ def hard(rows: list[dict]) -> Figure:
     poles = _poles(rows)
     at05 = {m: pooled(poles, m, "a0.05") for m in ORDER}
     fig = Figure(
-        ["Quiet probes fire far above the bound in Qwen2.5, and near it in Pythia-70m and GPT-2"],
         [
-            "The share of each model's probes predicted quiet that fire under the conformal",
+            "Quiet test prompts fire far above the bound in Qwen2.5,",
+            "and near it in Pythia-70m and GPT-2",
+        ],
+        [
+            "The share of each model's test prompts predicted quiet that fire under the conformal",
             "line, pooled over its poles, at α = 0.05 and α = 0.01. The dashed line is α itself:",
             "the rate the guarantee bounds on corpus text. Each model's line is labelled.",
         ],
-        "A slope chart of four models. At α = 0.05 the probes predicted quiet fire at "
+        "A slope chart of four models. At α = 0.05 the test prompts predicted quiet fire at "
         + ", ".join(f"{at05[m]:.1%} in {SHORT[m]}" for m in ORDER)
         + ".",
     )
