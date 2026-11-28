@@ -33,7 +33,7 @@ EXEMPT_MARKER = re.compile(r"#\s*long-function:\s*\S")
 EXEMPT = (
     *generated(ROOT),  # the project's generated files (scripts/repo_config.py)
     "tests/*",
-    "docs/literature/map.json",  # generated literature map (scripts/literature_map.py)
+    "docs/literature/map.json",  # generated literature map (python -m labinacan.literature_map)
     "papers/*/results*.jsonl",  # generated result rows of a paper
     "papers/*/README.md",  # a paper is one page, however long its argument
     "papers/*/media/*.svg",  # generated figures, one mark to a line (scripts/paper_figures.py)

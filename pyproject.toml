@@ -16,7 +16,7 @@ classifiers = [
 dependencies = [
     # The generic lab code: site build, papers, figures, social and sync (8W9aG/labinacan,
     # #6736). An exact pin, so a change to it arrives only as a reviewed version bump (#7003).
-    "labinacan[r2,pii]==0.1.4",
+    "labinacan[r2,pii]==0.1.7",
     "pydantic>=2.7.0",
     "torch>=2.2.0",
     "transformers>=5.22.2",
@@ -69,8 +69,12 @@ open-interpretability = "openinterpretability.cli:main"
 [project.optional-dependencies]
 # `open-interpretability build` makes the site's search index with Pagefind.
 site = ["pagefind[bin]>=1.3.0"]
-# `open-interpretability map` lays out a model's studied neurons by meaning (#4422).
-map = ["sentence-transformers>=5.0", "umap-learn>=0.5.7", "leidenalg>=0.10.2", "igraph>=0.11"]
+# `open-interpretability map` lays out a model's studied neurons by meaning (#4422), and
+# `python -m labinacan.literature_map` lays out the literature reviews (labinacan[map]).
+map = [
+    "sentence-transformers>=5.0", "umap-learn>=0.5.7", "leidenalg>=0.10.2", "igraph>=0.11",
+    "labinacan[map]",
+]
 mcp = [
     "mcp>=2.0",
 ]
