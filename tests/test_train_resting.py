@@ -572,3 +572,20 @@ def test_the_rotary_condition_has_no_learned_positions_and_reads_the_order():  #
     loss = model(ids, labels=ids).loss
     loss.backward()
     assert wpe.grad is None
+
+
+def test_the_full_batch_condition_has_pythias_batch_and_warm_up():  # #7243
+    from resting_conditions import (
+        PYTHIA_FULL_BATCH_WINDOWS,
+        PYTHIA_FULL_WARMUP,
+        PYTHIA_LEARNING_RATE,
+        PYTHIA_WINDOW,
+    )
+
+    full = CONDITIONS["pythia_full_batch_rotary"]
+    rotary = CONDITIONS["pythia_size_batch_32x_window_rotary"]
+    assert full.batch * full.window == PYTHIA_FULL_BATCH_WINDOWS * PYTHIA_WINDOW == 2**21
+    assert full.batch == 16 * rotary.batch  # 16 times the 32x batch
+    assert full.warmup_steps == PYTHIA_FULL_WARMUP == 143_000 // 100
+    assert replace(full, batch=rotary.batch, warmup_steps=rotary.warmup_steps) == rotary
+    assert full.learning_rate == PYTHIA_LEARNING_RATE and full.positions == "rotary"

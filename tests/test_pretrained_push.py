@@ -54,3 +54,40 @@ def test_a_subset_of_checkpoints_must_have_been_saved():  # #4093
     assert pick_steps([0, 250, 500], (500, 0, 0)) == [0, 500]
     with pytest.raises(click.UsageError, match=r"no checkpoint saved at steps \[256\]"):
         pick_steps([0, 250, 500], (0, 256))
+
+
+def test_the_pythia_command_labels_its_rows_with_the_part(tmp_path, monkeypatch):  # #7243
+    import pretrained_push
+    import transformers
+    from click.testing import CliRunner
+
+    config = transformers.GPTNeoXConfig(
+        hidden_size=16,
+        intermediate_size=64,
+        num_attention_heads=2,
+        num_hidden_layers=2,
+        hidden_act="gelu",
+        vocab_size=32,
+    )
+    revisions = []
+
+    def from_pretrained(_name, revision, dtype):
+        revisions.append(revision)
+        return transformers.GPTNeoXForCausalLM(config)
+
+    def push_row(_model, mlps, _ids, _batches):
+        neurons = [(torch.ones(4), torch.zeros(4)) for _ in mlps]
+        return {"layers": [{} for _ in mlps]}, neurons
+
+    monkeypatch.setattr(transformers.AutoTokenizer, "from_pretrained", lambda _name: None)
+    monkeypatch.setattr(transformers.GPTNeoXForCausalLM, "from_pretrained", from_pretrained)
+    monkeypatch.setattr(pretrained_push, "corpus_windows", lambda _tok, _corpus: None)
+    monkeypatch.setattr(pretrained_push, "push_row", push_row)
+    out = tmp_path / "rows.jsonl"
+    args = ["pythia", "--step", "0", "--step", "64", "--part", "pythia_push_early"]
+    result = CliRunner().invoke(pretrained_push.cli, [*args, "--device", "cpu", "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    assert [r["part"] for r in rows] == ["pythia_push_early", "pythia_push_early"]
+    assert [r["step"] for r in rows] == [0, 64]
+    assert revisions == ["step0", "step64"]
