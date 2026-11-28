@@ -47,7 +47,7 @@ def adopt_legacy_env(environ: MutableMapping[str, str] | None = None) -> list[st
             f"{LEGACY_ENV_PREFIX}* variables are renamed {ENV_PREFIX}* (#4089). "
             f"Read for now: {', '.join(sorted(adopted))}.",
             DeprecationWarning,
-            stacklevel=2,
+            stacklevel=2,  # pragma: no mutate, equivalent: mutmut's trampoline adds a frame
         )
     return adopted
 
