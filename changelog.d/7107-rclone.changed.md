@@ -1,1 +1,0 @@
-- **The deploy uploads with rclone, from labinacan 0.1.4.** rclone v1.76.0 is pinned and checked against its SHA-256. labinacan 0.1.4 also gives boto3 a connection for each upload thread. After a change of more than 3,000 pages, it purges the whole Cloudflare zone in one request (#7107).

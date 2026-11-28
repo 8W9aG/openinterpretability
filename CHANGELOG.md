@@ -13,6 +13,75 @@ Changes waiting for the next release are files in [changelog.d/](changelog.d/REA
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-28
+
+Ships with protocol version **0.10**.
+
+### Added
+
+- **A review of *Large Language Models are not Fair Evaluators*** (Wang, Li, Chen et al., 2023), at `docs/literature/llm-judges-not-fair.md`. Its status is planned. The paper studies only pairwise judging, and it supports #7084, which asks whether the order of the detection judge's windows changes its answers (#6454).
+- **A review of *The effective rank: A measure of effective dimensionality*** (Roy and Vetterli, 2007), at `docs/literature/effective-rank.md`. Its status is used: `scripts/dormant_rank.py` computes the measure as the paper defines it (#6520).
+- **A review of *Returning to the Neuron Basis for Interpretability, Part 1*** (Shone and Dunlap, 2026), at `docs/literature/neuron-basis-objections.md`. Its status is planned. #7127 asks what share of each Qwen pole's activity comes with the gate open (#6583).
+- **A review of *Returning to the Neuron Basis for Interpretability, Part 2*** (Shone and Dunlap, 2026), at `docs/literature/neuron-basis-applications.md`. Its status is planned. Its cloze and direction-removal tests suit the fix campaign (#5220) (#6584).
+- **A review of *Enhancing Chat Language Models by Scaling High-quality Instructional Conversations*** (Ding et al., 2023), at `docs/literature/ultrachat.md`. Its status is used: the repo reads UltraChat 200k for `papers/instruct-difference/` and the `ultrachat` preset (#6592).
+- **A review of *Harness Evolution Hits a Ceiling: When Weight Training Should Begin*** (Tian et al., 2026), at `docs/literature/harness-evolution-ceiling.md`. Its status is planned. Its placebo adapter is a null for the fix campaign (#5220) (#6616).
+- **A review of *Harness-Delta Attribution: Dissecting Gains From Harness Evolution*** (Ding et al., 2026), at `docs/literature/harness-delta-attribution.md`. Its status is not applicable. It bears on whether fresh probes catch a revision that fits the reviewer (#6617).
+- **A review of *The Winner's Curse in LLM Self-Improvement Loops*** (Hu and Tang, 2026), at `docs/literature/winners-curse-self-improvement.md`. Its status is not applicable. By its model, retries overstate VERIFIED verdicts by about 0.006 in balanced accuracy on average (#6618).
+- A literature page for *Who Verifies the Verifier?* (Zhang et al., 2026), in `docs/literature/who-verifies-the-verifier.md` (#6619).
+- **A review of *Reflections on Trusting Trust, Revisited*** (Roesner and Kohno, 2026), at `docs/literature/trusting-trust-revisited.md`. It checks how outside text and self-edits reach this repo's gates (#6620).
+- **A review of *Composable Soft-Prompt Distillation of RL Experts*** (Zhang et al., 2026), at `docs/literature/cspd-soft-prompt-distillation.md`. It checks the issue's numbers against the paper and compares its claim of less forgetting with the repo's template-or-tuning result (#6676).
+- **A review of *The Emergence and Sparsification of a Syntactic Circuit*** (Yao et al., 2026), at `docs/literature/sva-circuit-emergence.md`. Its status is planned: #7186 tracks the agreement circuit across Pythia-70m's checkpoints (#6683).
+- **A review of *Building stronger biological reasoning models*** (Goodfire Research, 2026), at `docs/literature/bioreason-pro-2.md`. It checks the post's numbers and links, and finds that the reward judge also wrote the training traces (#6685).
+- **Wrapper prune: the two variants of the Limitations** (#7071). `scripts/wrapper_prune.py` takes `--unit input`, which prunes a neuron's input rows, and `--loss failed`, which scores on half the failed explanations' probe texts. Table 3 and Figure 3 of `papers/wrapper-prune/` report both. Neither recovers more than 16 of 63 explanations, and the failed-text loss breaks more.
+- **The fix harness tests whether a fix removed the copy failure or hid it** (#7151). Each fit's row in `fits.jsonl` gives a cloze test and a direction-removal test (`scripts/fix_removal.py`). Arm P, a placebo, trains arm B on random unit words. The first row is the base model's.
+- `papers/why-neurons-rest/` finds why Pythia's window of 2,048 tokens deepens L1's rest about fourfold (Table 31, Figure 11). With learned positions, the long window fills L1's input with position, and L1's weights turn against it. With Pythia's rotary positions, the rest stays near the 128-token runs'. `scripts/rest_by_position.py` reads the rest and the position share of each layer by position, and `scripts/train_resting.py` gains a rotary condition. #7243 holds a run at Pythia's full batch (#7202).
+
+### Changed
+
+- **Mutation testing: three more files of `patches/`** (#6491). `gates.py`, `graph.py` and `__init__.py` have no surviving mutant. New gate tests cover a linear probe's bias, soft output with a temperature, `and` and `min`, and the mask. They also cover forced gates, attention over heads and keys, and the device of every parameter. The device moves that differ only on a GPU are recorded as equivalent.
+- **Every preprint is now in plain words** (#6851). The last rewrites cover the remaining preprints, from `default-on-poles` to `explanations-across-models`. Each defines a pole with Cammarata (2026) and uses "passing", "test prompts" and "closest match" for the project's own terms. Every preprint passes the term check, and `papers/terms_pending.txt` is gone.
+- **Why neurons rest: the 32× batch runs on one pass of Pythia's own data** (#6935). `scripts/pythia_tokens.py` builds a 290.8-million-token sample from Pythia's deduplicated, preshuffled Pile. Table 29 of `papers/why-neurons-rest/` trains both 32× conditions again on it. The memorisation is gone, but Pythia-70m's size still pushes down in 24 and 19 of 30 checkpoints and layers, against Pythia's 13. #7140 tests Pythia's window of 2,048 tokens next.
+- `deploy.yml` and `auto-merge.yml` hold no value of this project, and the labinacan template ships the same files (#6992).
+  - The deploy runs `make deploy-prepare`, which here publishes the evidence and runs `check`, and then `make build`. It syncs to R2 and posts to X only when `vars.R2_BUCKET` is set.
+  - The workflow is now "Deploy", and its failure issue is "Deploy failed on main".
+  - Auto-merge reads its records-only rule from `[tool.labinacan] auto_merge_rule`, and takes the maintainer as the repository's owner.
+  - The `OPENINTERPRETABILITY_SITE_URL` variable is no longer read. The purge URLs come from `[project.urls] Homepage`.
+- The `explain` planner now reaches its coverage target (#7061). It scores every candidate experiment once, then rescores the best 256 at each pick, in batches of kept sets (`openinterpretability/explain_batched.py`, `explain_joint.py`). The plan reports the coverage that its picks reach. `explain_joint.greedy` also plans many prompts together. The paper is `papers/coverage-planner/`.
+- The NF4 paper (`papers/nf4-keep/`) now gives ten seeds of its matched random change, not three. NF4 is inside the null's spread on both models. On Qwen2.5-1.5B, NF4 keeps more explanations than 9 of 10 seeds, and a rank test puts that at p = 0.18. `scripts/nf4_keep.py` gains `--first-seed` and `--poles-from`, which add seeds on a paper's own poles (#7072).
+- **The deploy uploads with rclone, from labinacan 0.1.4.** rclone v1.76.0 is pinned and checked against its SHA-256. labinacan 0.1.4 also gives boto3 a connection for each upload thread. After a change of more than 3,000 pages, it purges the whole Cloudflare zone in one request (#7107).
+- **A release no longer changes every page.** Only the changelog page names the package version. The footer links to the changelog, and the `generator` meta gives no number. So a release deploys only the pages whose content changed (#7107).
+- **A superposition gives pages to its 32 largest members only.** A rank-one LoRA direction (#7025) weighs every neuron of its layer, and each member had a short page of its own. Member-only pages fall from 82,060 to 617, and the site from about 90,900 pages to about 9,500. The superposition's page says how many members it has, and its record keeps all of them (#7107).
+- **Why neurons rest: Pythia's window of 2,048 tokens** (#7140). `scripts/train_resting.py` conditions now have a training `window`, and `pythia_size_batch_32x_window` trains Pythia-70m's size at Pythia's window, with the same tokens per step. Table 30 of `papers/why-neurons-rest/` finds that the window moves the push's direction toward Pythia's, down in 19 and 13 of 30 against Pythia's 13. It also deepens the rest about fourfold, far past Pythia's. #7202 asks why.
+- The reviews of *Returning to the Neuron Basis, Part 2*, *Harness Evolution Hits a Ceiling* and *Harness-Delta Attribution* now record the maintainer's decisions of 2026-11-27. #7151 adds the removal tests and the placebo-adapter null to the fix campaign (#7151).
+- `scripts/next_issue.py` offers an agent its own stalled issues after an answered issue and before new work. An issue counts when the agent's claim names it, it is In Progress, and no open PR names it. The pick prints "resume your own" and no claim command (#7221). The agent ID is stored in the checkout's git directory, so a new host name doesn't change it. The `next-issue` skill keeps the claim after a `Part of #N` PR. When an answered issue is the pick, the release's best candidate now stays among the runners-up.
+- **Circuit ids and the concept map, refreshed for 0.6.2.** `circuits identify` found one GPT-2 circuit gone and one new, so GPT-2 has 4 (`data/circuits/openai-community--gpt2.jsonl`). The other models' circuits didn't change. The shared concept map placed 56 new poles, so it has 2,532 (`data/concept-maps/shared.json`). Every configured model's poles are all in a region.
+- **Registry coverage, refreshed for 0.6.2** (`docs/analyses/registry-coverage.jsonl`, 2026-11-28). It gives each model's VERIFIED poles and the mean share of the loss that they recover, against the 2026-11-27 run:
+
+  | Model | VERIFIED poles | Share of poles | Mean recovered |
+  | --- | --- | --- | --- |
+  | pythia-70m | 185 → 202 | 0.82% | 0.036 → 0.037 |
+  | GPT-2 | 225 → 226 | 0.31% | −0.058 → −0.059 |
+  | Qwen2.5-0.5B | 380 → 382 | 0.16% | 0.012 → 0.012 |
+  | Qwen2.5-1.5B | 80 → 80 | 0.02% | 0.001 → 0.001 |
+
+  GPT-2's mean stays negative because keeping only L10's poles raises the loss (−0.924), as in 0.6.0.
+- **The literature map's generator is labinacan's.** Run `uv run --extra map python -m labinacan.literature_map`, from labinacan 0.1.7. The repo's own copy and its unit tests are gone, and the package holds them (`pyproject.toml`, `scripts/literature_map.py`, `tests/test_literature_map.py`, 8W9aG/open-familyoffice#101).
+- **Sister search, refreshed for 0.6.2.** The search added 78 rows for poles VERIFIED since 0.6.1, and found 26 new sisters:
+  - pythia-70m: 5 against Qwen2.5-0.5B, 9 against Qwen2.5-1.5B and 6 against GPT-2, from 20 poles.
+  - Qwen2.5-0.5B: 1 against pythia-70m, 2 against Qwen2.5-1.5B and 1 against GPT-2, from 3 poles.
+  - GPT-2: 1 against each of Qwen2.5-0.5B and Qwen2.5-1.5B, and none against pythia-70m, from 2 poles.
+  - Qwen2.5-1.5B: none, from 1 pole.
+
+  The strongest are pythia-70m L0/N1100+ with GPT-2 L0/N3055+ (Pearson 0.95), with Qwen2.5-0.5B L0/N1685+ (0.94) and with Qwen2.5-1.5B L0/N4200− (0.92). Next is Qwen2.5-0.5B L23/N1369− with Qwen2.5-1.5B L27/N3855+ (0.80). Each new sister is now a `sister` draw.
+
+### Fixed
+
+- **A patch merge refuses parents on different bases.** `history.merge` took the first parent's base and gave no error, so the merged chain failed later in `ancestors`. New tests cover the merges, reverts, rebases, footprint conflicts and diffs in `openinterpretability/patches/history.py`, and no mutant survives (#6491).
+- **A transcript message whose model is null no longer stops the usage count.** `usage_from_transcript` raised an error on it. It now counts the message as "unknown", the same as a message with no model (`openinterpretability/core/transcripts.py`, #6491).
+- **Linear sync, the release's move to Released, and the Muse label check run again.** Since labinacan moved to PyPI (#7030), these three workflows ran the issue scripts with no package installed, and each failed. They now run them with the pinned labinacan from PyPI (`scripts/labinacan_pin.py`). A test checks that no workflow runs such a script with a bare python (#7097).
+- **The tests no longer depend on the quiet variable.** `explain --json` sets `OPENINTERPRETABILITY_QUIET`, and the experiment sessions it starts inherited it, so 4 progress tests failed in their `make test`. Every test now starts with the variable removed (`tests/conftest.py`, #7230).
+- **`next_issue` counts only the maintainer's own open pull requests when it decides whether an agent's issue still has one** (`scripts/issue_resume.py`, #7294).
+
 ## [0.6.1] - 2026-11-27
 
 Ships with protocol version **0.10**.
