@@ -115,7 +115,7 @@ def _from_branches(sha: str, root: Path | None) -> bytes | None:
     Its evidence branch still holds them. The branches are fetched once per process. Any
     git error means "not found". Then a machine without git gets :class:`EvidenceMissing`.
     """
-    if os.environ.get(BRANCHES_ENV, "1") == "0":
+    if os.environ.get(BRANCHES_ENV) == "0":
         return None
     try:
         from openinterpretability.evidence_branch import (
