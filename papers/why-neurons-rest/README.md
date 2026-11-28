@@ -2,7 +2,7 @@
 
 Training moves most of GPT-2's neurons to a median pre-activation $h$ of about −1, as [the paper on default-on negative poles](../default-on-poles/README.md) found. That is below GELU's minimum at −0.75. That paper also found that the input weights do this. It did not find why. This paper trains small GPT-2s and changes one thing at a time. It finds a small push on each neuron's rest that is steady over many steps, and that the optimizer's step size sets how far the push takes the rest.
 
-**Status:** Preprint. Work left: #7243 (a 512-step run at Pythia's full batch, against Pythia-70m's early checkpoints).
+**Status:** Preprint. Work left: #7317 (a second seed of the full-batch run of Table 32).
 
 ## Introduction
 
@@ -351,7 +351,7 @@ The last question is whether trained models show the push that the small models 
 
 **Table 14.** The push in trained GPT-2 small, over 50 batches of 32 windows from the corpus sample, with no optimizer step.
 
-GPT-2's training run is not public, but Pythia's checkpoints are (Biderman et al., 2023). Pythia-70m's checkpoints do not show the push clearly (Table 15). Its rest forms by step 4,000, through its weights, as in the small models. But the push at each checkpoint points down in only a few layers, and its sign matches each neuron's next move at chance. The same test finds the push at the checkpoints of a small model (Table 19). So Pythia's push is weaker or less steady, or its far-apart checkpoints hide it. No part of Pythia's training setup weakens the push in a small model, alone or together (Table 20). A batch of 32 times ours brings the push's match with the next move down to Pythia's, but the push still points down in most checkpoints and layers. Pythia-70m's size does the same (Table 26). Trained on one pass of Pythia's own data, Pythia-70m's size with that batch still pushes down as often (Table 29). With Pythia's window of 2,048 tokens as well, the push's direction moves to Pythia's, but the rest deepens far past it (Table 30). The depth comes from the learned positions. Over 2,048 positions, they fill L1's input, and L1's weights turn against it. With Pythia's rotary positions, the rest stays near that of the 128-token windows (Table 31, Figure 11).
+GPT-2's training run is not public, but Pythia's checkpoints are (Biderman et al., 2023). Pythia-70m's checkpoints do not show the push clearly (Table 15). Its rest forms by step 4,000, through its weights, as in the small models. But the push at each checkpoint points down in only a few layers, and its sign matches each neuron's next move at chance. The same test finds the push at the checkpoints of a small model (Table 19). So Pythia's push is weaker or less steady, or its far-apart checkpoints hide it. No part of Pythia's training setup weakens the push in a small model, alone or together (Table 20). A batch of 32 times ours brings the push's match with the next move down to Pythia's, but the push still points down in most checkpoints and layers. Pythia-70m's size does the same (Table 26). Trained on one pass of Pythia's own data, Pythia-70m's size with that batch still pushes down as often (Table 29). With Pythia's window of 2,048 tokens as well, the push's direction moves to Pythia's, but the rest deepens far past it (Table 30). The depth comes from the learned positions. Over 2,048 positions, they fill L1's input, and L1's weights turn against it. With Pythia's rotary positions, the rest stays near that of the 128-token windows (Table 31, Figure 11). With Pythia's full batch as well, over Pythia's first 512 steps, the rest and the push follow Pythia-70m's: the push is as weak and mixed as Pythia's (Table 32).
 
 | Step | Loss | Rest, L0–L5 | Layers with the push down | Push against the next move |
 | --- | --- | --- | --- | --- |
@@ -398,7 +398,7 @@ Training sets where a neuron rests through a weak push on its rest that is stead
 
 - Find why the output's push of GELU and SiLU points up most on tokens below the rest. This is the one cause that stays open.
 - Split dropout's part in the pull in the same way as the final LayerNorm's. Through the final LayerNorm, a constant offset costs loss because it adds the unigram prior. Dropout's part in the pull is not split up in the same way.
-- Test Pythia's scale, its full batch and its gaps between checkpoints as causes of its weak push. At Pythia's checkpoints the push is weak and mixed, though the same test finds it in a small model. No part of Pythia's training setup weakens the push in a small model, alone or together. Its batch was tested only at 4 times ours. So Pythia's scale, its full batch or its gaps between checkpoints remain as causes.
+- Test whether Pythia's full batch keeps its push weak past step 512. At Pythia's full batch, window, rotary positions and warm-up, a small run's rest and push follow Pythia-70m's over the first 512 steps (Table 32), but Pythia's rest forms by step 4,000. A seed and a longer run would show whether the batch is the cause.
 
 ## References
 
@@ -596,6 +596,20 @@ done
 grep training_window_rotary runs_7202.jsonl >> $OUT  # Table 30 holds the window runs' own rows
 uv run python scripts/rest_by_position.py pythia --step 0 --step 1000 --step 2000 --step 4000 \
     --step 143000 --device cpu --out $OUT
+# Table 32 (#7243), on an NVIDIA GPU with 12 GB: about 6.3 hours
+uv run python scripts/pythia_tokens.py --tokens 1000000000 --out tokens_1100m.pt
+uv run python scripts/train_resting.py train --seed 0 --condition pythia_full_batch_rotary --steps 512 \
+    --eval-every 64 --micro-batch 4 --part training_full_batch --save-every 64 --save-dir ckpt_full \
+    --cache tokens_1100m.pt --device cuda --out $OUT
+uv run python scripts/rest_by_position.py small --condition pythia_full_batch_rotary --seed 0 \
+    --save-dir ckpt_full --device cuda --out $OUT
+uv run python scripts/pretrained_push.py small --condition pythia_full_batch_rotary --seed 0 \
+    --save-dir ckpt_full --step 0 --step 64 --step 128 --step 256 --step 512 --part full_batch_push \
+    --device cuda --out $OUT
+uv run python scripts/rest_by_position.py pythia --step 64 --step 128 --step 256 --step 512 \
+    --device cuda --out $OUT
+uv run python scripts/pretrained_push.py pythia --step 0 --step 64 --step 128 --step 256 --step 512 \
+    --part pythia_push_early --device cuda --out $OUT
 # Table 28 (#6806): the push in training, at a 32x batch and on the baseline
 uv run python scripts/train_resting.py train --seed 0 --condition pythia_batch_32x --steps 2000 \
     --eval-every 250 --micro-batch 32 --push-every 100 --part training_batch_push \
@@ -1117,8 +1131,32 @@ So the long window does not deepen the rest by its length. With learned position
 
 ![With learned positions, a long window fills L1's input with position, and L1's neurons rest deep.](media/position.svg)
 
-**Figure 11.** With learned positions, a long window fills L1's input with position, and L1's neurons rest deep. Left: the position share of L1's MLP input over training. Right: L1's rest at positions 16–127. Each line is one run and seed: Pythia's window with learned positions, the same with rotary positions, the 128-token windows of Table 29, and Pythia-70m at steps 0, 1,000 and 2,000.
-
-**Pythia's full batch was not run.** Pythia's batch is 1,024 windows of 2,048 tokens, 16 times the 32× batch of Tables 26–31. The 32× batch takes 2.8 seconds a step on the 12 GB GPU, so 2,000 steps at the full batch would take about 25 hours a run. A shorter run could still test the batch, because Pythia keeps checkpoints at steps 1, 2, 4 and so on up to 512. A full-batch run of 512 steps, with rotary positions, would take about 6.5 hours a seed and 1.1 billion training tokens, against the 280 million of Table 29. It could then be compared with Pythia-70m at the same steps, with the same batch and window. #7243 holds that run.
+**Figure 11.** With learned positions, a long window fills L1's input with position, and L1's neurons rest deep. Left: the position share of L1's MLP input over training. Right: L1's rest at positions 16–127. Each line is one run and seed: Pythia's window with learned positions, the same with rotary positions, the 128-token windows of Table 29, and Pythia-70m at steps 0, 64, 128, 256, 512, 1,000 and 2,000.
 
 The warm-up deepens the rest, as a higher rate does. At step 2,000, L1 rests at −1.48, against −0.66 for the no-dropout run at 3e-4 (Table 4). Pythia's rate without the warm-up deepens the rest further. At step 2,000, L1 rests at −2.63, against −1.48 with the warm-up. With all of Pythia's parts, it rests at −0.93.
+
+### Pythia's full batch
+
+**Over Pythia's first 512 steps, Pythia's full batch brings the rest and the push to Pythia-70m's** (#7243). Pythia's batch is 1,024 windows of 2,048 tokens, 16 times the 32× batch of Tables 26–31. Pythia keeps checkpoints at steps 0, 64, 128, 256 and 512, so a run of 512 steps can be compared with Pythia-70m at each of them. The condition `pythia_full_batch_rotary` is `pythia_size_batch_32x_window_rotary` with Pythia's batch and Pythia's warm-up of 1,430 steps. The earlier runs scale the warm-up to their 2,000 steps, but Pythia is still in its warm-up up to step 512, so only its own warm-up gives its learning rate at each step. The sample is built as in Table 29, from the start of Pythia's own data, and holds 1.12 billion GPT-2 tokens (`tokens_1100m.pt`). The run draws random windows from it, as every run of this paper does, and reads 1.07 billion tokens, so each token is read about 0.96 times on average. Rows labelled `training_full_batch` record the run, on seed 0 only, which took 6.3 hours on the 12 GB GPU. Rows labelled `rest_by_position` read its checkpoints as in Table 31, and rows labelled `full_batch_push` apply the checkpoint test of Table 15 to them. Rows labelled `pythia_push_early` apply the same test to Pythia-70m at the same five steps. The next checkpoint of each row is the next one of these five, so the test of Table 15, with other gaps, does not give the same numbers.
+
+| Steps 0–512 | Pythia's full batch, rotary, seed 0 | Pythia-70m |
+| --- | --- | --- |
+| Loss on the corpus sample at steps 64, 128, 256 and 512 | 8.69, 7.19, 6.03, 4.93 | 9.02, 7.45, 6.24, 5.19 |
+| Rest of L1 at positions 16–127, at steps 256 and 512 | −0.08, −0.15 | −0.12, −0.22 |
+| Rest of L0–L5 at positions 16–127, at step 512 | −0.05, −0.15, −0.17, −0.16, −0.14, −0.14 | −0.03, −0.22, −0.19, −0.12, −0.10, −0.06 |
+| Rest of L1 at positions 1–15 and 512–2,047, at step 512 | −0.14, −0.15 | −0.21, −0.23 |
+| Position share of L1's input at step 512 | 0.20 | 0.18 |
+| Global share of L1's input at step 512 | 0.19 | 0.17 |
+| Cosine of L1's weights to the mean input at step 512, median | −0.03 | −0.04 |
+| Checkpoints and layers with the push down | 14 of 30 | 11 of 30 |
+| Push against the next move, median | +0.04 | +0.01 |
+| Push against the next move, above 0 | 17 of 24 | 14 of 24 |
+| Neurons whose push has the sign of their move, median | 52% | 51% |
+
+**Table 32.** The run at Pythia's full batch, window, rotary positions and warm-up, against Pythia-70m, at steps 0, 64, 128, 256 and 512. Every count is over L0–L5. The rests and shares are on the 2,048-token held-out windows. The losses and the push are on 50 batches of the corpus sample's windows, as in Table 15.
+
+At Pythia's full batch, the run follows Pythia-70m closely over its first 512 steps (Table 32). Its loss is 0.21 to 0.33 below Pythia's at each step, so it learns at about Pythia's pace. L1 rests at −0.15 at step 512, against −0.22 in Pythia-70m, and every layer rests within 0.08 of Pythia's layer. The deepest gap is in L4 and L5, which rest at −0.14 against −0.10 and −0.06. The rest hardly changes with position in either model, and L1's position share is 0.20 against 0.18, nearly all of it the global share. In both, the median neuron's weights have just begun to turn against the mean input, at a cosine of −0.03 and −0.04.
+
+The push is as weak and mixed as Pythia's. It points down in 14 of 30 checkpoints and layers, against 11 in Pythia-70m at these steps and 13 of 30 at its checkpoints of steps 0–4,000 (Table 19). Its correlation with the next move has a median of +0.04, against +0.01, and its sign matches the move for 52% of neurons, against 51%. In both models the correlation is largest at step 0, at +0.17 to +0.22 in L1–L5 of the run and +0.19 to +0.30 in Pythia-70m. After that it is near 0 in both. The 32× batch with rotary positions (Table 31) is deeper at the same step. At step 500, L1 rests at −0.29 and −0.30 on its two seeds, and L3 at −0.41 and −0.44, at a loss of 5.30 on the 128-token held-out windows, against 5.09 for this run at step 512. Its warm-up of 715 steps gives it a higher rate at each step, so the comparison does not separate the batch from the rate.
+
+So with Pythia's size, window, rotary positions, batch and warm-up, a small run's rest and push over the first 512 steps are close to Pythia-70m's. The checkpoint test then finds a weak, mixed push in both, and the test of Table 19 finds a steady push at the checkpoints of runs with smaller batches. This suggests that Pythia's weak push at its checkpoints comes from its training setup, and that the full batch, with Pythia's own warm-up, is the part of it that the earlier runs lacked. Two cautions apply. The run has one seed, and #7317 holds a second. And Pythia's push stays weak to step 143,000, but this run stops at step 512, where Pythia's rest has only begun to form. A full run to step 4,000 at this batch would take about 50 hours on the 12 GB GPU.

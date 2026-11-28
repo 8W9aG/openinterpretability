@@ -121,8 +121,12 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <circle class="fneutral ring" cx="56.0" cy="292.2" r="3.5"/>
 <circle class="fneutral ring" cx="206.0" cy="315.3" r="3.5"/>
 <circle class="fneutral ring" cx="356.0" cy="318.0" r="3.5"/>
-<path class="line sc3" d="M56.0 369.7L206.0 370.9L356.0 380.7"/>
+<path class="line sc3" d="M56.0 369.7L65.6 365.5L75.2 379.0L94.4 357.4L132.8 364.3L206.0 370.9L356.0 380.7"/>
 <circle class="fc3 ring" cx="56.0" cy="369.7" r="3.5"/>
+<circle class="fc3 ring" cx="65.6" cy="365.5" r="3.5"/>
+<circle class="fc3 ring" cx="75.2" cy="379.0" r="3.5"/>
+<circle class="fc3 ring" cx="94.4" cy="357.4" r="3.5"/>
+<circle class="fc3 ring" cx="132.8" cy="364.3" r="3.5"/>
 <circle class="fc3 ring" cx="206.0" cy="370.9" r="3.5"/>
 <circle class="fc3 ring" cx="356.0" cy="380.7" r="3.5"/>
 <path class="grid" d="M430.0 183.0L430.0 403.0"/>
@@ -180,8 +184,12 @@ text{font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetic
 <circle class="fneutral ring" cx="430.0" cy="191.4" r="3.5"/>
 <circle class="fneutral ring" cx="580.0" cy="218.4" r="3.5"/>
 <circle class="fneutral ring" cx="730.0" cy="244.5" r="3.5"/>
-<path class="line sc3" d="M430.0 191.5L580.0 205.4L730.0 210.6"/>
+<path class="line sc3" d="M430.0 191.5L439.6 192.4L449.2 194.0L468.4 196.6L506.8 200.9L580.0 205.4L730.0 210.6"/>
 <circle class="fc3 ring" cx="430.0" cy="191.5" r="3.5"/>
+<circle class="fc3 ring" cx="439.6" cy="192.4" r="3.5"/>
+<circle class="fc3 ring" cx="449.2" cy="194.0" r="3.5"/>
+<circle class="fc3 ring" cx="468.4" cy="196.6" r="3.5"/>
+<circle class="fc3 ring" cx="506.8" cy="200.9" r="3.5"/>
 <circle class="fc3 ring" cx="580.0" cy="205.4" r="3.5"/>
 <circle class="fc3 ring" cx="730.0" cy="210.6" r="3.5"/>
 </svg>

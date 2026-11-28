@@ -31,6 +31,8 @@ PYTHIA_BATCH_FACTOR = 4  # Pythia's batch is 500 times ours. 4 times fits the ti
 PYTHIA_FULL_BATCH_FACTOR = 32
 TRAIN_WINDOW = 128  # tokens in each training window. A test checks it is default_on_poles'.
 PYTHIA_WINDOW = 2048  # Pythia's training window
+PYTHIA_FULL_BATCH_WINDOWS = 1024  # Pythia's batch: 1,024 windows of 2,048 tokens
+PYTHIA_FULL_WARMUP = 1430  # Pythia's own warm-up, 1% of its 143,000 steps
 # Pythia's rotary positions turn a quarter of each head's dimensions, with base 10,000.
 PYTHIA_ROTARY_SHARE = 0.25
 PYTHIA_ROTARY_BASE = 10_000.0
@@ -180,6 +182,13 @@ CONDITIONS["pythia_size_batch_32x_window"] = replace(
 # The same with Pythia's rotary positions in place of learned ones (#7202).
 CONDITIONS["pythia_size_batch_32x_window_rotary"] = replace(
     CONDITIONS["pythia_size_batch_32x_window"], positions="rotary"
+)
+# Pythia's whole batch and its own warm-up (#7243). The runs stop at step 512.
+# Pythia is still in its warm-up there. Only its own warm-up gives its rate at each step.
+CONDITIONS["pythia_full_batch_rotary"] = replace(
+    CONDITIONS["pythia_size_batch_32x_window_rotary"],
+    batch=PYTHIA_FULL_BATCH_WINDOWS,
+    warmup_steps=PYTHIA_FULL_WARMUP,
 )
 CONDITIONS |= {f"gelu_{n[5:]}": replace(c, activation="gelu")  # each ReLU norm condition (#3193)
                for n, c in CONDITIONS.items() if n[:5] == "relu_" and c.centre_norms}  # fmt: skip
